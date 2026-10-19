@@ -1,0 +1,1 @@
+../../legacy/copy-space/tests/copy_c_function_declaration_cases.py

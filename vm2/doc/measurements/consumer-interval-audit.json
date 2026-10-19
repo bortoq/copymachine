@@ -1,0 +1,78 @@
+{
+  "scope": "static initial schedules, no execution; patched operands require dynamic validation",
+  "generator_sha256": "3163f4cefae5c8f584c231e77d4f8c1acb93b09d18f11ac672d6075b3fa5dcdc",
+  "profiles": [
+    {
+      "profile": "base",
+      "checked_layers": 790,
+      "examples": [
+        {
+          "block": "fetch",
+          "home": 498688,
+          "layer": 12,
+          "error": "overlapping intervals: slot 255 dst [0,19712) and slot 255 src [0,19712)"
+        },
+        {
+          "block": "guard_1",
+          "home": 557824,
+          "layer": 2,
+          "error": "overlapping intervals: slot 0 src [196736,196737) and slot 1 src [196736,196737)"
+        },
+        {
+          "block": "guard_1",
+          "home": 814080,
+          "layer": 15,
+          "error": "overlapping intervals: slot 255 dst [0,19712) and slot 255 src [0,19712)"
+        },
+        {
+          "block": "guard_2",
+          "home": 833792,
+          "layer": 0,
+          "error": "overlapping intervals: slot 1 src [132096,132097) and slot 3 src [132096,132097)"
+        },
+        {
+          "block": "guard_2",
+          "home": 873216,
+          "layer": 2,
+          "error": "overlapping intervals: slot 1 src [196928,196929) and slot 3 src [196928,196929)"
+        }
+      ]
+    },
+    {
+      "profile": "io",
+      "checked_layers": 1078,
+      "examples": [
+        {
+          "block": "fetch",
+          "home": 498688,
+          "layer": 12,
+          "error": "overlapping intervals: slot 255 dst [0,19712) and slot 255 src [0,19712)"
+        },
+        {
+          "block": "guard_1",
+          "home": 557824,
+          "layer": 2,
+          "error": "overlapping intervals: slot 0 src [196736,196737) and slot 1 src [196736,196737)"
+        },
+        {
+          "block": "guard_1",
+          "home": 814080,
+          "layer": 15,
+          "error": "overlapping intervals: slot 255 dst [0,19712) and slot 255 src [0,19712)"
+        },
+        {
+          "block": "guard_2",
+          "home": 833792,
+          "layer": 0,
+          "error": "overlapping intervals: slot 1 src [132096,132097) and slot 3 src [132096,132097)"
+        },
+        {
+          "block": "guard_2",
+          "home": 873216,
+          "layer": 2,
+          "error": "overlapping intervals: slot 1 src [196928,196929) and slot 3 src [196928,196929)"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+PASS index: 2778 queries, 649924 linear visits, 2967 indexed name comparisons; 1000 new words, collisions, case, redefinition, smudge/immediate, context, rename and links
+Prepared builtin names: 381 maximum builtin bucket: 2

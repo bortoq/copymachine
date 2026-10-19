@@ -1,0 +1,36 @@
+{
+  "source_sha256": "3c0abc909d886c0cd7a986dc687fd2224ea5c0f783d1790457c6fb1d535bd8ac",
+  "compile_seconds": 0.03750301300004821,
+  "vm1": {
+    "schema": "copycode-vm1-rev1",
+    "size": 4194288,
+    "slots": 8,
+    "address_bits": 22,
+    "instruction_bits": 88,
+    "channels": {
+      "sys": 4194288,
+      "stdin": 4194289,
+      "stdout": 4194290,
+      "debug": 4194291,
+      "status": 4194292,
+      "snapshot": 4194293
+    },
+    "bit_order": "msb-first-bytes-lsb-first-fields",
+    "tick": "completion-at-end",
+    "overlap": "all-memory-operands-disjoint",
+    "layout_id": "f799c8b2d845a51d821465fd75b46b8522ce33adc2ee58270f983cf303004478"
+  },
+  "image_bytes": 524286,
+  "boot_bytes": 164368,
+  "code_bits": 92224,
+  "data_bits": 533248,
+  "bootstrap_ticks": 11,
+  "execution_ticks": 131,
+  "stdout_hex": "88",
+  "wall_seconds": [
+    0.0010838840000246819,
+    0.0010402109999745335,
+    0.0010162490000311664
+  ],
+  "scope": "Direct execution only; owner-generated memory load/store, LUT and indirect jump; not a full RV32I CPU"
+}

@@ -1,0 +1,46 @@
+{
+  "iterations": 8,
+  "compile_seconds": 0.24674659599997995,
+  "source_sha256": "15007ac8778d6573830983918af32e6bbf06dddea52dce3cb0882090b5b32d0f",
+  "vm1": {
+    "schema": "copycode-vm1-rev1",
+    "size": 1048560,
+    "slots": 8,
+    "address_bits": 20,
+    "instruction_bits": 80,
+    "channels": {
+      "sys": 1048560,
+      "stdin": 1048561,
+      "stdout": 1048562,
+      "debug": 1048563,
+      "status": 1048564,
+      "snapshot": 1048565
+    },
+    "bit_order": "msb-first-bytes-lsb-first-fields",
+    "tick": "completion-at-end",
+    "overlap": "all-memory-operands-disjoint",
+    "layout_id": "6ff187d82d3e590152c5fba4be9c2b972b2d36a75faee461d013950f3083d3f5"
+  },
+  "wall_seconds": {
+    "direct": [
+      0.0028341240000031576,
+      0.0024805429999901207,
+      0.002415371999973104
+    ],
+    "c-vm2": [
+      0.0007894199999896045,
+      0.0007733959999995932,
+      0.0007647369999972398
+    ],
+    "interpreter": [
+      0.03226945000000114,
+      0.03253945200003727,
+      0.032426017000034335
+    ]
+  },
+  "vm1_ticks": 2981,
+  "bootstrap_ticks": 5,
+  "control_virtual_ticks": 36,
+  "control_bootstrap_ticks": 4,
+  "note": "Two immutable logical layers in a real cycle. Direct limit counter is in-space; C physical and interpreter virtual limits include boot and explicit fetch bridges. Includes process startup and loop output."
+}

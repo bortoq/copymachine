@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Build/run pForth or package a verified source-free Forth job."""
+import argparse,hashlib,json,subprocess,sys,tempfile
+from pathlib import Path
+ROOT=Path(__file__).resolve().parent
+sys.path.insert(0,str(ROOT/'scripts/pforth'))
+from build import build,job,PORT,dictionary
+from common import RV32I_ROOT
+from cli import run
+
+def main():
+ p=argparse.ArgumentParser(description=__doc__);s=p.add_subparsers(dest='command',required=True)
+ c=s.add_parser('build');c.add_argument('-o',type=Path,required=True);c.add_argument('--compiler');c.add_argument('--linear-search',action='store_true');c.add_argument('--serial-rv32i',action='store_true')
+ c=s.add_parser('run');c.add_argument('image',type=Path);c.add_argument('--snapshot',type=Path)
+ c=s.add_parser('job');c.add_argument('image',type=Path);c.add_argument('task',type=Path);c.add_argument('-o',type=Path,required=True)
+ c=s.add_parser('run-job');c.add_argument('job',type=Path);c.add_argument('--snapshot',type=Path)
+ s.add_parser('prepare-check')
+ a=p.parse_args()
+ try:
+  if a.command=='build':build(a.o,a.compiler,indexed=not a.linear_search,packing=not a.serial_rv32i)
+  elif a.command=='run':return run(a.image,snapshot=a.snapshot)
+  elif a.command=='job':job(a.image,a.task,a.o)
+  elif a.command=='run-job':
+   folder=a.job;m=json.loads((folder/'job.json').read_text());source=(folder/'task.fth').read_bytes()
+   if m.get('schema')!='pforth-job-v1' or hashlib.sha256(source).hexdigest()!=m['task_sha256'] or hashlib.sha256((folder/'image/manifest.json').read_bytes()).hexdigest()!=m['manifest_sha256']:raise ValueError('job checksum mismatch')
+   command=[sys.executable,str(ROOT/'pforth'),'run',str(folder/'image')]
+   if a.snapshot:command+=['--snapshot',str(a.snapshot)]
+   with (folder/'task.fth').open('rb') as incoming:return subprocess.run(command,stdin=incoming,check=False).returncode
+  else:
+   from prepare import prepare
+   original=dictionary()
+   with tempfile.TemporaryDirectory() as d:
+    d=Path(d);header=d/'pfdicdat.h';actual=prepare(header,artifacts=d/'prepare')
+    if actual!=original or header.read_bytes()!=(PORT/'pfdicdat.h').read_bytes():raise ValueError('dictionary is not reproducible')
+   print('PASS reproducible 32-bit dictionary')
+  return 0
+ except (OSError,ValueError,KeyError,subprocess.SubprocessError) as e:
+  print('pforth:',e,file=sys.stderr);return 2
+if __name__=='__main__':sys.exit(main())

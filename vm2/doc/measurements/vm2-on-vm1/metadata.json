@@ -1,0 +1,11 @@
+{
+  "platform": "Linux-6.2.0-39-generic-x86_64-with-glibc2.37",
+  "cpu": "AMD Ryzen 5 PRO 5650U with Radeon Graphics",
+  "vm1_sha256": "df2ace07cc867290426a90ff54485d07df844403a81678714bf3a311b44efe59",
+  "legacy_sha256": "8639033baa11fb4934ad9551b67335552a453408be236f90fee0fabc13bee8f7",
+  "repeats": 5,
+  "notes": "Physical count includes vm1 bootstrap and optional boundary snapshot/report; logical ticks include vm2 seed/installer; no speed or FPGA area claims beyond these workloads.",
+  "compiler": "gcc (Ubuntu 12.3.0-1ubuntu1~23.04) 12.3.0",
+  "vm1_build_config": "cc\n\n-Wall -Wextra -pedantic -std=c11 -O2\n\n\n",
+  "legacy_build_config": "gcc\n\n-std=c11 -Wall -Wextra -O3\n\n\n"
+}

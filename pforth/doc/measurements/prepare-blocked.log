@@ -1,0 +1,5 @@
+make: Entering directory '/home/user/work/copymachine/pforth'
+python3 -B /home/user/work/copymachine/vm2/tools/limited_run.py --seconds 180 --memory-mib 768 python3 -B pforth prepare-check
+pforth: the execution sandbox blocks i386 system calls; regenerate the dictionary outside it
+make: *** [Makefile:27: prepare-check] Error 2
+make: Leaving directory '/home/user/work/copymachine/pforth'

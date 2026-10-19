@@ -1,0 +1,314 @@
+[
+  {
+    "active_copies": 1,
+    "copy_bits": 8,
+    "guest_ticks": 32,
+    "vm1_ticks": 81444,
+    "vm1_ticks_per_guest_tick": 2545.125,
+    "compile_seconds": 4.640253106015734,
+    "code_bits": 6830400,
+    "data_bits": 819296,
+    "host_bits": 33554416,
+    "guest_bits": 65520,
+    "boot_bytes": 1088144,
+    "rss_kib": 2304,
+    "samples": [
+      {
+        "wall_seconds": 0.12240606296109036,
+        "cpu_seconds": 0.11931099999999997
+      },
+      {
+        "wall_seconds": 0.12394883396336809,
+        "cpu_seconds": 0.121194
+      },
+      {
+        "wall_seconds": 0.1225184359936975,
+        "cpu_seconds": 0.11991300000000006
+      },
+      {
+        "wall_seconds": 0.12375230400357395,
+        "cpu_seconds": 0.1208639999999999
+      },
+      {
+        "wall_seconds": 0.12417141499463469,
+        "cpu_seconds": 0.1223980000000002
+      },
+      {
+        "wall_seconds": 0.12538202502764761,
+        "cpu_seconds": 0.12266300000000002
+      },
+      {
+        "wall_seconds": 0.1234347409917973,
+        "cpu_seconds": 0.12161799999999984
+      }
+    ],
+    "wall_median_seconds": 0.12375230400357395,
+    "legacy_wall_seconds": [
+      0.0011986689642071724,
+      0.00085645099170506,
+      0.0009449379867874086,
+      0.000854843994602561,
+      0.0008021150133572519,
+      0.0007273160153999925,
+      0.0007051069987937808
+    ],
+    "legacy_wall_median_seconds": 0.000854843994602561,
+    "process_slowdown_vs_legacy": 144.76595119687258,
+    "variant": "parallel",
+    "generation": {
+      "scheduling": "optimize",
+      "translation": "parallel",
+      "arithmetic": "hybrid",
+      "host_slots": 16
+    },
+    "workload": "memory",
+    "host_slots": 16,
+    "guest_snapshot_sha256": "48489ce35351c6e16f0d906161c0e2aea9317a663eb7ebbabdc6bf2ee9718470",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bootstrap_ticks": 67,
+    "bootstrap_wall_seconds": [
+      0.005807006033137441,
+      0.005438180000055581,
+      0.005155745951924473,
+      0.00501830002758652,
+      0.005181448010262102,
+      0.005161543027497828,
+      0.005130603967700154
+    ],
+    "bootstrap_wall_median_seconds": 0.005161543027497828
+  },
+  {
+    "active_copies": 63,
+    "copy_bits": 8,
+    "guest_ticks": 32,
+    "vm1_ticks": 81444,
+    "vm1_ticks_per_guest_tick": 2545.125,
+    "compile_seconds": 4.640253106015734,
+    "code_bits": 6830400,
+    "data_bits": 819296,
+    "host_bits": 33554416,
+    "guest_bits": 65520,
+    "boot_bytes": 1088144,
+    "rss_kib": 2304,
+    "samples": [
+      {
+        "wall_seconds": 0.12245363101828843,
+        "cpu_seconds": 0.12035799999999995
+      },
+      {
+        "wall_seconds": 0.12419265299104154,
+        "cpu_seconds": 0.12232099999999975
+      },
+      {
+        "wall_seconds": 0.12417393899522722,
+        "cpu_seconds": 0.12216400000000001
+      },
+      {
+        "wall_seconds": 0.12347239803057164,
+        "cpu_seconds": 0.12142899999999991
+      },
+      {
+        "wall_seconds": 0.12346618104493245,
+        "cpu_seconds": 0.12135299999999997
+      },
+      {
+        "wall_seconds": 0.12322425498859957,
+        "cpu_seconds": 0.12102999999999968
+      },
+      {
+        "wall_seconds": 0.12274291599169374,
+        "cpu_seconds": 0.12087200000000012
+      }
+    ],
+    "wall_median_seconds": 0.12346618104493245,
+    "legacy_wall_seconds": [
+      0.0011278509628027678,
+      0.000968475011177361,
+      0.0008849459700286388,
+      0.0008834800100885332,
+      0.0008894159691408277,
+      0.0008298419998027384,
+      0.0008041399996727705
+    ],
+    "legacy_wall_median_seconds": 0.0008849459700286388,
+    "process_slowdown_vs_legacy": 139.51832679789118,
+    "variant": "parallel",
+    "generation": {
+      "scheduling": "optimize",
+      "translation": "parallel",
+      "arithmetic": "hybrid",
+      "host_slots": 16
+    },
+    "workload": "memory",
+    "host_slots": 16,
+    "guest_snapshot_sha256": "bb216cc5a04a55029cac1688354e158b728811a322cfe0b26515f9e8895de4a5",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bootstrap_ticks": 67,
+    "bootstrap_wall_seconds": [
+      0.006337373983114958,
+      0.005378607020247728,
+      0.005393831990659237,
+      0.005271752015687525,
+      0.005178305029403418,
+      0.005361285991966724,
+      0.005232222029007971
+    ],
+    "bootstrap_wall_median_seconds": 0.005361285991966724
+  },
+  {
+    "active_copies": 1,
+    "copy_bits": 4096,
+    "guest_ticks": 32,
+    "vm1_ticks": 81444,
+    "vm1_ticks_per_guest_tick": 2545.125,
+    "compile_seconds": 4.640253106015734,
+    "code_bits": 6830400,
+    "data_bits": 819296,
+    "host_bits": 33554416,
+    "guest_bits": 65520,
+    "boot_bytes": 1088144,
+    "rss_kib": 2304,
+    "samples": [
+      {
+        "wall_seconds": 0.1224603489972651,
+        "cpu_seconds": 0.12073199999999984
+      },
+      {
+        "wall_seconds": 0.12478288600686938,
+        "cpu_seconds": 0.12309499999999998
+      },
+      {
+        "wall_seconds": 0.12208139599533752,
+        "cpu_seconds": 0.12034600000000006
+      },
+      {
+        "wall_seconds": 0.12187508802162483,
+        "cpu_seconds": 0.12017800000000001
+      },
+      {
+        "wall_seconds": 0.12148530897684395,
+        "cpu_seconds": 0.11969199999999955
+      },
+      {
+        "wall_seconds": 0.12394801597110927,
+        "cpu_seconds": 0.12200000000000052
+      },
+      {
+        "wall_seconds": 0.1234091329970397,
+        "cpu_seconds": 0.12130000000000013
+      }
+    ],
+    "wall_median_seconds": 0.1224603489972651,
+    "legacy_wall_seconds": [
+      0.0011400029761716723,
+      0.0008775430032983422,
+      0.0009123930358327925,
+      0.0009511539828963578,
+      0.0008623169851489365,
+      0.000804071023594588,
+      0.0008128699846565723
+    ],
+    "legacy_wall_median_seconds": 0.0008775430032983422,
+    "process_slowdown_vs_legacy": 139.54911444451653,
+    "variant": "parallel",
+    "generation": {
+      "scheduling": "optimize",
+      "translation": "parallel",
+      "arithmetic": "hybrid",
+      "host_slots": 16
+    },
+    "workload": "memory",
+    "host_slots": 16,
+    "guest_snapshot_sha256": "8b59906b7b87133930964d85a75b5fdd0bd4a0774299d218d14b425e666d4189",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bootstrap_ticks": 67,
+    "bootstrap_wall_seconds": [
+      0.005644140008371323,
+      0.005521221028175205,
+      0.005341382988262922,
+      0.005399350018706173,
+      0.005421699024736881,
+      0.005863088998012245,
+      0.00555537297623232
+    ],
+    "bootstrap_wall_median_seconds": 0.005521221028175205
+  },
+  {
+    "active_copies": 1,
+    "copy_bits": 8,
+    "guest_ticks": 32,
+    "vm1_ticks": 183672,
+    "vm1_ticks_per_guest_tick": 5739.75,
+    "compile_seconds": 4.640253106015734,
+    "code_bits": 6830400,
+    "data_bits": 819296,
+    "host_bits": 33554416,
+    "guest_bits": 65520,
+    "boot_bytes": 1088144,
+    "rss_kib": 2304,
+    "samples": [
+      {
+        "wall_seconds": 0.26807814999483526,
+        "cpu_seconds": 0.2649039999999996
+      },
+      {
+        "wall_seconds": 0.2603793780435808,
+        "cpu_seconds": 0.25735899999999967
+      },
+      {
+        "wall_seconds": 0.259780012012925,
+        "cpu_seconds": 0.2571480000000005
+      },
+      {
+        "wall_seconds": 0.2721235220087692,
+        "cpu_seconds": 0.2688550000000003
+      },
+      {
+        "wall_seconds": 0.26020018197596073,
+        "cpu_seconds": 0.2576289999999992
+      },
+      {
+        "wall_seconds": 0.25953327800380066,
+        "cpu_seconds": 0.2564910000000004
+      },
+      {
+        "wall_seconds": 0.26006637403042987,
+        "cpu_seconds": 0.2570839999999996
+      }
+    ],
+    "wall_median_seconds": 0.26020018197596073,
+    "legacy_wall_seconds": [
+      0.001359720015898347,
+      0.0008574289968237281,
+      0.0008150360081344843,
+      0.0009094600100070238,
+      0.0007420529727824032,
+      0.0007736209663562477,
+      0.0007398180314339697
+    ],
+    "legacy_wall_median_seconds": 0.0008150360081344843,
+    "process_slowdown_vs_legacy": 319.24992194090476,
+    "variant": "parallel",
+    "generation": {
+      "scheduling": "optimize",
+      "translation": "parallel",
+      "arithmetic": "hybrid",
+      "host_slots": 16
+    },
+    "workload": "stdout",
+    "host_slots": 16,
+    "guest_snapshot_sha256": "4bbcf63708d5cbb610f95ce46343960c535c821ca0161fc821bf7617bb867489",
+    "stdout_sha256": "e43f64fe27cf45867e678b92cab5264f23e768e2f02cbafb5c0465119587a1a5",
+    "bootstrap_ticks": 67,
+    "bootstrap_wall_seconds": [
+      0.005635898967739195,
+      0.005433572048787028,
+      0.005311421002261341,
+      0.005395717977080494,
+      0.005341382988262922,
+      0.005250311980489641,
+      0.005376023997087032
+    ],
+    "bootstrap_wall_median_seconds": 0.005376023997087032
+  }
+]

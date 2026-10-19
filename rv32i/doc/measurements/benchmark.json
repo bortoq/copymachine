@@ -1,0 +1,75 @@
+{
+  "schema": "rv32i-measurement-v1",
+  "platform": "Linux-6.2.0-39-generic-x86_64-with-glibc2.37",
+  "c_compile_seconds": 0.060963209999954415,
+  "translation_seconds": 6.280371362000096,
+  "vm1": {
+    "schema": "copycode-vm1-rev1",
+    "size": 134217712,
+    "slots": 8,
+    "address_bits": 27,
+    "instruction_bits": 108,
+    "channels": {
+      "sys": 134217712,
+      "stdin": 134217713,
+      "stdout": 134217714,
+      "debug": 134217715,
+      "status": 134217716,
+      "snapshot": 134217717
+    },
+    "bit_order": "msb-first-bytes-lsb-first-fields",
+    "tick": "completion-at-end",
+    "overlap": "all-memory-operands-disjoint",
+    "layout_id": "b0a3d1f69207e84ad111877e7df391c7b3aaaef36d0902ffe0691f96ea177824"
+  },
+  "code_bits": 22826880,
+  "data_bits": 1575296,
+  "image_bytes": 16777214,
+  "boot_bytes": 3156204,
+  "bootstrap_ticks": 193,
+  "execution_ticks": 54485,
+  "stdout_hex": "4f4b0a",
+  "wall_seconds": [
+    0.08479263599974729,
+    0.06850410900005954,
+    0.06861407599990343
+  ],
+  "median_seconds": 0.06861407599990343,
+  "load_seconds": [
+    0.011117292000108137,
+    0.01133838800024023,
+    0.011151611000059347
+  ],
+  "rss_kib": 4352,
+  "notes": "Three sequential real processes including startup, stdin boot and final snapshot. Load-only sample stops at audited bootstrap boundary. No claim of steady-state throughput.",
+  "source_sha256": {
+    "modules/dependencies.py": "333e410e14bbd0dcdccc72854a0f316908421ada5185907e1d23dfd61f842128",
+    "modules/rv32i.py": "e79147595b02ccb02a1313562e25de35c21c1f8259561c932cba359c944c3e15",
+    "modules/rv32i_bulk.py": "3cc73baeb9cdb1a5c08895183fa6f0d053f46cd720d9a70ba289948e1a1b1220",
+    "modules/cli.py": "e688a0c8da706a99e769e4952ab5230c6cd39b9c207713d7141ea1307d4ad9b5",
+    "modules/direct_target.py": "13166f1790dedcce0fd90858856711c385ead6f5c703ddb9ca5295201bd36d91",
+    "modules/rv32i_toolchain.py": "9d333a255ed0055ec56b9ceff18cb9d19e300efaa52b4eba01ace870d9194992",
+    "modules/rv32i_stream.py": "b7593516d19d08085115e247f81ae2c94e55cc65fb002d038a5fd34f54834723",
+    "tools/benchmark.py": "4e3e50626c66292b3f998532a29bc6a47603cc34814f263882652c469ffd9aa7",
+    "tests/test_direct.py": "7dea4441c32776697a72fe9b20f1dd7df91ba99a389314504613ad924faa1422",
+    "examples/rv32i/smoke.c": "dfe8f7d3a9961af7a4a9058aaf283581a7430b38d5a0add81671caaedf97b79a"
+  },
+  "binary_sha256": {
+    "/home/user/work/copymachine/vm1/build/bitcopy/vm1": "df2ace07cc867290426a90ff54485d07df844403a81678714bf3a311b44efe59",
+    "/home/user/work/copymachine/vm2/build/checked-vm1": "35b8def386292c6bb9d15ca0f1206ec5fc0c475c08fd0b04713c7479213066cd"
+  },
+  "dependency_sha256": {
+    "/home/user/work/copymachine/vm2/vm2compile/sdk.py": "886a5b14d3a99f64369d8e7af292f1bfd995178f797cfef493720f479aab05d0",
+    "/home/user/work/copymachine/vm2/vm2compile/model.py": "a8c2785cafcb3049ac40a0500e58e1978d25f18759967039a7f2d8dd4dca23e5",
+    "/home/user/work/copymachine/vm2/vm2compile/__init__.py": "389095a07b8fdec7236cebb25befbb54ef79827c607721e6fbf86c25538d4896",
+    "/home/user/work/copymachine/vm2/vm2compile/cli.py": "0ec2bcffca55e7b00ce9badc5831ebe3d68585e9fa4516635152218c94a65b63",
+    "/home/user/work/copymachine/vm2/vm2compile/abi.py": "655999557d88e7f66036c5db6b1be4a7a9c280ffac88aee596d9ff74374802da",
+    "/home/user/work/copymachine/vm2/vm2compile/artifact.py": "88e803b60b73bb134619d19bdc98513fec8c1ff45f5d7588171ef252dfed5ca4",
+    "/home/user/work/copymachine/vm2/vm2compile/legacy.py": "ad323b501584608144695eee12436c4e69067bbbf3de3921e49ba645ea7ec630",
+    "/home/user/work/copymachine/vm2/vm2compile/compiler.py": "a5cac0949cec38098ffb6b00daf187423dc09e046d5156ba7b664164e7aac119",
+    "/home/user/work/copymachine/copycode/src/copycode/vm2/arithmetic.py": "ecdea829b4411996caaa732c3a7da5ff57a3621f037d60f250faeff3dd885a3c",
+    "/home/user/work/copymachine/copycode/src/copycode/vm1/assembler.py": "75967321f597d50b1dcd221bc95721510db54856922e46150105165af619d78a",
+    "/home/user/work/copymachine/copycode/src/copycode/vm1/schedule.py": "9810967f7b6f4476641afdd2bcaa8f421a15ece864db1d58aa0df2b9d0cf871d"
+  },
+  "compiler_version": "riscv64-unknown-elf-gcc () 10.2.0"
+}

@@ -1,0 +1,1 @@
+../../legacy/copy-space/doc/channel_protocol.md

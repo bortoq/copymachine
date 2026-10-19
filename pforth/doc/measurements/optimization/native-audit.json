@@ -1,0 +1,18 @@
+{
+  "schema": "pforth-native-audit-v1",
+  "command": [
+    "/home/user/work/copymachine/pforth/pforth",
+    "run",
+    "/home/user/work/copymachine/pforth/build/pforth",
+    "--snapshot",
+    "/home/user/work/copymachine/pforth/build/verification/native-audit/snapshot.bin"
+  ],
+  "seconds": 8.515008704000138,
+  "ticks": 7800835,
+  "input_hex": "312032202b202e",
+  "stdout_hex": "3320",
+  "stderr": "VM1_AUDIT_BOOT_TICKS=143\nVM1_AUDIT_TICKS=7800835\n",
+  "snapshot_sha256": "0ec73ae1a54f11a54d161b59dd3765e593cb809ef48ec7c6fdf56278e713bdaf",
+  "manifest_sha256": "4d39cdf9ff8cba75c4f3c50491b7270b26d3740b73407c5e60fc345ae42daa00",
+  "binary_sha256": "2504c39bcf5d6acad99fcece1b3513d391f946fa9c8ad9b894dc8cae0c9ff3ce"
+}

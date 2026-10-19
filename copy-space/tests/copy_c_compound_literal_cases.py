@@ -1,0 +1,1 @@
+../../legacy/copy-space/tests/copy_c_compound_literal_cases.py

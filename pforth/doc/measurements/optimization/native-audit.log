@@ -1,0 +1,10 @@
+make: Entering directory '/home/user/work/copymachine/pforth'
+make -C "/home/user/work/copymachine/vm1" -j1 build/bitcopy/vm1
+make[1]: Entering directory '/home/user/work/copymachine/vm1'
+make[1]: Leaving directory '/home/user/work/copymachine/vm1'
+make -C "/home/user/work/copymachine/vm2" -j1 build/checked-vm1
+make[1]: Entering directory '/home/user/work/copymachine/vm2'
+make[1]: Leaving directory '/home/user/work/copymachine/vm2'
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 180 --memory-mib 768 python3 -B tests/test_native_audit.py
+PASS native pForth audit: every tick src/src, RAW memory operands, patched fields, fetch and devices; 7800835 ticks, 8.515 s
+make: Leaving directory '/home/user/work/copymachine/pforth'

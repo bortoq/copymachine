@@ -1,0 +1,41 @@
+make: Entering directory '/home/user/work/copymachine/pforth'
+make -C "/home/user/work/copymachine/vm1" -j1 build/bitcopy/vm1
+make[1]: Entering directory '/home/user/work/copymachine/vm1'
+make[1]: Leaving directory '/home/user/work/copymachine/vm1'
+rm -rf build/pforth
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 180 --memory-mib 768 python3 -B pforth build -o build/pforth
+cc -O2 -Wall -DVM1_NO_MAIN -I"/home/user/work/copymachine/vm1/src" tests/observe_vm1.c "/home/user/work/copymachine/vm1/src/runtime.c" "/home/user/work/copymachine/vm1/src/sys_ctrl.c" "/home/user/work/copymachine/vm1/src/bitcopy.c" "/home/user/work/copymachine/vm1/src/backend_bitcopy.c" -o build/observe-vm1
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 180 --memory-mib 768 python3 -B tools/prepare_test_image.py
+PASS cold pForth initialized inside vm1; paused before first read 1.706 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 180 --memory-mib 768 python3 -B tests/test_index.py
+PASS index: 2775 queries, 649155 linear visits, 2966 indexed name comparisons; 1000 new words, collisions, case, redefinition, smudge/immediate, context, rename and links
+Prepared builtin names: 381 maximum builtin bucket: 2
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 180 --memory-mib 768 python3 -B tests/test_identity.py
+PASS pinned upstream, dictionary header, source input and 32-bit metadata
+PASS reconstructed raw dictionary SHA256
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 180 --memory-mib 768 python3 -B tests/test_jobs.py
+PASS deleted task source and corrupt job/task/image rejection
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case language
+PASS pForth language 6.555 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case language-control
+PASS pForth language-control 19.946 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case language-memory
+PASS pForth language-memory 12.909 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case index-semantics
+PASS pForth index-semantics 33.651 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case eof
+PASS pForth eof 1.656 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case unknown
+PASS pForth unknown 2.739 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case unfinished
+PASS pForth unfinished 2.289 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case long-line
+PASS pForth long-line 4.694 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case input-error
+PASS pForth input-error 0.503 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case output-error
+PASS pForth output-error 0.784 seconds
+python3 -B "/home/user/work/copymachine/vm2/tools/limited_run.py" --seconds 360 --memory-mib 768 python3 -B tests/test_direct.py --case job
+PASS pForth job 2.06 seconds
+PASS pForth job corruption rejected
+make: Leaving directory '/home/user/work/copymachine/pforth'

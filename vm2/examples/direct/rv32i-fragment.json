@@ -1,0 +1,384 @@
+{
+  "data": [
+    {
+      "align": 1024,
+      "at": null,
+      "bits": 1024,
+      "name": "registers",
+      "record": null,
+      "relocations": [],
+      "table": null,
+      "value": "0x1000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "align": 524288,
+      "at": null,
+      "bits": 512,
+      "name": "guest",
+      "record": null,
+      "relocations": [],
+      "table": null,
+      "value": "0x4005a0c800000000"
+    },
+    {
+      "align": 256,
+      "at": null,
+      "bits": 256,
+      "name": "lut",
+      "record": null,
+      "relocations": [],
+      "table": null,
+      "value": "0xff007700bb003300dd00550099001100ee006600aa002200cc004400880000"
+    },
+    {
+      "align": 64,
+      "at": null,
+      "bits": 64,
+      "name": "dispatch_table",
+      "record": null,
+      "relocations": [
+        [
+          0,
+          32,
+          {
+            "kind": "entry",
+            "name": "legacy:halt:end",
+            "offset": 0,
+            "type": "Value"
+          }
+        ],
+        [
+          32,
+          32,
+          {
+            "kind": "entry",
+            "name": "legacy:out:end",
+            "offset": 0,
+            "type": "Value"
+          }
+        ]
+      ],
+      "table": null,
+      "value": "0x0"
+    },
+    {
+      "align": 8,
+      "at": null,
+      "bits": 32,
+      "name": "constant-10",
+      "record": null,
+      "relocations": [],
+      "table": null,
+      "value": "0xa"
+    },
+    {
+      "align": 8,
+      "at": null,
+      "bits": 0,
+      "name": "legacy-next:dispatch",
+      "record": null,
+      "relocations": [
+        [
+          0,
+          "address",
+          {
+            "kind": "entry",
+            "name": "legacy:dispatch:0",
+            "offset": 0,
+            "type": "Value"
+          }
+        ]
+      ],
+      "table": null,
+      "value": "0x0"
+    },
+    {
+      "align": 8,
+      "at": null,
+      "bits": 0,
+      "name": "legacy-next:halt",
+      "record": null,
+      "relocations": [
+        [
+          0,
+          "address",
+          {
+            "kind": "entry",
+            "name": "legacy:halt:end",
+            "offset": 0,
+            "type": "Value"
+          }
+        ]
+      ],
+      "table": null,
+      "value": "0x0"
+    }
+  ],
+  "entry": "legacy:fetch:0",
+  "layers": [
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "layer": "legacy:fetch:1",
+            "name": "src",
+            "offset": 3,
+            "slot": 0,
+            "type": "Field"
+          },
+          "n": 16,
+          "src": {
+            "name": "registers",
+            "offset": 224,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:fetch:0",
+      "next": "legacy:fetch:1"
+    },
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "name": "registers",
+            "offset": 32,
+            "type": "Memory"
+          },
+          "n": 32,
+          "src": {
+            "name": "guest",
+            "offset": 0,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:fetch:1",
+      "next": "legacy:fetch:2"
+    },
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "layer": "legacy:fetch:3",
+            "name": "src",
+            "offset": 4,
+            "slot": 0,
+            "type": "Field"
+          },
+          "n": 4,
+          "src": {
+            "name": "registers",
+            "offset": 32,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:fetch:2",
+      "next": "legacy:fetch:3"
+    },
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "name": "registers",
+            "offset": 160,
+            "type": "Memory"
+          },
+          "n": 8,
+          "src": {
+            "name": "lut",
+            "offset": 0,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:fetch:3",
+      "next": "legacy:fetch:4"
+    },
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "name": "registers",
+            "offset": 224,
+            "type": "Memory"
+          },
+          "n": 32,
+          "src": {
+            "name": "constant-10",
+            "offset": 0,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:fetch:4",
+      "next": "legacy:fetch:5"
+    },
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "layer": "legacy:fetch:6",
+            "name": "dst",
+            "offset": 3,
+            "slot": 0,
+            "type": "Field"
+          },
+          "n": 16,
+          "src": {
+            "name": "registers",
+            "offset": 224,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:fetch:5",
+      "next": "legacy:fetch:6"
+    },
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "name": "guest",
+            "offset": 0,
+            "type": "Memory"
+          },
+          "n": 8,
+          "src": {
+            "name": "registers",
+            "offset": 160,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:fetch:6",
+      "next": "legacy:fetch:end"
+    },
+    {
+      "checkpoint": false,
+      "copies": [],
+      "name": "legacy:fetch:end",
+      "next": "legacy:dispatch:0"
+    },
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "layer": "legacy:dispatch:1",
+            "name": "src",
+            "offset": 5,
+            "slot": 0,
+            "type": "Field"
+          },
+          "n": 1,
+          "src": {
+            "name": "registers",
+            "offset": 384,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:dispatch:0",
+      "next": "legacy:dispatch:1"
+    },
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "name": "registers",
+            "offset": 576,
+            "type": "Memory"
+          },
+          "n": 26,
+          "src": {
+            "name": "dispatch_table",
+            "offset": 0,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:dispatch:1",
+      "next": "legacy:dispatch:2"
+    },
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "name": "legacy-next:dispatch",
+            "offset": 0,
+            "type": "Memory"
+          },
+          "n": "address",
+          "src": {
+            "name": "registers",
+            "offset": 576,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:dispatch:2",
+      "next": "legacy:dispatch:end"
+    },
+    {
+      "checkpoint": false,
+      "copies": [],
+      "name": "legacy:dispatch:end",
+      "next": {
+        "name": "legacy-next:dispatch",
+        "offset": 0,
+        "type": "Memory"
+      }
+    },
+    {
+      "checkpoint": false,
+      "copies": [
+        {
+          "dst": {
+            "name": "stdout",
+            "type": "Channel"
+          },
+          "n": 8,
+          "src": {
+            "name": "guest",
+            "offset": 80,
+            "type": "Memory"
+          },
+          "type": "Copy"
+        }
+      ],
+      "name": "legacy:out:end",
+      "next": "legacy:halt:end"
+    },
+    {
+      "checkpoint": true,
+      "copies": [],
+      "name": "legacy:halt:end",
+      "next": null
+    }
+  ],
+  "limit": 0,
+  "schema": "vm2-symbolic-v1",
+  "size": 1048560,
+  "slots": 8
+}

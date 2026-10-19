@@ -1,0 +1,314 @@
+[
+  {
+    "active_copies": 1,
+    "copy_bits": 8,
+    "guest_ticks": 32,
+    "vm1_ticks": 343445,
+    "vm1_ticks_per_guest_tick": 10732.65625,
+    "compile_seconds": 0.7016789650078863,
+    "code_bits": 2815488,
+    "data_bits": 233568,
+    "host_bits": 16777200,
+    "guest_bits": 65520,
+    "boot_bytes": 460192,
+    "rss_kib": 1664,
+    "samples": [
+      {
+        "wall_seconds": 0.2373947639716789,
+        "cpu_seconds": 0.23521000000000017
+      },
+      {
+        "wall_seconds": 0.24043112399522215,
+        "cpu_seconds": 0.23843
+      },
+      {
+        "wall_seconds": 0.23703110695350915,
+        "cpu_seconds": 0.2348460000000001
+      },
+      {
+        "wall_seconds": 0.24081720499088988,
+        "cpu_seconds": 0.23862899999999976
+      },
+      {
+        "wall_seconds": 0.24078934802673757,
+        "cpu_seconds": 0.23859800000000012
+      },
+      {
+        "wall_seconds": 0.2373359039775096,
+        "cpu_seconds": 0.23539799999999994
+      },
+      {
+        "wall_seconds": 0.2445482009788975,
+        "cpu_seconds": 0.23864499999999994
+      }
+    ],
+    "wall_median_seconds": 0.24043112399522215,
+    "legacy_wall_seconds": [
+      0.0011016540229320526,
+      0.0008391959709115326,
+      0.0008511390187777579,
+      0.0008392659947276115,
+      0.0008119590347632766,
+      0.0008364029927179217,
+      0.0006439929711632431
+    ],
+    "legacy_wall_median_seconds": 0.0008391959709115326,
+    "process_slowdown_vs_legacy": 286.5017616017227,
+    "variant": "schedule",
+    "generation": {
+      "scheduling": "schedule",
+      "translation": "serial",
+      "arithmetic": "ripple",
+      "host_slots": null
+    },
+    "workload": "memory",
+    "host_slots": 8,
+    "guest_snapshot_sha256": "48489ce35351c6e16f0d906161c0e2aea9317a663eb7ebbabdc6bf2ee9718470",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bootstrap_ticks": 29,
+    "bootstrap_wall_seconds": [
+      0.004329585004597902,
+      0.003628181992098689,
+      0.0035679800203070045,
+      0.003634049033280462,
+      0.003442129003815353,
+      0.0035922849783673882,
+      0.0036916679819114506
+    ],
+    "bootstrap_wall_median_seconds": 0.003628181992098689
+  },
+  {
+    "active_copies": 63,
+    "copy_bits": 8,
+    "guest_ticks": 32,
+    "vm1_ticks": 562181,
+    "vm1_ticks_per_guest_tick": 17568.15625,
+    "compile_seconds": 0.7016789650078863,
+    "code_bits": 2815488,
+    "data_bits": 233568,
+    "host_bits": 16777200,
+    "guest_bits": 65520,
+    "boot_bytes": 460192,
+    "rss_kib": 1664,
+    "samples": [
+      {
+        "wall_seconds": 0.393764492997434,
+        "cpu_seconds": 0.3911770000000008
+      },
+      {
+        "wall_seconds": 0.3892609609756619,
+        "cpu_seconds": 0.38763099999999917
+      },
+      {
+        "wall_seconds": 0.3924158400041051,
+        "cpu_seconds": 0.3903459999999998
+      },
+      {
+        "wall_seconds": 0.38761952496133745,
+        "cpu_seconds": 0.3852109999999997
+      },
+      {
+        "wall_seconds": 0.3919327820185572,
+        "cpu_seconds": 0.3900000000000003
+      },
+      {
+        "wall_seconds": 0.39821411500452086,
+        "cpu_seconds": 0.39627699999999927
+      },
+      {
+        "wall_seconds": 0.3932920300285332,
+        "cpu_seconds": 0.39104599999999995
+      }
+    ],
+    "wall_median_seconds": 0.3924158400041051,
+    "legacy_wall_seconds": [
+      0.00129231798928231,
+      0.000999339041300118,
+      0.0009462609887123108,
+      0.0009548509842716157,
+      0.0009399050031788647,
+      0.000948706001508981,
+      0.0009131570113822818
+    ],
+    "legacy_wall_median_seconds": 0.000948706001508981,
+    "process_slowdown_vs_legacy": 413.6327159098195,
+    "variant": "schedule",
+    "generation": {
+      "scheduling": "schedule",
+      "translation": "serial",
+      "arithmetic": "ripple",
+      "host_slots": null
+    },
+    "workload": "memory",
+    "host_slots": 8,
+    "guest_snapshot_sha256": "bb216cc5a04a55029cac1688354e158b728811a322cfe0b26515f9e8895de4a5",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bootstrap_ticks": 29,
+    "bootstrap_wall_seconds": [
+      0.0038495759945362806,
+      0.0035270550288259983,
+      0.0037254010094329715,
+      0.0036623349878937006,
+      0.003788186004385352,
+      0.003759132989216596,
+      0.0036946010077372193
+    ],
+    "bootstrap_wall_median_seconds": 0.0037254010094329715
+  },
+  {
+    "active_copies": 1,
+    "copy_bits": 4096,
+    "guest_ticks": 32,
+    "vm1_ticks": 343445,
+    "vm1_ticks_per_guest_tick": 10732.65625,
+    "compile_seconds": 0.7016789650078863,
+    "code_bits": 2815488,
+    "data_bits": 233568,
+    "host_bits": 16777200,
+    "guest_bits": 65520,
+    "boot_bytes": 460192,
+    "rss_kib": 1664,
+    "samples": [
+      {
+        "wall_seconds": 0.2411369650508277,
+        "cpu_seconds": 0.2396059999999995
+      },
+      {
+        "wall_seconds": 0.2444973280071281,
+        "cpu_seconds": 0.24238499999999982
+      },
+      {
+        "wall_seconds": 0.23772362200543284,
+        "cpu_seconds": 0.23525499999999974
+      },
+      {
+        "wall_seconds": 0.24558564403560013,
+        "cpu_seconds": 0.24366499999999974
+      },
+      {
+        "wall_seconds": 0.24410245299804956,
+        "cpu_seconds": 0.24235799999999888
+      },
+      {
+        "wall_seconds": 0.2440997430239804,
+        "cpu_seconds": 0.2421539999999988
+      },
+      {
+        "wall_seconds": 0.23880231595830992,
+        "cpu_seconds": 0.23682600000000012
+      }
+    ],
+    "wall_median_seconds": 0.2440997430239804,
+    "legacy_wall_seconds": [
+      0.0012048789649270475,
+      0.0008880149689503014,
+      0.000862313958350569,
+      0.0008646890055388212,
+      0.0008159399731084704,
+      0.0008000169764272869,
+      0.0007889120024628937
+    ],
+    "legacy_wall_median_seconds": 0.000862313958350569,
+    "process_slowdown_vs_legacy": 283.0752542738535,
+    "variant": "schedule",
+    "generation": {
+      "scheduling": "schedule",
+      "translation": "serial",
+      "arithmetic": "ripple",
+      "host_slots": null
+    },
+    "workload": "memory",
+    "host_slots": 8,
+    "guest_snapshot_sha256": "8b59906b7b87133930964d85a75b5fdd0bd4a0774299d218d14b425e666d4189",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bootstrap_ticks": 29,
+    "bootstrap_wall_seconds": [
+      0.004066149995196611,
+      0.0037765949964523315,
+      0.004315549973398447,
+      0.0040818650159053504,
+      0.003815634991042316,
+      0.0038518119836226106,
+      0.0035730110248550773
+    ],
+    "bootstrap_wall_median_seconds": 0.0038518119836226106
+  },
+  {
+    "active_copies": 1,
+    "copy_bits": 8,
+    "guest_ticks": 32,
+    "vm1_ticks": 345545,
+    "vm1_ticks_per_guest_tick": 10798.28125,
+    "compile_seconds": 0.7016789650078863,
+    "code_bits": 2815488,
+    "data_bits": 233568,
+    "host_bits": 16777200,
+    "guest_bits": 65520,
+    "boot_bytes": 460192,
+    "rss_kib": 1664,
+    "samples": [
+      {
+        "wall_seconds": 0.2412801120080985,
+        "cpu_seconds": 0.23877200000000062
+      },
+      {
+        "wall_seconds": 0.23885730397887528,
+        "cpu_seconds": 0.23638100000000054
+      },
+      {
+        "wall_seconds": 0.24555356503697112,
+        "cpu_seconds": 0.24369300000000085
+      },
+      {
+        "wall_seconds": 0.2416696259751916,
+        "cpu_seconds": 0.23941299999999918
+      },
+      {
+        "wall_seconds": 0.24295202601933852,
+        "cpu_seconds": 0.2418960000000007
+      },
+      {
+        "wall_seconds": 0.247747456014622,
+        "cpu_seconds": 0.2468979999999991
+      },
+      {
+        "wall_seconds": 0.23995709500741214,
+        "cpu_seconds": 0.23784700000000006
+      }
+    ],
+    "wall_median_seconds": 0.2416696259751916,
+    "legacy_wall_seconds": [
+      0.0010851029655896127,
+      0.0007127169519662857,
+      0.0007547609857283533,
+      0.0006974909920245409,
+      0.0007148120203055441,
+      0.000699516967870295,
+      0.0007200499530881643
+    ],
+    "legacy_wall_median_seconds": 0.0007148120203055441,
+    "process_slowdown_vs_legacy": 338.08836324813154,
+    "variant": "schedule",
+    "generation": {
+      "scheduling": "schedule",
+      "translation": "serial",
+      "arithmetic": "ripple",
+      "host_slots": null
+    },
+    "workload": "stdout",
+    "host_slots": 8,
+    "guest_snapshot_sha256": "4bbcf63708d5cbb610f95ce46343960c535c821ca0161fc821bf7617bb867489",
+    "stdout_sha256": "e43f64fe27cf45867e678b92cab5264f23e768e2f02cbafb5c0465119587a1a5",
+    "bootstrap_ticks": 29,
+    "bootstrap_wall_seconds": [
+      0.004453833040315658,
+      0.0036370540037751198,
+      0.0037474720156751573,
+      0.003734062018338591,
+      0.0037962200003676116,
+      0.0035270570078864694,
+      0.003991003963164985
+    ],
+    "bootstrap_wall_median_seconds": 0.0037474720156751573
+  }
+]

@@ -1,0 +1,41 @@
+{
+  "schema": "vm2-symbolic-v1",
+  "size": 65520,
+  "slots": 8,
+  "entry": "hello",
+  "limit": 0,
+  "data": [
+    {
+      "name": "hello",
+      "bits": 96,
+      "value": "0x50a6769616c686b69e0ef6c6",
+      "align": 8,
+      "at": null,
+      "table": null,
+      "record": null,
+      "relocations": []
+    }
+  ],
+  "layers": [
+    {
+      "name": "hello",
+      "next": null,
+      "checkpoint": false,
+      "copies": [
+        {
+          "type": "Copy",
+          "n": 96,
+          "dst": {
+            "type": "Channel",
+            "name": "stdout"
+          },
+          "src": {
+            "type": "Memory",
+            "name": "hello",
+            "offset": 0
+          }
+        }
+      ]
+    }
+  ]
+}

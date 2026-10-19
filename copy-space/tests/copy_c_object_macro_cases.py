@@ -1,0 +1,1 @@
+../../legacy/copy-space/tests/copy_c_object_macro_cases.py

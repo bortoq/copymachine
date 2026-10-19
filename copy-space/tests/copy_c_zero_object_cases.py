@@ -1,0 +1,1 @@
+../../legacy/copy-space/tests/copy_c_zero_object_cases.py

@@ -1,0 +1,8 @@
+{
+  "compiler": "cc (Ubuntu 12.3.0-1ubuntu1~23.04) 12.3.0",
+  "flags": "-Wall -Wextra -Werror -pedantic -std=c11 -O2",
+  "process_rounds": 7,
+  "core_rounds": 5,
+  "core_cycles_per_round": 16,
+  "cpu": "AMD Ryzen 5 PRO 5650U with Radeon Graphics"
+}

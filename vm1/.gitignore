@@ -1,0 +1,56 @@
+# generated sorting network
+sorter.txt
+
+# build artifacts
+vm1
+sort
+tools/loader
+tools/compile
+tests/test_network
+tests/test_channel
+tests/test_machine
+tests/test_network_unit
+tests/test_loader
+tests/test_compile
+*.o
+*.out
+*.bin
+*.ldrpkt
+
+# temporary files from experiments and tests
+tmp_*
+tmp-*
+
+# editor
+.vscode/
+.idea/
+*~
+.DS_Store
+
+# independent addressing tests
+tests/test_addressing
+tests/test_addressing_small
+tests/sorter-small.txt
+
+# parallel addressing checks
+tests/test_parallel
+tests/test_parallel_small
+tests/test_parallel_irregular
+tests/sorter-irregular.txt
+tests/test_addressing_irregular
+
+# generated incomplete-network shape checks
+tests/test_parallel_shape
+tests/sorter-shape.txt
+
+# ordering experiment binaries
+tests/bench_ordering
+tests/bench_ordering_stats
+tests/test_ordering_probe
+
+/build/
+__pycache__/
+*.pyc
+/vm1.tmp
+
+/dist/

@@ -1,0 +1,1 @@
+../../legacy/copy-space/tests/space_image_proof.c

@@ -1,0 +1,27 @@
+{
+  "platform": "Linux-6.2.0-39-generic-x86_64-with-glibc2.37",
+  "cpu": "AMD Ryzen 5 PRO 5650U with Radeon Graphics",
+  "repeats": 3,
+  "layers": 8,
+  "binary_sha256": {
+    "vm1/build/bitcopy/vm1": "df2ace07cc867290426a90ff54485d07df844403a81678714bf3a311b44efe59",
+    "vm2/space": "8639033baa11fb4934ad9551b67335552a453408be236f90fee0fabc13bee8f7",
+    "vm2/build/checked-vm1": "35b8def386292c6bb9d15ca0f1206ec5fc0c475c08fd0b04713c7479213066cd"
+  },
+  "source_sha256": {
+    "vm2/vm2compile/sdk.py": "886a5b14d3a99f64369d8e7af292f1bfd995178f797cfef493720f479aab05d0",
+    "vm2/vm2compile/model.py": "b30ee68a359f2d1b7fe84174b59c80e32ddf46346174064d916552f955813368",
+    "vm2/vm2compile/__init__.py": "389095a07b8fdec7236cebb25befbb54ef79827c607721e6fbf86c25538d4896",
+    "vm2/vm2compile/cli.py": "0ec2bcffca55e7b00ce9badc5831ebe3d68585e9fa4516635152218c94a65b63",
+    "vm2/vm2compile/abi.py": "655999557d88e7f66036c5db6b1be4a7a9c280ffac88aee596d9ff74374802da",
+    "vm2/vm2compile/artifact.py": "88e803b60b73bb134619d19bdc98513fec8c1ff45f5d7588171ef252dfed5ca4",
+    "vm2/vm2compile/legacy.py": "23918f870511a019a2b45775acbf77dff43710e7158d0f60be109161dfc1491b",
+    "vm2/vm2compile/compiler.py": "f19915d0da496ec65a8c7f3181565b4020ed59644c2f429f606d1f6edbfbd6b6",
+    "vm2/tools/bench_direct.py": "c2450af3abc4b5d6e1f03416b30ed0827f25ff4ff595015780314b85488e6ec2",
+    "vm2/tools/limited_run.py": "a1d08a0138c1af08b74b6e50b3adca8980a97153f95b36934b3d3c790fd21dee",
+    "vm2/examples/direct/rv32i-fragment.json": "73b07e4672b5ce15a8156d1b3f9d215ca1e7db5ed4207401930755fa90e19afb",
+    "copycode/src/copycode/vm1/assembler.py": "75967321f597d50b1dcd221bc95721510db54856922e46150105165af619d78a",
+    "copycode/src/copycode/vm1/schedule.py": "9810967f7b6f4476641afdd2bcaa8f421a15ece864db1d58aa0df2b9d0cf871d"
+  },
+  "notes": "Same finite logical workloads; independently packed triples for C/interpreter, with explicit separate next-layer fetches to avoid patch/fetch overlap. All samples real processes including startup/boot, compilation excluded. Load-only measured with audited bootstrap limit. RSS includes process image. No FPGA resource claim."
+}

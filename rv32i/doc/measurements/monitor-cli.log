@@ -1,0 +1,19 @@
+make: Entering directory '/home/user/work/copymachine/rv32i'
+make -C "/home/user/work/copymachine/vm1" -j1 build/bitcopy/vm1
+make[1]: Entering directory '/home/user/work/copymachine/vm1'
+make[1]: Leaving directory '/home/user/work/copymachine/vm1'
+make -C "/home/user/work/copymachine/vm2" -j1 build/checked-vm1
+make[1]: Entering directory '/home/user/work/copymachine/vm2'
+make[1]: Leaving directory '/home/user/work/copymachine/vm2'
+python3 -B tests/test_monitor.py
+PASS RV32I monitor: six segments, commit frames, input cursors, source-free resume, final guest memory
+python3 -B tests/test_cli.py
+PASS RV32I CLI: source-free repeated runs, guest exit, invalid inputs
+python3 -B tests/test_schedule.py
+PASS legacy schedule: src/src, RAW/WAR/WAW, patch/fetch gap, independent packing
+python3 -B tests/test_rv32i_bulk_schedule.py
+ok: bulk schedule: 15496 layers, a=30, isz=89, 67174400 bytes
+OK bulk RV32I schedule invariants
+python3 -B tools/benchmark.py
+RV32I C smoke: 68.614 ms, 54485 execution ticks, 4352 KiB RSS
+make: Leaving directory '/home/user/work/copymachine/rv32i'
