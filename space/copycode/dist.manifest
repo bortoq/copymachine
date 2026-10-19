@@ -19,11 +19,13 @@ doc/bitfields.md
 doc/contracts.json
 doc/generated.json
 doc/instructions.md
+doc/integers.md
 doc/inventory.json
 doc/scheduling.md
 doc/verification.md
 forth/bitfields.fth
 forth/instructions.fth
+forth/integers.fth
 pyproject.toml
 src/copycode/__init__.py
 src/copycode/hostpaths.py

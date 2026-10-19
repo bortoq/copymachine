@@ -64,6 +64,7 @@ tests/test_identity.py
 tests/test_index.py
 tests/test_instruction_decode.py
 tests/test_instructions.py
+tests/test_integers.py
 tests/test_jobs.py
 tests/test_native_audit.py
 third_party/pforth/README.md
