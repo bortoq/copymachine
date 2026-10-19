@@ -15,11 +15,15 @@ compat/vm2/terminal.py
 compat/vm2/transport.py
 dist.manifest
 doc/README.md
+doc/bitfields.md
 doc/contracts.json
 doc/generated.json
+doc/instructions.md
 doc/inventory.json
 doc/scheduling.md
 doc/verification.md
+forth/bitfields.fth
+forth/instructions.fth
 pyproject.toml
 src/copycode/__init__.py
 src/copycode/hostpaths.py

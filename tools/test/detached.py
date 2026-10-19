@@ -50,7 +50,7 @@ with tempfile.TemporaryDirectory(prefix='copymachine-detached-') as folder:
     baseline = subprocess.check_output(['git', 'status', '--porcelain'], cwd=root)
     if not args.releases_only:
         run(['make', '-j1'], root)
-        run(['make', '-j1', 'check'], root)
+        run(['make', '-j1', 'check'], root, timeout=1500)
         result = subprocess.run([str(root/'tools/run/forth')], cwd=base, env=env,
                                 input=b'1 2 + .\nbye\n', capture_output=True, timeout=30)
         assert (result.returncode, result.stdout, result.stderr) == (0, b'3 \n', b''), result
@@ -59,7 +59,8 @@ with tempfile.TemporaryDirectory(prefix='copymachine-detached-') as folder:
         # copycode's explicit triple-ABI suite uses the independent native oracle.
         run(['make', '-C', 'space/vm2', '-j1', 'reference'], root)
         for component in (args.release_component or ('emulator', 'space/vm2', 'space/rv32i', 'space/forth', 'space/copycode')):
-            run(['make', '-C', component, '-j1', 'distcheck'], root)
+            run(['make', '-C', component, '-j1', 'distcheck'], root,
+                timeout=900 if component=='space/forth' else 600)
     cache = root/'build/space/rv32i/tmp/rv32i-toolchain'
     cache.mkdir(parents=True, exist_ok=True)
     (cache/'host-compiler-sentinel').write_bytes(b'compiler prerequisite')

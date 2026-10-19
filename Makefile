@@ -21,7 +21,7 @@ check: layout
 	$(LIMIT) $(MAKE) -C space/copycode -j1 check-emulator
 	$(LIMIT) $(MAKE) -C space/vm2 -j1 check
 	$(LIMIT) $(MAKE) -C space/rv32i -j1 check
-	$(LIMIT) $(MAKE) -C space/forth -j1 check
+	$(PYTHON) -B space/vm2/tools/limited_run.py --seconds 1200 --memory-mib 768 $(MAKE) -C space/forth -j1 check
 	$(MAKE) check-layout
 clean:
 	$(PYTHON) -B tools/layout.py --clean

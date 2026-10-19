@@ -17,18 +17,29 @@ LIMIT_SECONDS ?= 180
 LIMIT_MEMORY_MIB ?= 768
 TEST_SECONDS ?= 360
 BENCH_SECONDS ?= 420
+RELEASE_SECONDS ?= 900
+BITFIELD_SECONDS ?= 600
+INSTRUCTION_SECONDS ?= 600
+INSTRUCTION_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(INSTRUCTION_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
+BITFIELD_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(BITFIELD_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 BENCH_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(BENCH_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
+RELEASE_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(RELEASE_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 TEST_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(TEST_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 export PFORTH_TEST_SECONDS=$(TEST_SECONDS)
+export PFORTH_BITFIELD_SECONDS=$(BITFIELD_SECONDS)
+export PFORTH_INSTRUCTION_SECONDS=$(INSTRUCTION_SECONDS)
 LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(LIMIT_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 ifeq ($(COPYMACHINE_LIMITED),1)
 LIMIT =
 TEST_LIMIT =
 BENCH_LIMIT =
+RELEASE_LIMIT =
+BITFIELD_LIMIT =
+INSTRUCTION_LIMIT =
 endif
 export RV32I_ROOT VM2_ROOT EMULATOR_ROOT COPYCODE_ROOT EMULATOR
 export PYTHONDONTWRITEBYTECODE=1
-.PHONY: benchmark all dependencies check prepare-check clean check-release dist distcheck initialize-tests
+.PHONY: benchmark all dependencies check check-bitfields check-instructions prepare-check clean check-release dist distcheck initialize-tests
 all: dependencies $(BUILD_DIR)/pforth/manifest.json
 dependencies:
 	$(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy
@@ -36,6 +47,8 @@ $(BUILD_DIR)/pforth/manifest.json: $(wildcard $(RV32I_ROOT)/modules/*.py $(VM2_R
 	rm -rf $(BUILD_DIR)/pforth
 	$(LIMIT) $(PYTHON) -B pforth build -o $(BUILD_DIR)/pforth
 check: all $(BUILD_DIR)/observe-emulator initialize-tests
+	$(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
+	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
 	$(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(LIMIT) $(PYTHON) -B tests/test_jobs.py
@@ -56,6 +69,10 @@ check: all $(BUILD_DIR)/observe-emulator initialize-tests
 
 prepare-check:
 	$(LIMIT) $(PYTHON) -B pforth prepare-check
+check-bitfields: all $(BUILD_DIR)/observe-emulator initialize-tests
+	$(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
+check-instructions: all $(BUILD_DIR)/observe-emulator initialize-tests
+	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
 clean:
 ifneq ($(WORKSPACE_ROOT),)
 	python3 -B "$(WORKSPACE_ROOT)/tools/layout.py" --component "$(CURDIR)" --clean
@@ -64,6 +81,8 @@ else
 
 endif
 check-release: all $(BUILD_DIR)/observe-emulator initialize-tests
+	$(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
+	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
 	$(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(LIMIT) $(PYTHON) -B tests/test_jobs.py
@@ -72,7 +91,7 @@ check-release: all $(BUILD_DIR)/observe-emulator initialize-tests
 dist:
 	$(PYTHON) -B tools/release.py create
 distcheck: dist
-	$(LIMIT) $(PYTHON) -B tools/release.py check
+	$(RELEASE_LIMIT) $(PYTHON) -B tools/release.py check
 
 CC ?= cc
 $(BUILD_DIR)/observe-emulator: tests/observe_vm1.c Makefile FORCE

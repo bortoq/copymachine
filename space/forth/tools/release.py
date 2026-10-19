@@ -63,7 +63,7 @@ def check():
         for name in ('RV32I_ROOT','EMULATOR','EMULATOR_ROOT','VM2_ROOT','COPYCODE_ROOT','CHECKED_EMULATOR','MAKEFLAGS','MFLAGS','MAKELEVEL','PYTHONPATH'):
             env.pop(name,None)
         for name in ('rv32i','emulator','vm2','copycode'):env[name.upper()+'_ROOT']=str(root/'vendor'/name)
-        subprocess.run(['make','-j1','all','check-release'],cwd=root,env=env,check=True,timeout=165)
+        subprocess.run(['make','-j1','all','check-release'],cwd=root,env=env,check=True,timeout=880)
         subprocess.run([sys.executable,'-B','tools/release.py','create'],cwd=root,env=env,check=True,timeout=10)
         repeated=output_dir(root, 'dist')/archive.name
         if repeated.read_bytes()!=archive.read_bytes():raise ValueError('non-reproducible archive')
