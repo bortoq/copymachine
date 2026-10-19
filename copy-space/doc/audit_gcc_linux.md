@@ -1,1 +1,0 @@
-../../legacy/copy-space/doc/audit_gcc_linux.md

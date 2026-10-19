@@ -1,1 +1,0 @@
-../../legacy/copy-space/tests/test_gcc_copy_guest_memory.py

@@ -1,0 +1,162 @@
+{
+  "promoted_test_oracles": [
+    {
+      "archive": "legacy/vm2/space.c",
+      "active": "space/vm2/tests/reference/space.c",
+      "sha256": "fb33ca3a69120fdfc2b6123cd2bb23835d45dce96a854b14e91b2d270128d17a",
+      "role": "independent native test oracle (MIT)"
+    },
+    {
+      "archive": "legacy/vm2/space.h",
+      "active": "space/vm2/tests/reference/space.h",
+      "sha256": "9479cdd12b94432c72c54350c5f0af2a48613e30b5b5aa58c56cd53ad4d33642",
+      "role": "independent native test oracle (MIT)"
+    },
+    {
+      "archive": "legacy/vm2/engine.c",
+      "active": "space/vm2/tests/reference/engine.c",
+      "sha256": "4c320491d124c32cb0e56f386a92d72febf64dcc408d1e8223a49c7dd8d2a75e",
+      "role": "independent native test oracle (MIT)"
+    },
+    {
+      "archive": "legacy/vm2/config.c",
+      "active": "space/vm2/tests/reference/config.c",
+      "sha256": "bfc35feb17d90b7fddd36e3f51f70bd32bd3d33d1cd6e358e7d8ed0c26a460d6",
+      "role": "independent native test oracle (MIT)"
+    },
+    {
+      "archive": "legacy/vm2/globals.c",
+      "active": "space/vm2/tests/reference/globals.c",
+      "sha256": "7268fd55f9ba9361bc6cc9afb95845a55fcf944c4d3a4668cd500e142f188261",
+      "role": "independent native test oracle (MIT)"
+    },
+    {
+      "archive": "legacy/vm2/bitcopy.c",
+      "active": "space/vm2/tests/reference/bitcopy.c",
+      "sha256": "dfe4aa7ff98a9c24e2e7242f51b85b5cda5ba0f9ae841d2cdb4f595a91e318a9",
+      "role": "independent native test oracle (MIT)"
+    },
+    {
+      "archive": "legacy/vm2/sys_ctrl.c",
+      "active": "space/vm2/tests/reference/sys_ctrl.c",
+      "sha256": "dc31bdc648e98e4700bd526981b5246040cdea2c534ad64d313f6a65ec9c4afd",
+      "role": "independent native test oracle (MIT)"
+    },
+    {
+      "archive": "legacy/vm2/sys_ctrl.h",
+      "active": "space/vm2/tests/reference/sys_ctrl.h",
+      "sha256": "07d8e3e95c24d999954347f3cf55fc01f601ab83f674547002783d5b8720fc4f",
+      "role": "independent native test oracle (MIT)"
+    },
+    {
+      "archive": "legacy/vm2/proto.def",
+      "active": "space/vm2/tests/reference/proto.def",
+      "sha256": "068345d32876c1005fb8f8a36efb8875b17988c256f76b21cdfd28aec6f2ea7f",
+      "role": "independent native test oracle (MIT)"
+    },
+    {
+      "archive": "legacy/vm2/proto_gen.h",
+      "active": "space/vm2/tests/reference/proto_gen.h",
+      "sha256": "c639554878e7d4841fd3462d49e820a4ef5e4dc1fe7bdb6ef85f7707eece6078",
+      "role": "independent native test oracle (MIT)"
+    }
+  ],
+  "retired": [
+    {
+      "active": "emulator/tools/compile.c",
+      "archive": "legacy/emulator/tools/compile.c"
+    },
+    {
+      "active": "emulator/tools/loader.c",
+      "archive": "legacy/emulator/tools/loader.c"
+    },
+    {
+      "active": "emulator/tests/test_compile.c",
+      "archive": "legacy/emulator/tests/test_compile.c"
+    },
+    {
+      "active": "emulator/tests/test_loader.c",
+      "archive": "legacy/emulator/tests/test_loader.c"
+    },
+    {
+      "active": "emulator/examples/echo.asm",
+      "archive": "legacy/emulator/examples/echo.asm"
+    },
+    {
+      "active": "emulator/examples/sort256_runtime.vm1",
+      "archive": "legacy/emulator/examples/sort256_runtime.vm1"
+    },
+    {
+      "active": "space/forth/scripts/pforth/legacy_build.py",
+      "archive": "legacy/pforth/scripts/pforth/legacy_build.py"
+    },
+    {
+      "active": "space/rv32i/modules/rv32i_bulk.py",
+      "archive": "legacy/rv32i/modules/rv32i_bulk.py"
+    },
+    {
+      "active": "space/rv32i/modules/rv32i_stream.py",
+      "archive": "legacy/rv32i/modules/rv32i_stream.py"
+    },
+    {
+      "active": "space/rv32i/scripts/rv32i/legacy_build.py",
+      "archive": "legacy/rv32i/scripts/rv32i/legacy_build.py"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i.py",
+      "archive": "legacy/rv32i/tests/test_rv32i.py"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i_bulk.py",
+      "archive": "legacy/rv32i/tests/test_rv32i_bulk.py"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i_bulk_io.py",
+      "archive": "legacy/rv32i/tests/test_rv32i_bulk_io.py"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i_bulk_schedule.py",
+      "archive": "legacy/rv32i/tests/test_rv32i_bulk_schedule.py"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i_c.py",
+      "archive": "legacy/rv32i/tests/test_rv32i_c.py"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i_io.py",
+      "archive": "legacy/rv32i/tests/test_rv32i_io.py"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i_io_c.py",
+      "archive": "legacy/rv32i/tests/test_rv32i_io_c.py"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i_io_partial.c",
+      "archive": "legacy/rv32i/tests/test_rv32i_io_partial.c"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i_layout.py",
+      "archive": "legacy/rv32i/tests/test_rv32i_layout.py"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i_memory.py",
+      "archive": "legacy/rv32i/tests/test_rv32i_memory.py"
+    },
+    {
+      "active": "space/rv32i/tests/test_rv32i_stream.py",
+      "archive": "legacy/rv32i/tests/test_rv32i_stream.py"
+    },
+    {
+      "active": "space/rv32i/scripts/rv32i/legacy_run.py",
+      "archive": "legacy/rv32i/scripts/rv32i/legacy_run.py"
+    },
+    {
+      "active": "space/forth/tests/test_pforth_legacy.py",
+      "archive": "legacy/pforth/tests/test_pforth_legacy.py"
+    },
+    {
+      "active": "emulator/tests/bench_cli.py",
+      "archive": "legacy/emulator/tests/bench_cli.py"
+    }
+  ]
+}

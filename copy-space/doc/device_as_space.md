@@ -1,1 +1,0 @@
-../../legacy/copy-space/doc/device_as_space.md

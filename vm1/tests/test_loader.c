@@ -1,1 +1,0 @@
-../../legacy/vm1/tests/test_loader.c

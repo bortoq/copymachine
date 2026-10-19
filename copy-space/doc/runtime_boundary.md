@@ -1,1 +1,0 @@
-../../legacy/copy-space/doc/runtime_boundary.md

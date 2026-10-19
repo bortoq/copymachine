@@ -1,1 +1,0 @@
-../../legacy/copy-space/tests/test_gcc_nested_callbacks.py

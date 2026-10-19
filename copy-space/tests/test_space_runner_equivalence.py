@@ -1,1 +1,0 @@
-../../legacy/copy-space/tests/test_space_runner_equivalence.py

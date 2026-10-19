@@ -1,1 +1,0 @@
-../../legacy/copy-space/doc/adress_space.md

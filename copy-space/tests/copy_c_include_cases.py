@@ -1,1 +1,0 @@
-../../legacy/copy-space/tests/copy_c_include_cases.py

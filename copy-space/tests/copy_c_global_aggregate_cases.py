@@ -1,1 +1,0 @@
-../../legacy/copy-space/tests/copy_c_global_aggregate_cases.py

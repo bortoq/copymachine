@@ -9,33 +9,35 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--require-local-history', action='store_true')
 args = parser.parse_args()
-record = json.loads((ROOT/'legacy/MIGRATION.json').read_text())
-for row in record['files']:
-    path = ROOT/row['new']
-    # Retained, actively developed integration files may subsequently change.
-    if row['new'].startswith('legacy/'):
-        assert not path.is_symlink(), row['new']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == row['sha256'], row['new']
-        assert (ROOT/row['old']).read_bytes() == path.read_bytes(), row['old']
-histories = 0
-for name, row in record['histories'].items():
-    if not (ROOT/row['git_dir']).exists():
-        assert not args.require_local_history, row['git_dir']
-        continue
-    actual = subprocess.check_output(
-        ['git', '--git-dir='+str(ROOT/row['git_dir']), 'rev-parse', 'HEAD'], text=True).strip()
-    assert actual == row['head'], name
-    histories += 1
-for name in ('vm1', 'vm2', 'copycode', 'rv32i', 'pforth'):
+for name in ('emulator', 'space/vm2', 'space/copycode', 'space/rv32i', 'space/forth'):
     assert (ROOT/name).is_dir() and not (ROOT/name).is_symlink(), name
     assert not (ROOT/name/'.git').exists(), name
-for name in record['retained_active']:
-    assert (ROOT/name).is_file() and not (ROOT/name).is_symlink(), name
-for row in record['symlinks']:
-    if row['existed']:
-        assert (ROOT/row['new']).exists(), row['new']
+for name in ('vm1', 'vm2', 'copycode', 'rv32i', 'pforth', 'copy-space', 'positional addressing'):
+    assert not (ROOT/name).exists() and not (ROOT/name).is_symlink(), name
+allowed = {'emulator', 'space', 'tools', 'docs', 'build', 'legacy', 'README.md',
+           'ROADMAP.md', 'Makefile', 'project-git', '.gitignore', '.git', '.project-git',
+           '.agents', '.codex', '.aws'}
+assert not {p.name for p in ROOT.iterdir()} - allowed, 'unexpected root entry'
+for current, children, files in os.walk(ROOT/'space', followlinks=False):
+    at = Path(current)
+    assert 'legacy' not in children, str(at/'legacy')
+    children[:] = [n for n in children if n not in {'third_party', 'vendor', '__pycache__'}
+                   and not (at/n).is_symlink()]
+for top in ('emulator', 'space', 'tools'):
+    for current, children, files in os.walk(ROOT/top, followlinks=False):
+        at = Path(current)
+        children[:] = [n for n in children if n not in {'build','dist','tmp','vendor','third_party','__pycache__'}]
+        for name in children + files:
+            path = at/name
+            if path.is_symlink():
+                assert path == ROOT/'emulator/emulator', 'unexpected link in active tree: '+str(path)
+                assert path.resolve().is_relative_to(ROOT/'build/emulator'), str(path)
+                assert not path.resolve().is_relative_to(ROOT/'legacy'), str(path)
+
+for component in ('emulator', 'space/vm2', 'space/copycode', 'space/rv32i', 'space/forth'):
+    for name in ('build', 'dist', 'tmp'):
+        assert not (ROOT/component/name).exists() and not (ROOT/component/name).is_symlink(), component+'/'+name
 cmd = [str(ROOT/'project-git')]
 assert subprocess.check_output(cmd+['rev-parse', '--show-toplevel'], text=True).strip() == str(ROOT)
 staged = subprocess.check_output(cmd+['ls-files', '--stage', '-z'])
@@ -47,5 +49,4 @@ for entry in staged.split(b'\0'):
     parts = Path(os.fsdecode(path)).parts
     assert not any(p in {'.git', '.project-git', '.aws', '.codex', '.agents', '.opencode', '__pycache__', 'build', 'dist', 'tmp', 'vendor'} for p in parts), path
     assert not path.startswith(b'legacy/git/'), path
-print(f"PASS layout: {len(record['files'])} source records, {histories} local Git histories, "
-      f"{len(record['retained_active'])} active integration files, no Git links or local artifacts in index")
+print("PASS active layout: components, root entries, Git index; archive not required")

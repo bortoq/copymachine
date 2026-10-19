@@ -1,1 +1,0 @@
-../legacy/vm2/globals.c

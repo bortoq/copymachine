@@ -1,1 +1,0 @@
-../../legacy/copy-space/doc/copy_c.md

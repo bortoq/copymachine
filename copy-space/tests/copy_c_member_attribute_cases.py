@@ -1,1 +1,0 @@
-../../legacy/copy-space/tests/copy_c_member_attribute_cases.py

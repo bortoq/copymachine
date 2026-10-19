@@ -1,1 +1,0 @@
-../../../legacy/rv32i/scripts/rv32i/legacy_build.py

@@ -1,1 +1,0 @@
-../../legacy/copy-space/tests/copy_c_local_static_cases.py
