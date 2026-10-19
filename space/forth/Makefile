@@ -39,7 +39,7 @@ INSTRUCTION_LIMIT =
 endif
 export RV32I_ROOT VM2_ROOT EMULATOR_ROOT COPYCODE_ROOT EMULATOR
 export PYTHONDONTWRITEBYTECODE=1
-.PHONY: benchmark all dependencies check check-bitfields check-instructions prepare-check clean check-release dist distcheck initialize-tests
+.PHONY: benchmark all dependencies check check-bitfields check-instructions check-instruction-decode prepare-check clean check-release dist distcheck initialize-tests
 all: dependencies $(BUILD_DIR)/pforth/manifest.json
 dependencies:
 	$(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy
@@ -49,6 +49,7 @@ $(BUILD_DIR)/pforth/manifest.json: $(wildcard $(RV32I_ROOT)/modules/*.py $(VM2_R
 check: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
 	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
+	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
 	$(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(LIMIT) $(PYTHON) -B tests/test_jobs.py
@@ -73,6 +74,8 @@ check-bitfields: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
 check-instructions: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
+check-instruction-decode: all $(BUILD_DIR)/observe-emulator initialize-tests
+	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
 clean:
 ifneq ($(WORKSPACE_ROOT),)
 	python3 -B "$(WORKSPACE_ROOT)/tools/layout.py" --component "$(CURDIR)" --clean
@@ -83,6 +86,7 @@ endif
 check-release: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
 	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
+	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
 	$(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(LIMIT) $(PYTHON) -B tests/test_jobs.py

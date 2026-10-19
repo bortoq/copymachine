@@ -13,10 +13,11 @@ from common import RV32I_ROOT
 import dependencies
 from copycode.hostpaths import output_dir
 from copycode.vm1.machine import field, put
+from guest_support import library_image
 
 source_path = dependencies.COPYCODE_ROOT / 'forth/bitfields.fth'
 source = source_path.read_text()
-lines = [source, 'create codec-buffer 16 allot',
+lines = ['create codec-buffer 16 allot',
          ': codec-dump codec-buffer 16 type cr ;']
 expected = []
 rng = random.Random(1909)
@@ -80,8 +81,10 @@ task = ('\n'.join(lines) + '\n').encode()
 assert all(len(line) < 255 for line in task.splitlines())
 folder = output_dir(ROOT) / 'verification/bitfields'
 folder.mkdir(parents=True, exist_ok=True)
+(folder / 'result.json').unlink(missing_ok=True)
 (folder / 'input.fth').write_bytes(task)
-command = [str(ROOT / 'pforth'), 'run', str(output_dir(ROOT) / 'initialized')]
+image = library_image(['bitfields.fth'])
+command = [str(ROOT / 'pforth'), 'run', str(image)]
 timeout = max(1, int(os.environ.get('PFORTH_BITFIELD_SECONDS', '600')) - 10)
 with (folder / 'stdout.bin').open('wb') as stdout, (folder / 'stderr.bin').open('wb') as stderr:
     result = subprocess.run(command, input=task, stdout=stdout, stderr=stderr, timeout=timeout)
@@ -92,6 +95,7 @@ assert actual == b''.join(expected), (actual, b''.join(expected))
 assert not errors, errors
 (folder / 'result.json').write_text(json.dumps(dict(
     source_sha256=hashlib.sha256(source.encode()).hexdigest(),
+    library_manifest_sha256=hashlib.sha256((image / 'manifest.json').read_bytes()).hexdigest(),
     input_sha256=hashlib.sha256(task).hexdigest(),
     stdout_sha256=hashlib.sha256(actual).hexdigest(),
     valid_cases=cases, rejected_cases=len(invalid), stack_depth=0,

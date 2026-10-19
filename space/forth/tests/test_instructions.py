@@ -12,10 +12,11 @@ from common import RV32I_ROOT
 import dependencies
 from copycode.hostpaths import output_dir
 from copycode.vm1.machine import Format, put
+from guest_support import library_image
 
 sources = {name: (dependencies.COPYCODE_ROOT / 'forth' / name).read_bytes()
            for name in ('bitfields.fth', 'instructions.fth')}
-lines = [data.decode() for data in sources.values()]
+lines = []
 lines += ['create indices 8 cells allot', 'create encoded 16 allot',
           ': encoded-dump encoded 16 type cr ;']
 expected = []
@@ -71,10 +72,12 @@ task = ('\n'.join(lines) + '\n').encode()
 assert all(len(line) < 255 for line in task.splitlines())
 folder = output_dir(ROOT) / 'verification/instructions'
 folder.mkdir(parents=True, exist_ok=True)
+(folder / 'result.json').unlink(missing_ok=True)
 (folder / 'input.fth').write_bytes(task)
 timeout = max(1, int(os.environ.get('PFORTH_INSTRUCTION_SECONDS', '600')) - 10)
+image = library_image(['bitfields.fth', 'instructions.fth'])
 with (folder / 'stdout.bin').open('wb') as stdout, (folder / 'stderr.bin').open('wb') as stderr:
-    result = subprocess.run([str(ROOT / 'pforth'), 'run', str(output_dir(ROOT) / 'initialized')],
+    result = subprocess.run([str(ROOT / 'pforth'), 'run', str(image)],
                             input=task, stdout=stdout, stderr=stderr, timeout=timeout)
 actual = (folder / 'stdout.bin').read_bytes()
 errors = (folder / 'stderr.bin').read_bytes()
@@ -83,6 +86,7 @@ assert actual == b''.join(expected), (actual, b''.join(expected))
 assert not errors, errors
 (folder / 'result.json').write_text(json.dumps(dict(
     sources_sha256={name: hashlib.sha256(data).hexdigest() for name, data in sources.items()},
+    library_manifest_sha256=hashlib.sha256((image / 'manifest.json').read_bytes()).hexdigest(),
     input_sha256=hashlib.sha256(task).hexdigest(),
     stdout_sha256=hashlib.sha256(actual).hexdigest(),
     valid_cases=2, rejected_cases=len(invalid), stack_depth=0,

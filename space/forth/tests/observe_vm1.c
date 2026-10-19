@@ -5,6 +5,9 @@ int main(int argc,char **argv) {
  parse_config(argc,argv);init_space();
  const char *reg=getenv("PFORTH_REG_BITS");size at=reg?strtoull(reg,NULL,10):0;
  const char *bad=getenv("PFORTH_INPUT_ERROR");int replaced=0,installed=0;
+ const char *after=getenv("PFORTH_STOP_INPUT_OFFSET");
+ uint64_t stop_after=after?strtoull(after,NULL,10):0;
+ if(after && ftell(channel_in)<0)return 2;
  uint64_t ticks=0;
  while(!tick_limit||ticks<tick_limit) {
   if(!installed) {
@@ -17,13 +20,14 @@ int main(int argc,char **argv) {
    }
    if(!boot_input)installed=1;
   }
-  if(installed && getenv("PFORTH_STOP_AT_READ") && ticks>0 && space_get(at+1024,32)==20)break;
+  if(installed && getenv("PFORTH_STOP_AT_READ") && ticks>0 && space_get(at+1024,32)==20 &&
+     (!after || (uint64_t)ftell(channel_in)>=stop_after))break;
   if(installed && bad && !replaced && space_get(at+1024,32)==20){if(!freopen(bad,"rb",stdin))return 2;replaced=1;}
   if(ticks%1000000==0)fprintf(stderr,"tick=%"PRIu64" pc=%zu status=%zu\n",ticks,space_get(at+1024,32),space_get(at+1056,32));
   if(!computation())break;
   ticks++;
  }
- fprintf(stderr,"stop ticks=%"PRIu64" pc=%zu status=%zu\n",ticks,space_get(at+1024,32),space_get(at+1056,32));
+ fprintf(stderr,"stop ticks=%"PRIu64" pc=%zu status=%zu input_offset=%ld\n",ticks,space_get(at+1024,32),space_get(at+1056,32),ftell(channel_in));
  const char *dump=getenv("PFORTH_DUMP");if(dump){FILE *f=fopen(dump,"wb");if(!f)return 1;fwrite(space,1,(space_nbits+7)/8,f);fclose(f);}
  destroy_space();return 0;
 }
