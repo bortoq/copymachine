@@ -59,6 +59,10 @@ scripts/pforth/prepare.py
 tests/guest_support.py
 tests/observe_vm1.c
 tests/test_bitfields.py
+tests/test_operations.py
+tests/test_format.py
+tests/test_evaluate.py
+tests/test_arena.py
 tests/test_direct.py
 tests/test_identity.py
 tests/test_index.py

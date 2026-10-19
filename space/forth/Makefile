@@ -20,6 +20,8 @@ BENCH_SECONDS ?= 420
 RELEASE_SECONDS ?= 900
 BITFIELD_SECONDS ?= 600
 INSTRUCTION_SECONDS ?= 600
+OPERATION_SECONDS ?= 1500
+OPERATION_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(OPERATION_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 INSTRUCTION_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(INSTRUCTION_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 BITFIELD_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(BITFIELD_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 BENCH_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(BENCH_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
@@ -36,10 +38,11 @@ BENCH_LIMIT =
 RELEASE_LIMIT =
 BITFIELD_LIMIT =
 INSTRUCTION_LIMIT =
+OPERATION_LIMIT =
 endif
 export RV32I_ROOT VM2_ROOT EMULATOR_ROOT COPYCODE_ROOT EMULATOR
 export PYTHONDONTWRITEBYTECODE=1
-.PHONY: benchmark all dependencies check check-bitfields check-instructions check-instruction-decode check-integers prepare-check clean check-release dist distcheck initialize-tests
+.PHONY: benchmark all dependencies check check-bitfields check-instructions check-instruction-decode check-integers check-libraries prepare-check clean check-release dist distcheck initialize-tests
 all: dependencies $(BUILD_DIR)/pforth/manifest.json
 dependencies:
 	$(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy
@@ -51,6 +54,10 @@ check: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
 	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
 	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
+	$(TEST_LIMIT) $(PYTHON) -B tests/test_arena.py
+	$(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
+	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
+	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
 	$(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(LIMIT) $(PYTHON) -B tests/test_jobs.py
@@ -77,6 +84,11 @@ check-instructions: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
 check-instruction-decode: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
+check-libraries: all $(BUILD_DIR)/observe-emulator initialize-tests
+	$(TEST_LIMIT) $(PYTHON) -B tests/test_arena.py
+	$(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
+	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
+	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
 check-integers: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_integers.py
 clean:
@@ -91,6 +103,10 @@ check-release: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
 	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
 	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
+	$(TEST_LIMIT) $(PYTHON) -B tests/test_arena.py
+	$(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
+	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
+	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
 	$(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(LIMIT) $(PYTHON) -B tests/test_jobs.py

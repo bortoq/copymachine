@@ -12,6 +12,7 @@ Python генерирует гостевой код на хосте; получ�
 | space/copycode/forth/bitfields.fth | Forth, чтение/запись полей образа 0..64 бит | Первый модуль средств построения образов; остальные части `machine.py` ещё на Python | 9.4.1 |
 | space/copycode/forth/integers.fth | Forth, беззнаковые ячейки и двойные числа | Сравнение, перенос/заём, WITHIN и U.; прочие библиотеки остаются в этапе 9 | 9.2.1 |
 | space/copycode/forth/instructions.fth | Forth, кодирование/декодирование четырёх индексов | Проверки ширины, границ и переполнения; семантический валидатор слоя ещё на Python | 9.4.2–9.4.3 |
+| space/copycode/forth/{format,operations,arena,evaluate}.fth | Forth, формат слоя, сводка и конфликты операций, арена, EVALUATE | Основа для 9.5 и 9.4; сверено с `Format.validate`; планировщик и оптимизатор ещё на Python | 9.2, 9.4 |
 | space/copycode/src/copycode/vm1/schedule.py | Python, планировщик | Планирование тех же операций | 9.4 |
 | space/copycode/src/copycode/vm1/optimize.py | Python, отдельный оптимизатор | Необязательные преобразования перед планированием | 9.4, после первого транслятора |
 | space/copycode/src/copycode/vm2/ | Python, общие тройки, транспорт и протоколы | Общие библиотеки, IO, checkpoint/resume и trace | 9.4, 9.8, 9.14 |
