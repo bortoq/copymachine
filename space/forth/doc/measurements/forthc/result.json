@@ -1,0 +1,60 @@
+{
+ "operations": {
+  "empty loop iteration": {
+   "compiled": 72.0,
+   "pforth": 5092.0
+  },
+  "7 drop": {
+   "compiled": 1.0,
+   "pforth": 7807.0,
+   "ratio": 7807
+  },
+  "5 6 + drop": {
+   "compiled": 28.0,
+   "pforth": 15806.0,
+   "ratio": 564
+  },
+  "x @ drop": {
+   "compiled": 12.0,
+   "pforth": 16712.0,
+   "ratio": 1393
+  },
+  "5 x !": {
+   "compiled": 14.0,
+   "pforth": 23044.0,
+   "ratio": 1646
+  },
+  "123456 789 * drop": {
+   "compiled": 81.0,
+   "pforth": 36732.0,
+   "ratio": 453
+  },
+  "-1234567 89 / drop": {
+   "compiled": 755.0,
+   "pforth": 47778.0,
+   "ratio": 63
+  },
+  "1234567 89 mod drop": {
+   "compiled": 755.0,
+   "pforth": 149002.0,
+   "ratio": 197
+  },
+  "1234567 89 /mod drop drop": {
+   "compiled": 755.0,
+   "pforth": 143342.0,
+   "ratio": 190
+  }
+ },
+ "tasks": {
+  "fib(15) - fib(10)": {
+   "compiled": 255032,
+   "pforth": 64024706,
+   "ratio": 251
+  },
+  "acc @ i + acc ! loop, 1000 - 100": {
+   "compiled": 117000,
+   "pforth": 40387677,
+   "ratio": 345
+  }
+ }
+}
