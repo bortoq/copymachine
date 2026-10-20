@@ -121,5 +121,6 @@ assert result.returncode==0,(result.returncode,result.stderr[-500:])
 from copycode.vm1.machine import field as get
 got=[get(result.stdout,32*k,32) for k in range(10)]
 assert got==expected_results(),(got,expected_results())
-print('PASS guest compute library:',len(stream),'stream bytes match the host model; results',
+ticks=int(result.stderr.split(b'VM1_AUDIT_TICKS=')[1].split()[0])
+print('PASS guest compute library:',len(stream),'stream bytes match the host model;',ticks,'ticks; results',
       [hex(v) for v in got],flush=True)

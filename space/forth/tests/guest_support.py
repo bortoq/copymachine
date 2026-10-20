@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts/pforth'))
@@ -33,6 +34,7 @@ def library_image(names):
             load(target / 'image')  # Verify every stored payload, not just the cache name.
             base = target / 'image'
             continue
+        started = time.monotonic()
         payload, manifest = load(base)
         mapping = json.loads(payload['map.json'])
         registers = mapping['regions']['registers']['at']
@@ -59,8 +61,13 @@ def library_image(names):
             ready = temporary / 'ready'
             save(ready / 'image', compiled, compiled_manifest)
             (ready / 'library.json').write_text(json.dumps(identity, indent=2) + '\n')
-            shutil.move(str(ready), target)
-        print('PASS guest compiled library:', name, flush=True)
+            try:
+                os.rename(ready, target)
+            except OSError:
+                # A parallel run stored the same key first; keep and verify it.
+                assert json.loads((target / 'library.json').read_text()) == identity
+                load(target / 'image')
+        print('PASS guest compiled library:', name, f'({time.monotonic() - started:.1f} s)', flush=True)
         base = target / 'image'
     return base
 
@@ -73,17 +80,19 @@ def run_guest(name, names, lines, expected, *, timeout=580):
     task = ('\n'.join(lines) + '\n').encode()
     assert all(len(line) < 255 for line in task.splitlines())
     (folder / 'input.fth').write_bytes(task)
+    started = time.monotonic()
     with (folder / 'stdout.bin').open('wb') as stdout, (folder / 'stderr.bin').open('wb') as stderr:
         result = subprocess.run([str(ROOT / 'pforth'), 'run', str(image)], input=task,
                                 stdout=stdout, stderr=stderr, timeout=timeout)
     actual = (folder / 'stdout.bin').read_bytes()
     errors = (folder / 'stderr.bin').read_bytes()
+    seconds = time.monotonic() - started
     assert result.returncode == 0, (name, result.returncode, actual[-1000:], errors[-1000:])
     assert actual == expected, (name, actual, expected)
     assert not errors, errors
     record = dict(result='PASS', guest_execution=True, library_manifest_sha256=
                   hashlib.sha256((image / 'manifest.json').read_bytes()).hexdigest(),
                   input_sha256=hashlib.sha256(task).hexdigest(),
-                  stdout_sha256=hashlib.sha256(actual).hexdigest())
+                  stdout_sha256=hashlib.sha256(actual).hexdigest(), wall_seconds=round(seconds, 3))
     (folder / 'result.json').write_text(json.dumps(record, indent=2) + '\n')
-    print('PASS guest Forth:', name, flush=True)
+    print('PASS guest Forth:', name, f'({seconds:.1f} s)', flush=True)

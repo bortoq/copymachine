@@ -8,6 +8,8 @@ VERSION
 dist.manifest
 doc/build.md
 doc/measurements/README.md
+doc/measurements/direct-spike/README.md
+doc/measurements/direct-spike/result.json
 doc/measurements/check.log
 doc/measurements/identities.json
 doc/measurements/initialize.json
@@ -118,5 +120,6 @@ third_party/pforth/csrc/pforth.h
 third_party/pforth/fth/system.fth
 third_party/pforth/license.txt
 tools/benchmark.py
+tools/direct_spike.py
 tools/prepare_test_image.py
 tools/release.py

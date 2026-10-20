@@ -43,6 +43,19 @@ INSTRUCTION_LIMIT =
 COMPUTE_LIMIT =
 OPERATION_LIMIT =
 endif
+# JOBS>1 queues the independent test lines of a check target and runs them
+# in parallel (each test keeps its limits; limited_run picks a free CPU).
+JOBS ?= 1
+QUEUE = $(BUILD_DIR)/check.queue
+ifeq ($(JOBS),1)
+RUN =
+RUN_ALL = @true
+RUN_RESET = @true
+else
+RUN = $(PYTHON) -B "$(VM2_ROOT)/tools/parallel_queue.py" add "$(QUEUE)" --
+RUN_ALL = $(PYTHON) -B "$(VM2_ROOT)/tools/parallel_queue.py" run "$(QUEUE)" -j $(JOBS)
+RUN_RESET = rm -f "$(QUEUE)"
+endif
 export RV32I_ROOT VM2_ROOT EMULATOR_ROOT COPYCODE_ROOT EMULATOR
 export PYTHONDONTWRITEBYTECODE=1
 .PHONY: benchmark all dependencies check check-bitfields check-instructions check-instruction-decode check-integers check-libraries prepare-check clean check-release dist distcheck initialize-tests
@@ -53,32 +66,33 @@ $(BUILD_DIR)/pforth/manifest.json: $(wildcard $(RV32I_ROOT)/modules/*.py $(VM2_R
 	rm -rf $(BUILD_DIR)/pforth
 	$(LIMIT) $(PYTHON) -B pforth build -o $(BUILD_DIR)/pforth
 check: all $(BUILD_DIR)/observe-emulator initialize-tests
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_integers.py
-	$(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
-	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
-	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_arena.py
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
-	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
-	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
-	$(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
-	$(LIMIT) $(PYTHON) -B tests/test_index.py
-	$(LIMIT) $(PYTHON) -B tests/test_identity.py
-	$(LIMIT) $(PYTHON) -B tests/test_jobs.py
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case language
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case language-control
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case language-memory
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case index-semantics
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case index-length
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case eof
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case unknown
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case unfinished
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case long-line
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case input-error
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case output-error
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case job
-
+	$(RUN_RESET)
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_integers.py
+	$(RUN) $(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
+	$(RUN) $(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
+	$(RUN) $(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_arena.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
+	$(RUN) $(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
+	$(RUN) $(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
+	$(RUN) $(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
+	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_index.py
+	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_identity.py
+	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_jobs.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case language
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case language-control
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case language-memory
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case index-semantics
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case index-length
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case eof
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case unknown
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case unfinished
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case long-line
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case input-error
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case output-error
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case job
+	$(RUN_ALL)
 	$(MAKE) -j1 check-native
 
 prepare-check:
@@ -90,12 +104,14 @@ check-instructions: all $(BUILD_DIR)/observe-emulator initialize-tests
 check-instruction-decode: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
 check-libraries: all $(BUILD_DIR)/observe-emulator initialize-tests
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_arena.py
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
-	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
-	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
-	$(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
+	$(RUN_RESET)
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_arena.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
+	$(RUN) $(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
+	$(RUN) $(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
+	$(RUN) $(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
+	$(RUN_ALL)
 check-integers: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_integers.py
 clean:
@@ -106,20 +122,22 @@ else
 
 endif
 check-release: all $(BUILD_DIR)/observe-emulator initialize-tests
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_integers.py
-	$(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
-	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
-	$(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_arena.py
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
-	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
-	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
-	$(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
-	$(LIMIT) $(PYTHON) -B tests/test_index.py
-	$(LIMIT) $(PYTHON) -B tests/test_identity.py
-	$(LIMIT) $(PYTHON) -B tests/test_jobs.py
-	$(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case job
+	$(RUN_RESET)
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_integers.py
+	$(RUN) $(BITFIELD_LIMIT) $(PYTHON) -B tests/test_bitfields.py
+	$(RUN) $(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instructions.py
+	$(RUN) $(INSTRUCTION_LIMIT) $(PYTHON) -B tests/test_instruction_decode.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_arena.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
+	$(RUN) $(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
+	$(RUN) $(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
+	$(RUN) $(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
+	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_index.py
+	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_identity.py
+	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_jobs.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_direct.py --case job
+	$(RUN_ALL)
 	$(MAKE) -j1 check-native
 dist:
 	$(PYTHON) -B tools/release.py create

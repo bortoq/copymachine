@@ -21,11 +21,14 @@ make -j1
 printf '1 2 + . cr bye\n' | ./pforth run build/pforth
 ./pforth job build/pforth examples/pforth/demo.fth -o build/demo-job
 ./pforth run-job build/demo-job
-make check
+make check                     # JOBS=N: независимые тесты параллельно
 make benchmark                 # linear/indexed и serial/packed, один CPU
 make prepare-check
 ```
 
+Независимые тесты можно запускать параллельно: `make check JOBS=8`; каждый
+тест занимает своё свободное ядро, в логе печатаются время и такты.
+Замеры скорости (`make benchmark`) выполняются последовательно на одном CPU.
 Сборка, каждый тест и подготовка словаря ограничены одним CPU, nice=15,
 768 МиБ адресного пространства. Сборка ограничена 180 секундами,
 отдельная языковая сессия — 360 секундами (TEST_SECONDS). make выполняется последовательно.

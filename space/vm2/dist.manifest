@@ -108,6 +108,7 @@ tools/dependency_sources.py
 tools/driver_gen.py
 tools/dynamic_trace.py
 tools/limited_run.py
+tools/parallel_queue.py
 tools/machine.py
 tools/proto_gen.py
 tools/release.py

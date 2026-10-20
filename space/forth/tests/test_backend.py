@@ -58,4 +58,5 @@ run_guest('backend',['backend.fth'],lines,expected+stream+b'\n')
 checked=output_dir(dependencies.VM2_ROOT,'build')/'checked-emulator'
 result=subprocess.run([str(checked),'-s',str(SIZE),'-p','8'],input=stream,capture_output=True,timeout=120)
 assert result.returncode==0 and result.stdout==MSG+b'AB'+MSG[:6],(result.returncode,result.stdout,result.stderr[-500:])
-print('PASS guest backend stream:',len(stream),'bytes match the host model and run on checked-emulator',flush=True)
+ticks=int(result.stderr.split(b'VM1_AUDIT_TICKS=')[1].split()[0])
+print('PASS guest backend stream:',len(stream),'bytes match the host model and run on checked-emulator in',ticks,'ticks',flush=True)
