@@ -7,6 +7,7 @@ README.md
 VERSION
 dist.manifest
 doc/build.md
+doc/forthc.md
 doc/measurements/README.md
 doc/measurements/direct-spike/README.md
 doc/measurements/direct-spike/result.json
@@ -54,6 +55,8 @@ runtime/pforth/inner.c
 runtime/pforth/main.c
 runtime/pforth/pfdicdat.h
 runtime/pforth/pfdicdat.h.json
+scripts/forthc/__init__.py
+scripts/forthc/model.py
 scripts/pforth/build.py
 scripts/pforth/common.py
 scripts/pforth/index.py
@@ -64,6 +67,7 @@ tests/test_bitfields.py
 tests/test_compute.py
 tests/test_operations.py
 tests/test_format.py
+tests/test_forthc.py
 tests/test_evaluate.py
 tests/test_arena.py
 tests/test_backend.py

@@ -77,6 +77,7 @@ check: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(RUN) $(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
 	$(RUN) $(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
 	$(RUN) $(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_forthc.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_jobs.py
@@ -133,6 +134,7 @@ check-release: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(RUN) $(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
 	$(RUN) $(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
 	$(RUN) $(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
+	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_forthc.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_jobs.py
