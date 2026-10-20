@@ -9,21 +9,24 @@
 \ capacity, -13: unknown word, -22: control structure, -16: missing word.
 decimal
 1 31 lshift constant fc-size  1024 constant fc-cellb  1024 constant fc-l  32 constant fc-a
-1 30 lshift constant fc-d
-fc-d constant fc-sp  fc-d 64 + constant fc-rp
-fc-d 128 + constant fc-handler  fc-d 192 + constant fc-code
-fc-d 1024 + constant fc-regs  48 constant fc-nregs
-fc-d 4096 + constant fc-tmp  fc-d 4160 + constant fc-xr
-fc-d 4224 + constant fc-z  fc-d 4288 + constant fc-idx
-fc-d 4672 + constant fc-flt
-fc-d 4800 + constant fc-ma  fc-d 4864 + constant fc-mb  fc-d 4928 + constant fc-mp
-fc-d 4992 + constant fc-mq  fc-d 5056 + constant fc-mr
-fc-d 5120 + constant fc-zero  fc-d 8192 + constant fc-consts
-fc-d 5376 + constant fc-sw  fc-d 5440 + constant fc-su  fc-d 5504 + constant fc-key  fc-d 5568 + constant fc-bp
-fc-d 1 19 lshift + constant fc-tab  fc-d 1 21 lshift + constant fc-stk
-fc-stk 1 15 lshift + constant fc-rstk  fc-stk 1 16 lshift + constant fc-scr0
-fc-d 1 22 lshift + constant fc-links  1 15 lshift constant fc-max-links  512 constant fc-link-chunk
-fc-d 1 23 lshift + constant fc-mem  17 constant fc-mw  fc-d 1 24 lshift + constant fc-htab
+\ The data region at fc-d and the first code cell: a program at 2^30 and 2,
+\ a kernel (a source with KERNEL-LAYOUT) in the upper half of both, so the
+\ programs it installs in its own space keep their layout (model: layout).
+variable fc-d variable fc-first variable fc-kernel
+: fc-layout ( kernel? -- )
+  if 3 29 lshift 1 19 lshift else 1 30 lshift 2 then fc-first ! fc-d ! ;
+: fc-d+ ( offset -- addr ) fc-d @ + ;
+: fc-sp 0 fc-d+ ;  : fc-rp 64 fc-d+ ;  : fc-handler 128 fc-d+ ;  : fc-code 192 fc-d+ ;
+: fc-regs 1024 fc-d+ ;  48 constant fc-nregs
+: fc-tmp 4096 fc-d+ ;  : fc-xr 4160 fc-d+ ;  : fc-z 4224 fc-d+ ;  : fc-idx 4288 fc-d+ ;
+: fc-flt 4672 fc-d+ ;
+: fc-ma 4800 fc-d+ ;  : fc-mb 4864 fc-d+ ;  : fc-mp 4928 fc-d+ ;  : fc-mq 4992 fc-d+ ;  : fc-mr 5056 fc-d+ ;
+: fc-zero 5120 fc-d+ ;  : fc-consts 8192 fc-d+ ;
+: fc-sw 5376 fc-d+ ;  : fc-su 5440 fc-d+ ;  : fc-key 5504 fc-d+ ;  : fc-bp 5568 fc-d+ ;
+: fc-tab 1 19 lshift fc-d+ ;  : fc-stk 1 21 lshift fc-d+ ;
+: fc-rstk 1 21 lshift 1 15 lshift + fc-d+ ;  : fc-scr0 1 21 lshift 1 16 lshift + fc-d+ ;
+: fc-links 1 22 lshift fc-d+ ;  1 15 lshift constant fc-max-links  512 constant fc-link-chunk
+: fc-mem 1 23 lshift fc-d+ ;  17 constant fc-mw  : fc-htab 1 24 lshift fc-d+ ;
 256 constant fc-data-start
 
 \ --- tables ----------------------------------------------------------------
@@ -35,7 +38,7 @@ variable fc-t-or8b variable fc-t-fault variable fc-t-xr2 variable fc-t-ult32 var
 : fc-off-table ( c -- base )
   fc-oc ! 8 7 cc-table-area
   256 0 do dup i 16 * + 8 i fc-oc @ + 255 and cc-rev + c@ fill loop drop cc-table-done ;
-: fc-rev-entry ( i -- v ) cc-rev + c@ ;
+: fc-rev-entry ( i -- v ) 0 8 0 do 2* over i rshift 1 and or loop nip ;
 : fc-zero-entry ( i -- v ) 0= ;
 : fc-nz-entry ( i -- v ) 0<> 3 and ;
 : fc-lt-entry ( i -- v )
@@ -618,7 +621,7 @@ create fc-ct 64 cells allot variable fc-nct
 \ Other top-level code runs before MAIN: parts, each a word of its own.
 create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
 : fc-init ( -- )
-  fc-size 8 fc-cellb 4096 cc-machine 2 cc-builder fc-tables
+  fc-size 8 fc-cellb 4096 cc-machine fc-first @ cc-builder fc-tables
   fc-ck @ 0= if
     fc-max-consts @ 4 * cells allocate throw fc-ck ! fc-max-words @ 5 * cells allocate throw fc-wt !
     fc-names-size @ allocate throw fc-names ! fc-ring 8 * cells allocate throw fc-stabs !
@@ -626,14 +629,15 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
   then
   fc-cbk @ fc-nbuckets @ cells 0 fill fc-wbk @ fc-nbuckets @ cells 0 fill
   0 fc-nconsts ! 0 fc-n ! 0 fc-npin ! 0 fc-live ! 0 fc-nseg ! 0 fc-nwords ! 0 fc-names-used !
-  0 fc-nctl ! fc-data-start fc-here ! 0 fc-word ! 0 fc-uses !
+  0 fc-nctl ! fc-data-start fc-here ! 0 fc-word !
   0 fc-nct ! 0 fc-ninit ! 0 fc-init-open ! 0 fc-ll ! 0 fc-plit !
   cc-lone fc-cellb over cc-next! cc-layer-cell fc-tramp ! cc-flush
   cc-lone 0 over cc-next! cc-layer-cell fc-ex ! cc-flush
   0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-chunk 8 * allocate throw fc-link-buf ! then
   fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
-: fc-scan-uses ( -- ) \ 1: *  2: / MOD /MOD
-  0 fc-pos ! begin fc-next while
+: fc-scan-uses ( -- ) \ 1: *  2: / MOD /MOD; and KERNEL-LAYOUT
+  0 fc-uses ! 0 fc-kernel ! 0 fc-pos ! begin fc-next while
+    s" kernel-layout" fc-is? if -1 fc-kernel ! then
     s" *" fc-is? if fc-uses @ 1 or fc-uses ! then
     s" /" fc-is? s" mod" fc-is? or s" /mod" fc-is? or if fc-uses @ 2 or fc-uses ! then
   repeat 0 fc-pos ! ;
@@ -719,6 +723,19 @@ variable fc-di variable fc-dl
   swap if
     dup fc-c@ >r fc-cache over cells + dup cell+ swap fc-n @ 3 pick - 1- cells cmove drop -1 fc-n +! r> fc-push
   else fc-c@ fc-push then ;
+\ SPACE! and SPACEC! ( x lo hi -- ): bits [lo,hi) of the space get the low
+\ 32 (8) bits of x; the destination of the copy is patched two layers ahead.
+variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-strow
+: fc-space-store ( n -- )
+  3 fc-need fc-pop1 fc-sthi ! fc-pop1 fc-stlo ! fc-pop1 fc-stx !
+  fc-sthi @ fc-stlo @ = if
+    fc-stx @ fc-pin ! fc-stlo @ fc-pin cell+ ! 2 fc-npin ! fc-reg fc-sthi ! 0 fc-npin !
+    32 fc-sthi @ fc-stlo @ cc-copy fc-rows1
+  then
+  cc-layer fc-stp ! cc-layer drop cc-layer fc-strow !
+  >r 0 0 fc-stx @ dup r> + fc-strow @ cc-row
+  32 fc-strow @ cc-layer-cell 2 pick 0 cc-field fc-stlo @ cc-copy fc-stp @ cc-row drop
+  32 fc-strow @ cc-layer-cell rot 1 cc-field fc-sthi @ cc-copy fc-stp @ cc-row drop ;
 : fc-control-token ( -- ) \ inside a definition: control words, words, literals
   s" execute" fc-is? if fc-pop -1 fc-call-indirect fc-begin-block drop exit then
   s" catch" fc-is? if fc-catch exit then
@@ -754,7 +771,8 @@ variable fc-di variable fc-dl
   s" [char]" fc-is? if fc-word-raw 0= if -16 throw then fc-raw fc-literal exit then
   fc-squote? if fc-string-token dup >r fc-store-string fc-literal r> fc-literal exit then
   s" *" fc-is? s" lshift" fc-is? or s" rshift" fc-is? or if fc-shift-lit? if exit then then
-  s" pick" fc-is? if 0 fc-pick-roll exit then  s" roll" fc-is? if -1 fc-pick-roll exit then
+  s" pick" fc-is? if 0 fc-pick-roll exit then
+  s" space!" fc-is? if 32 fc-space-store exit then  s" spacec!" fc-is? if 8 fc-space-store exit then  s" roll" fc-is? if -1 fc-pick-roll exit then
   fc-control-token ;
 : fc-close-init ( -- )
   fc-nct @ if -22 throw then
@@ -773,7 +791,7 @@ variable fc-di variable fc-dl
     0 fc-live ! 0 fc-n ! fc-begin-block drop exit then
   s" variable" fc-is? if fc-next! 4 fc-define-data exit then
   s" create" fc-is? if fc-next! 0 fc-define-data exit then
-  s" decimal" fc-is? if exit then
+  s" decimal" fc-is? s" kernel-layout" fc-is? or if exit then
   s" allot" fc-is? if fc-ct- fc-here +! fc-check-here exit then
   s" constant" fc-is? if fc-ct- fc-next! 0 swap fc-define exit then
   fc-number if fc-ct+ exit then
@@ -781,7 +799,7 @@ variable fc-di variable fc-dl
   fc-ct-op if exit then
   fc-open-init 0 fc-plit ! fc-word-token fc-word @ 0= if -22 throw then ;
 : fc-compile ( -- )
-  fc-init fc-scan-uses
+  fc-scan-uses fc-kernel @ fc-layout fc-init
   fc-uses @ 1 and if fc-build-mul fc-mul-exit ! fc-mul-entry ! then
   fc-uses @ 2 and if fc-build-div fc-div-exit ! fc-div-entry ! then
   begin fc-next while
@@ -791,7 +809,7 @@ variable fc-di variable fc-dl
   repeat
   fc-word @ fc-init-open @ 0= and if -22 throw then fc-close-init
   s" main" fc-tok swap dup fc-tl ! cmove fc-find dup 0= if -16 throw then >r
-  0 fc-live ! 0 fc-n ! -1 fc-begin-block cc-new-cell
+  0 fc-live ! 0 fc-n ! 0 cc-group fc-begin-block cc-new-cell
   dup fc-push-frame fc-ninit @ 0 ?do fc-inits i cells + @ fc-call loop
   r> 3 cells + @ fc-call fc-cellb fc-jump cc-flush
   cc-new-record fc-cellb swap cc-next! cc-flush

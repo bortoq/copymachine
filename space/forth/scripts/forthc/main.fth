@@ -9,6 +9,7 @@ heap-start heap-ptr !
     fc-tlen @ fc-text-size @ = if -8 throw then fc-text @ fc-tlen @ + c! 1 fc-tlen +!
   repeat ;
 \ Room for the compiler's own source (pForth keeps the smaller defaults).
-: main ( -- )
+: fc-sizes ( -- )
   131072 fc-text-size ! 4096 fc-max-consts ! 2048 fc-max-words ! 32768 fc-names-size !
-  1024 fc-nbuckets ! fc-read fc-go ;
+  1024 fc-nbuckets ! ;
+: main ( -- ) fc-sizes fc-read fc-go ;

@@ -5,12 +5,16 @@
 \ A layer has slots-1 work rows and a link row; rows are dl dh sl sh.
 \ Pending layers are encoded at cc-flush; a sequence ends at cc-flush.
 \ THROW -24: invalid machine/field/unlinked; -9: overlap or put outside;
-\ -8: capacity. Output goes to stdout with TYPE as it is produced.
+\ -8: capacity. Output goes to stdout with TYPE as it is produced, or to a
+\ sink: an xt ( bit-address src n -- ) in cc-sink takes every put, and
+\ cc-finish only keeps the entry in cc-start-cell. A kernel installs code in
+\ its own space so; cc-rev (the stream's bit order of a byte) is then the
+\ identity, the bytes are numeric.
 decimal
 variable cc-size variable cc-a variable cc-slots variable cc-cell-bits
 variable cc-chunk variable cc-chunk-buf variable cc-lbuf variable cc-pool
-variable cc-ebuf variable cc-dest
-0 cc-pool !
+variable cc-ebuf variable cc-dest variable cc-sink variable cc-start-cell
+0 cc-pool ! 0 cc-sink !
 create cc-rev 256 allot
 : cc-rev-init 256 0 do
     0 8 0 do 2* j i rshift 1 and or loop cc-rev i + c!
@@ -63,6 +67,7 @@ create cc-rows 32 cells allot
 : cc-begin-chunk ( byte src n -- )
   dup cc-len ! cc-chunk-buf @ swap cmove cc-start ! ;
 : cc-put ( bit-address src n -- )
+  cc-sink @ ?dup if execute exit then
   rot dup 7 and over cc-cell-bits @ u< or if -9 throw then
   dup 2 pick 3 lshift + cc-size @ u> if -9 throw then
   3 rshift -rot
@@ -181,5 +186,6 @@ create cc-new-row 4 cells allot
   cc-pending @ 0 ?do i cc-pending@ cell+ @ -1 = if -24 throw then loop
   cc-pending @ 0 ?do i cc-pending@ cc-write loop 0 cc-pending ! 0 cc-head ! 0 cc-seq# ! ;
 : cc-finish ( entry -- )
+  cc-sink @ if cc-start-cell ! exit then
   cc-stream-flush cc-clear-rows cc-link-row cc-slots @ 1- cc-row!
   cc-lbuf @ cc-dest ! cc-rows cc-slots @ cc-encode cc-lbuf @ cc-lbytes type ;

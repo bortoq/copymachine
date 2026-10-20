@@ -125,7 +125,7 @@ variable cc-tx variable cc-tbits variable cc-ts variable cc-tsize variable cc-tb
       1 cc-ts @ lshift 0 ?do
         dup i rshift 1 and if
           j cc-ts @ lshift i + cc-t5 !
-          cc-t5 @ 3 rshift cc-tbuf @ + dup c@ 128 cc-t5 @ 7 and rshift or swap c!
+          cc-t5 @ 3 rshift cc-tbuf @ + dup c@ 1 cc-t5 @ 7 and lshift cc-rev + c@ or swap c!
         then
       loop drop
     loop

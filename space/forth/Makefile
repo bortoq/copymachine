@@ -24,10 +24,12 @@ OPERATION_SECONDS ?= 1500
 COMPUTE_SECONDS ?= 2400
 FORTHC_SECONDS ?= 5400
 FORTHC_SELF_SECONDS ?= 9000
+KERNEL_SECONDS ?= 12000
 OPERATION_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(OPERATION_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 COMPUTE_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(COMPUTE_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 FORTHC_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(FORTHC_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 FORTHC_SELF_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(FORTHC_SELF_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
+KERNEL_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(KERNEL_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 INSTRUCTION_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(INSTRUCTION_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 BITFIELD_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(BITFIELD_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 BENCH_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(BENCH_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
@@ -48,6 +50,7 @@ COMPUTE_LIMIT =
 OPERATION_LIMIT =
 FORTHC_LIMIT =
 FORTHC_SELF_LIMIT =
+KERNEL_LIMIT =
 endif
 # JOBS>1 queues the independent test lines of a check target and runs them
 # in parallel (each test keeps its limits; limited_run picks a free CPU).
@@ -86,6 +89,7 @@ check: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_forthc.py
 	$(RUN) $(FORTHC_LIMIT) $(PYTHON) -B tests/test_forthc_forth.py
 	$(RUN) $(FORTHC_SELF_LIMIT) $(PYTHON) -B tests/test_forthc_self.py
+	$(RUN) $(KERNEL_LIMIT) $(PYTHON) -B tests/test_kernel.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_jobs.py
@@ -145,6 +149,7 @@ check-release: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(RUN) $(TEST_LIMIT) $(PYTHON) -B tests/test_forthc.py
 	$(RUN) $(FORTHC_LIMIT) $(PYTHON) -B tests/test_forthc_forth.py
 	$(RUN) $(FORTHC_SELF_LIMIT) $(PYTHON) -B tests/test_forthc_self.py
+	$(RUN) $(KERNEL_LIMIT) $(PYTHON) -B tests/test_kernel.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(RUN) $(LIMIT) $(PYTHON) -B tests/test_jobs.py

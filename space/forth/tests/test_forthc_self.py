@@ -8,7 +8,7 @@ stream must equal the model's, byte for byte. Finally S1 compiles its own
 sources, and the stream must be S1 itself: the compiled compiler, the Forth
 compiler under pForth and the model agree on the compiler.
 
-  --programs-only   skip the self-compilation (about half an hour)
+  --programs-only   skip the self-compilation (about forty minutes)
 """
 import json,subprocess,sys,tempfile,time
 from pathlib import Path
