@@ -26,12 +26,15 @@ SOURCES=[FORTHC/'prelude.fth',dependencies.COPYCODE_ROOT/'forth/backend.fth',
 EMULATOR=output_dir(dependencies.EMULATOR_ROOT,'build')/'bitcopy/emulator'
 
 def run(stream,text,timeout):
-    with tempfile.TemporaryFile() as stdin:
+    # Files, not pipes: with stderr on a pipe this process grew by hundreds
+    # of MiB per run, and the self-compilation writes 14 MB.
+    with tempfile.TemporaryFile() as stdin,tempfile.TemporaryFile() as stdout,tempfile.TemporaryFile() as stderr:
         stdin.write(stream+text.encode('latin-1'));stdin.seek(0)
         start=time.monotonic()
-        r=subprocess.run([str(EMULATOR),'-s',str(model.SIZE),'-p','8'],stdin=stdin,capture_output=True,timeout=timeout)
-    assert r.returncode==0 and not r.stderr,(r.returncode,r.stderr[-300:])
-    return r.stdout,time.monotonic()-start
+        r=subprocess.run([str(EMULATOR),'-s',str(model.SIZE),'-p','8'],stdin=stdin,stdout=stdout,stderr=stderr,timeout=timeout)
+        seconds=time.monotonic()-start;stdout.seek(0);stderr.seek(0);out=stdout.read();err=stderr.read()
+    assert r.returncode==0 and not err,(r.returncode,err[-300:])
+    return out,seconds
 
 source=''.join(path.read_text() for path in SOURCES)
 start=time.monotonic();compiler=model.Compiler();s1=compiler.compile_source(source,'main')
