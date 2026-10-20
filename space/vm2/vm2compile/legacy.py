@@ -47,7 +47,7 @@ def adapt(blocks,regions,*,address_bits,count_bits,entry,minimum_size=1048560,sl
                 else:copies=(SpanCopy(span(op.dst,width),span(op.src,width)),)
                 fetch=tuple(Span(('legacy-field',id(op),attr),0,64) for attr in ('n','dst','src'))
                 tasks.append(Task(key,copies,fetch,protected=True,barrier=opaque))
-            groups=[[byname[t.name] for t in layer] for layer in plan(tasks,slots-1)]
+            groups=[[byname[t.name] for t in layer] for layer in plan(tasks,slots-1,fetch_delay=1)]
             scheduled[name]=groups
             for layer,group in enumerate(groups):
                 for slot,op in enumerate(group):objects[id(op)]=('legacy:'+name+':'+str(layer),slot)

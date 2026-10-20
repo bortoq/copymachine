@@ -21,7 +21,7 @@ class Compiler:
         if f.layer_bits%8 or size%8:raise ValueError('direct ABI requires byte-sized space and processor')
         if not isinstance(program.limit,int) or not 0<=program.limit<1<<64:raise ValueError('invalid logical limit')
         self.b=Assembler(f,1<<(f.a-2),1<<(f.a-1),scheduling='optimize',arithmetic='hybrid')
-        self.memory={};self.record_fields={};self.state={};self.changes={};self.replaced={};self.checkpoints=[];self.relocs=[]
+        self.memory={};self.record_fields={};self.state={};self.changes={};self.writers={};self.direct={};self.replaced={};self.checkpoints=[];self.relocs=[]
         self.origins=self.b.alloc(64)
         self.counter=self.b.alloc(64) if program.limit else None
         self.body_labels={name:'body:'+name for name in program.layers}
@@ -78,7 +78,9 @@ class Compiler:
                     for ref in (op.src,op.dst):
                         if isinstance(ref,Field):self.key(ref);self.state.setdefault((ref.layer,ref.slot),None)
                     if n and isinstance(op.dst,Channel) and isinstance(op.src,Channel):raise ValueError('channel-to-channel copy')
-                    if isinstance(op.dst,Field):self.changes.setdefault(name,{}).setdefault(self.key(op.dst),[]).append((op.dst.name,op.dst.offset,n))
+                    if isinstance(op.dst,Field):
+                        self.changes.setdefault(name,{}).setdefault(self.key(op.dst),[]).append((op.dst.name,op.dst.offset,n))
+                        self.writers.setdefault(name,{}).setdefault(self.key(op.dst),[]).append(op)
                 elif isinstance(op,Replace):
                     if op.dst not in p.layers or op.src not in p.layers or op.dst==op.src:raise ValueError('invalid layer replacement')
                     left,right=p.layers[op.dst],p.layers[op.src]
@@ -185,7 +187,22 @@ class Compiler:
         if isinstance(op.dst,Channel) or isinstance(op.src,Channel):
             if not any(isinstance(r,Channel) and r.name=='sys' for r in (op.dst,op.src)):n=(n+7)//8*8
         return self.f.copy(n,self.address(op.dst),self.address(op.src))
-    def refresh(self,key,changes):
+    def slices(self,key,changes):
+        """Whether changed address bits can be copied to both endpoints unchanged."""
+        name,slot=key;op=self.p.layers[name].copies[slot];f=self.f
+        changed={attr for attr,_,n in changes if n}
+        masks=self.masks.get(key,{attr:0 for attr in FIELDS})
+        if name in self.replacement_targets or masks['n'] or not changed or not changed<={'dst','src'} or self.width(op.n)<=0:return False
+        for attr in changed:
+            ref=getattr(op,attr)
+            if not isinstance(ref,Memory):return False
+            # Prove carry safety below the lowest bit changed anywhere,
+            # not merely below this particular patch. Several separate
+            # writes to higher selector bits then share the same proof.
+            low=(masks[attr]&-masks[attr]).bit_length()-1;base=self.address(ref);count=self.width(op.n)
+            if (base|masks[attr])+count>f.size or (base% (1<<low))+count>=1<<low:return False
+        return True
+    def refresh(self,key,changes,writer=None):
         """Rebuild only the changed executable description, after source effects."""
         name,slot=key;p,f,b=self.p,self.f,self.b;op=p.layers[name].copies[slot];regs=self.state[key]
         target=self.body_labels[name];A=f.a;changed={attr for attr,_,n in changes if n}
@@ -193,22 +210,25 @@ class Compiler:
         # when the fixed low part plus n cannot carry into those selector bits.
         masks=self.masks.get(key,{attr:0 for attr in FIELDS})
         stable=name not in self.replacement_targets
-        if stable and not masks['n'] and changed and changed<={'dst','src'} and self.width(op.n)>0:
-            possible=True
-            for attr in changed:
-                ref=getattr(op,attr);slices=[(off,n) for a,off,n in changes if a==attr and n]
-                if not isinstance(ref,Memory):possible=False;break
-                # Prove carry safety below the lowest bit changed anywhere,
-                # not merely below this particular patch. Several separate
-                # writes to higher selector bits then share the same proof.
-                low=(masks[attr]&-masks[attr]).bit_length()-1;base=self.address(ref);count=self.width(op.n)
-                if (base|masks[attr])+count>f.size or (base% (1<<low))+count>=1<<low:possible=False;break
-            if possible:
-                for attr,off,n in changes:
+        if self.slices(key,changes):
+            if key in self.direct.get(writer,()):
+                # The writer already filled the lower endpoint. Mirror it to the
+                # upper one and keep the logical field copy, in one tick.
+                rows=[]
+                for (attr,off,n),source in zip(changes,self.writers[writer][key]):
                     if not n:continue
-                    endpoints=(0,1) if attr=='dst' else (2,3)
-                    for endpoint in endpoints:b.copy(n,Ref(target,(slot*4+endpoint)*A+off),regs[attr].at+off)
+                    low,high=(0,1) if attr=='dst' else (2,3)
+                    at=self.address(source.src,n)
+                    rows+=[(Ref(target,(slot*4+high)*A+off),Ref(target,(slot*4+high)*A+off+n),
+                            Ref(target,(slot*4+low)*A+off),Ref(target,(slot*4+low)*A+off+n)),
+                           (regs[attr].at+off,regs[attr].at+off+n,at,at+n)]
+                b.emit(rows)
                 return 'bit-slices'
+            for attr,off,n in changes:
+                if not n:continue
+                endpoints=(0,1) if attr=='dst' else (2,3)
+                for endpoint in endpoints:b.copy(n,Ref(target,(slot*4+endpoint)*A+off),regs[attr].at+off)
+            return 'bit-slices'
         def known_kind(attr):
             if not stable:return None
             ref=getattr(op,attr)
@@ -231,7 +251,18 @@ class Compiler:
                     if kinds[attr]=='channel':
                         if attr in changed or initialize:b.copy(A,Ref(target,(slot*4+endpoint+1)*A),regs[attr].at)
                     else:
-                        upper=b.alloc(A);b.add(regs[attr].at,count,upper.at,A)
+                        upper=b.alloc(A);mask=masks[attr];low=(mask&-mask).bit_length()-1
+                        run=(mask>>low).bit_length() if mask else 0
+                        if isinstance(count,int) and 1<=run<=8 and mask==((1<<run)-1)<<low:
+                            # A short patched slice selects a precomputed upper bound.
+                            base=self.address(getattr(op,attr))&~mask
+                            b.table_lookup(regs[attr].at+low,run,upper.at,A,[(base|v<<low)+count for v in range(1<<run)])
+                        elif isinstance(count,int) and count and not count&(count-1) and 0<A-(count.bit_length()-1)<=28:
+                            # Adding 2^j keeps the bits below j; the rest is an increment.
+                            j=count.bit_length()-1
+                            if j:b.copy(j,upper.at,regs[attr].at)
+                            b.increment(regs[attr].at+j,A-j,upper.at+j)
+                        else:b.add(regs[attr].at,count,upper.at,A)
                         b.copy(A,Ref(target,(slot*4+endpoint+1)*A),upper.at)
             return 'memory-bounds'
         dl,dh,sl,sh=[b.alloc(A) for _ in range(4)]
@@ -266,11 +297,28 @@ class Compiler:
         # A separate initial jump allows the independently audited bootstrap marker.
         b.jump(self.body_labels[p.entry],label='entry')
         methods={};replacement_rows={};checkpoint_maps=[]
+        # Code addresses exist only as typed entry relocations. When each one
+        # names a layer start, aligned starts make indirect bounds cheap.
+        entries=[v for _,_,v in self.relocs if isinstance(v,Value) and v.kind=='entry']
+        aligned=all(v.offset==0 for v in entries)
+        if aligned:b.aligned.update(self.body_labels[v.name] for v in entries)
+        stride=1<<f.layer_bits.bit_length();k=stride.bit_length()-1
         for name,l in p.layers.items():
             rows=[];indices=[]
+            # A bit-slice writer with plain memory sources patches the lower
+            # endpoint itself; refresh then needs a single mirroring tick.
+            direct=self.direct.setdefault(name,set())
+            for key,changes in self.changes.get(name,{}).items():
+                sources=self.writers[name][key]
+                if self.slices(key,changes) and all(isinstance(c.src,Memory) and isinstance(c.dst,Field) and c.dst.name in ('dst','src') for c in sources):
+                    direct.add(key)
             for slot,op in enumerate(l.copies):
                 indices.append(len(rows))
-                if isinstance(op,Copy):rows.append(self.row(op))
+                if isinstance(op,Copy) and isinstance(op.dst,Field) and self.key(op.dst) in direct and self.width(op.n):
+                    n=self.width(op.n);tl,ts=self.key(op.dst);low=0 if op.dst.name=='dst' else 2
+                    at=self.address(op.src,n);ref=Ref(self.body_labels[tl],(ts*4+low)*f.a+op.dst.offset)
+                    rows.append((ref,ref+n,at,at+n))
+                elif isinstance(op,Copy):rows.append(self.row(op))
                 else:
                     dst=Ref(self.body_labels[op.dst],0);src=Ref(self.body_labels[op.src],0)
                     rows.append((dst,dst+f.layer_bits,src,src+f.layer_bits))
@@ -288,7 +336,7 @@ class Compiler:
             affected=self.changes.get(name,{})
             if affected or self.replaced.get(name) or p.limit or l.checkpoint or isinstance(l.following,Memory):
                 after='after:'+name;b.emit(rows,label=self.body_labels[name],next=after,fence=True);b.emit(label=after)
-                for key,changes in affected.items():methods[name+':'+str(key)]=self.refresh(key,changes)
+                for key,changes in affected.items():methods[name+':'+str(key)]=self.refresh(key,changes,name)
                 follow=l.following
                 if p.limit:
                     b.add(self.counter.at,1,self.counter.at,64);flag=b.alloc(1);b.eq(self.counter.at,p.limit,64,flag)
@@ -305,10 +353,19 @@ class Compiler:
                         b.jump('halt')
                         continue
                 if isinstance(follow,Memory):
-                    source=self.selectors[name].at;end=b.alloc(f.a);b.add(source,f.layer_bits,end.at,f.a)
-                    target=b.name('indirect')
-                    b.copy(f.a,Ref(target,2*f.a),source);b.copy(f.a,Ref(target,3*f.a),end.at)
-                    b.emit(fence=True);placeholder=b.alloc(f.layer_bits)
+                    source=self.selectors[name].at;target=b.name('indirect')
+                    if aligned:
+                        # Low bits stay as placed: 0 below, layer size above.
+                        # The pointer is unchanged after the body tick, so both
+                        # endpoints are filled in one tick from distinct sources.
+                        pointer=self.address(follow,f.a)
+                        b.emit([(Ref(target,2*f.a+k),Ref(target,3*f.a),source+k,source+f.a),
+                                (Ref(target,3*f.a+k),Ref(target,4*f.a),pointer+k,pointer+f.a)])
+                        b.emit(fence=True);placeholder=b.alloc(f.layer_bits,align=stride)
+                    else:
+                        end=b.alloc(f.a);b.add(source,f.layer_bits,end.at,f.a)
+                        b.copy(f.a,Ref(target,2*f.a),source);b.copy(f.a,Ref(target,3*f.a),end.at)
+                        b.emit(fence=True);placeholder=b.alloc(f.layer_bits)
                     b.emit([(0,f.layer_bits,placeholder.at,placeholder.at+f.layer_bits)],label=target,next=False,fence=True)
                 else:b.jump(self.body_labels[follow] if follow is not None else 'halt')
             else:b.emit(rows,label=self.body_labels[name],next=self.body_labels[l.following] if l.following is not None else 'halt',fence=True)

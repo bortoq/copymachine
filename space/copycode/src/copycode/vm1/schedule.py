@@ -71,13 +71,14 @@ class _History:
                 self.states[i]=(task,frozenset())
             else:self.states[i]=(writer,readers|{task})
 
-def plan(tasks, slots):
+def plan(tasks, slots, *, fetch_delay=2):
     """Return layers of Tasks, including required empty fetch-delay layers.
 
     Stable greedy earliest placement; optimal schedules are not promised.
     A Task is an indivisible group: all its physical operands must be disjoint.
     """
     if slots<1:raise ValueError('positive slot budget required')
+    if fetch_delay<1:raise ValueError('fetch delay must be at least one layer')
     tasks=list(tasks)
     if len({t.name for t in tasks})!=len(tasks):raise ValueError('duplicate task name')
     histories={};layers=[];occupied=[];usage=[];levels=[];floor=0
@@ -87,7 +88,7 @@ def plan(tasks, slots):
         if any(x.overlaps(y) for i,x in enumerate(spans) for y in spans[i+1:]):
             raise ValueError('overlapping operands including sources in '+task.name)
         predecessors={}
-        for reading,delay in ((task.reads,1),(task.fetch,2)):
+        for reading,delay in ((task.reads,1),(task.fetch,fetch_delay)):
             for span in reading:
                 histories.setdefault(span.arena,_History()).access(span,number,False,delay,predecessors)
         for span in task.writes:

@@ -10,10 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 try:
-    from copycode.vm2.arithmetic import add32
+    from copycode.vm2.arithmetic import add32_digits
 except ModuleNotFoundError:
     import dependencies
-    from copycode.vm2.arithmetic import add32
+    from copycode.vm2.arithmetic import add32_digits
 
 SPACE_BYTES = 2097152
 SLOTS, N_BITS, ADDRESS_BITS = 256, 23, 24
@@ -233,6 +233,8 @@ class Image:
                 "mux": lambda a, b, select: b if select else a,
                 "signed_lt": lambda sign_a, sign_b, unsigned: sign_a if sign_a != sign_b else unsigned,
             }
+            if name.startswith("any"):
+                functions[name] = lambda *bits: int(any(bits))
             fn = functions[name]
             count = len(inputs)
             self.gates[name] = self.table([
@@ -240,39 +242,54 @@ class Image:
             ], 0)
         self.lookup(dst, self.gates[name], inputs, 1)
 
+    def function_gate(self, key, dst, inputs, width, fn, stride=0):
+        """Lookup of fn over the input bits (LSB first), cached by key."""
+        if key not in self.gates:
+            self.gates[key] = self.table([fn(i) for i in range(1 << len(inputs))], stride)
+        self.lookup(dst, self.gates[key], inputs, width, stride)
+
     def reduce_or(self, dst, inputs):
-        self.emit(1, dst, self.constant(0))
-        for bit in inputs:
-            self.gate("or", dst, [dst, bit])
+        # Eight-input OR tables: one lookup per eight (then seven) inputs.
+        inputs = list(inputs)
+        if not inputs:
+            self.emit(1, dst, self.constant(0))
+            return
+        chunk, inputs = inputs[:8], inputs[8:]
+        self.gate(f"any{len(chunk)}", dst, chunk)
+        while inputs:
+            chunk, inputs = inputs[:7], inputs[7:]
+            self.gate(f"any{len(chunk)+1}", dst, [dst] + chunk)
 
     def require_zero(self, inputs, error):
         self.reduce_or(REDUCE, inputs)
         self.gate("not", COND, [REDUCE])
         self.guard(COND, error)
 
+    def match(self, bits, expected):
+        """COND = 1 iff every listed bit equals its expected value."""
+        groups = [list(zip(bits, expected))[i:i+7] for i in range(0, len(bits), 7)]
+        for number, group in enumerate(groups):
+            values = [bit for bit, _ in group]
+            want = sum(e << k for k, (_, e) in enumerate(group))
+            count = len(group)
+            if number == 0:
+                self.function_gate(("match", count, want), COND, values, 1,
+                                   lambda i, w=want: int(i == w))
+            else:
+                self.function_gate(("match+", count, want), COND, [COND] + values, 1,
+                                   lambda i, w=want: int(i & 1 and i >> 1 == w))
+
     def validate(self, mask, expected):
-        self.emit(1, COND, self.constant(1))
-        for i in range(32):
-            if mask & (1 << i):
-                source = IR + i
-                if not (expected & (1 << i)):
-                    self.gate("not", REDUCE, [source])
-                    source = REDUCE
-                self.gate("and", COND, [COND, source])
+        bits = [i for i in range(32) if mask & (1 << i)]
+        self.match([IR + i for i in bits], [(expected >> i) & 1 for i in bits])
         self.guard(COND, "illegal")
 
     def require_value(self, source, expected, error):
-        self.emit(1, COND, self.constant(1))
-        for i in range(32):
-            bit = source+i
-            if not ((expected >> i) & 1):
-                self.gate("not", REDUCE, [bit])
-                bit = REDUCE
-            self.gate("and", COND, [COND, bit])
+        self.match([source + i for i in range(32)], [(expected >> i) & 1 for i in range(32)])
         self.guard(COND, error)
 
     def add(self, dst, a, b, subtract=False):
-        add32(self,dst,a,b,carry=CARRY,pair=PAIR,temp=TEMP,subtract=subtract)
+        add32_digits(self,dst,a,b,carry=CARRY,temp=TEMP,subtract=subtract)
 
     def compare(self):
         self.add(EA, A, B, subtract=True)
@@ -295,8 +312,34 @@ class Image:
         else:
             raise ValueError(form)
         assert len(sources) == 32
-        for i, source in enumerate(sources):
-            self.emit(1, B+i, self.constant(0) if source is None else IR+source)
+        self.place(B, [None if source is None else IR+source for source in sources])
+
+    def fill(self, dst, count, bit):
+        """dst[0:count] = count copies of bit, by one table lookup.
+
+        Repeated single-bit copies would share a source and serialize."""
+        self.function_gate(("fill", count), dst, [bit], count,
+                           lambda v, c=count: (1 << c)-1 if v else 0, count.bit_length())
+
+    def place(self, dst, sources):
+        """dst bit i = bit at sources[i] (None: zero). Runs become one copy."""
+        zero = self.constant(0)
+        i = 0
+        while i < len(sources):
+            j = i + 1
+            if sources[i] is None:
+                while j < len(sources) and sources[j] is None:
+                    j += 1
+                self.emit(j-i, dst+i, zero+i)
+            elif j < len(sources) and sources[j] == sources[i]:
+                while j < len(sources) and sources[j] == sources[i]:
+                    j += 1
+                self.fill(dst+i, j-i, sources[i])
+            else:
+                while j < len(sources) and sources[j] == sources[j-1]+1:
+                    j += 1
+                self.emit(j-i, dst+i, sources[i])
+            i = j
 
     def memory_address(self, instruction, field):
         # The guest region is aligned to its size; patch only its offset bits.
@@ -324,8 +367,6 @@ class Image:
             self.emit(5, Field(read, "src", 5), IR+index)
             self.blocks[self.current][0].append(read)
         self.emit(32, B, RHS)
-        rd_table = self.table([DISCARD] + [REGS+32*i for i in range(1, 32)])
-        self.lookup(RD_ADDRESS, rd_table, list(range(IR+7, IR+12)), self.layout.address_bits, 5)
         self.dispatch(list(range(IR, IR+7)), {
             0x13: "immediate", 0x33: "register", 0x37: "lui", 0x17: "auipc",
             0x6f: "jal", 0x67: "jalr", 0x63: "branch", 0x03: "load",
@@ -361,23 +402,34 @@ class Image:
             self.emit(32, RESULT, self.constant(0))
             self.emit(1, RESULT, condition)
             self.jump("writeback")
-        for name in ["xor", "or", "and"]:
+        operations = {"xor": lambda a, b: a ^ b, "or": lambda a, b: a | b, "and": lambda a, b: a & b}
+        for name, fn in operations.items():
             self.start(name)
-            for i in range(32):
-                self.gate(name, RESULT+i, [A+i, B+i])
+            # Four result bits per lookup: index is the A nibble, then the B nibble.
+            for i in range(0, 32, 4):
+                self.function_gate(("nibble", name), RESULT+i,
+                                   [A+i+k for k in range(4)] + [B+i+k for k in range(4)], 4,
+                                   lambda v, f=fn: f(v & 15, v >> 4), 2)
             self.jump("writeback")
+        # A shift is one copy from a 64-bit window [SHIFT0, SHIFT1); the shift
+        # amount patches the low bits of its source address.
         for name in ["sll", "srl", "sra"]:
             self.start(name)
-            self.emit(32, SHIFT0, A)
-            source, dest = SHIFT0, SHIFT1
-            for stage in range(5):
-                distance = 1 << stage
-                for i in range(32):
-                    shifted = i-distance if name == "sll" else i+distance
-                    bit = source+shifted if 0 <= shifted < 32 else (A+31 if name == "sra" else self.constant(0))
-                    self.gate("mux", dest+i, [source+i, bit, B+stage])
-                source, dest = dest, source
-            self.emit(32, RESULT, source)
+            shift = Copy(32, RESULT, SHIFT0)
+            if name == "sll":
+                self.emit(32, SHIFT0, self.constant(0))
+                self.emit(32, SHIFT1, A)
+                self.function_gate("sll_offset", IMM, list(range(B, B+5)), 6, lambda v: 32-v, 3)
+                self.emit(6, Field(shift, "src"), IMM)
+            else:
+                self.emit(32, SHIFT0, A)
+                if name == "srl":
+                    self.emit(32, SHIFT1, self.constant(0))
+                else:
+                    self.function_gate("sign_fill", SHIFT1, [A+31], 32,
+                                       lambda v: 0xffffffff if v else 0, 6)
+                self.emit(5, Field(shift, "src"), B)
+            self.blocks[self.current][0].append(shift)
             self.jump("writeback")
 
         for name in ["lui", "auipc"]:
@@ -434,12 +486,11 @@ class Image:
             read = Copy(width, RAW, self.layout.memory_bit)
             self.memory_address(read, "src")
             self.blocks[self.current][0].append(read)
-            self.emit(32, RESULT, self.constant(0))
-            for i in range(width):
-                self.emit(1, RESULT+i, RAW + (i//8)*8 + 7-i%8)
+            # Bytes are stored MSB first: reverse bits within each byte.
+            self.place(RESULT, [RAW + (i//8)*8 + 7-i%8 for i in range(width)]
+                       + ([] if signed else [None]*(32-width)))
             if signed:
-                for i in range(width, 32):
-                    self.emit(1, RESULT+i, RESULT+width-1)
+                self.fill(RESULT+width, 32-width, RESULT+width-1)
             self.jump("writeback")
         for name, width in [("sb", 8), ("sh", 16), ("sw", 32)]:
             self.start(name)
@@ -458,9 +509,12 @@ class Image:
         self.validate(0xffefffff, 0x73)
         self.branch(IR+20, "io_dispatch" if self.io else "ecall", "ebreak")
         self.start("writeback")
-        write = Copy(32, 0, RESULT)
-        self.emit(self.layout.address_bits, Field(write, "dst"), RD_ADDRESS)
+        # Patch only the register index: a five-bit aligned slice is far cheaper
+        # to refresh than a whole address. A write to x0 is undone right after.
+        write = Copy(32, REGS, RESULT)
+        self.emit(5, Field(write, "dst", 5), IR+7)
         self.blocks[self.current][0].append(write)
+        self.emit(32, REGS, self.constant(0))
         self.jump("commit")
         self.start("commit")
         self.emit(32, PC, NEXT_PC)

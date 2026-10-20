@@ -11,9 +11,11 @@ doc/measurements/benchmark.json
 doc/measurements/cases.json
 doc/measurements/coverage.json
 doc/measurements/execution.log
+doc/measurements/instruction-ticks.json
 doc/measurements/legacy-schedule.log
 doc/measurements/monitor-cli.log
 doc/measurements/monitor.json
+doc/measurements/speed.md
 doc/roadmap.md
 doc/rv32i.md
 doc/rv32i_io.md
@@ -47,4 +49,5 @@ tests/test_monitor.py
 tests/test_schedule.py
 tools/benchmark.py
 tools/build_example.py
+tools/instruction_ticks.py
 tools/release.py

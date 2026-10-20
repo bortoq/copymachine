@@ -26,7 +26,7 @@ class Assembler:
         if scheduling not in ('none','schedule','optimize'):raise ValueError('unknown scheduling mode')
         if arithmetic not in ('ripple','prefix','hybrid'):raise ValueError('unknown arithmetic mode')
         self.scheduling=scheduling;self.arithmetic=arithmetic;self.fences=set();self.lookup_reads={}
-        self.exports=set();self.records={}
+        self.exports=set();self.records={};self.aligned=set()
     def name(self,prefix='n'):
         self.serial+=1;return f'{prefix}_{self.serial}'
     def alloc(self,bits,align=8,value=0):
@@ -66,7 +66,7 @@ class Assembler:
         read a physical source twice in one layer.
         """
         unique=list(dict.fromkeys(inputs));indices=[unique.index(x) for x in inputs]
-        if len(unique)>6 or width not in (1,2):raise ValueError('unsupported truth table')
+        if len(unique)>6 or not 1<=width<=4:raise ValueError('unsupported truth table')
         stride=1<<width
         table=self.alloc(stride*(1<<len(unique)),align=stride*(1<<len(unique)))
         value=0
@@ -75,15 +75,65 @@ class Assembler:
             for bit in range(width):value|=((result>>bit)&1)<<(index*stride+bit)
         self.blocks[-1]=(table.at,table.width,value)
         target=self.name('lut')
+        # Index bit k sits at offset width+k; consecutive sources share one row.
+        runs=[]
+        for k,source in enumerate(unique):
+            if runs and runs[-1][1]+runs[-1][2]==source and runs[-1][0]+runs[-1][2]==k:runs[-1][2]+=1
+            else:runs.append([k,source,1])
         for endpoint in (2,3):
             rows=[]
-            for k,source in enumerate(unique):
+            for k,source,count in runs:
                 dst=Ref(target,endpoint*self.f.a+width+k)
-                rows.append((dst,dst+1,source,source+1))
+                rows.append((dst,dst+count,source,source+count))
             self.emit(rows)
         self.emit()
         self.emit([(out,out+width,table.at,table.at+width)],label=target)
         self.lookup_reads[target]=(table.at,table.at+table.width)
+    def table_lookup(self,source,bits,out,width,values):
+        """Read values[v] (width bits) for the bits-bit field v at source.
+
+        Entries use a stride strictly wider than width, so the shared index
+        bits of both source endpoints are patched without carry.
+        """
+        values=list(values)
+        if not 1<=bits<=8 or len(values)!=1<<bits or width<1:raise ValueError('unsupported lookup table')
+        stride=1<<width.bit_length();k=stride.bit_length()-1
+        table=self.alloc(stride<<bits,align=stride<<bits)
+        value=0
+        for index,entry in enumerate(values):
+            if not 0<=entry<1<<width:raise ValueError('lookup entry overflow')
+            value|=entry<<(index*stride)
+        self.blocks[-1]=(table.at,table.width,value)
+        target=self.name('table')
+        for endpoint in (2,3):
+            dst=Ref(target,endpoint*self.f.a+k)
+            self.emit([(dst,dst+bits,source,source+bits)])
+        self.emit()
+        self.emit([(out,out+width,table.at,table.at+width)],label=target)
+        self.lookup_reads[target]=(table.at,table.at+table.width)
+    def increment(self,source,width,out):
+        """out = source + 1 modulo 2^width, three table levels deep.
+
+        Nibble all-ones flags, then the carry into each nibble as the AND of
+        the flags below it, then each output nibble from its input and carry.
+        """
+        nibbles=[(start,min(4,width-start)) for start in range(0,width,4)]
+        if len(nibbles)>7:raise ValueError('increment wider than 28 bits')
+        flags=[]
+        for start,count in nibbles[:-1]:
+            flag=self.alloc(1);flags.append(flag)
+            self.gate([source+start+k for k in range(count)],flag.at,1,lambda v:int(all(v)))
+        carries=[None]
+        for k in range(1,len(nibbles)):
+            carry=self.alloc(1);carries.append(carry)
+            self.gate([f.at for f in flags[:k]],carry.at,1,lambda v:int(all(v)))
+        for (start,count),carry in zip(nibbles,carries):
+            inputs=[source+start+k for k in range(count)]
+            if carry is None:
+                self.gate(inputs,out+start,count,lambda v,c=count:(sum(x<<i for i,x in enumerate(v))+1)&((1<<c)-1))
+            else:
+                self.gate(inputs+[carry.at],out+start,count,
+                          lambda v,c=count:(sum(x<<i for i,x in enumerate(v[:c]))+v[c])&((1<<c)-1))
     def eq(self,source,value,width,out):
         self.set(out,1,1)
         for start in range(0,width,5):
@@ -259,7 +309,10 @@ class Assembler:
             if isolated:chunks.append(([node],True))
             else:current.append(node)
         if current:chunks.append((current,False))
-        layers=[];entries={};record={};original_rows=sum(len(r) for _,r,_ in self.nodes)
+        layers=[];addresses=[];entries={};record={};original_rows=sum(len(r) for _,r,_ in self.nodes)
+        # Aligned entries let an indirect jump form its upper source bound by
+        # replacing high address bits instead of adding the layer size.
+        stride=1<<f.layer_bits.bit_length()
         for nodes,isolated in chunks:
             if isolated:
                 name,rows,next=nodes[0];groups=[[(name,rows)]]
@@ -282,16 +335,18 @@ class Assembler:
             # Entries are layer addresses; Ref points to a particular instruction
             # within that layer. These are deliberately distinct namespaces.
             entries[nodes[0][0]]=start
-            for group in groups:
+            for index,group in enumerate(groups):
+                at=addresses[-1]+f.layer_bits if addresses else f.layer_bits
+                if not index and nodes[0][0] in self.aligned:at=(at+stride-1)//stride*stride
                 slot=0
                 for name,rows in group:
-                    record[name]=(len(layers)+1)*f.layer_bits+slot*4*f.a
+                    record[name]=at+slot*4*f.a
                     slot+=len(rows)
-                layers.append((group,None))
+                layers.append((group,None));addresses.append(at)
             layers[-1]=(layers[-1][0],next)
         self.records=record
-        self.labels={name:(level+1)*f.layer_bits for name,level in entries.items()}
-        code_end=(len(layers)+1)*f.layer_bits
+        self.labels={name:addresses[level] for name,level in entries.items()}
+        code_end=addresses[-1]+f.layer_bits
         if code_end>self.data_base:raise LayoutCapacityError(f'microcode needs {code_end} code bits, arena has {self.data_base}')
         def resolve(x):return record[x.name]+x.offset if isinstance(x,Ref) else x
         image=bytearray(f.image_bytes)
@@ -304,9 +359,9 @@ class Assembler:
         for i,(group,next) in enumerate(layers):
             rows=[tuple(resolve(x) for x in row) for _,rs in group for row in rs];emitted+=len(rows)
             if next is not False:
-                following=self.labels[next] if isinstance(next,str) else ((i+2)*f.layer_bits if i+1<len(layers) else None)
+                following=self.labels[next] if isinstance(next,str) else (addresses[i+1] if i+1<len(layers) else None)
                 if following is not None:rows += [NOP]*(f.slots-1-len(rows))+[f.copy(f.layer_bits,0,following)]
-            at=(i+1)*f.layer_bits//8
+            at=addresses[i]//8
             try:image[at:at+f.layer_bytes]=f.layer(rows)
             except ValueError as e:raise ValueError(f'scheduled layer {i}: {e}; {rows}') from e
         image[:f.layer_bytes]=jump(self.nodes[0][0])

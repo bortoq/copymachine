@@ -29,8 +29,8 @@ p=packed(rows);assert sorted(len(l.copies) for l in p.layers.values())==[0,1,7]
 target=Copy(8,50000,60000)
 p=packed([Copy(8,Field(target,'src',0),70000),Copy(8,Field(target,'src',8),71000),target])
 patches=p.layers['legacy:block:0'].copies;assert len(patches)==2
-assert all(isinstance(c.dst,SymbolicField) and c.dst.layer=='legacy:block:2' and c.dst.slot==0 for c in patches)
-assert not p.layers['legacy:block:1'].copies
+# Direct ABI updates finish before the next logical layer: one layer suffices.
+assert all(isinstance(c.dst,SymbolicField) and c.dst.layer=='legacy:block:1' and c.dst.slot==0 for c in patches)
 p=packed([Copy(8,50000,60000),Copy(0,51000,Channel('stdin')),Copy(8,52000,62000)])
 assert [len(l.copies) for l in p.layers.values()]==[1,1,1,0]
 print('PASS direct packing: independent copies, slot limit, src/src, RAW/WAR/WAW, field relocation and patch/fetch delay, channel barrier and serial control')
@@ -40,5 +40,5 @@ target=Copy(8,50000,60000)
 patch=Copy(8,Field(target,'src'),70000)
 source_patch=Copy(8,Field(patch,'src'),71000)
 p=packed([source_patch,patch,target])
-assert home(p,50000,60000)=='legacy:block:4'
+assert home(p,50000,60000)=='legacy:block:2'
 print('PASS dependent dynamic patches retain both fetch-delay constraints')
