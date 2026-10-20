@@ -102,15 +102,20 @@ variable cc-dsrc variable cc-dk variable cc-dg variable cc-dp variable cc-dx
 variable cc-table-at variable cc-table-limit variable cc-tbuf
 variable cc-tx variable cc-tbits variable cc-ts variable cc-tsize variable cc-tbase variable cc-tper
 : cc-tables ( at limit -- ) cc-table-limit ! cc-table-at ! ;
-: cc-table ( xt bits s -- base )
-  cc-ts ! cc-tbits ! cc-tx !
+: cc-table-area ( bits s -- buf )
+  cc-ts ! cc-tbits !
   1 cc-ts @ cc-tbits @ + lshift cc-tsize !
   cc-table-at @ cc-tsize @ 1- + cc-tsize @ negate and cc-tbase !
   cc-tbase @ cc-tsize @ + cc-table-at !
   cc-table-at @ cc-table-limit @ u> if -8 throw then
   cc-tsize @ 8 / allocate throw cc-tbuf ! cc-tbuf @ cc-tsize @ 8 / 0 fill
+  1 cc-ts @ lshift 8 / cc-tper ! cc-tbuf @ ;
+: cc-table-done ( -- base )
+  cc-tbase @ cc-tbuf @ cc-tsize @ 8 / cc-put cc-tbuf @ free throw cc-tbase @ ;
+\ Or fill the buffer of cc-table-area directly (entry i at i * 2^s / 8 bytes).
+: cc-table ( xt bits s -- base )
+  rot cc-tx ! cc-table-area drop
   cc-ts @ 3 < 0= if
-    1 cc-ts @ lshift 8 / cc-tper !
     1 cc-tbits @ lshift 0 ?do
       i cc-tx @ execute cc-tper @ cc-tbuf @ i cc-tper @ * + cc-numeric
     loop
@@ -124,8 +129,15 @@ variable cc-tx variable cc-tbits variable cc-ts variable cc-tsize variable cc-tb
         then
       loop drop
     loop
-  then
-  cc-tbase @ cc-tbuf @ cc-tsize @ 8 / cc-put cc-tbuf @ free throw cc-tbase @ ;
+  then cc-table-done ;
+\ Entries of two cells, low 32 bits first: xt ( i -- lo hi ), s >= 6.
+: cc-table2 ( xt bits s -- base )
+  dup 6 < if -24 throw then
+  rot cc-tx ! cc-table-area drop
+  1 cc-tbits @ lshift 0 ?do
+    i cc-tx @ execute cc-tbuf @ i cc-tper @ * + >r
+    4 r@ 4 + cc-numeric 4 r> cc-numeric
+  loop cc-table-done ;
 : cc-add-entry ( i -- v ) dup 15 and over 4 rshift 15 and + swap 8 rshift +
   dup 4 rshift 5 lshift or ;
 : cc-sub-entry ( i -- v ) dup 15 and over 4 rshift invert 15 and + swap 8 rshift +

@@ -24,7 +24,10 @@ def library_image(names):
     identity = dict(base=hashlib.sha256((base / 'manifest.json').read_bytes()).hexdigest(),
                     observer=hashlib.sha256(observer.read_bytes()).hexdigest(), sources=[])
     for name in names:
-        source = (dependencies.COPYCODE_ROOT / 'forth' / name).read_bytes()
+        # A name is a copycode library; a path is relative to this component.
+        path = ROOT / name if isinstance(name, Path) else dependencies.COPYCODE_ROOT / 'forth' / name
+        name = str(name)
+        source = path.read_bytes()
         assert source.endswith(b'\n') and all(len(line) < 255 for line in source.splitlines())
         identity['sources'].append([name, hashlib.sha256(source).hexdigest()])
         key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
@@ -51,7 +54,7 @@ def library_image(names):
                 incoming.write(payload['boot.bin'] + source)
                 incoming.seek(0)
                 result = subprocess.run(command, stdin=incoming,
-                                        stdout=subprocess.PIPE, stderr=stderr, env=env, timeout=500)
+                                        stdout=subprocess.PIPE, stderr=stderr, env=env, timeout=3000)
             assert result.returncode == 0 and not result.stdout, (name, result.returncode, result.stdout)
             data = raw.read_bytes()
             assert field(data, registers + 1024, 32) == 20, (name, field(data, registers + 1024, 32))

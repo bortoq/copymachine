@@ -77,11 +77,13 @@ create cc-rows 32 cells allot
 create cc-scratch 8 allot
 : cc-put-numeric ( value nbytes bit-address -- )
   >r dup >r cc-scratch cc-numeric r> r> cc-scratch rot cc-put ;
-\ Layer records: cell, next (-1 unlinked), count, rows.
-96 constant cc-max-layers
+\ Layer records: cell, next (-1 unlinked), count, rows. Pending records are
+\ a ring: a new record beyond cc-max-layers first writes the oldest pending
+\ one (it must be linked), as the host Builder with that capacity.
+128 constant cc-max-layers
 : cc-record ( -- n ) cc-slots @ 1- 4 * 3 + cells ;
-variable cc-pending variable cc-next-cell
-create cc-seq-list 96 cells allot variable cc-seq# variable cc-seq-first
+variable cc-pending variable cc-head variable cc-next-cell
+variable cc-seq# variable cc-seq-first variable cc-seq-entry variable cc-seq-last
 : cc-machine ( size slots cell-bits chunk-bytes -- )
   >r >r >r dup cc-bits r> r> r>
   ( size a slots cell chunk )
@@ -98,12 +100,12 @@ create cc-seq-list 96 cells allot variable cc-seq# variable cc-seq-first
   cc-chunk @ allocate throw cc-chunk-buf ! cc-lbytes allocate throw cc-lbuf !
   cc-lbytes allocate throw cc-ebuf !
   cc-record cc-max-layers * allocate throw cc-pool !
-  -1 cc-start ! 0 cc-len ! 0 cc-pending ! 2 cc-next-cell ! 0 cc-seq# ! ;
+  -1 cc-start ! 0 cc-len ! 0 cc-pending ! 0 cc-head ! 2 cc-next-cell ! 0 cc-seq# ! ;
 : cc-field ( cell slot f -- addr ) cc-a @ * swap cc-inst * + + ;
 : cc-link-row ( target -- dl dh sl sh ) >r 0 cc-layer-bits r@ dup cc-layer-bits + r> drop ;
 : cc-copy ( n dst src -- dl dh sl sh ) rot >r over r@ + swap dup r> + ;
 : cc-out ( n src -- dl dh sl sh ) cc-stdout dup 2swap tuck + ;
-: cc-builder ( first-cell -- ) cc-next-cell ! 0 cc-pending ! 0 cc-seq# ! ;
+: cc-builder ( first-cell -- ) cc-next-cell ! 0 cc-pending ! 0 cc-head ! 0 cc-seq# ! ;
 : cc-new-cell ( -- addr ) cc-next-cell @ dup 1+ cc-next-cell ! cc-cell-bits @ * ;
 : cc-group ( k -- base )
   1 swap lshift dup 1- cc-next-cell @ + over negate and
@@ -112,21 +114,27 @@ create cc-seq-list 96 cells allot variable cc-seq# variable cc-seq-first
 : cc-next! ( target layer -- ) cell+ ! ;
 : cc-count ( layer -- n ) 2 cells + @ ;
 : cc-row-addr ( layer i -- addr ) 4 * 3 + cells + ;
+: cc-pending@ ( i -- layer ) cc-head @ + cc-max-layers mod cc-record * cc-pool @ + ;
+: cc-encode-layer ( layer -- )
+  dup cell+ @ -1 = if -24 throw then
+  cc-clear-rows dup 3 cells + cc-rows 2 pick cc-count 4 * cells cmove
+  cell+ @ cc-link-row cc-slots @ 1- cc-row!
+  cc-ebuf @ cc-dest ! cc-rows cc-slots @ cc-encode ;
+: cc-write ( layer -- ) dup cc-encode-layer cc-layer-cell cc-ebuf @ cc-lbytes cc-put ;
+: cc-write-oldest ( -- ) 0 cc-pending@ cc-write cc-head @ 1+ cc-max-layers mod cc-head ! -1 cc-pending +! ;
 : cc-new-record ( cell -- layer )
-  cc-pending @ cc-max-layers < 0= if -8 throw then
-  cc-pool @ cc-pending @ cc-record * + tuck !
+  cc-pending @ cc-max-layers = if cc-write-oldest then
+  cc-pending @ cc-pending@ tuck !
   -1 over cc-next! 0 over 2 cells + ! 1 cc-pending +! ;
 : cc-lone ( -- layer ) cc-new-cell cc-new-record ;
 : cc-seq ( first|-1 -- ) cc-seq-first ! 0 cc-seq# ! ;
-: cc-seq@ ( i -- layer ) cells cc-seq-list + @ ;
-: cc-last ( -- layer ) cc-seq# @ 1- cc-seq@ ;
+: cc-last ( -- layer ) cc-seq-last @ ;
 : cc-layer ( -- layer )
   cc-seq# @ 0= cc-seq-first @ -1 <> and if cc-seq-first @ else cc-new-cell then
   cc-new-record
-  cc-seq# @ if dup cc-layer-cell cc-last cc-next! then
-  cc-seq# @ 96 < 0= if -8 throw then
-  dup cc-seq# @ cells cc-seq-list + ! 1 cc-seq# +! ;
-: cc-entry ( -- cell ) 0 cc-seq@ cc-layer-cell ;
+  cc-seq# @ if dup cc-layer-cell cc-last cc-next! else dup cc-layer-cell cc-seq-entry ! then
+  dup cc-seq-last ! 1 cc-seq# +! ;
+: cc-entry ( -- cell ) cc-seq-entry @ ;
 : cc-jump ( target -- ) cc-last cc-next! ;
 variable cc-l1 variable cc-h1 variable cc-l2 variable cc-h2
 variable cc-ra variable cc-rb variable cc-cur
@@ -142,25 +150,23 @@ variable cc-ra variable cc-rb variable cc-cur
     cc-ra @ j 2* cells + 2@ swap cc-rb @ i 2* cells + 2@ swap cc-clash? or
   loop loop ;
 create cc-new-row 4 cells allot
+: cc-row-set ( dl dh sl sh layer -- )
+  cc-cur ! cc-new-row 3 cells + ! cc-new-row 2 cells + ! cc-new-row cell+ ! cc-new-row ! ;
+: cc-full? ( -- flag ) cc-cur @ cc-count cc-slots @ 1- < 0= ;
+: cc-clashes? ( -- flag )
+  0 cc-cur @ cc-count 0 ?do
+    cc-new-row cc-cur @ i cc-row-addr cc-row-clash? if drop -1 leave then
+  loop ;
+\ Would the row fit the layer (a free slot, no overlap)? Nothing is added.
+: cc-fits? ( dl dh sl sh layer -- flag )
+  cc-row-set cc-full? if 0 exit then cc-clashes? 0= ;
 : cc-row ( dl dh sl sh layer -- slot )
-  cc-cur ! cc-new-row 3 cells + ! cc-new-row 2 cells + ! cc-new-row cell+ ! cc-new-row !
-  cc-cur @ cc-count cc-slots @ 1- < 0= if -8 throw then
-  cc-cur @ cc-count 0 ?do
-    cc-new-row cc-cur @ i cc-row-addr cc-row-clash? if unloop -9 throw then
-  loop
+  cc-row-set cc-full? if -8 throw then cc-clashes? if -9 throw then
   cc-new-row cc-cur @ dup cc-count cc-row-addr 4 cells cmove
   cc-cur @ cc-count 1 cc-cur @ 2 cells + +! ;
-: cc-encode-layer ( layer -- )
-  dup cell+ @ -1 = if -24 throw then
-  cc-clear-rows dup 3 cells + cc-rows 2 pick cc-count 4 * cells cmove
-  cell+ @ cc-link-row cc-slots @ 1- cc-row!
-  cc-ebuf @ cc-dest ! cc-rows cc-slots @ cc-encode ;
 : cc-flush ( -- )
-  cc-pending @ 0 ?do cc-pool @ i cc-record * + cell+ @ -1 = if -24 throw then loop
-  cc-pending @ 0 ?do
-    cc-pool @ i cc-record * + dup cc-encode-layer
-    cc-layer-cell cc-ebuf @ cc-lbytes cc-put
-  loop 0 cc-pending ! 0 cc-seq# ! ;
+  cc-pending @ 0 ?do i cc-pending@ cell+ @ -1 = if -24 throw then loop
+  cc-pending @ 0 ?do i cc-pending@ cc-write loop 0 cc-pending ! 0 cc-head ! 0 cc-seq# ! ;
 : cc-finish ( entry -- )
   cc-stream-flush cc-clear-rows cc-link-row cc-slots @ 1- cc-row!
   cc-lbuf @ cc-dest ! cc-rows cc-slots @ cc-encode cc-lbuf @ cc-lbytes type ;

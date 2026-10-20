@@ -25,7 +25,7 @@ Supported: decimal literals, : ; EXIT RECURSE, VARIABLE CONSTANT, + - * / MOD
 BEGIN UNTIL WHILE REPEAT AGAIN, DO LOOP I, EXECUTE ['] CATCH THROW. Output
 goes to stdout.
 """
-import sys
+import re,sys
 from pathlib import Path
 from copycode.vm1.backend import Machine,Stream,Builder,copy,numeric
 from copycode.vm1 import compute
@@ -48,6 +48,7 @@ SCR=D+(1<<20)+(1<<16)              # scratch registers of the subroutines
 HTAB=MEM+(1<<18)                   # tables of the subroutines, to the end
 DATA_START=256
 
+CAPACITY=128                       # pending layer records, as backend.fth
 class CompileError(Exception):pass
 
 def tables(t):
@@ -69,6 +70,10 @@ def tables(t):
     T['xr2']=t.table(2,2,[((i^i>>1)&1)*3 for i in range(4)])
     return T
 
+def number(t):
+    """A decimal literal, optionally negative, modulo 2^32; else None."""
+    return int(t)&0xffffffff if re.fullmatch('-?[0-9]+',t) else None
+
 def mul_entry(i):
     """Index a nibble, b nibble, carry nibble; entry low nibble, carry, copy."""
     v=(i&15)*(i>>4&15)+(i>>8);return v&15|(v>>4)<<4|(v>>4)<<8
@@ -82,12 +87,20 @@ class Sched:
     the time its result can be read. A patch of a read row runs at least two
     layers before the read: the next layer is already fetched. Two reads of
     one table never share a layer: patched indices may become equal. Values
-    are single assignment, so only read-after-write constraints exist."""
-    def __init__(self,b,cell=None):self.seq=Seq(b,cell);self.layers=[];self.tables=[]
+    are single assignment, so only read-after-write constraints exist.
+
+    Each operation places nothing below the last WINDOW layers that existed
+    when it started, and RING layers above that bound are the most it may
+    reach: the guest keeps only these records, older ones are written out."""
+    WINDOW=48;RING=64
+    def __init__(self,b,cell=None):self.seq=Seq(b,cell);self.layers=[];self.tables=[];self.low=0
+    def begin(self):self.low=max(0,len(self.layers)-self.WINDOW)
     def at(self,t):
+        if t-self.low>=self.RING:raise CompileError('schedule window exceeded')
         while len(self.layers)<=t:self.layers.append(self.seq.layer());self.tables.append(set())
         return self.layers[t]
     def place(self,row,t,table=None):
+        t=max(t,self.low)
         while True:
             layer=self.at(t)
             if table not in self.tables[t]:
@@ -97,10 +110,10 @@ class Sched:
                     return t,slot
                 except ValueError:pass
             t+=1
-    def copy(self,n,dst,src,ready):return self.place(copy(n,dst,src),ready)[0]+1
+    def copy(self,n,dst,src,ready):self.begin();return self.place(copy(n,dst,src),ready)[0]+1
     def lookup(self,table,s,width,dst,segs,preset=0):
         """segs: (src, src for the upper endpoint, n, index offset, ready)."""
-        placed=[];latest=-2
+        self.begin();placed=[];latest=-2
         for src,src2,n,off,ready in segs:
             for f,x in ((2,src),(3,src2)):
                 t,slot=self.place((0,0,x,x+n),ready);placed.append((t,slot,f,x,n,off));latest=max(latest,t)
@@ -126,7 +139,7 @@ class Sched:
 
 class Compiler:
     def __init__(self):
-        self.st=Stream(M);self.b=Builder(self.st)
+        self.st=Stream(M);self.b=Builder(self.st,capacity=CAPACITY)
         self.T=tables(compute.Tables(self.st,TAB,STK))
         self.consts={};self.words={};self.cache=[];self.s=None
         self.here=DATA_START;self.data={}
@@ -192,8 +205,13 @@ class Compiler:
     def begin_block(self,cell=None):
         """Start a new layer run; the previous run continues into it."""
         cell=cell if cell is not None else self.b.new_cell()
-        if self.s is not None and self.s.layers:self.s.jump(cell)
+        if self.s is not None:self.jump(cell)
         self.b.flush();self.s=Seq(self.b,cell);self.s.layer();return cell
+    def jump(self,target):
+        """Continue at target; a run still without layers (the ok cell of an
+        address check) gets an empty one."""
+        if not self.s.layers:self.s.layer()
+        self.s.jump(target)
     def nonzero(self,r):
         """E = (r != 0, copy), for a two-way decision."""
         s=self.s
@@ -435,39 +453,40 @@ class Compiler:
     # --- source -------------------------------------------------------------
     def compile_source(self,text,main):
         tokens=[]
-        for line in text.splitlines():
-            words=line.split()
+        for line in text.encode('latin-1').split(b'\n'):
+            # Words are runs of bytes above 32; ASCII letters fold to lower case.
+            words=[w.lower().decode('latin-1') for w in re.split(rb'[\x00-\x20]+',line) if w]
             if '\\' in words:words=words[:words.index('\\')]
             tokens+=words
-        uses={t.lower() for t in tokens}
+        uses=set(tokens)
         if '*' in uses:self.helpers['mul']=self.build_mul()
         if uses&{'/','mod','/mod'}:self.helpers['div']=self.build_div()
         tokens=iter(tokens);control=[];word=None
         for tok in tokens:
-            t=tok.lower()
+            t=tok
             if t=='(':
                 while next(tokens)!=')':pass
                 continue
             if word is None:
                 if t==':':
-                    name=next(tokens).lower();entry=self.b.new_cell()
+                    name=next(tokens);entry=self.b.new_cell()
                     word=name;self.words[name]=('call',entry);self.s=None;self.cache=[]
                     self.begin_block(entry)
                 elif t=='variable':
-                    self.words[next(tokens).lower()]=('lit',self.here);self.here+=4
+                    self.words[next(tokens)]=('lit',self.here);self.here+=4
                 elif t=='constant':raise CompileError('CONSTANT needs a literal before it')
                 else:
-                    try:value=int(t)
-                    except ValueError:raise CompileError('only definitions at top level: '+tok)
-                    if next(tokens).lower()!='constant':raise CompileError('expected CONSTANT')
-                    self.words[next(tokens).lower()]=('lit',value)
+                    value=number(t)
+                    if value is None:raise CompileError('only definitions at top level: '+tok)
+                    if next(tokens)!='constant':raise CompileError('expected CONSTANT')
+                    self.words[next(tokens)]=('lit',value)
                 continue
             if t==';':
                 if control:raise CompileError('unbalanced control structure')
                 self.ret();word=None;continue
             if t=='exit':self.ret();self.begin_block();continue
             if t=='recurse':self.call(self.words[word][1]);continue
-            if t=="[']":self.literal(self.words[next(tokens).lower()][1]);continue
+            if t=="[']":self.literal(self.words[next(tokens)][1]);continue
             if t=='execute':
                 xt=self.pop();self.begin_block(self.call_indirect(xt));continue
             if t=='catch':self.catch();continue
@@ -476,12 +495,12 @@ class Compiler:
                 f=self.pop();self.flush();zero,yes=self.branch(f)
                 control.append(('if',zero));self.begin_block(yes);continue
             if t=='else':
-                kind,zero=control.pop();self.flush();join=self.b.new_cell();self.s.jump(join)
+                kind,zero=control.pop();self.flush();join=self.b.new_cell();self.jump(join)
                 self.b.flush();self.s=None;control.append(('else',join));self.begin_block(zero);continue
             if t=='then':
                 kind,target=control.pop();self.flush()
                 if kind=='if':
-                    join=self.b.new_cell();self.s.jump(join);self.b.flush()
+                    join=self.b.new_cell();self.jump(join);self.b.flush()
                     Seq(self.b,target).rows([]).next=join;self.b.flush();self.s=None;self.begin_block(join)
                 else:self.begin_block(target)
                 continue
@@ -495,7 +514,7 @@ class Compiler:
                 continue
             if t in ('repeat','again'):
                 if t=='repeat':_,exit_cell=control.pop()
-                _,start=control.pop();self.flush();self.s.jump(start);self.b.flush();self.s=None
+                _,start=control.pop();self.flush();self.jump(start);self.b.flush();self.s=None
                 if t=='repeat':self.begin_block(exit_cell)
                 else:self.begin_block()
                 continue
@@ -517,15 +536,15 @@ class Compiler:
                 if kind=='lit':self.literal(value)
                 else:self.call(value)
                 continue
-            try:self.literal(int(t));continue
-            except ValueError:pass
+            value=number(t)
+            if value is not None:self.literal(value);continue
             self.primitive(t)
         if word is not None:raise CompileError('unfinished definition')
         if main not in self.words:raise CompileError('no main word')
         # Entry: a frame for an uncaught THROW (it halts), call main, halt.
         self.s=None;self.cache=[];start=self.begin_block();uncaught=self.b.new_cell()
         self.push_frame(uncaught);self.call(self.words[main][1])
-        self.s.jump(self.halt);self.b.flush()
+        self.jump(self.halt);self.b.flush()
         Seq(self.b,uncaught).rows([]).next=self.halt;self.b.flush()
         st=self.st
         st.put(SP,numeric(0,8));st.put(RP,numeric(0,8));st.put(HANDLER,numeric(0,8));st.put(ZERO,bytes(16))

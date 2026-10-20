@@ -82,10 +82,14 @@ class Stream:
         self.flush();m=self.m
         self.data+=encode(m,[(0,0,0,0)]*(m.slots-1)+[m.link(entry)]);return bytes(self.data)
 
+class Sealed(RuntimeError):
+    """A row was added to a layer already written to the stream."""
+
 class Layer:
-    def __init__(self,m,cell):self.m=m;self.cell=cell;self.rows=[];self.next=None
+    def __init__(self,m,cell):self.m=m;self.cell=cell;self.rows=[];self.next=None;self.sealed=False
     def add(self,row):
         m=self.m
+        if self.sealed:raise Sealed(self.cell)
         if len(self.rows)>=m.slots-1:raise ValueError('layer full')
         for other in self.rows:
             for x in (row[:2],row[2:]):
@@ -99,14 +103,22 @@ class Layer:
         return encode(m,list(self.rows)+[(0,0,0,0)]*(m.slots-1-len(self.rows))+[m.link(self.next)])
 
 class Builder:
-    """Cells are allocated in order; pending layers go to the stream at flush."""
-    def __init__(self,stream,first_cell=2):self.m=stream.m;self.stream=stream;self.cell=first_cell;self.pending=[]
+    """Cells are allocated in order; pending layers go to the stream at flush.
+
+    With a capacity, a new layer beyond it first writes the oldest pending
+    layer (it must be linked) and seals it, as the guest's record ring."""
+    def __init__(self,stream,first_cell=2,capacity=None):
+        self.m=stream.m;self.stream=stream;self.cell=first_cell;self.pending=[];self.capacity=capacity
+    def add_pending(self,layer):
+        if self.capacity is not None and len(self.pending)>=self.capacity:
+            old=self.pending.pop(0);self.stream.put(old.cell,old.encoded());old.sealed=True
+        self.pending.append(layer)
     def new_cell(self):c=self.cell;self.cell+=1;return c*self.m.cell_bits
     def group(self,k):
         """2^k consecutive cells aligned to 2^k cells; a link bit slice selects one."""
         self.cell=(self.cell+(1<<k)-1)>>k<<k;base=self.cell;self.cell+=1<<k;return base*self.m.cell_bits
     def flush(self):
-        for layer in self.pending:self.stream.put(layer.cell,layer.encoded())
+        for layer in self.pending:self.stream.put(layer.cell,layer.encoded());layer.sealed=True
         self.pending=[]
 
 class Seq:
@@ -116,7 +128,7 @@ class Seq:
         cell=self.first if not self.layers and self.first is not None else self.b.new_cell()
         layer=Layer(self.m,cell)
         if self.layers:self.layers[-1].next=cell
-        self.layers.append(layer);self.b.pending.append(layer);return layer
+        self.layers.append(layer);self.b.add_pending(layer);return layer
     def entry(self):return self.layers[0].cell
     def jump(self,target):self.layers[-1].next=target
     def rows(self,rows):

@@ -18,6 +18,11 @@
   `cc-seg ( src n index-offset -- )` (до 4 сегментов), `cc-lookups`.
 - `cc-tables ( at limit -- )`, `cc-table ( xt bits s -- base )`: таблица из
   2^bits записей, значение записи i — `xt ( i -- v )`; выравнивание на размер.
+  `cc-table2 ( xt bits s -- base )` — то же для записей шире ячейки
+  (s ≥ 6): `xt ( i -- lo hi )`, младшие 32 бита первыми. Это нужно гостю
+  с 32-битными ячейками. `cc-table-area ( bits s -- buf )` и
+  `cc-table-done ( -- base )` дают буфер таблицы для прямого заполнения:
+  запись i лежит с байта i·2^s/8.
 - `cc-standard-tables`: `cc-t-add`, `cc-t-sub` (тетрадный сумматор и
   вычитатель, 512 записей: сумма, перенос, копия переноса), `cc-t-xor/or/and`
   (тетради), `cc-t-or8`, `cc-t-flags` (EQ, NE, LT, GE, LTU, GEU парами),
