@@ -6,6 +6,9 @@ ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--require-local-history',action='store_true')
 args=parser.parse_args()
+if not (ROOT/'legacy/MIGRATION.json').is_file():
+    # The archive is local only and not part of the repository.
+    print('SKIP archive: legacy/ is not present in this checkout');raise SystemExit(0)
 record = json.loads((ROOT/'legacy/MIGRATION.json').read_text())
 for row in record['files']:
     owner = row.get('current_archive', row['new'])
