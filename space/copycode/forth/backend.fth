@@ -18,15 +18,19 @@ create cc-rev 256 allot
 cc-rev-init
 : cc-inst ( -- n ) cc-a @ 4 * ;
 : cc-layer-bits ( -- n ) cc-slots @ cc-inst * ;
-: cc-lbytes ( -- n ) cc-layer-bits 8 / ;
+: cc-lbytes ( -- n ) cc-layer-bits 3 rshift ;
 : cc-stdin ( -- c ) cc-size @ 1+ ;
 : cc-stdout ( -- c ) cc-size @ 2 + ;
 : cc-bits ( u -- n ) 0 swap begin dup while 1 rshift swap 1+ swap repeat drop ;
 : cc-numeric ( value nbytes addr -- )
   swap 0 ?do
-    over i 4 < if i 8 * rshift 255 and cc-rev + c@ else drop 0 then
+    over i 4 < if i 3 lshift rshift 255 and cc-rev + c@ else drop 0 then
     over i + c!
   loop 2drop ;
+\ The same for four bytes, unrolled: the 32-bit address fields of rows.
+: cc-numeric4 ( value addr -- )
+  over 255 and cc-rev + c@ over c!  over 8 rshift 255 and cc-rev + c@ over 1+ c!
+  over 16 rshift 255 and cc-rev + c@ over 2 + c!  swap 24 rshift 255 and cc-rev + c@ swap 3 + c! ;
 : cc-field-check ( value -- value )
   cc-a @ 32 < if dup cc-a @ rshift if -24 throw then then ;
 \ Encode count rows (4 cells each) padded with zero rows into cc-dest.
@@ -34,18 +38,19 @@ cc-rev-init
   cc-dest @ cc-lbytes 0 fill
   0 ?do
     4 0 do
-      dup j 4 * i + cells + @ cc-field-check
-      cc-a @ 8 / cc-dest @ j 4 * i + cc-a @ 8 / * + cc-numeric
+      dup j 2 lshift i + cells + @ cc-field-check
+      cc-a @ 32 = if cc-dest @ j 4 lshift + i 2 lshift + cc-numeric4
+      else cc-a @ 3 rshift cc-dest @ j 2 lshift i + cc-a @ 3 rshift * + cc-numeric then
     loop
   loop drop ;
 \ Stream state: chunk start byte (-1: none) and length.
 variable cc-start variable cc-len
 create cc-rows 32 cells allot
-: cc-row! ( dl dh sl sh i -- ) 4 * cells cc-rows + >r
+: cc-row! ( dl dh sl sh i -- ) 2 lshift cells cc-rows + >r
   r@ 3 cells + ! r@ 2 cells + ! r@ cell+ ! r> ! ;
 : cc-clear-rows ( -- ) cc-rows 32 cells 0 fill ;
 : cc-loader ( -- )
-  cc-clear-rows cc-start @ 8 * dup cc-len @ 8 * + cc-stdin dup 0 cc-row!
+  cc-clear-rows cc-start @ 3 lshift dup cc-len @ 3 lshift + cc-stdin dup 0 cc-row!
   0 3 cc-inst * 4 cc-inst * 7 cc-inst * 1 cc-row!
   3 cc-inst * cc-a @ + 3 cc-inst * cc-a @ 2 * + 7 cc-inst * dup cc-a @ + 2 cc-row!
   0 0 cc-stdin dup 3 cc-row!
@@ -59,7 +64,7 @@ create cc-rows 32 cells allot
   dup cc-len ! cc-chunk-buf @ swap cmove cc-start ! ;
 : cc-put ( bit-address src n -- )
   rot dup 7 and over cc-cell-bits @ u< or if -9 throw then
-  dup 2 pick 8 * + cc-size @ u> if -9 throw then
+  dup 2 pick 3 lshift + cc-size @ u> if -9 throw then
   3 rshift -rot
   cc-start @ -1 <> if
     2 pick cc-start @ cc-len @ + -               ( byte src n gap )
@@ -84,10 +89,13 @@ create cc-scratch 8 allot
 : cc-record ( -- n ) cc-slots @ 1- 4 * 3 + cells ;
 variable cc-pending variable cc-head variable cc-next-cell
 variable cc-seq# variable cc-seq-first variable cc-seq-entry variable cc-seq-last
+\ Offsets of the fields of each slot, computed by cc-machine.
+create cc-foff 32 cells allot
+: cc-foff-init ( -- ) 8 0 do 4 0 do j cc-inst * i cc-a @ * + j 2 lshift i + cells cc-foff + ! loop loop ;
 : cc-machine ( size slots cell-bits chunk-bytes -- )
   >r >r >r dup cc-bits r> r> r>
   ( size a slots cell chunk )
-  2 pick 8 < 4 pick 8 mod or 5 pick 8 mod or if -24 throw then
+  2 pick 8 < 4 pick 7 and or 5 pick 7 and or if -24 throw then
   over dup 1- and if -24 throw then
   dup 1 < if -24 throw then
   cc-chunk ! cc-cell-bits ! cc-slots ! cc-a ! cc-size !
@@ -100,28 +108,33 @@ variable cc-seq# variable cc-seq-first variable cc-seq-entry variable cc-seq-las
   cc-chunk @ allocate throw cc-chunk-buf ! cc-lbytes allocate throw cc-lbuf !
   cc-lbytes allocate throw cc-ebuf !
   cc-record cc-max-layers * allocate throw cc-pool !
-  -1 cc-start ! 0 cc-len ! 0 cc-pending ! 0 cc-head ! 2 cc-next-cell ! 0 cc-seq# ! ;
-: cc-field ( cell slot f -- addr ) cc-a @ * swap cc-inst * + + ;
+  -1 cc-start ! 0 cc-len ! 0 cc-pending ! 0 cc-head ! 2 cc-next-cell ! 0 cc-seq# ! cc-foff-init ;
+: cc-field ( cell slot f -- addr ) swap 2 lshift + cells cc-foff + @ + ;
 : cc-link-row ( target -- dl dh sl sh ) >r 0 cc-layer-bits r@ dup cc-layer-bits + r> drop ;
 : cc-copy ( n dst src -- dl dh sl sh ) rot >r over r@ + swap dup r> + ;
 : cc-out ( n src -- dl dh sl sh ) cc-stdout dup 2swap tuck + ;
 : cc-builder ( first-cell -- ) cc-next-cell ! 0 cc-pending ! 0 cc-head ! 0 cc-seq# ! ;
 : cc-new-cell ( -- addr ) cc-next-cell @ dup 1+ cc-next-cell ! cc-cell-bits @ * ;
+\ The link bit selecting a branch target: both endpoints (target, target+layer)
+\ share it, so with a layer filling the cell targets are two cells apart.
+: cc-branch-bit ( -- n ) cc-cell-bits @ cc-bits 1- cc-layer-bits cc-cell-bits @ < 0= - ;
+: cc-branch-step ( -- n ) 1 cc-branch-bit lshift ;
+\ 2^k branch targets cc-branch-step apart, aligned to the block.
 : cc-group ( k -- base )
-  1 swap lshift dup 1- cc-next-cell @ + over negate and
+  1 swap lshift cc-branch-step cc-cell-bits @ / * dup 1- cc-next-cell @ + over / over *
   dup rot + cc-next-cell ! cc-cell-bits @ * ;
 : cc-layer-cell ( layer -- cell ) @ ;
 : cc-next! ( target layer -- ) cell+ ! ;
 : cc-count ( layer -- n ) 2 cells + @ ;
-: cc-row-addr ( layer i -- addr ) 4 * 3 + cells + ;
-: cc-pending@ ( i -- layer ) cc-head @ + cc-max-layers mod cc-record * cc-pool @ + ;
+: cc-row-addr ( layer i -- addr ) 2 lshift 3 + cells + ;
+: cc-pending@ ( i -- layer ) cc-head @ + cc-max-layers 1- and cc-record * cc-pool @ + ;
 : cc-encode-layer ( layer -- )
   dup cell+ @ -1 = if -24 throw then
-  cc-clear-rows dup 3 cells + cc-rows 2 pick cc-count 4 * cells cmove
+  cc-clear-rows dup 3 cells + cc-rows 2 pick cc-count 2 lshift cells cmove
   cell+ @ cc-link-row cc-slots @ 1- cc-row!
   cc-ebuf @ cc-dest ! cc-rows cc-slots @ cc-encode ;
 : cc-write ( layer -- ) dup cc-encode-layer cc-layer-cell cc-ebuf @ cc-lbytes cc-put ;
-: cc-write-oldest ( -- ) 0 cc-pending@ cc-write cc-head @ 1+ cc-max-layers mod cc-head ! -1 cc-pending +! ;
+: cc-write-oldest ( -- ) 0 cc-pending@ cc-write cc-head @ 1+ cc-max-layers 1- and cc-head ! -1 cc-pending +! ;
 : cc-new-record ( cell -- layer )
   cc-pending @ cc-max-layers = if cc-write-oldest then
   cc-pending @ cc-pending@ tuck !

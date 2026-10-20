@@ -6,14 +6,16 @@ registers (a stack cache) and tracks the depth, so DUP, DROP, SWAP, OVER, ROT
 cost nothing and literals are one copy. At every control boundary (branch,
 loop, call, return) the cache is written to the data stack in memory.
 
-Memory stacks hold 256 entries at a 64-bit stride; a stack pointer is kept
-as eight copies of its 8-bit value, so several patches of one tick read
-distinct sources. A call pushes the continuation's link fields (ret and
-ret+layer, 48 bits) on the return stack; a return copies them straight into
-the link fields of the return trampoline. Data addresses are byte addresses;
+The space has 2^31 bits and 32-bit address fields, room for the code of the
+compiler itself. Memory stacks hold 256 entries, the data stack at a 64-bit
+stride, the return stack at 128 bits; a stack pointer is kept as eight copies
+of its 8-bit value, so several patches of one tick read distinct sources. A
+call pushes the continuation's link fields (ret and ret+layer, 64 bits, from
+the link pool) on the return stack; a return copies them straight into the
+link fields of the return trampoline. Data addresses are byte addresses;
 cells are 32-bit, at a 64-bit stride in the space, so a patched word address
-never carries. @ and ! check the address: outside the data cells THROW -9,
-unaligned THROW -23.
+never carries. @ and ! check the address: outside the 2^17 data cells
+THROW -9, unaligned THROW -23.
 
 * / MOD /MOD call shared straight-line subroutines placed by a list scheduler
 (Sched); the stack cache stays in registers across them. Division truncates
@@ -31,25 +33,37 @@ from copycode.vm1.backend import Machine,Stream,Builder,copy,numeric
 from copycode.vm1 import compute
 from copycode.vm1.compute import Seq
 
-SIZE=(1<<24)-16;CELL=1024
+SIZE=1<<31;CELL=1024
 M=Machine(SIZE,8,CELL,4096)
-L=M.layer_bits
-D=3<<22
+L=M.layer_bits;A=M.a;STEP=M.branch_step;BB=M.branch_bit
+D=1<<30
 SP=D;RP=D+64                       # 8 copies of an 8-bit index each
 HANDLER=D+128;CODE=D+192           # CATCH frame pointer (RP copies), THROW code
 REGS=D+1024;NREGS=48               # cache registers, 64-bit stride
 TMP=D+4096;XR=D+4160;Z=D+4224;IDX=D+4288  # IDX: 16 index registers, 16 bits
-LINK=D+4608                        # assembled return entry (48 bits)
 FLT=D+4672                         # address check: fault flag, copy, code
 MA=D+4800;MB=D+4864;MP=D+4928;MQ=D+4992;MR=D+5056  # subroutine operands
-ZERO=D+5120;CONSTS=D+8192;TAB=D+(1<<17)
-STK=D+(1<<20);RSTK=STK+(1<<14);MEM=D+(1<<21);MW=12  # 4096 data cells
-SCR=D+(1<<20)+(1<<16)              # scratch registers of the subroutines
-HTAB=MEM+(1<<18)                   # tables of the subroutines, to the end
+ZERO=D+5120;W=D+5376;U=D+5440;KEY=D+5504  # shift window and 31-n, input byte
+BP=D+5568                          # bit offsets of a byte in its cell, both endpoints
+CONSTS=D+8192;NCONSTS=4096;TAB=D+(1<<19)
+STK=D+(1<<21);RSTK=STK+(1<<15)     # strides 64 and 128 bits
+SCR=STK+(1<<16)                    # scratch registers of the subroutines
+LINKS=D+(1<<22);NLINKS=1<<15;LINK_CHUNK=512  # link pool, written 512 at a time
+MEM=D+(1<<23);MW=17                # 2^17 data cells (512 KiB)
+HTAB=D+(1<<24)                     # tables of the subroutines, to the end
 DATA_START=256
 
 CAPACITY=128                       # pending layer records, as backend.fth
 class CompileError(Exception):pass
+BINARY=('+','-','and','or','xor','=','<','u<','lshift','rshift')
+# Evaluated at compile time at the top level when their operands are known.
+def _shift(f):return lambda a,b:f(a,b&31)&0xffffffff
+CT_OPS={'+':(2,lambda a,b:(a+b)&0xffffffff),'-':(2,lambda a,b:(a-b)&0xffffffff),
+        '*':(2,lambda a,b:(a*b)&0xffffffff),'and':(2,lambda a,b:a&b),'or':(2,lambda a,b:a|b),
+        'xor':(2,lambda a,b:a^b),'lshift':(2,_shift(lambda a,b:a<<b)),'rshift':(2,_shift(lambda a,b:a>>b)),
+        'cells':(1,lambda a:(a*4)&0xffffffff),'2*':(1,lambda a:(a*2)&0xffffffff),
+        '1+':(1,lambda a:(a+1)&0xffffffff),'1-':(1,lambda a:(a-1)&0xffffffff),
+        'cell+':(1,lambda a:(a+4)&0xffffffff)}
 
 def tables(t):
     T=compute.standard_tables(t)
@@ -59,15 +73,16 @@ def tables(t):
     T['zero32']=t.table(4,6,[0xffffffff if i==0 else 0 for i in range(16)])
     T['nz2']=t.table(4,2,[3 if i else 0 for i in range(16)])
     T['lt32']=t.table(3,6,[0xffffffff if ((i>>1&1) if (i>>1&1)!=(i>>2&1) else not(i&1)) else 0 for i in range(8)])
-    # Address check: OR of bits [14,22) and [22,30) (two tables, one layer);
-    # chk: bits [30,32) nonzero, bits [0,2) nonzero; fault: flag, copy, code.
+    # Address check: OR of bits [19,27) and [27,32) (two tables, one layer);
+    # fault: index the two ORs and the low two address bits; flag, copy, code.
     T['or8b']=t.table(8,1,[int(i!=0) for i in range(256)])
-    T['chk']=t.table(4,2,[int(i&3!=0)|int(i>>2!=0)<<1 for i in range(16)])
     def fault(i):
-        code=-9 if i&7 else -23 if i&8 else 0
+        code=-9 if i&3 else -23 if i&12 else 0
         return int(code!=0)*3|(code&0xffffffff)<<2
     T['fault']=t.table(4,6,[fault(i) for i in range(16)])
     T['xr2']=t.table(2,2,[((i^i>>1)&1)*3 for i in range(4)])
+    T['ult32']=t.table(1,6,[0xffffffff,0])
+    T['bytepos']=t.table(2,4,[8*i|(8*i+8)<<6 for i in range(4)])
     return T
 
 def number(t):
@@ -145,8 +160,9 @@ class Compiler:
         self.here=DATA_START;self.data={}
         self.halt=CELL  # the zero cell: the next fetch finds only NOPs
         tr=Seq(self.b);tr.rows([]).next=CELL;self.tramp=tr.entry();self.b.flush()
-        ex=Seq(self.b);ex.rows([]).next=CELL;self.ex=ex.entry();self.b.flush()
+        ex=Seq(self.b);ex.rows([]).next=0;self.ex=ex.entry();self.b.flush()
         self.scr=SCR;self.helpers={};self.htables=compute.Tables(self.st,HTAB,M.size)
+        self.nlinks=0;self.link_buf=[]
         self.thrower=self.build_thrower()
     def scratch(self,bits,align=64):
         at=-(-self.scr//align)*align;self.scr=at+bits
@@ -156,8 +172,22 @@ class Compiler:
     def const(self,value,bits=32):
         key=(value&((1<<bits)-1),bits)
         if key not in self.consts:
+            if len(self.consts)==NCONSTS:raise CompileError('constants exhausted')
             self.consts[key]=CONSTS+64*len(self.consts)
         return self.consts[key]
+    def link(self,cont):
+        """A pool entry with the link fields of a continuation: cont, cont+layer.
+
+        Entries are unique per call site, so they are not looked up; they go
+        to the stream LINK_CHUNK at a time and the rest at the end."""
+        if self.nlinks==NLINKS:raise CompileError('link pool exhausted')
+        at=LINKS+64*self.nlinks;self.nlinks+=1;self.link_buf.append(cont|(cont+L)<<A)
+        if len(self.link_buf)==LINK_CHUNK:self.put_links()
+        return at
+    def put_links(self):
+        if self.link_buf:
+            first=LINKS+64*(self.nlinks-len(self.link_buf))
+            self.st.put(first,b''.join(numeric(v,8) for v in self.link_buf));self.link_buf=[]
     def reg(self):
         used=set(self.cache)
         for k in range(NREGS):
@@ -171,24 +201,30 @@ class Compiler:
         items=[(self.T['off',c],7,16,IDX+16*k,[(pointer+8*k,8,0)],0) for k,c in enumerate(offsets)]
         items.append((self.T['off',delta],7,64,pointer,[(pointer+8*len(offsets),8,0)],0))
         self.s.lookups(items)
-    def patched(self,rows,fields):
-        """Rows whose endpoint fields get IDX+16k (and its copy) at bit 6."""
+    def patched(self,rows,fields,shift=6):
+        """Rows whose endpoint fields get IDX+16k (and its copy) at bit shift."""
         s=self.s;n=len(rows)
         patches=[s.layer() for _ in range(-(-2*n//7))];s.layer()
         layer=s.layer();slots=[layer.add(r) for r in rows]
         for k,slot in enumerate(slots):
             for j,(f,src) in enumerate(((fields[0],IDX+16*k),(fields[1],IDX+16*k+8))):
-                patches[(2*k+j)//7].add(copy(8,M.field(layer.cell,slot,f)+6,src))
+                patches[(2*k+j)//7].add(copy(8,M.field(layer.cell,slot,f)+shift,src))
     def mem_pop(self,base,pointer,n,width=32):
-        regs=[self.reg_for_pop(k) for k in range(n)]
+        regs=[self.reg_for_pop(k) for k in range(n)];sh=7 if base==RSTK else 6
         self.adjust(pointer,[-n+k for k in range(n)],-n)
-        self.patched([(r,r+width,base+64*k,base+64*k+width) for k,r in enumerate(regs)],(2,3))
+        self.patched([(r,r+width,base+(k<<sh),base+(k<<sh)+width) for k,r in enumerate(regs)],(2,3),sh)
         return regs
     def reg_for_pop(self,k):
         r=self.reg();self.pinned=tuple(self.pinned)+(r,);return r
     def mem_push(self,base,pointer,srcs,width=32):
+        # One layer may not read a register twice (DUP shares one): split.
+        k=1
+        while k<len(srcs) and srcs[k] not in srcs[:k]:k+=1
+        if k<len(srcs):
+            self.mem_push(base,pointer,srcs[:k],width);self.mem_push(base,pointer,srcs[k:],width);return
+        sh=7 if base==RSTK else 6
         self.adjust(pointer,list(range(len(srcs))),len(srcs))
-        self.patched([(base+64*k,base+64*k+width,r,r+width) for k,r in enumerate(srcs)],(0,1))
+        self.patched([(base+(k<<sh),base+(k<<sh)+width,r,r+width) for k,r in enumerate(srcs)],(0,1),sh)
     def need(self,n):
         """Ensure n cached items, popping the missing ones from memory."""
         missing=n-len(self.cache)
@@ -221,21 +257,22 @@ class Compiler:
     def branch(self,flag):
         """Decide on flag != 0: returns (zero cell, nonzero cell)."""
         e=self.nonzero(flag);g=self.s.decide(e,1);self.b.flush();self.s=None
-        return g,g+CELL
+        return g,g+STEP
     def call(self,entry):
         self.flush();cont=self.b.new_cell()
-        self.mem_push(RSTK,RP,[self.const(cont|(cont+L)<<24,64)],48)
+        self.mem_push(RSTK,RP,[self.link(cont)],64)
         self.s.jump(entry);self.b.flush();self.s=None
         self.begin_block(cont)
     def call_indirect(self,xt,cont=None):
         """Call the word whose entry cell address is in register xt.
 
-        Entries are cells, so bits [10,24) select the target in both link
-        endpoints; the low bits of the templates stay 0 and layer."""
+        Entries are aligned to the branch step, so bits [BB,32) select the
+        target in both link endpoints; the low bits of the templates stay 0
+        and layer."""
         self.flush();cont=cont if cont is not None else self.b.new_cell()
-        self.mem_push(RSTK,RP,[self.const(cont|(cont+L)<<24,64)],48)
+        self.mem_push(RSTK,RP,[self.link(cont)],64)
         s=self.s;p0=s.layer();p1=s.layer();s.layer()
-        p0.add(copy(14,M.field(self.ex,7,2)+10,xt+10));p1.add(copy(14,M.field(self.ex,7,3)+10,xt+10))
+        p0.add(copy(A-BB,M.field(self.ex,7,2)+BB,xt+BB));p1.add(copy(A-BB,M.field(self.ex,7,3)+BB,xt+BB))
         s.jump(self.ex);self.b.flush();self.s=None
         return cont
     def catch(self):
@@ -243,12 +280,12 @@ class Compiler:
         link to the throw continuation; HANDLER then points above it."""
         xt=self.pop();self.flush()
         thrown=self.b.new_cell();join=self.b.new_cell()
-        # Entries are 48 bits (below the 64-bit stride); pointers are restored
+        # Entries are 64 bits (below the 128-bit stride); pointers are restored
         # from their first copy by the identity table, which replicates it.
         self.push_frame(thrown)
         normal=self.call_indirect(xt)
         self.begin_block(normal)
-        _,prev,_=self.mem_pop(RSTK,RP,3,48);self.pinned=()
+        _,prev,_=self.mem_pop(RSTK,RP,3,64);self.pinned=()
         self.s.lookups([(self.T['off',0],7,64,HANDLER,[(prev,8,0)],0)]);self.cache=[];self.literal(0);self.flush()
         self.s.jump(join);self.b.flush();self.s=None
         self.begin_block(thrown);r=self.reg();self.s.rows([copy(32,r,CODE)]);self.cache=[r];self.flush()
@@ -258,9 +295,9 @@ class Compiler:
         """Shared nonzero THROW, code in CODE: the frame at HANDLER restores
         both stacks and the handler, then its link continues at the catch."""
         self.cache=[];self.s=Seq(self.b);self.s.rows([copy(64,RP,HANDLER)]);entry=self.s.entry()
-        saved,prev,link=self.mem_pop(RSTK,RP,3,48);self.pinned=()
+        saved,prev,link=self.mem_pop(RSTK,RP,3,64);self.pinned=()
         self.s.lookups([(self.T['off',0],7,64,SP,[(saved,8,0)],0),(self.T['off',0],7,64,HANDLER,[(prev,8,0)],0)])
-        self.s.rows([copy(48,M.field(self.tramp,7,2),link)])
+        self.s.rows([copy(64,M.field(self.tramp,7,2),link)])
         self.s.layer();self.s.jump(self.tramp);self.b.flush();self.s=None
         return entry
     def throw(self):
@@ -270,37 +307,49 @@ class Compiler:
         Seq(self.b,thrown).rows([]).next=self.thrower;self.b.flush()
         self.begin_block(zero)
     def push_frame(self,thrown):
-        self.mem_push(RSTK,RP,[SP,HANDLER,self.const(thrown|(thrown+L)<<24,64)],48)
+        self.mem_push(RSTK,RP,[SP,HANDLER,self.link(thrown)],64)
         self.s.rows([copy(64,HANDLER,RP)])
     def ret(self):
         self.flush()
         self.adjust(RP,[-1],-1)
         s=self.s;p=s.layer();s.layer()
-        layer=s.layer();slot=layer.add((M.field(self.tramp,7,2),M.field(self.tramp,7,2)+48,RSTK,RSTK+48))
-        p.add(copy(8,M.field(layer.cell,slot,2)+6,IDX));p.add(copy(8,M.field(layer.cell,slot,3)+6,IDX+8))
+        layer=s.layer();slot=layer.add((M.field(self.tramp,7,2),M.field(self.tramp,7,2)+64,RSTK,RSTK+64))
+        p.add(copy(8,M.field(layer.cell,slot,2)+7,IDX));p.add(copy(8,M.field(layer.cell,slot,3)+7,IDX+8))
         s.layer();s.jump(self.tramp);self.b.flush();self.s=None
-    def check_address(self,a,access):
+    def check_address(self,a,access,byte=False):
         """Check the byte address in register a, then continue in the ok cell.
 
-        One round ORs the high bits [14,32) in three chunks and tests the low
-        two bits; a second reads flag, copy and code from the fault table. The
-        fault cell copies the code to CODE and throws. access(l0, l1, read,
-        ok) adds the access: patches in l0/l1, rows in the read layer (run
-        before the decision) or in a layer of the ok run."""
+        Round 1 ORs the high bits [19,32) in two chunks (and for a byte access
+        reads its bit offset: the low six bits of both endpoints, 8b and
+        8b+8); round 2 reads flag, copy and code from the fault table, indexed
+        for a cell access with the low two address bits as well. The fault
+        cell copies the code to CODE and throws. access(rounds, ok) adds the
+        access: rounds is ((l0, l1, read), (l2, l3, read2)), patch layers and
+        read layer of each round; its rows run before the decision, a store
+        goes to a layer of the ok run."""
         s=self.s;T=self.T
         l0=s.layer();l1=s.layer();s.layer();r=s.layer()
-        for table,sh,w,dst,segs in ((T['or8'],1,1,Z,[(a+14,8,0)]),(T['or8b'],1,1,Z+1,[(a+22,8,0)]),
-                                    (T['chk'],2,2,Z+2,[(a+30,2,0),(a,2,2)])):
+        hi=MW+2
+        reads=[(T['or8'],1,1,Z,[(a+hi,8,0)]),(T['or8b'],1,1,Z+1,[(a+hi+8,A-hi-8,0)])]
+        if byte:reads.append((T['bytepos'],4,12,BP,[(a,2,0)]))
+        for table,sh,w,dst,segs in reads:
             slot=r.add((dst,dst+w,table,table+w))
             for src,n,off in segs:
                 l0.add(copy(n,M.field(r.cell,slot,2)+sh+off,src));l1.add(copy(n,M.field(r.cell,slot,3)+sh+off,src))
-        s.lookups([(T['fault'],6,34,FLT,[(Z,4,0)],0)])
-        group=self.b.group(1);bit=M.cell_bits.bit_length()-1
+        l2=s.layer();l3=s.layer();s.layer();r2=s.layer()
+        slot=r2.add((FLT,FLT+34,T['fault'],T['fault']+34))
+        for src,n,off in [(Z,2,0)] if byte else [(Z,2,0),(a,2,2)]:
+            l2.add(copy(n,M.field(r2.cell,slot,2)+6+off,src));l3.add(copy(n,M.field(r2.cell,slot,3)+6+off,src))
+        group=self.b.group(1);bit=BB
         patch=s.layer();s.layer();x=s.layer();x.next=group
         patch.add(copy(1,M.field(x.cell,7,2)+bit,FLT));patch.add(copy(1,M.field(x.cell,7,3)+bit,FLT+1))
-        ok=Seq(self.b,group);access(l0,l1,r,ok)
-        Seq(self.b,group+CELL).rows([copy(32,CODE,FLT+2)]).next=self.thrower
+        ok=Seq(self.b,group);access(((l0,l1,r),(l2,l3,r2)),ok)
+        Seq(self.b,group+STEP).rows([copy(32,CODE,FLT+2)]).next=self.thrower
         self.s=ok
+    def byte_patches(self,cell,slot,fields,lo,hi,a):
+        """Byte address a: bit offset from BP, cell index a[2:] at bit 6."""
+        for f,layer,src in ((fields[0],lo,BP),(fields[1],hi,BP+6)):
+            layer.add(copy(6,M.field(cell,slot,f),src));layer.add(copy(MW,M.field(cell,slot,f)+6,a+2))
     # --- multiplication and division ---------------------------------------
     def build_mul(self):
         """MP = MA * MB mod 2^32. Row j: MA times nibble j of MB, a chain of
@@ -342,7 +391,7 @@ class Compiler:
         T=self.T;s=self.s=Seq(self.b);s.layer();entry=s.entry()
         e=self.nonzero(MB);g=s.decide(e,1);self.b.flush();self.s=None
         Seq(self.b,g).rows([copy(32,CODE,self.const(-10))]).next=self.thrower
-        S=Sched(self.b,g+CELL)
+        S=Sched(self.b,g+STEP)
         sub=self.copies(3,9,3,[compute.sub_entry(i) for i in range(512)])
         qsel=self.htables.table(3,2,[((i>>2 if i&1 else i>>1)&1)*3 for i in range(8)])
         def nib(reg,t):return [(reg+4*i,t) for i in range(8)]
@@ -381,7 +430,7 @@ class Compiler:
         patched with the continuation in one layer; results then to cache."""
         self.need(len(args));regs=self.cache[-len(args):];del self.cache[-len(args):]
         entry,exit_cell=self.helpers[name];cont=self.b.new_cell()
-        rows=[copy(48,M.field(exit_cell,7,2),self.const(cont|(cont+L)<<24,64))]
+        rows=[copy(64,M.field(exit_cell,7,2),self.link(cont))]
         layer=self.s.rows(rows)
         for dst,src in zip(args,regs):
             try:layer.add(copy(32,dst,src))
@@ -406,10 +455,45 @@ class Compiler:
         elif name=='<':
             s.adder(self.T['sub'],TMP,a,b,1)
             s.lookups([(self.T['lt32'],6,32,r,[(TMP+32,1,0),(a+31,1,1),(b+31,1,2)],0)])
+        elif name=='u<':
+            s.adder(self.T['sub'],TMP,a,b,1);s.lookups([(self.T['ult32'],6,32,r,[(TMP+32,1,0)],0)])
+        elif name=='lshift':compute.shift_left(s,self.T,r,a,b,W,ZERO,U)
+        elif name=='rshift':compute.shift_right(s,self.T,r,a,b,W,ZERO,False)
         self.cache.append(r)
     def primitive(self,name):
         s=self.s
-        if name in ('+','-','and','or','xor','=','<'):self.binary(name)
+        if name in BINARY:self.binary(name)
+        elif name in ('cells','2*'):
+            # Shift by copying: one layer.
+            k=2 if name=='cells' else 1
+            a=self.pop();self.pinned=(a,);r=self.reg();self.pinned=()
+            s.rows([copy(32-k,r+k,a),copy(k,r,ZERO)]);self.cache.append(r)
+        elif name in ('1+','1-','cell+'):
+            a=self.pop();self.pinned=(a,);r=self.reg();self.pinned=()
+            s.adder(self.T['sub' if name=='1-' else 'add'],TMP,a,self.const(4 if name=='cell+' else 1),int(name=='1-'))
+            s.rows([copy(32,r,TMP)]);self.cache.append(r)
+        elif name=='decimal':pass
+        elif name=='key':
+            # A cleared byte, then stdin: at the end of input it stays 0.
+            r=self.reg();s.rows([copy(8,KEY,ZERO)]);s.rows([(KEY,KEY+8,M.stdin,M.stdin)]);s.layer()
+            s.lookups([(self.T['rev8'],4,8,r,[(KEY,8,0)],0)]);s.rows([copy(24,r+8,ZERO)]);self.cache.append(r)
+        elif name=='j':
+            r=self.reg()
+            self.adjust(RP,[-3],0);self.patched([(r,r+32,RSTK,RSTK+32)],(2,3),7);self.cache.append(r)
+        elif name=='unloop':self.adjust(RP,[],-2)
+        elif name=='c@':
+            a=self.pop();self.pinned=(a,);r=self.reg();self.pinned=()
+            def load(rounds,ok):
+                _,(p0,p1,layer)=rounds
+                slot=layer.add((r,r+8,MEM,MEM+8));layer.add(copy(24,r+8,ZERO))
+                self.byte_patches(layer.cell,slot,(2,3),p0,p1,a)
+            self.check_address(a,load,True);self.cache.append(r)
+        elif name=='c!':
+            self.need(2);a=self.cache.pop();v=self.cache.pop()
+            def store(rounds,ok):
+                _,(p0,p1,_)=rounds;ok=ok.layer();slot=ok.add((MEM,MEM+8,v,v+8))
+                self.byte_patches(ok.cell,slot,(0,1),p0,p1,a)
+            self.check_address(a,store,True)
         elif name=='*':self.helper('mul',(MA,MB),(MP,))
         elif name=='/':self.helper('div',(MA,MB),(MQ,))
         elif name=='mod':self.helper('div',(MA,MB),(MR,))
@@ -429,18 +513,18 @@ class Compiler:
         elif name=='r>':self.cache.append(self.mem_pop(RSTK,RP,1)[0]);self.pinned=()
         elif name in ('r@','i'):
             r=self.reg()
-            self.adjust(RP,[-1],0);self.patched([(r,r+32,RSTK,RSTK+32)],(2,3));self.cache.append(r)
+            self.adjust(RP,[-1],0);self.patched([(r,r+32,RSTK,RSTK+32)],(2,3),7);self.cache.append(r)
         elif name=='@':
             # The load runs before the decision; on a fault the cache is dead.
             a=self.pop();self.pinned=(a,);r=self.reg();self.pinned=()
-            def load(p0,p1,layer,ok):
-                slot=layer.add((r,r+32,MEM,MEM+32))
+            def load(rounds,ok):
+                (p0,p1,layer),_=rounds;slot=layer.add((r,r+32,MEM,MEM+32))
                 p0.add(copy(MW,M.field(layer.cell,slot,2)+6,a+2));p1.add(copy(MW,M.field(layer.cell,slot,3)+6,a+2))
             self.check_address(a,load);self.cache.append(r)
         elif name=='!':
             self.need(2);a=self.cache.pop();v=self.cache.pop()
-            def store(p0,p1,layer,ok):
-                ok=ok.layer();slot=ok.add((MEM,MEM+32,v,v+32))
+            def store(rounds,ok):
+                (p0,p1,_),_=rounds;ok=ok.layer();slot=ok.add((MEM,MEM+32,v,v+32))
                 p0.add(copy(MW,M.field(ok.cell,slot,0)+6,a+2));p1.add(copy(MW,M.field(ok.cell,slot,1)+6,a+2))
             self.check_address(a,store)
         elif name=='emit':
@@ -448,108 +532,214 @@ class Compiler:
             s.lookups([(self.T['rev8'],4,8,out,[(c,8,0)],0)])
             s.rows([(M.stdout,M.stdout,out,out+8)])
         else:raise CompileError('unknown word '+name)
+    def const_shift(self,right,k):
+        a=self.pop()
+        if k==0:self.cache.append(a);return
+        self.pinned=(a,);r=self.reg();self.pinned=()
+        if right:self.s.rows([copy(32-k,r,a+k),copy(k,r+32-k,ZERO)])
+        else:self.s.rows([copy(32-k,r+k,a),copy(k,r,ZERO)])
+        self.cache.append(r)
     def literal(self,value):
-        r=self.reg();self.s.rows([copy(32,r,self.const(value))]);self.cache.append(r)
+        r=self.reg();self.s.rows([copy(32,r,self.const(value))]);self.cache.append(r);self.last_lit=(r,value)
+    # --- source -------------------------------------------------------------
+    def string(self,data):
+        """Bytes at HERE (cell aligned) in the data memory; returns the address."""
+        self.here=(self.here+3)&~3;at=self.here
+        for k,c in enumerate(data):
+            byte=at+k;self.st.put(MEM+64*(byte>>2)+8*(byte&3),numeric(c,1))
+        self.here+=len(data);self.check_here();return at
+    def check_here(self):
+        if self.here>4<<MW:raise CompileError('data memory exhausted')
+    def define_data(self,name,size):
+        self.here=(self.here+3)&~3;self.words[name]=('lit',self.here);self.here+=size;self.check_here()
     # --- source -------------------------------------------------------------
     def compile_source(self,text,main):
-        tokens=[]
-        for line in text.encode('latin-1').split(b'\n'):
-            # Words are runs of bytes above 32; ASCII letters fold to lower case.
-            words=[w.lower().decode('latin-1') for w in re.split(rb'[\x00-\x20]+',line) if w]
-            if '\\' in words:words=words[:words.index('\\')]
-            tokens+=words
-        uses=set(tokens)
+        tk=Tokens(text)
+        uses=set()
+        while tk.next():uses.add(tk.tok)
         if '*' in uses:self.helpers['mul']=self.build_mul()
         if uses&{'/','mod','/mod'}:self.helpers['div']=self.build_div()
-        tokens=iter(tokens);control=[];word=None
-        for tok in tokens:
-            t=tok
+        tk=Tokens(text);self.control=[];self.word=None;self.ct=[];self.init=[];self.init_open=False
+        self.last_lit=None
+        while tk.next():
+            t=tk.tok;prev=self.last_lit;self.last_lit=None
             if t=='(':
-                while next(tokens)!=')':pass
+                while tk.need()!=')':pass
                 continue
-            if word is None:
-                if t==':':
-                    name=next(tokens);entry=self.b.new_cell()
-                    word=name;self.words[name]=('call',entry);self.s=None;self.cache=[]
-                    self.begin_block(entry)
-                elif t=='variable':
-                    self.words[next(tokens)]=('lit',self.here);self.here+=4
-                elif t=='constant':raise CompileError('CONSTANT needs a literal before it')
-                else:
-                    value=number(t)
-                    if value is None:raise CompileError('only definitions at top level: '+tok)
-                    if next(tokens)!='constant':raise CompileError('expected CONSTANT')
-                    self.words[next(tokens)]=('lit',value)
-                continue
-            if t==';':
-                if control:raise CompileError('unbalanced control structure')
-                self.ret();word=None;continue
-            if t=='exit':self.ret();self.begin_block();continue
-            if t=='recurse':self.call(self.words[word][1]);continue
-            if t=="[']":self.literal(self.words[next(tokens)][1]);continue
-            if t=='execute':
-                xt=self.pop();self.begin_block(self.call_indirect(xt));continue
-            if t=='catch':self.catch();continue
-            if t=='throw':self.throw();continue
-            if t=='if':
-                f=self.pop();self.flush();zero,yes=self.branch(f)
-                control.append(('if',zero));self.begin_block(yes);continue
-            if t=='else':
-                kind,zero=control.pop();self.flush();join=self.b.new_cell();self.jump(join)
-                self.b.flush();self.s=None;control.append(('else',join));self.begin_block(zero);continue
-            if t=='then':
-                kind,target=control.pop();self.flush()
-                if kind=='if':
-                    join=self.b.new_cell();self.jump(join);self.b.flush()
-                    Seq(self.b,target).rows([]).next=join;self.b.flush();self.s=None;self.begin_block(join)
-                else:self.begin_block(target)
-                continue
-            if t=='begin':self.flush();control.append(('begin',self.begin_block()));continue
-            if t in ('until','while'):
-                f=self.pop();self.flush();zero,yes=self.branch(f)
-                if t=='until':
-                    kind,start=control.pop()
-                    Seq(self.b,zero).rows([]).next=start;self.b.flush();self.begin_block(yes)
-                else:control.append(('while',zero));self.begin_block(yes)
-                continue
-            if t in ('repeat','again'):
-                if t=='repeat':_,exit_cell=control.pop()
-                _,start=control.pop();self.flush();self.jump(start);self.b.flush();self.s=None
-                if t=='repeat':self.begin_block(exit_cell)
-                else:self.begin_block()
-                continue
-            if t=='do':
-                self.need(2);index=self.cache.pop();limit=self.cache.pop();self.flush()
-                self.mem_push(RSTK,RP,[limit,index]);control.append(('do',self.begin_block()));continue
-            if t=='loop':
-                kind,start=control.pop();self.flush()
-                limit,index=self.mem_pop(RSTK,RP,2);self.pinned=()
-                one=self.const(1);s=self.s;nxt=REGS+64*(NREGS-1)
-                s.adder(self.T['add'],TMP,index,one,0);s.rows([copy(32,nxt,TMP)])
-                compute.logic(s,self.T['xor'],XR,nxt,limit)
-                zero,more=self.branch(XR)
-                self.s=Seq(self.b,more);self.s.layer();self.mem_push(RSTK,RP,[limit,nxt])
-                self.s.jump(start);self.b.flush();self.s=None
-                self.begin_block(zero);continue
-            if t in self.words:
-                kind,value=self.words[t]
-                if kind=='lit':self.literal(value)
-                else:self.call(value)
-                continue
-            value=number(t)
-            if value is not None:self.literal(value);continue
-            self.primitive(t)
-        if word is not None:raise CompileError('unfinished definition')
+            if self.word is not None and not self.init_open:self.body_token(tk,t,prev)
+            else:self.top_token(tk,t,prev)
+        if self.word is not None and not self.init_open:raise CompileError('unfinished definition')
+        self.close_init()
         if main not in self.words:raise CompileError('no main word')
-        # Entry: a frame for an uncaught THROW (it halts), call main, halt.
+        # Entry: a frame for an uncaught THROW (it halts), the top-level code,
+        # main, halt.
         self.s=None;self.cache=[];start=self.begin_block();uncaught=self.b.new_cell()
-        self.push_frame(uncaught);self.call(self.words[main][1])
+        self.push_frame(uncaught)
+        for entry in self.init:self.call(entry)
+        self.call(self.words[main][1])
         self.jump(self.halt);self.b.flush()
         Seq(self.b,uncaught).rows([]).next=self.halt;self.b.flush()
         st=self.st
         st.put(SP,numeric(0,8));st.put(RP,numeric(0,8));st.put(HANDLER,numeric(0,8));st.put(ZERO,bytes(16))
         for (value,bits),at in self.consts.items():st.put(at,numeric(value,(bits+7)//8))
+        self.put_links()
         self.entry=start;return st.finish(start)
+    def close_init(self):
+        if self.ct:raise CompileError('values left at the top level')
+        if self.init_open:self.ret();self.init_open=False;self.word=None
+    def top_token(self,tk,t,prev):
+        """Definitions; constant expressions are evaluated here, other code runs
+        before MAIN as parts of the top-level code, in order."""
+        if t==':':
+            self.close_init();name=tk.need();entry=self.b.group(0)
+            self.word=name;self.words[name]=('call',entry);self.s=None;self.cache=[]
+            self.begin_block(entry);return
+        if t in ('variable','create'):self.define_data(tk.need(),4 if t=='variable' else 0);return
+        if t=='decimal':return
+        if t in ('allot','constant'):
+            if not self.ct:raise CompileError(t+' needs a value known at compile time')
+            value=self.ct.pop()
+            if t=='allot':self.here+=value if value<1<<31 else value-(1<<32);self.check_here()
+            else:self.words[tk.need()]=('lit',value)
+            return
+        value=number(t)
+        if value is None and t in self.words and self.words[t][0]=='lit':value=self.words[t][1]
+        if value is not None:self.ct.append(value);return
+        if t in CT_OPS and len(self.ct)>=CT_OPS[t][0]:
+            n,f=CT_OPS[t];args=self.ct[-n:];del self.ct[-n:];self.ct.append(f(*args));return
+        # Top-level code: a part of the initialization, a word of its own.
+        if not self.init_open:
+            entry=self.b.group(0);self.init.append(entry);self.init_open=True;self.word=''
+            self.s=None;self.cache=[];self.begin_block(entry)
+        values=self.ct;self.ct=[]
+        for v in values:self.literal(v)
+        self.body_token(tk,t,None)
+        if self.word is None:raise CompileError('; at the top level')
+    def do_entry(self):
+        for entry in reversed(self.control):
+            if entry[0]=='do':return entry
+        raise CompileError('LEAVE outside a loop')
+    def body_token(self,tk,t,prev):
+        control=self.control
+        if t==';':
+            if control:raise CompileError('unbalanced control structure')
+            self.ret();self.word=None;return
+        if t=='exit':self.ret();self.begin_block();return
+        if t=='recurse':self.call(self.words[self.word][1]);return
+        if t=="[']":self.literal(self.words[tk.need()][1]);return
+        if t=='[char]':
+            if not tk.word():raise CompileError('unexpected end of the source')
+            self.literal(tk.raw[0]);return
+        if t=='s"':
+            data=tk.string();self.literal(self.string(data));self.literal(len(data));return
+        if t in ('*','lshift','rshift') and prev is not None and self.cache and self.cache[-1]==prev[0]:
+            # A literal power of two or shift below 32: a shift by copying.
+            v=prev[1];k=None
+            if t=='*':
+                if v and v&(v-1)==0:k=v.bit_length()-1
+            elif v<32:k=v
+            if k is not None:self.cache.pop();self.const_shift(t=='rshift',k);return
+        if t in ('pick','roll'):
+            if prev is None or not self.cache or self.cache[-1]!=prev[0]:raise CompileError(t+' needs a literal')
+            self.cache.pop();n=prev[1];self.need(n+1)
+            if t=='pick':self.cache.append(self.cache[-1-n])
+            else:self.cache.append(self.cache.pop(-1-n))
+            return
+        if t=='execute':
+            xt=self.pop();self.begin_block(self.call_indirect(xt));return
+        if t=='catch':self.catch();return
+        if t=='throw':self.throw();return
+        if t=='if':
+            f=self.pop();self.flush();zero,yes=self.branch(f)
+            control.append(['if',zero]);self.begin_block(yes);return
+        if t=='else':
+            kind,zero=control.pop();self.flush();join=self.b.new_cell();self.jump(join)
+            self.b.flush();self.s=None;control.append(['else',join]);self.begin_block(zero);return
+        if t=='then':
+            kind,target=control.pop();self.flush()
+            if kind=='if':
+                join=self.b.new_cell();self.jump(join);self.b.flush()
+                Seq(self.b,target).rows([]).next=join;self.b.flush();self.s=None;self.begin_block(join)
+            else:self.begin_block(target)
+            return
+        if t=='begin':self.flush();control.append(['begin',self.begin_block()]);return
+        if t in ('until','while'):
+            f=self.pop();self.flush();zero,yes=self.branch(f)
+            if t=='until':
+                kind,start=control.pop()
+                Seq(self.b,zero).rows([]).next=start;self.b.flush();self.begin_block(yes)
+            else:control.append(['while',zero]);self.begin_block(yes)
+            return
+        if t in ('repeat','again'):
+            if t=='repeat':_,exit_cell=control.pop()
+            _,start=control.pop();self.flush();self.jump(start);self.b.flush();self.s=None
+            if t=='repeat':self.begin_block(exit_cell)
+            else:self.begin_block()
+            return
+        if t=='do':
+            self.need(2);index=self.cache.pop();limit=self.cache.pop();self.flush()
+            self.mem_push(RSTK,RP,[limit,index]);control.append(['do',self.begin_block(),None]);return
+        if t=='?do':
+            # Equal limit and index skip the loop: straight to its leave cell.
+            self.need(2);index=self.cache.pop();limit=self.cache.pop();self.flush()
+            compute.logic(self.s,self.T['xor'],XR,index,limit);zero,yes=self.branch(XR)
+            leave=self.b.new_cell();Seq(self.b,zero).rows([]).next=leave;self.b.flush()
+            self.begin_block(yes);self.mem_push(RSTK,RP,[limit,index])
+            control.append(['do',self.begin_block(),leave]);return
+        if t=='leave':
+            entry=self.do_entry();self.flush();self.adjust(RP,[],-2)
+            if entry[2] is None:entry[2]=self.b.new_cell()
+            self.jump(entry[2]);self.b.flush();self.s=None;self.begin_block();return
+        if t=='loop':
+            kind,start,leave=control.pop();self.flush()
+            limit,index=self.mem_pop(RSTK,RP,2);self.pinned=()
+            one=self.const(1);s=self.s;nxt=REGS+64*(NREGS-1)
+            s.adder(self.T['add'],TMP,index,one,0);s.rows([copy(32,nxt,TMP)])
+            compute.logic(s,self.T['xor'],XR,nxt,limit)
+            zero,more=self.branch(XR)
+            self.s=Seq(self.b,more);self.s.layer();self.mem_push(RSTK,RP,[limit,nxt])
+            self.s.jump(start);self.b.flush();self.s=None
+            if leave is not None:
+                Seq(self.b,zero).rows([]).next=leave;self.b.flush();self.begin_block(leave)
+            else:self.begin_block(zero)
+            return
+        if t in self.words:
+            kind,value=self.words[t]
+            if kind=='lit':self.literal(value)
+            else:self.call(value)
+            return
+        value=number(t)
+        if value is not None:self.literal(value);return
+        self.primitive(t)
+
+class Tokens:
+    """Words of the source: runs of bytes above 32, ASCII letters folded to
+    lower case (raw keeps the original); a word \\ ends the line."""
+    def __init__(self,text):self.text=text.encode('latin-1');self.pos=0
+    def word(self):
+        """The next word, without comment handling ([CHAR] \\)."""
+        t=self.text
+        while self.pos<len(t) and t[self.pos]<33:self.pos+=1
+        if self.pos==len(t):return False
+        start=self.pos
+        while self.pos<len(t) and t[self.pos]>32:self.pos+=1
+        self.raw=t[start:self.pos]
+        if len(self.raw)>255:raise CompileError('word too long')
+        self.tok=self.raw.lower().decode('latin-1');return True
+    def next(self):
+        while self.word():
+            if self.raw!=b'\\':return True
+            t=self.text
+            while self.pos<len(t) and t[self.pos]!=10:self.pos+=1
+        return False
+    def need(self):
+        if not self.next():raise CompileError('unexpected end of the source')
+        return self.tok
+    def string(self):
+        """S" text": one delimiter, then bytes up to the closing quote."""
+        t=self.text;self.pos=min(self.pos+1,len(t));end=t.find(b'"',self.pos)
+        if end<0:raise CompileError('unfinished string')
+        data=t[self.pos:end];self.pos=end+1;return data
 
 def compile_forth(text,main='main'):
     return Compiler().compile_source(text,main)

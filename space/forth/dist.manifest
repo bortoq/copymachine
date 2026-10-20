@@ -58,7 +58,9 @@ runtime/pforth/pfdicdat.h
 runtime/pforth/pfdicdat.h.json
 scripts/forthc/__init__.py
 scripts/forthc/forthc.fth
+scripts/forthc/main.fth
 scripts/forthc/model.py
+scripts/forthc/prelude.fth
 scripts/pforth/build.py
 scripts/pforth/common.py
 scripts/pforth/host32.py
@@ -73,6 +75,7 @@ tests/test_format.py
 tests/test_forthc.py
 tests/forthc_programs.py
 tests/test_forthc_forth.py
+tests/test_forthc_self.py
 tests/test_evaluate.py
 tests/test_arena.py
 tests/test_backend.py

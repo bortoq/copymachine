@@ -38,6 +38,15 @@ class Machine:
     def stdin(self):return self.size+1
     @property
     def stdout(self):return self.size+2
+    @property
+    def branch_bit(self):
+        """Link bit that selects a branch target. Both link endpoints (target,
+        target+layer) must share it, so with a layer filling the cell it is the
+        bit above the cell size and branch targets are two cells apart."""
+        bit=self.cell_bits.bit_length()-1
+        return bit if self.layer_bits<self.cell_bits else bit+1
+    @property
+    def branch_step(self):return 1<<self.branch_bit
     def field(self,cell,slot,f):return cell+slot*self.inst+f*self.a
     def link(self,target):return (0,self.layer_bits,target,target+self.layer_bits)
 
@@ -115,8 +124,10 @@ class Builder:
         self.pending.append(layer)
     def new_cell(self):c=self.cell;self.cell+=1;return c*self.m.cell_bits
     def group(self,k):
-        """2^k consecutive cells aligned to 2^k cells; a link bit slice selects one."""
-        self.cell=(self.cell+(1<<k)-1)>>k<<k;base=self.cell;self.cell+=1<<k;return base*self.m.cell_bits
+        """2^k branch targets branch_step apart, aligned to the block; a link
+        bit slice from branch_bit selects one. group(0) is one aligned cell."""
+        n=(1<<k)*(self.m.branch_step//self.m.cell_bits)
+        self.cell=(self.cell+n-1)//n*n;base=self.cell;self.cell+=n;return base*self.m.cell_bits
     def flush(self):
         for layer in self.pending:self.stream.put(layer.cell,layer.encoded());layer.sealed=True
         self.pending=[]

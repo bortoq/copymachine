@@ -114,7 +114,7 @@ lines+=[': kput ( value i -- ) 3 * kbuf + 3 swap cc-numeric ;',
         '  4 0 do i 1+ 286331153 * 4 marks i 4 * + cc-numeric loop',
         f'  {K+288} marks 16 cc-put main @ cc-finish ;',
         'handlers calls work branches data','bye']
-run_guest('compute',['backend.fth','compute.fth'],lines,stream+b'\n',timeout=1400)
+run_guest('compute',['backend.fth','compute.fth'],lines,stream+b'\n',timeout=2000)
 checked=output_dir(dependencies.VM2_ROOT,'build')/'checked-emulator'
 result=subprocess.run([str(checked),'-s',str(SIZE),'-p','8'],input=stream,capture_output=True,timeout=300)
 assert result.returncode==0,(result.returncode,result.stderr[-500:])

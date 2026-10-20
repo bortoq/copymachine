@@ -54,8 +54,8 @@ class Seq(Run):
                 layers[3*i+1].add(copy(1,m.field(r.cell,reads[i],2)+11,x+4*i))
                 layers[3*i+1].add(copy(1,m.field(r.cell,reads[i],3)+11,x+4*i+1))
     def decide(self,src,k):
-        """Continue at group cell value(src[0:k]); src[k:2k] holds a copy."""
-        m=self.m;group=self.b.group(k);bit=m.cell_bits.bit_length()-1;link=m.slots-1
+        """Continue at group target value(src[0:k]); src[k:2k] holds a copy."""
+        m=self.m;group=self.b.group(k);bit=m.branch_bit;link=m.slots-1
         patch=self.layer();self.layer();x=self.layer()
         x.next=group
         patch.add(copy(k,m.field(x.cell,link,2)+bit,src));patch.add(copy(k,m.field(x.cell,link,3)+bit,src+k))
@@ -141,8 +141,8 @@ def shift_left(seq,T,res,a,amount,w,zero,u):
 
 def flag_exit(seq,c2,flags):
     """Select flag pair (patched source of the returned row) into c2, then make
-    it bit log2(cell) of the exit link: a call returns to ret or ret+cell."""
-    m=seq.m;b=seq.b;bit=m.cell_bits.bit_length()-1;link=m.slots-1
+    it the branch bit of the exit link: a call returns to ret or ret+branch_step."""
+    m=seq.m;b=seq.b;bit=m.branch_bit;link=m.slots-1
     d=seq.rows([copy(2,c2,flags)])
     e=seq.layer();seq.layer()
     x=Seq(b);x.rows([]).next=m.cell_bits;seq.jump(x.entry())

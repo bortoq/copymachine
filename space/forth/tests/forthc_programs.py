@@ -33,6 +33,21 @@ PROGRAMS['catch']=(': f 3 throw 65 emit ; : g 66 emit ; : h 7 f 8 ; : ok 0 throw
 # J is not in the subset.
 PROGRAMS['do-loop']=': main 5 0 do i 48 + emit loop 3 0 do 2 0 do i 48 + emit loop loop ;'
 B4=': b4 ( n -- ) 4 0 do dup 255 and emit 256 / loop drop ;\n'
+# Words the compiler itself uses (self-compilation, 9.5.4).
+PROGRAMS['create-allot']=('create buf 16 allot variable v 3 constant three three 2 * 1+ constant seven\n'
+                          ': main buf 16 0 do i 65 + over i + c! loop drop buf 16 0 do dup i + c@ emit loop drop seven 48 + emit ;')
+PROGRAMS['top-level-code']='variable a variable b 5 a ! a @ 2 * b !\n: init2 a @ 1 + a ! ; init2\n: main a @ 48 + emit b @ 48 + emit ;'
+PROGRAMS['strings']=(': main s" Hello" 0 do dup i + c@ emit loop drop s" " swap drop 48 + emit [char] Z emit [char] a emit'
+                     ' s" x y" swap drop 48 + emit ;')
+PROGRAMS['shifts']=': main 1 6 lshift emit 256 2 rshift emit -1 28 rshift 48 + emit 255 4 lshift 4 rshift emit 0 3 lshift 48 + emit ;'
+PROGRAMS['unsigned']=': b ( f -- ) if 89 else 78 then emit ;\n: main 1 2 u< b 2 1 u< b -1 1 u< b 1 -1 u< b 5 5 u< b ;'
+PROGRAMS['pick-roll']=': main 65 66 67 2 pick emit 1 pick emit 0 pick emit drop 2 roll emit emit emit 68 69 1 roll emit emit 70 0 roll emit ;'
+PROGRAMS['loops2']=(': f 10 0 do i 3 = if unloop exit then i 48 + emit loop ;\n'
+                    ': main 3 0 do 2 0 do j 48 + emit i 48 + emit loop loop 5 5 ?do 88 emit loop 3 0 ?do i 48 + emit loop'
+                    ' 10 0 do i 4 = if leave then i 48 + emit loop 89 emit f 90 emit 6 2 ?do i 3 = if leave then i 48 + emit loop ;')
+PROGRAMS['cells-etc']='variable v\n: main 5 cells 48 + emit 7 2* 48 + emit 9 1+ 48 + emit 9 1- 48 + emit 0 cell+ 48 + emit 1 v ! v @ 48 + emit decimal ;'
+PROGRAMS['literal-shifts']=': main 3 8 * 48 + emit -1 28 rshift 48 + emit 1 6 lshift emit 5 1 * 48 + emit 7 0 lshift 48 + emit 96 3 * emit 0 4 * 48 + emit ;'
+PROGRAMS['dup-spill']=': f ( a b -- a b a b ) over over ; : main 65 66 f emit emit emit emit 67 dup dup 2 0 do loop emit emit emit ;'
 PROGRAMS['multiply']=B4+(': main 6 7 * emit 3 dup * 48 + emit 123456 789 * b4 -3 5 * b4 -7 -9 * b4 65535 65537 * b4'
                          ' 2147483647 2147483647 * b4 -2147483648 -1 * b4 0 99 * b4 ;')
 PROGRAMS['divide']=B4+(': main 100 7 / 48 + emit 1000000 3 / b4 -100 7 / b4 100 -7 / b4 -100 -7 / b4'
@@ -56,14 +71,17 @@ EXPECTED={
                  b''.join(b4(tdiv(a,b))+b4(a-b*tdiv(a,b)) for a,b in DIV)),
 'mod-signs':(': main -7 2 mod 48 + emit 7 -2 mod 48 + emit -7 -2 mod 48 + emit -7 2 / 48 + emit 7 -2 /mod 48 + emit 48 + emit ;',
              bytes([47,49,47,45,45,49])),
-'faults':(': bad 3 @ ; : far 16384 @ ; : neg -4 @ ; : st 5 2 ! ; : st2 5 20000 ! ; : z 7 0 / ; : zm 7 0 mod ;\n'
-          ': ok 16380 @ drop 0 16380 ! ; : c 0 swap - emit ;\n'
+'faults':(': bad 3 @ ; : far 524288 @ ; : neg -4 @ ; : st 5 2 ! ; : st2 5 600000 ! ; : z 7 0 / ; : zm 7 0 mod ;\n'
+          ': ok 524284 @ drop 0 524284 ! ; : c 0 swap - emit ;\n'
           ": main ['] bad catch c ['] far catch c ['] neg catch c ['] st catch c ['] st2 catch c ['] z catch c"
           " ['] zm catch c ['] ok catch 48 + emit 1 2 ['] bad catch c 48 + emit 48 + emit ;",
           bytes([23,9,9,23,9,10,10,48,23,50,49])),
 'uncaught-address':(': main 65 emit 1 @ 66 emit ;',b'A'),
 'uncaught-zero':(': main 65 emit 0 0 / 66 emit ;',b'A'),
 # The ok cell of an address check is entered by BEGIN and THEN with no row.
+# A byte access checks the range only; shifts take the amount modulo 32.
+'bytes':(': far 524288 c@ ; : main 3 c@ 48 + emit 65 7 c! 7 c@ emit 66 524287 c! 524287 c@ emit'
+         " ['] far catch 0 swap - emit 3 33 lshift 48 + emit ;",b'0AB\t6'),
 'empty-run':('variable x\n: main 1 x ! 0 if then x @ drop begin x @ 1 + dup x ! 3 = until x @ 48 + emit'
              ' 1 if x @ drop then 65 emit ;',b'3A'),
 }
