@@ -29,6 +29,7 @@ M=Machine(SIZE,8,CELL,4096)
 L=M.layer_bits
 D=3<<22
 SP=D;RP=D+64                       # 8 copies of an 8-bit index each
+HANDLER=D+128;CODE=D+192           # CATCH frame pointer (RP copies), THROW code
 REGS=D+1024;NREGS=48               # cache registers, 64-bit stride
 TMP=D+4096;XR=D+4160;Z=D+4224;IDX=D+4288  # IDX: 16 index registers, 16 bits
 LINK=D+4608                        # assembled return entry (48 bits)
@@ -56,6 +57,7 @@ class Compiler:
         self.here=DATA_START;self.data={}
         self.halt=CELL  # the zero cell: the next fetch finds only NOPs
         tr=Seq(self.b);tr.rows([]).next=CELL;self.tramp=tr.entry();self.b.flush()
+        ex=Seq(self.b);ex.rows([]).next=CELL;self.ex=ex.entry();self.b.flush()
     # --- data ------------------------------------------------------------
     def const(self,value,bits=32):
         key=(value&((1<<bits)-1),bits)
@@ -123,10 +125,47 @@ class Compiler:
         return g,g+CELL
     def call(self,entry):
         self.flush();cont=self.b.new_cell()
-        lo=self.const(cont|(cont+L)<<24,48)
-        self.mem_push(RSTK,RP,[lo],48)
+        self.mem_push(RSTK,RP,[self.const(cont|(cont+L)<<24,64)],48)
         self.s.jump(entry);self.b.flush();self.s=None
         self.begin_block(cont)
+    def call_indirect(self,xt,cont=None):
+        """Call the word whose entry cell address is in register xt.
+
+        Entries are cells, so bits [10,24) select the target in both link
+        endpoints; the low bits of the templates stay 0 and layer."""
+        self.flush();cont=cont if cont is not None else self.b.new_cell()
+        self.mem_push(RSTK,RP,[self.const(cont|(cont+L)<<24,64)],48)
+        s=self.s;p0=s.layer();p1=s.layer();s.layer()
+        p0.add(copy(14,M.field(self.ex,7,2)+10,xt+10));p1.add(copy(14,M.field(self.ex,7,3)+10,xt+10))
+        s.jump(self.ex);self.b.flush();self.s=None
+        return cont
+    def catch(self):
+        """Frame on the return stack: data stack pointer, previous handler,
+        link to the throw continuation; HANDLER then points above it."""
+        xt=self.pop();self.flush()
+        thrown=self.b.new_cell();join=self.b.new_cell()
+        # Entries are 48 bits (below the 64-bit stride); pointers are restored
+        # from their first copy by the identity table, which replicates it.
+        self.mem_push(RSTK,RP,[SP,HANDLER,self.const(thrown|(thrown+L)<<24,64)],48)
+        self.s.rows([copy(64,HANDLER,RP)])
+        normal=self.call_indirect(xt)
+        self.begin_block(normal)
+        _,prev,_=self.mem_pop(RSTK,RP,3,48);self.pinned=()
+        self.s.lookups([(self.T['off',0],7,64,HANDLER,[(prev,8,0)],0)]);self.cache=[];self.literal(0);self.flush()
+        self.s.jump(join);self.b.flush();self.s=None
+        self.begin_block(thrown);r=self.reg();self.s.rows([copy(32,r,CODE)]);self.cache=[r];self.flush()
+        self.s.jump(join);self.b.flush();self.s=None
+        self.begin_block(join)
+    def throw(self):
+        code=self.pop();self.flush()
+        self.s.rows([copy(32,CODE,code)])
+        zero,thrown=self.branch(code)
+        self.s=Seq(self.b,thrown);self.s.rows([copy(64,RP,HANDLER)])
+        saved,prev,link=self.mem_pop(RSTK,RP,3,48);self.pinned=()
+        self.s.lookups([(self.T['off',0],7,64,SP,[(saved,8,0)],0),(self.T['off',0],7,64,HANDLER,[(prev,8,0)],0)])
+        self.s.rows([copy(48,M.field(self.tramp,7,2),link)])
+        self.s.layer();self.s.jump(self.tramp);self.b.flush();self.s=None
+        self.begin_block(zero)
     def ret(self):
         self.flush()
         self.adjust(RP,[-1],-1)
@@ -220,6 +259,11 @@ class Compiler:
                 self.ret();word=None;continue
             if t=='exit':self.ret();self.begin_block();continue
             if t=='recurse':self.call(self.words[word][1]);continue
+            if t=="[']":self.literal(self.words[next(tokens).lower()][1]);continue
+            if t=='execute':
+                xt=self.pop();self.begin_block(self.call_indirect(xt));continue
+            if t=='catch':self.catch();continue
+            if t=='throw':self.throw();continue
             if t=='if':
                 f=self.pop();self.flush();zero,yes=self.branch(f)
                 control.append(('if',zero));self.begin_block(yes);continue
@@ -274,7 +318,7 @@ class Compiler:
         self.s=None;self.cache=[];start=self.begin_block();self.call(self.words[main][1])
         self.s.jump(self.halt);self.b.flush()
         st=self.st
-        st.put(SP,numeric(0,8));st.put(RP,numeric(0,8));st.put(ZERO,bytes(16))
+        st.put(SP,numeric(0,8));st.put(RP,numeric(0,8));st.put(HANDLER,numeric(0,8));st.put(ZERO,bytes(16))
         for (value,bits),at in self.consts.items():st.put(at,numeric(value,(bits+7)//8))
         return st.finish(start)
 

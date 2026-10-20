@@ -36,6 +36,10 @@ PROGRAMS={
 'constant':'48 constant zero 7 constant seven\n: main zero seven + emit ;',
 'loop-sum':'variable acc\n: main 0 acc ! 101 1 do acc @ i + acc ! loop acc @ 255 and emit acc @ 256 / emit ;',
 }
+PROGRAMS['execute']=': a 65 emit ; : b 66 emit ; : main [\'] a execute [\'] b execute [\'] a dup execute execute ;'
+PROGRAMS['catch']=(': f 3 throw 65 emit ; : g 66 emit ; : h 7 f 8 ; : ok 0 throw 67 emit ;\n'
+                   ': main 65 66 [\'] f catch 48 + emit emit emit [\'] g catch 48 + emit'
+                   ' [\'] h catch 48 + emit [\'] ok catch 48 + emit 1 [\'] h catch 48 + emit 48 + emit ;')
 # No multiplication/division in the subset: replace the programs that need them.
 PROGRAMS['recursion']=': sum ( n -- s ) dup 0= if exit then dup 1 - recurse + ;\n: main 10 sum emit 3 sum 48 + emit ;'
 PROGRAMS['loop-sum']='variable acc\n: main 0 acc ! 21 1 do acc @ i + acc ! loop acc @ emit ;'
