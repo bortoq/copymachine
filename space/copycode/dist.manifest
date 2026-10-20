@@ -15,6 +15,7 @@ compat/vm2/terminal.py
 compat/vm2/transport.py
 dist.manifest
 doc/README.md
+doc/backend.md
 doc/bitfields.md
 doc/contracts.json
 doc/generated.json
@@ -25,6 +26,7 @@ doc/inventory.json
 doc/scheduling.md
 doc/verification.md
 forth/arena.fth
+forth/backend.fth
 forth/bitfields.fth
 forth/evaluate.fth
 forth/format.fth
@@ -36,6 +38,7 @@ src/copycode/__init__.py
 src/copycode/hostpaths.py
 src/copycode/vm1/__init__.py
 src/copycode/vm1/assembler.py
+src/copycode/vm1/backend.py
 src/copycode/vm1/boot.py
 src/copycode/vm1/checkpoint.py
 src/copycode/vm1/lib.py

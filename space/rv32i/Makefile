@@ -31,6 +31,7 @@ dependencies:
 check: check-machine check-sdk
 check-machine: dependencies
 	$(LIMIT) $(PYTHON) -B tests/test_direct.py
+	$(LIMIT) $(PYTHON) -B tests/test_translate.py
 check-sdk: dependencies
 	$(LIMIT) $(PYTHON) -B tests/test_monitor.py
 	$(LIMIT) $(PYTHON) -B tests/test_cli.py

@@ -31,86 +31,18 @@ SITE=256;K1=144;SEL=176;K2=184;K3=216
 RETLO,RETHI,WBLO,WBHI,FLLO,FLHI=0,24,48,72,96,120
 CHUNK=4096
 STATUS_UNTRANSLATED,STATUS_MODIFIED=11,12
-REV=bytes(int(f'{b:08b}'[::-1],2) for b in range(256))
+from copycode.vm1 import backend
+from copycode.vm1.backend import copy,numeric
+M=backend.Machine(S,SLOTS,CELL,CHUNK)
 
-def field(cell,slot,f):return cell+slot*INST+f*A
-def copy(n,dst,src):return (dst,dst+n,src,src+n)
+def field(cell,slot,f):return M.field(cell,slot,f)
 def out(n,src):return (STDOUT,STDOUT,src,src+n)
+def encode(rows):return backend.encode(M,rows)
+def Stream():return backend.Stream(M)
+Builder=backend.Builder
 
-class Stream:
-    """Boot stream: loader layer + payload per chunk, the entry layer last."""
-    def __init__(self):self.data=bytearray();self.start=None;self.buf=bytearray()
-    def put(self,at,raw):
-        assert at%8==0 and at>=CELL
-        byte=at//8
-        if self.start is not None:
-            end=self.start+len(self.buf)
-            if end<=byte<=end+32 and byte-self.start+len(raw)<=CHUNK:
-                self.buf+=bytes(byte-end)+raw;return
-            self.flush()
-        while len(raw)>CHUNK:
-            self.start,self.buf=byte,bytearray(raw[:CHUNK]);self.flush();byte+=CHUNK;raw=raw[CHUNK:]
-        self.start,self.buf=byte,bytearray(raw)
-    def flush(self):
-        if self.start is None:return
-        n=len(self.buf)*8;at=self.start*8
-        rows=[(at,at+n,STDIN,STDIN),(0,3*INST,4*INST,7*INST),(3*INST+A,3*INST+2*A,7*INST,7*INST+A),
-              (0,0,STDIN,STDIN),(0,0,0,0),(0,0,0,0),(0,0,0,0),(L,0,0,0)]
-        self.data+=encode(rows)+self.buf;self.start=None;self.buf=bytearray()
-    def finish(self,entry_rows):
-        self.flush();self.data+=encode(entry_rows);return bytes(self.data)
-
-def encode(rows):
-    """Eight rows of four 24-bit fields; numeric bits LSB first in each byte."""
-    raw=bytearray()
-    for row in list(rows)+[(0,0,0,0)]*(SLOTS-len(rows)):
-        for value in row:
-            assert 0<=value<1<<A,row
-            raw+=bytes(REV[(value>>k)&255] for k in (0,8,16))
-    return bytes(raw)
-
-def numeric(value,nbytes):return bytes(REV[(value>>(8*k))&255] for k in range(nbytes))
-
-class Layer:
-    def __init__(self,cell):self.cell=cell;self.rows=[];self.next=None
-    def add(self,row):
-        assert len(self.rows)<SLOTS-1,'layer full'
-        for other in self.rows:
-            for a in (row[:2],row[2:]):
-                for b in (other[:2],other[2:]):
-                    if a[0]<a[1] and b[0]<b[1] and a[0]<b[1] and b[0]<a[1] and a[0]<S and b[0]<S:
-                        raise AssertionError(('overlap',row,other))
-        self.rows.append(row);return len(self.rows)-1
-    def rows_with_link(self):
-        rows=list(self.rows)+[(0,0,0,0)]*(SLOTS-1-len(self.rows))
-        return rows+[(0,L,self.next,self.next+L)]
-
-class Builder:
-    """Cells are allocated in order; finished layers go to the stream at flush."""
-    def __init__(self,stream):self.stream=stream;self.cell=2;self.pending=[]
-    def new_cell(self):c=self.cell;self.cell+=1;return c*CELL
-    def group(self,k):
-        self.cell=(self.cell+(1<<k)-1)>>k<<k;base=self.cell;self.cell+=1<<k;return base*CELL
-    def flush(self):
-        for layer in self.pending:
-            assert layer.next is not None,'unlinked layer'
-            self.stream.put(layer.cell,encode(layer.rows_with_link()))
-        self.pending=[]
-
-class Seq:
-    """A linear run of layers; each new layer is linked from the previous."""
-    def __init__(self,b,cell=None):self.b=b;self.layers=[];self.first=cell
-    def layer(self):
-        cell=self.first if not self.layers and self.first is not None else self.b.new_cell()
-        layer=Layer(cell)
-        if self.layers:self.layers[-1].next=cell
-        self.layers.append(layer);self.b.pending.append(layer);return layer
-    def entry(self):return self.layers[0].cell
-    def jump(self,target):self.layers[-1].next=target
-    def rows(self,rows):
-        layer=self.layer()
-        for row in rows:layer.add(row)
-        return layer
+class Seq(backend.Seq):
+    """Layer runs plus the lookup, adder and branch patterns of the handlers."""
     def lookups(self,items):
         """items: (table, s, width, out, segments[(src,n,index_offset)], preset).
 
@@ -330,7 +262,7 @@ def translate(program,*,memory_bytes=4096,cbits=None,registers=None,entry=0,init
     stream.put(ZERO,bytes(16))
     for w,record in enumerate(sites):stream.put(SITES+SITE*w,record)
     stream.put(MEM,b''.join(numeric(int.from_bytes(memory[4*w:4*w+4],'little'),4)+bytes(4) for w in range(memory_bytes//4)))
-    data=stream.finish([(0,0,0,0)]*7+[(0,L,block(entry),block(entry)+L)])
+    data=stream.finish(block(entry))
     return data,dict(code_base=code_base,cbits=cbits,mbits=mbits,handler_cells=b.cell,words=words,
                      size=S,slots=SLOTS,stream_bytes=len(data))
 

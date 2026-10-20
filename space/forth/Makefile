@@ -58,6 +58,7 @@ check: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
 	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
+	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
 	$(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(LIMIT) $(PYTHON) -B tests/test_jobs.py
@@ -89,6 +90,7 @@ check-libraries: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
 	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
+	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
 check-integers: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_integers.py
 clean:
@@ -107,6 +109,7 @@ check-release: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_evaluate.py
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
 	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
+	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
 	$(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(LIMIT) $(PYTHON) -B tests/test_jobs.py

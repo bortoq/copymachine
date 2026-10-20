@@ -28,6 +28,7 @@ modules/dependencies.py
 modules/direct_target.py
 modules/rv32i.py
 modules/rv32i_toolchain.py
+modules/translate.py
 runtime/rv32i/copy_space.h
 runtime/rv32i/link.ld
 runtime/rv32i/runtime.c
@@ -47,6 +48,7 @@ tests/test_cli.py
 tests/test_direct.py
 tests/test_monitor.py
 tests/test_schedule.py
+tests/test_translate.py
 tools/benchmark.py
 tools/build_example.py
 tools/instruction_ticks.py

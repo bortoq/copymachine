@@ -63,6 +63,7 @@ tests/test_operations.py
 tests/test_format.py
 tests/test_evaluate.py
 tests/test_arena.py
+tests/test_backend.py
 tests/test_direct.py
 tests/test_identity.py
 tests/test_index.py
