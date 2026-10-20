@@ -41,86 +41,14 @@ def encode(rows):return backend.encode(M,rows)
 def Stream():return backend.Stream(M)
 Builder=backend.Builder
 
-class Seq(backend.Seq):
-    """Layer runs plus the lookup, adder and branch patterns of the handlers."""
-    def lookups(self,items):
-        """items: (table, s, width, out, segments[(src,n,index_offset)], preset).
+from copycode.vm1 import compute
+from copycode.vm1.compute import Seq
 
-        All sl patches, then all sh patches, one gap, then the reads."""
-        patches=[(i,src,n,off) for i,(_,_,_,_,segs,_) in enumerate(items) for src,n,off in segs]
-        sl=[self.layer() for _ in range(-(-len(patches)//7))]
-        sh=[self.layer() for _ in range(-(-len(patches)//7))]
-        self.layer()
-        reads=[];layer=None;used=set()
-        for k,(table,s,width,dst,_,preset) in enumerate(items):
-            # Equal indices would make two reads of one table share a source.
-            if layer is None or len(layer.rows)==7 or table in used:layer=self.layer();used=set()
-            used.add(table)
-            base=table+(preset<<s)
-            reads.append((layer,layer.add((dst,dst+width,base,base+width)),s))
-        for k,(i,src,n,off) in enumerate(patches):
-            layer,slot,s=reads[i]
-            sl[k//7].add(copy(n,field(layer.cell,slot,2)+s+off,src))
-            sh[k//7].add(copy(n,field(layer.cell,slot,3)+s+off,src))
-    def adder(self,table,x,carry):
-        """x = OPA + OPB (or OPA + ~OPB + 1) in eight chained nibble steps."""
-        layers=[self.layer() for _ in range(25)]
-        reads=[]
-        for i in range(8):
-            base=table+(carry<<11 if i==0 else 0)
-            reads.append(layers[3+3*i].add((x+4*i,x+4*i+6,base,base+6)))
-        def patch(i,f,layer):
-            r=layers[3+3*i]
-            for src,off in ((OPA+4*i,3),(OPB+4*i,7)):
-                layer.add(copy(4,field(r.cell,reads[i],f)+off,src))
-        for i in range(8):
-            if i<3:patch(i,2,layers[0]);patch(i,3,layers[1])
-            else:patch(i,2,layers[3*i-1]);patch(i,3,layers[3*i])
-            if i:
-                r=layers[3+3*i]
-                layers[3*i+1].add(copy(1,field(r.cell,reads[i],2)+11,x+4*i))
-                layers[3*i+1].add(copy(1,field(r.cell,reads[i],3)+11,x+4*i+1))
-    def decide(self,src,k):
-        """Continue at group cell value(src[0:k]); src[k:2k] holds a copy."""
-        group=self.b.group(k)
-        patch=self.layer();self.layer();x=self.layer()
-        x.next=group
-        patch.add(copy(k,field(x.cell,7,2)+10,src));patch.add(copy(k,field(x.cell,7,3)+10,src+k))
-        return group
-
-class Tables:
-    def __init__(self,stream):self.stream=stream;self.at=TABLES
-    def table(self,bits,s,values):
-        size=1<<(s+bits);self.at=(self.at+size-1)//size*size;base=self.at;self.at+=size
-        assert self.at<=SITES
-        per=(1<<s)//8 if s>=3 else 0
-        if per:raw=b''.join(numeric(v,per) for v in values)
-        else:
-            raw=bytearray(size//8)
-            for i,v in enumerate(values):
-                for j in range(1<<s):
-                    if v>>j&1:raw[(i<<s|j)//8]|=0x80>>((i<<s|j)%8)
-            raw=bytes(raw)
-        self.stream.put(base,raw);return base
+class Tables(compute.Tables):
+    def __init__(self,stream):super().__init__(stream,TABLES,SITES)
 
 def build_tables(t,mbits,cbits):
-    T={}
-    T['add']=t.table(9,3,[(i&15)+(i>>4&15)+(i>>8)|(((i&15)+(i>>4&15)+(i>>8))>>4<<5) for i in range(512)])
-    T['sub']=t.table(9,3,[(i&15)+(~(i>>4)&15)+(i>>8)|(((i&15)+(~(i>>4)&15)+(i>>8))>>4<<5) for i in range(512)])
-    for name,fn in (('xor',lambda a,b:a^b),('or',lambda a,b:a|b),('and',lambda a,b:a&b)):
-        T[name]=t.table(8,3,[fn(i&15,i>>4) for i in range(256)])
-    T['or8']=t.table(8,1,[int(i!=0) for i in range(256)])
-    def flags(i):
-        zero=not(i&15);ult=not(i>>4&1);a,b=i>>5&1,i>>6&1
-        slt=a if a!=b else ult;bits=[zero,not zero,slt,not slt,ult,not ult]
-        return sum(int(v)*3<<2*j for j,v in enumerate(bits))
-    T['flags']=t.table(7,4,[flags(i) for i in range(128)])
-    T['not5']=t.table(5,4,[(31-i)|(31-i)<<5 for i in range(32)])
-    T['sign32']=t.table(1,6,[0,0xffffffff])
-    T['fill24']=t.table(1,5,[0,0xffffff])
-    T['fill16']=t.table(1,5,[0,0xffff])
-    T['inc1']=t.table(2,2,[i+1 for i in range(4)])
-    T['inc2']=t.table(2,2,[i+2 for i in range(4)])
+    T=compute.standard_tables(t)
     r=-(-(32-mbits)//8);k=-(-(mbits-cbits)//8)
     def cls(i):
         op=i&15;q=(i>>4)&((1<<r)-1);kk=(i>>(4+r))&((1<<k)-1);e=i>>(4+r+k)&3
@@ -140,52 +68,27 @@ def build_tables(t,mbits,cbits):
 def build_handlers(b,T,mbits,cbits,code_base):
     """Shared code; returns entry and exit cell addresses."""
     H={}
-    xw=Seq(b);xw.rows([copy(32,DISCARD,RES)]).next=CELL;H['xw']=xw.entry()
-    x=Seq(b);x.rows([]).next=CELL;H['x']=x.entry()
-    halt=Seq(b);halt.rows([out(1088,STATE)]);halt.rows([out(16<<mbits,MEM)]);halt.jump(CELL);H['halt']=halt.entry()
+    H['xw'],H['x']=compute.exit_layers(b,RES,DISCARD)
+    H['halt']=compute.halt(b,[(1088,STATE),(16<<mbits,MEM)])
     b.flush()
-    def stub(seq,code,rows=()):
-        seq.rows(list(rows)+[copy(32,STATUS,KST+32*code)]).next=H['halt']
-    s=Seq(b);s.adder(T['add'],RES,0);s.jump(H['xw']);H['add']=s.entry();b.flush()
-    s=Seq(b);s.adder(T['sub'],RES,1);g=s.decide(OPSEL,2);H['sub']=s.entry();b.flush()
+    def stub(seq,code,rows=()):compute.stub(seq,STATUS,KST+32*code,H['halt'],rows)
+    s=Seq(b);s.adder(T['add'],RES,OPA,OPB,0);s.jump(H['xw']);H['add']=s.entry();b.flush()
+    s=Seq(b);s.adder(T['sub'],RES,OPA,OPB,1);g=s.decide(OPSEL,2);H['sub']=s.entry();b.flush()
     Seq(b,g).rows([]).next=H['xw']
-    def compare(seq):
-        seq.lookups([(T['or8'],1,1,Z+i,[(RES+8*i,8,0)],0) for i in range(4)])
-        seq.lookups([(T['flags'],4,12,FLAGS,[(Z,4,0),(RES+32,1,4),(OPA+31,1,5),(OPB+31,1,6)],0)])
+    def compare(seq):compute.compare(seq,T,RES,OPA,OPB,Z,FLAGS)
     s=Seq(b,g+CELL);compare(s);s.jump(H['x']);b.flush()
     s=Seq(b,g+2*CELL);compare(s)
-    d=s.rows([copy(2,C2,FLAGS)]);H['flag_row']=field(d.cell,0,0)
-    e=s.layer();s.layer();X=Seq(b);X.rows([]).next=CELL;s.jump(X.entry())
-    e.add(copy(1,field(X.entry(),7,2)+10,C2));e.add(copy(1,field(X.entry(),7,3)+10,C2+1))
-    H['bx']=X.entry();b.flush()
+    H['flag_row'],H['bx']=compute.flag_exit(s,C2,FLAGS);b.flush()
     for name in ('xor','or','and'):
-        s=Seq(b);s.lookups([(T[name],3,4,RES+4*i,[(OPA+4*i,4,0),(OPB+4*i,4,4)],0) for i in range(8)])
+        s=Seq(b);compute.logic(s,T[name],RES,OPA,OPB)
         s.jump(H['xw']);H[name]=s.entry();b.flush()
-    # Shifts copy 32 bits from a 64-bit window W; the amount patches the source.
-    s=Seq(b)
-    a=s.rows([copy(32,W,OPA),copy(32,W+32,ZERO)]);a1=s.rows([]);s.rows([])
-    sh=s.rows([(RES,RES+32,W,W+32)])
-    a.add(copy(5,field(sh.cell,0,2),OPB));a1.add(copy(5,field(sh.cell,0,3),OPB))
-    s.jump(H['xw']);H['srl']=s.entry();b.flush()
-    s=Seq(b)
-    l0=s.rows([copy(32,W,OPA)]);l1=s.rows([]);l2=s.rows([]);s.rows([])
-    l4=s.layer();sh=s.rows([(RES,RES+32,W,W+32)])
-    sign=l4.add((W+32,W+64,T['sign32'],T['sign32']+32))
-    l0.add(copy(5,field(sh.cell,0,2),OPB));l1.add(copy(5,field(sh.cell,0,3),OPB))
-    l1.add(copy(1,field(l4.cell,sign,2)+6,OPA+31));l2.add(copy(1,field(l4.cell,sign,3)+6,OPA+31))
-    s.jump(H['xw']);H['sra']=s.entry();b.flush()
-    s=Seq(b)
-    l0=s.rows([copy(31,W,ZERO),copy(32,W+31,OPA)]);l1=s.rows([]);s.rows([])
-    l3=s.layer();n=l3.add((U,U+10,T['not5'],T['not5']+10))
-    l0.add(copy(5,field(l3.cell,n,2)+4,OPB));l1.add(copy(5,field(l3.cell,n,3)+4,OPB))
-    l4=s.rows([]);s.rows([]);sh=s.rows([(RES,RES+32,W,W+32)])
-    l4.add(copy(5,field(sh.cell,0,2),U));l4.add(copy(5,field(sh.cell,0,3),U+5))
-    s.jump(H['xw']);H['sll']=s.entry();b.flush()
+    s=Seq(b);compute.shift_right(s,T,RES,OPA,OPB,W,ZERO,False);s.jump(H['xw']);H['srl']=s.entry();b.flush()
+    s=Seq(b);compute.shift_right(s,T,RES,OPA,OPB,W,ZERO,True);s.jump(H['xw']);H['sra']=s.entry();b.flush()
+    s=Seq(b);compute.shift_left(s,T,RES,OPA,OPB,W,ZERO,U);s.jump(H['xw']);H['sll']=s.entry();b.flush()
     # Memory operations and JALR share the effective address and its checks.
     r,k=T['r'],T['k']
-    s=Seq(b);s.adder(T['add'],EA,0)
-    checks=[(T['or8'],1,1,QK+i,[(EA+mbits+8*i,min(8,32-mbits-8*i),0)],0) for i in range(r)]
-    checks+=[(T['or8'],1,1,QK+r+i,[(EA+cbits+8*i,min(8,mbits-cbits-8*i),0)],0) for i in range(k)]
+    s=Seq(b);s.adder(T['add'],EA,OPA,OPB,0)
+    checks=compute.or_chunks(T,QK,EA,mbits,32)+compute.or_chunks(T,QK+r,EA,cbits,mbits)
     s.lookups(checks)
     segs=[(OPSEL,4,0)]+([(QK,r+k,4)] if r+k else [])+[(EA,2,4+r+k)]
     s.lookups([(T['class'],4,12,CL,segs,0)])

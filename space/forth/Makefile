@@ -21,7 +21,9 @@ RELEASE_SECONDS ?= 900
 BITFIELD_SECONDS ?= 600
 INSTRUCTION_SECONDS ?= 600
 OPERATION_SECONDS ?= 1500
+COMPUTE_SECONDS ?= 2400
 OPERATION_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(OPERATION_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
+COMPUTE_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(COMPUTE_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 INSTRUCTION_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(INSTRUCTION_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 BITFIELD_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(BITFIELD_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
 BENCH_LIMIT = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(BENCH_SECONDS) --memory-mib $(LIMIT_MEMORY_MIB)
@@ -38,6 +40,7 @@ BENCH_LIMIT =
 RELEASE_LIMIT =
 BITFIELD_LIMIT =
 INSTRUCTION_LIMIT =
+COMPUTE_LIMIT =
 OPERATION_LIMIT =
 endif
 export RV32I_ROOT VM2_ROOT EMULATOR_ROOT COPYCODE_ROOT EMULATOR
@@ -59,6 +62,7 @@ check: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
 	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
 	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
+	$(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
 	$(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(LIMIT) $(PYTHON) -B tests/test_jobs.py
@@ -91,6 +95,7 @@ check-libraries: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
 	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
 	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
+	$(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
 check-integers: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_integers.py
 clean:
@@ -110,6 +115,7 @@ check-release: all $(BUILD_DIR)/observe-emulator initialize-tests
 	$(TEST_LIMIT) $(PYTHON) -B tests/test_format.py
 	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_operations.py
 	$(OPERATION_LIMIT) $(PYTHON) -B tests/test_backend.py
+	$(COMPUTE_LIMIT) $(PYTHON) -B tests/test_compute.py
 	$(LIMIT) $(PYTHON) -B tests/test_index.py
 	$(LIMIT) $(PYTHON) -B tests/test_identity.py
 	$(LIMIT) $(PYTHON) -B tests/test_jobs.py

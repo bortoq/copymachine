@@ -14,6 +14,7 @@ Python генерирует гостевой код на хосте; получ�
 | space/copycode/forth/instructions.fth | Forth, кодирование/декодирование четырёх индексов | Проверки ширины, границ и переполнения; семантический валидатор слоя ещё на Python | 9.4.2–9.4.3 |
 | space/copycode/forth/{format,operations,arena,evaluate}.fth | Forth, формат слоя, сводка и конфликты операций, арена, EVALUATE | Основа бэкенда 9.4; сверено с `Format.validate`; планировщик и оптимизатор ещё на Python | 9.2, 9.4 |
 | space/copycode/forth/backend.fth | Forth, слои, ячейки, группы и загрузочный поток emulator | Бэкенд 9.4.5; контроль — `copycode.vm1.backend`, побайтовое совпадение | 9.4.5 |
+| space/copycode/forth/compute.fth | Forth, таблицы, чтения с патчем, сумматор, логика, сдвиги, сравнение, ветвления, вызовы, останов | Библиотека 9.4.6; контроль — `copycode.vm1.compute`, побайтовое совпадение | 9.4.6 |
 | space/copycode/src/copycode/vm1/schedule.py | Python, планировщик | Планирование тех же операций | 9.4 |
 | space/copycode/src/copycode/vm1/optimize.py | Python, отдельный оптимизатор | Необязательные преобразования перед планированием | 9.4, после первого транслятора |
 | space/copycode/src/copycode/vm2/ | Python, общие тройки, транспорт и протоколы | Общие библиотеки, IO, checkpoint/resume и trace | 9.4, 9.8, 9.14 |
