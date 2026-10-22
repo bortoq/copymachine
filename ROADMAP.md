@@ -1205,7 +1205,7 @@ vm2 пока не выполнена: она явно запланирована
   в том же файле: три подраздела по пунктам (1)–(3).
 - **Проверка:** `grep -q '^## Связывание понятия с определением' docs/research/kernel-mechanisms.md && grep -q 'EXECUTE' docs/research/kernel-mechanisms.md && grep -qi 'перепатч' docs/research/kernel-mechanisms.md`
 
-### ❌ 13.3. Использование SYS и каналов в гестовом коде
+### ✅ 13.3. Использование SYS и каналов в гестовом коде
 
 - **Исполнитель:** Sonnet 5.5, medium. **Зависит:** —
 - **Входы:** `emulator/src/proto.def`, `emulator/doc/emulator-contract.md`
