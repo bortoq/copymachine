@@ -15,12 +15,13 @@ def store_bytes(data,at,values):
     for i,value in enumerate(values):
         for j in range(8):put(data,at+i*8+j,1,(value>>(7-j))&1)
 
-def run(stream,size=65520,slots=8,limit=0,*,regular=False,bound=(1,2,3,4,5),stdout_error=0):
+def run(stream,size=65520,slots=8,limit=0,*,regular=False,bound=(1,2,3,4,5),stdout_error=0,counters=False):
     a=size.bit_length();z=a-1;I=3*a-1;L=I*slots
     memory=bytearray((size+7)//8);put(memory,0,z,L);put(memory,z+a,a,size+1)
     # Channels use logical stream coordinates, never the emulator bootstrap prefix.
     channels={k:dict(used=k in bound,cursor=0,data=bytearray(stream if k==1 else b''),status=0,moved=0,eof=0) for k in range(1,6)}
     response=bytearray((97+z+7)//8);enabled=True;ticks=0;states=[]
+    cost=dict(layers=0,copies=0,bits=0,channel_bits=0)
     def encode_rsp(op=0,status=0,flags=0,size=0,moved=0,eof=0):
         result=bytearray(len(response));offset=0
         for value,width in [(op,8),(status,8),(flags,16),(size,64),(moved,z),(eof,1)]:
@@ -93,7 +94,8 @@ def run(stream,size=65520,slots=8,limit=0,*,regular=False,bound=(1,2,3,4,5),stdo
             response=encode_rsp(**reply)
         for n,d,s in rows:
             if not n:continue
-            if d<size and s<size:bits_copy(memory,d,before,s,n)
+            cost['copies']+=1
+            if d<size and s<size:cost['bits']+=n;bits_copy(memory,d,before,s,n)
             elif max(d,s)>size:
                 c=channels.get(max(d,s)-size)
                 if c is None or not c['used']:continue
@@ -102,12 +104,14 @@ def run(stream,size=65520,slots=8,limit=0,*,regular=False,bound=(1,2,3,4,5),stdo
                     assert s==size+1
                     chunk=c['data'][c['cursor']:c['cursor']+count];c['cursor']+=len(chunk)
                     c.update(status=0,moved=len(chunk),eof=int(len(chunk)<count))
-                    store_bytes(memory,d,chunk)
+                    cost['channel_bits']+=8*len(chunk);store_bytes(memory,d,chunk)
                 else:
                     if d==size+2 and stdout_error:c.update(status=stdout_error,moved=0);continue
                     chunk=payload(before,s,count);end=c['cursor']+count
                     if end>len(c['data']):c['data'].extend(bytes(end-len(c['data'])))
-                    c['data'][c['cursor']:end]=chunk;c['cursor']=end;c.update(status=0,moved=count)
-        ticks+=1;states.append(bytes(memory))
+                    c['data'][c['cursor']:end]=chunk;c['cursor']=end;c.update(status=0,moved=count);cost['channel_bits']+=8*count
+        ticks+=1;cost['layers']+=1;states.append(bytes(memory))
         if ticks>1000:raise AssertionError('reference exceeded test tick bound')
-    return dict(memory=bytes(memory),ticks=ticks,channels=channels,response=bytes(response),enabled=enabled,states=states)
+    result=dict(memory=bytes(memory),ticks=ticks,channels=channels,response=bytes(response),enabled=enabled,states=states)
+    if counters:result['cost']=cost
+    return result
