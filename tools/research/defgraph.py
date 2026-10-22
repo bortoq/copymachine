@@ -22,6 +22,30 @@ K_ORDER = [FC + 'prelude.fth', CF + 'backend.fth', CF + 'compute.fth',
 AUX_ORDER = [CF + n for n in ('integers.fth', 'bitfields.fth', 'format.fth', 'arena.fth',
                               'instructions.fth', 'operations.fth', 'evaluate.fth')]
 DEFINERS = {':', 'variable', 'constant', 'create', 'value'}
+STACK_WORDS = {'dup', 'drop', 'swap', 'over', 'rot', '-rot', 'nip', 'tuck', '2dup', '2drop',
+               '2swap', '2over', '>r', 'r>', 'r@', 'pick', 'roll', '?dup', '+', '-', '*', '1+', '1-',
+               'cells', 'cell+', 'here', 'allot', ','}
+VECTOR_NAMES = set()     # variables executed as `V @ execute` / `V @ ?dup if execute`
+
+
+def find_exec_vector(toks, i):
+    """Variable V for the `execute` at toks[i] in `V @ execute` or `V @ ?dup if execute`."""
+    for back in range(1, 5):
+        if i - back - 1 >= 0 and toks[i - back][0] == '@':
+            return toks[i - back - 1][0]
+    return None
+
+
+def find_receiver(toks, j, span=12):
+    """After ['] X: first word that is not a literal, string or stack word (takes the xt)."""
+    for k in range(j, min(j + span, len(toks))):
+        t = toks[k][0]
+        if t in (';', ':') or t in ("'", "[']"):
+            return None
+        if t in ('"str"', '[char]') or is_number(t) or t in STACK_WORDS:
+            continue
+        return t
+    return None
 
 
 def tokenize(path):
@@ -82,6 +106,7 @@ class Graph:
         self.externals = collections.Counter()
         self.unresolved = collections.defaultdict(list)  # name -> [(node,file,line)]
         self.executes = []       # dicts for EXECUTE sites
+        self.stack_writes = []   # `V !` into a vector
         self.defined_lines = {}
 
     def new_node(self, name, kind, file, line, group):
@@ -95,8 +120,8 @@ class Graph:
         (self.aux if group == 'aux' else self.k)[name] = nid
         return nid
 
-    def add_edge(self, a, b, kind, line, via=None, sub=None):
-        key = (a, b, kind, via, sub)
+    def add_edge(self, a, b, kind, line, via=None, sub=None, receiver=None):
+        key = (a, b, kind, via, sub, receiver)
         e = self.edges.get(key)
         if e:
             e['count'] += 1
@@ -106,6 +131,8 @@ class Graph:
                 self.edges[key]['via'] = via
             if sub:
                 self.edges[key]['sub'] = sub
+            if receiver:
+                self.edges[key]['receiver'] = receiver
 
     def lookup(self, name, group):
         if group == 'aux' and name in self.aux:
@@ -128,10 +155,10 @@ def process(g, path, group):
                             'file': path, 'line': line, 'group': group})
         return initid
 
-    def ref(owner, name, line, kind='direct', via=None, sub=None):
+    def ref(owner, name, line, kind='direct', via=None, sub=None, receiver=None):
         t = g.lookup(name, group)
         if t is not None:
-            g.add_edge(owner, t, kind, line, via, sub)
+            g.add_edge(owner, t, kind, line, via, sub, receiver)
         elif not is_number(name):
             g.externals[name] += 1
             g.unresolved[name].append((owner, path, line))
@@ -194,7 +221,12 @@ def process(g, path, group):
             # top-level tick handling
             if tok in ("'", "[']") and i + 1 < n:
                 target = toks[i + 1][0]
-                ref(init_node(ln), target, ln, 'indirect', find_via(toks, i + 2), 'tick')
+                via = find_via(toks, i + 2)
+                if via in VECTOR_NAMES:
+                    ref(init_node(ln), target, ln, 'indirect', via, 'vector-write')
+                else:
+                    rcv = find_receiver(toks, i + 2)
+                    ref(init_node(ln), target, ln, 'indirect', None, 'xt-arg' if rcv else 'tick', rcv)
                 top_buf.append(toks[i + 1])
                 i += 2
                 continue
@@ -215,15 +247,25 @@ def process(g, path, group):
         if tok in ("'", "[']") and i + 1 < n:
             target = toks[i + 1][0]
             via = find_via(toks, i + 2)
-            ref(cur, target, toks[i + 1][1], 'indirect', via, 'vector-write' if via else 'tick')
+            if via in VECTOR_NAMES:
+                ref(cur, target, toks[i + 1][1], 'indirect', via, 'vector-write')
+            else:
+                rcv = find_receiver(toks, i + 2)
+                ref(cur, target, toks[i + 1][1], 'indirect', None, 'xt-arg' if rcv else 'tick', rcv)
             i += 2
             continue
-        if tok == 'execute':
-            vec = None
-            for back in range(1, 5):   # V @ execute, or V @ ?dup if execute
-                if i - back - 1 >= 0 and toks[i - back][0] == '@':
-                    vec = toks[i - back - 1][0]
+        if tok == '!' and i > 0 and toks[i - 1][0] in VECTOR_NAMES:
+            ticked = False     # `['] X ... V !` is already a vector-write edge
+            for k in range(i - 1, max(i - 10, 0), -1):
+                if toks[k][0] in (';', ':'):
                     break
+                if toks[k][0] in ("'", "[']") and find_via(toks, k + 2) == toks[i - 1][0]:
+                    ticked = True
+                    break
+            if not ticked:
+                g.stack_writes.append({'in': cur, 'vector': toks[i - 1][0], 'line': ln})
+        if tok == 'execute':
+            vec = find_exec_vector(toks, i)
             g.executes.append({'in': cur, 'file': path, 'line': ln, 'vector': vec})
             if vec and g.lookup(vec, group):
                 g.add_edge(cur, g.lookup(vec, group), 'indirect', ln, via=vec, sub='execute-vector')
@@ -305,6 +347,13 @@ def main():
     if '--out-dir' in sys.argv:
         out_dir = os.path.abspath(sys.argv[sys.argv.index('--out-dir') + 1])
     g = Graph()
+    for p in K_ORDER + AUX_ORDER:
+        t = tokenize(p)
+        for i, x in enumerate(t):
+            if x[0] == 'execute':
+                v = find_exec_vector(t, i)
+                if v:
+                    VECTOR_NAMES.add(v)
     for p in K_ORDER:
         process(g, p, 'K')
     for p in AUX_ORDER:
@@ -350,6 +399,8 @@ def main():
     for e in edges:
         if e.get('sub') == 'vector-write':
             vec[e['via']]['writes'].append({'in': e['from'], 'target': e['to'], 'line': e['line']})
+    for x in g.stack_writes:
+        vec[x['vector']]['writes'].append({'in': x['in'], 'target': None, 'line': x['line']})
     for x in g.executes:
         if x['vector']:
             vec[x['vector']]['executors'].append({'in': x['in'], 'line': x['line'], 'file': x['file']})
@@ -421,7 +472,8 @@ def write_md(path, d, byid, init_ids):
     ind = [e for e in edges if e['kind'] == 'indirect']
     by_sub = collections.Counter(e.get('sub', '') for e in ind)
     w('Косвенных рёбер: %d (%s).\n' % (len(ind), ', '.join('%s: %d' % kv for kv in sorted(by_sub.items()))))
-    w('### Переменные-векторы (запись `[\'] слово ... вектор !`, исполнение `вектор @ execute`)\n')
+    w('### Векторы исполнения (переменные, исполняемые как `V @ execute` или `V @ ?dup if execute`)\n')
+    w('Запись `[\'] слово ... V !` учитывается только для таких V; запись xt из стека (`... V !`) показана как «xt из стека».\n')
     w('| Вектор | Записывают (слово → цель) | Исполняют |')
     w('|---|---|---|')
     for k, v in d['vectors'].items():
@@ -429,9 +481,17 @@ def write_md(path, d, byid, init_ids):
         for x in v['writes']:
             wr.setdefault((x['in'], x['target']), 0)
             wr[(x['in'], x['target'])] += 1
-        ws = '; '.join('`%s` → `%s`%s' % (a, b, ' ×%d' % c if c > 1 else '') for (a, b), c in wr.items()) or '—'
+        ws = '; '.join('`%s` → %s%s' % (a, '`%s`' % b if b else 'xt из стека', ' ×%d' % c if c > 1 else '')
+                       for (a, b), c in wr.items()) or '—'
         ex = '; '.join(sorted({'`%s`' % x['in'] for x in v['executors']})) or '—'
         w('| `%s` | %s | %s |' % (k, ws, ex))
+    w('')
+    xa = [e for e in ind if e.get('sub') == 'xt-arg']
+    w('### xt-аргументы (`[\'] слово` передаётся принимающему слову, а не записывается в вектор)\n')
+    w('| Слово | Передаваемый xt | Получатель (receiver) | Файл:строка |')
+    w('|---|---|---|---|')
+    for e in xa:
+        w('| `%s` | `%s` | `%s` | %s:%d |' % (e['from'], e['to'], e['receiver'], byid[e['from']]['file'].replace('space/', ''), e['line']))
     w('')
     w('### Прочие ссылки через `\'`/`[\']` (без записи в вектор)\n')
     w('| Слово | Цель | Файл:строка |')
@@ -486,13 +546,14 @@ def write_md(path, d, byid, init_ids):
     w('| Циклы (все рёбра): компонент > 1 / петель | %d / %d |' % (
         sum(1 for c in cyc if c['scope'] == 'all' and c['type'] == 'scc'),
         sum(1 for c in cyc if c['scope'] == 'all' and c['type'] == 'loop')))
-    w('| Векторов (переменных, в которые пишут `[\']`-ссылки) | %d |' % sum(1 for v in d['vectors'].values() if v['writes']))
     w('| Мест EXECUTE | %d |' % len(d['execute_sites']))
     w('| Внешних имён (примитивы, нет определения в исходниках) | %d различных, %d использований |' % (
         len(d['externals']), sum(d['externals'].values())))
     w('| Больше всего зависимых | `%s`: %d транзитивно |' % (maxn[0], maxn[1]['transitive_all_edges']))
     w('| Слов без зависимых | %d из %d |' % (zero, len(dep)))
     w('')
+    w('Векторов исполнения: %d\n' % sum(1 for v in d['vectors'].values() if v['executors']))
+    w('xt-аргументов: %d\n' % sum(1 for e in edges if e.get('sub') == 'xt-arg'))
     w('Внешние имена, чаще всего используемые: ' + ', '.join(
         '`%s` %d' % kv for kv in list(d['externals'].items())[:25]) + '.\n')
     with open(path, 'w', encoding='utf-8') as f:

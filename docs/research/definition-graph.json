@@ -9155,8 +9155,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 168,
-   "via": "cc-t-add",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9178,8 +9178,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 168,
-   "via": "cc-t-sub",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9194,8 +9194,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 169,
-   "via": "cc-t-xor",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9210,8 +9210,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 169,
-   "via": "cc-t-or",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9226,8 +9226,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 170,
-   "via": "cc-t-and",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9242,8 +9242,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 170,
-   "via": "cc-t-or8",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9258,8 +9258,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 171,
-   "via": "cc-t-flags",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9274,8 +9274,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 171,
-   "via": "cc-t-not5",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9290,8 +9290,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 172,
-   "via": "cc-t-sign32",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9306,8 +9306,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 172,
-   "via": "cc-t-fill24",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9322,8 +9322,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 173,
-   "via": "cc-t-fill16",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9338,8 +9338,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 173,
-   "via": "cc-t-inc1",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -9354,8 +9354,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 174,
-   "via": "cc-t-inc2",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "cc-standard-tables",
@@ -10546,8 +10546,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 57,
-   "via": "fc-t-rev8",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-tables",
@@ -10569,8 +10569,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 58,
-   "via": "fc-t-zero32",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-tables",
@@ -10585,8 +10585,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 59,
-   "via": "fc-t-nz2",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-tables",
@@ -10601,8 +10601,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 60,
-   "via": "fc-t-lt32",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-tables",
@@ -10617,8 +10617,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 61,
-   "via": "fc-t-or8b",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-tables",
@@ -10633,8 +10633,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 62,
-   "via": "fc-t-fault",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table2"
   },
   {
    "from": "fc-tables",
@@ -10656,8 +10656,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 63,
-   "via": "fc-t-xr2",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-tables",
@@ -10672,8 +10672,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 64,
-   "via": "fc-t-ult32",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-tables",
@@ -10688,8 +10688,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 65,
-   "via": "fc-t-bytepos",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-tables",
@@ -14001,8 +14001,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 386,
-   "via": "fc-m4",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-build-mul",
@@ -14486,8 +14486,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 437,
-   "via": "fc-sub",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-build-div",
@@ -14509,8 +14509,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 438,
-   "via": "fc-qsel",
-   "sub": "vector-write"
+   "sub": "xt-arg",
+   "receiver": "cc-table"
   },
   {
    "from": "fc-build-div",
@@ -19176,7 +19176,8 @@
    "kind": "indirect",
    "count": 1,
    "line": 30,
-   "sub": "tick"
+   "sub": "xt-arg",
+   "receiver": "catch"
   },
   {
    "from": "main~2",
@@ -23789,7 +23790,13 @@
    ]
   },
   "cc-start-cell": {
-   "writes": [],
+   "writes": [
+    {
+     "in": "cc-finish",
+     "target": null,
+     "line": 189
+    }
+   ],
    "executors": [
     {
      "in": "main~2",
@@ -23798,138 +23805,19 @@
     }
    ]
   },
-  "cc-t-add": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-add-entry",
-     "line": 168
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-and": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-and-entry",
-     "line": 170
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-fill16": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-fill16-entry",
-     "line": 173
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-fill24": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-fill24-entry",
-     "line": 172
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-flags": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-flags-entry",
-     "line": 171
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-inc1": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-inc1-entry",
-     "line": 173
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-inc2": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-inc2-entry",
-     "line": 174
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-not5": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-not5-entry",
-     "line": 171
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-or": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-or-entry",
-     "line": 169
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-or8": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-or8-entry",
-     "line": 170
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-sign32": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-sign-entry",
-     "line": 172
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-sub": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-sub-entry",
-     "line": 168
-    }
-   ],
-   "executors": []
-  },
-  "cc-t-xor": {
-   "writes": [
-    {
-     "in": "cc-standard-tables",
-     "target": "cc-xor-entry",
-     "line": 169
-    }
-   ],
-   "executors": []
-  },
   "cc-tx": {
-   "writes": [],
+   "writes": [
+    {
+     "in": "cc-table",
+     "target": null,
+     "line": 117
+    },
+    {
+     "in": "cc-table2",
+     "target": null,
+     "line": 136
+    }
+   ],
    "executors": [
     {
      "in": "cc-table",
@@ -23947,126 +23835,6 @@
      "file": "space/copycode/forth/compute.fth"
     }
    ]
-  },
-  "fc-m4": {
-   "writes": [
-    {
-     "in": "fc-build-mul",
-     "target": "fc-mul4-entry",
-     "line": 386
-    }
-   ],
-   "executors": []
-  },
-  "fc-qsel": {
-   "writes": [
-    {
-     "in": "fc-build-div",
-     "target": "fc-qsel-entry",
-     "line": 438
-    }
-   ],
-   "executors": []
-  },
-  "fc-sub": {
-   "writes": [
-    {
-     "in": "fc-build-div",
-     "target": "cc-sub-entry",
-     "line": 437
-    }
-   ],
-   "executors": []
-  },
-  "fc-t-bytepos": {
-   "writes": [
-    {
-     "in": "fc-tables",
-     "target": "fc-bytepos-entry",
-     "line": 65
-    }
-   ],
-   "executors": []
-  },
-  "fc-t-fault": {
-   "writes": [
-    {
-     "in": "fc-tables",
-     "target": "fc-fault-entry",
-     "line": 62
-    }
-   ],
-   "executors": []
-  },
-  "fc-t-lt32": {
-   "writes": [
-    {
-     "in": "fc-tables",
-     "target": "fc-lt-entry",
-     "line": 60
-    }
-   ],
-   "executors": []
-  },
-  "fc-t-nz2": {
-   "writes": [
-    {
-     "in": "fc-tables",
-     "target": "fc-nz-entry",
-     "line": 59
-    }
-   ],
-   "executors": []
-  },
-  "fc-t-or8b": {
-   "writes": [
-    {
-     "in": "fc-tables",
-     "target": "cc-or8-entry",
-     "line": 61
-    }
-   ],
-   "executors": []
-  },
-  "fc-t-rev8": {
-   "writes": [
-    {
-     "in": "fc-tables",
-     "target": "fc-rev-entry",
-     "line": 57
-    }
-   ],
-   "executors": []
-  },
-  "fc-t-ult32": {
-   "writes": [
-    {
-     "in": "fc-tables",
-     "target": "fc-ult-entry",
-     "line": 64
-    }
-   ],
-   "executors": []
-  },
-  "fc-t-xr2": {
-   "writes": [
-    {
-     "in": "fc-tables",
-     "target": "fc-xr2-entry",
-     "line": 63
-    }
-   ],
-   "executors": []
-  },
-  "fc-t-zero32": {
-   "writes": [
-    {
-     "in": "fc-tables",
-     "target": "fc-zero-entry",
-     "line": 58
-    }
-   ],
-   "executors": []
   }
  },
  "execute_sites": [

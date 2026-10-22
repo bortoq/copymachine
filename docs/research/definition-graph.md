@@ -21,46 +21,53 @@
 
 ## Косвенные ссылки
 
-Косвенных рёбер: 31 (execute-vector: 4, tick: 1, vector-write: 26).
+Косвенных рёбер: 31 (execute-vector: 4, vector-write: 1, xt-arg: 26).
 
-### Переменные-векторы (запись `['] слово ... вектор !`, исполнение `вектор @ execute`)
+### Векторы исполнения (переменные, исполняемые как `V @ execute` или `V @ ?dup if execute`)
+
+Запись `['] слово ... V !` учитывается только для таких V; запись xt из стека (`... V !`) показана как «xt из стека».
 
 | Вектор | Записывают (слово → цель) | Исполняют |
 |---|---|---|
 | `cc-sink` | `kn-compile` → `kn-put` | `cc-put` |
-| `cc-start-cell` | — | `main~2` |
-| `cc-t-add` | `cc-standard-tables` → `cc-add-entry` | — |
-| `cc-t-and` | `cc-standard-tables` → `cc-and-entry` | — |
-| `cc-t-fill16` | `cc-standard-tables` → `cc-fill16-entry` | — |
-| `cc-t-fill24` | `cc-standard-tables` → `cc-fill24-entry` | — |
-| `cc-t-flags` | `cc-standard-tables` → `cc-flags-entry` | — |
-| `cc-t-inc1` | `cc-standard-tables` → `cc-inc1-entry` | — |
-| `cc-t-inc2` | `cc-standard-tables` → `cc-inc2-entry` | — |
-| `cc-t-not5` | `cc-standard-tables` → `cc-not5-entry` | — |
-| `cc-t-or` | `cc-standard-tables` → `cc-or-entry` | — |
-| `cc-t-or8` | `cc-standard-tables` → `cc-or8-entry` | — |
-| `cc-t-sign32` | `cc-standard-tables` → `cc-sign-entry` | — |
-| `cc-t-sub` | `cc-standard-tables` → `cc-sub-entry` | — |
-| `cc-t-xor` | `cc-standard-tables` → `cc-xor-entry` | — |
-| `cc-tx` | — | `cc-table2`; `cc-table` |
-| `fc-m4` | `fc-build-mul` → `fc-mul4-entry` | — |
-| `fc-qsel` | `fc-build-div` → `fc-qsel-entry` | — |
-| `fc-sub` | `fc-build-div` → `cc-sub-entry` | — |
-| `fc-t-bytepos` | `fc-tables` → `fc-bytepos-entry` | — |
-| `fc-t-fault` | `fc-tables` → `fc-fault-entry` | — |
-| `fc-t-lt32` | `fc-tables` → `fc-lt-entry` | — |
-| `fc-t-nz2` | `fc-tables` → `fc-nz-entry` | — |
-| `fc-t-or8b` | `fc-tables` → `cc-or8-entry` | — |
-| `fc-t-rev8` | `fc-tables` → `fc-rev-entry` | — |
-| `fc-t-ult32` | `fc-tables` → `fc-ult-entry` | — |
-| `fc-t-xr2` | `fc-tables` → `fc-xr2-entry` | — |
-| `fc-t-zero32` | `fc-tables` → `fc-zero-entry` | — |
+| `cc-start-cell` | `cc-finish` → xt из стека | `main~2` |
+| `cc-tx` | `cc-table` → xt из стека; `cc-table2` → xt из стека | `cc-table2`; `cc-table` |
+
+### xt-аргументы (`['] слово` передаётся принимающему слову, а не записывается в вектор)
+
+| Слово | Передаваемый xt | Получатель (receiver) | Файл:строка |
+|---|---|---|---|
+| `cc-standard-tables` | `cc-add-entry` | `cc-table` | copycode/forth/compute.fth:168 |
+| `cc-standard-tables` | `cc-sub-entry` | `cc-table` | copycode/forth/compute.fth:168 |
+| `cc-standard-tables` | `cc-xor-entry` | `cc-table` | copycode/forth/compute.fth:169 |
+| `cc-standard-tables` | `cc-or-entry` | `cc-table` | copycode/forth/compute.fth:169 |
+| `cc-standard-tables` | `cc-and-entry` | `cc-table` | copycode/forth/compute.fth:170 |
+| `cc-standard-tables` | `cc-or8-entry` | `cc-table` | copycode/forth/compute.fth:170 |
+| `cc-standard-tables` | `cc-flags-entry` | `cc-table` | copycode/forth/compute.fth:171 |
+| `cc-standard-tables` | `cc-not5-entry` | `cc-table` | copycode/forth/compute.fth:171 |
+| `cc-standard-tables` | `cc-sign-entry` | `cc-table` | copycode/forth/compute.fth:172 |
+| `cc-standard-tables` | `cc-fill24-entry` | `cc-table` | copycode/forth/compute.fth:172 |
+| `cc-standard-tables` | `cc-fill16-entry` | `cc-table` | copycode/forth/compute.fth:173 |
+| `cc-standard-tables` | `cc-inc1-entry` | `cc-table` | copycode/forth/compute.fth:173 |
+| `cc-standard-tables` | `cc-inc2-entry` | `cc-table` | copycode/forth/compute.fth:174 |
+| `fc-tables` | `fc-rev-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:57 |
+| `fc-tables` | `fc-zero-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:58 |
+| `fc-tables` | `fc-nz-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:59 |
+| `fc-tables` | `fc-lt-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:60 |
+| `fc-tables` | `cc-or8-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:61 |
+| `fc-tables` | `fc-fault-entry` | `cc-table2` | forth/scripts/forthc/forthc.fth:62 |
+| `fc-tables` | `fc-xr2-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:63 |
+| `fc-tables` | `fc-ult-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:64 |
+| `fc-tables` | `fc-bytepos-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:65 |
+| `fc-build-mul` | `fc-mul4-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:386 |
+| `fc-build-div` | `cc-sub-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:437 |
+| `fc-build-div` | `fc-qsel-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:438 |
+| `main~2` | `kn-compile` | `catch` | forth/scripts/forthc/kernel.fth:30 |
 
 ### Прочие ссылки через `'`/`[']` (без записи в вектор)
 
 | Слово | Цель | Файл:строка |
 |---|---|---|
-| `main~2` | `kn-compile` | forth/scripts/forthc/kernel.fth:30 |
 
 ### Места EXECUTE
 
@@ -115,10 +122,13 @@
 | Рёбер (прямых / косвенных) | 1947 / 31 |
 | Циклы (прямые рёбра): компонент > 1 / петель | 0 / 2 |
 | Циклы (все рёбра): компонент > 1 / петель | 0 / 2 |
-| Векторов (переменных, в которые пишут `[']`-ссылки) | 26 |
 | Мест EXECUTE | 5 |
 | Внешних имён (примитивы, нет определения в исходниках) | 68 различных, 5692 использований |
 | Больше всего зависимых | `2drop`: 160 транзитивно |
 | Слов без зависимых | 28 из 692 |
+
+Векторов исполнения: 3
+
+xt-аргументов: 26
 
 Внешние имена, чаще всего используемые: `@` 977, `!` 536, `+` 505, `if` 324, `then` 324, `dup` 275, `cells` 230, `drop` 188, `i` 160, `swap` 156, `exit` 122, `r>` 122, `r@` 116, `>r` 115, `and` 113, `throw` 100, `over` 94, `*` 92, `pick` 90, `loop` 85, `0=` 81, `else` 69, `lshift` 69, `rshift` 60, `-` 56.
