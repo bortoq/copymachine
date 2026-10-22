@@ -67,6 +67,7 @@ check-direct: $(BUILD_DIR)/checked-emulator | test-tmp
 	CHECKED_EMULATOR="$(if $(WORKSPACE_ROOT),$(BUILD_DIR),$(CURDIR)/$(BUILD_DIR))/checked-emulator" python3 -B tests/test_direct.py
 	python3 -B tests/test_direct_cli.py
 	python3 -B tests/test_limited_run.py
+	python3 -B tests/test_cost_counters.py
 check-guest: $(BUILD_DIR)/checked-emulator | test-tmp
 	PYTHONPATH="$(COPYCODE_ROOT)/src" python3 -B "$(COPYCODE_ROOT)/tests/test_schedule.py"
 	CHECKED_EMULATOR="$(if $(WORKSPACE_ROOT),$(BUILD_DIR),$(CURDIR)/$(BUILD_DIR))/checked-emulator" python3 -B tests/test_guest_arithmetic.py

@@ -16,12 +16,21 @@ def store_bytes(data,at,values):
         for j in range(8):put(data,at+i*8+j,1,(value>>(7-j))&1)
 
 def run(stream,size=65520,slots=8,limit=0,*,regular=False,bound=(1,2,3,4,5),stdout_error=0,counters=False):
+    """Run the oracle; with counters=True the result also has 'cost' with:
+    layers      - executed ticks (layers);
+    copies      - instructions with n>0 that changed memory or transferred at least one bit
+                  through a channel or SYS (copies to an unused/closed channel, writes that fail
+                  with stdout_error and reads of 0 bytes at EOF are not counted unless memory changed);
+    bits        - n of every memory-to-memory copy (as in 13.4);
+    channel_bits- 8 * bytes actually moved through channels (reads and successful writes);
+    sys_bits    - bits of SYS request writes (max(n,120+a)) and SYS response reads (97+z).
+    Without counters=True the returned values and behaviour are unchanged."""
     a=size.bit_length();z=a-1;I=3*a-1;L=I*slots
     memory=bytearray((size+7)//8);put(memory,0,z,L);put(memory,z+a,a,size+1)
     # Channels use logical stream coordinates, never the emulator bootstrap prefix.
     channels={k:dict(used=k in bound,cursor=0,data=bytearray(stream if k==1 else b''),status=0,moved=0,eof=0) for k in range(1,6)}
     response=bytearray((97+z+7)//8);enabled=True;ticks=0;states=[]
-    cost=dict(layers=0,copies=0,bits=0,channel_bits=0)
+    cost=dict(layers=0,copies=0,bits=0,channel_bits=0,sys_bits=0)
     def encode_rsp(op=0,status=0,flags=0,size=0,moved=0,eof=0):
         result=bytearray(len(response));offset=0
         for value,width in [(op,8),(status,8),(flags,16),(size,64),(moved,z),(eof,1)]:
@@ -56,9 +65,11 @@ def run(stream,size=65520,slots=8,limit=0,*,regular=False,bound=(1,2,3,4,5),stdo
         # SYS answer is old for every slot, independent of slot ordering.
         if enabled:
             for n,d,s in rows:
-                if n and s==size:bits_copy(memory,d,old_response,0,97+z)
+                if n and s==size:
+                    bits_copy(memory,d,old_response,0,97+z);cost['copies']+=1;cost['sys_bits']+=97+z
         for n,d,s in rows:
             if not n or d!=size or not enabled:continue
+            cost['copies']+=1;cost['sys_bits']+=max(n,120+a)
             op=get(before,s,8);target=get(before,s+8,a);arg=get(before,s+24+a,32);off=get(before,s+56+a,64)
             c=channels.get(target-size);reply=dict(op=op)
             if op==0:pass
@@ -94,8 +105,10 @@ def run(stream,size=65520,slots=8,limit=0,*,regular=False,bound=(1,2,3,4,5),stdo
             response=encode_rsp(**reply)
         for n,d,s in rows:
             if not n:continue
-            cost['copies']+=1
-            if d<size and s<size:cost['bits']+=n;bits_copy(memory,d,before,s,n)
+            if d<size and s<size:
+                cost['bits']+=n
+                if any(get(memory,d+j,1)!=get(before,s+j,1) for j in range(n)):cost['copies']+=1
+                bits_copy(memory,d,before,s,n)
             elif max(d,s)>size:
                 c=channels.get(max(d,s)-size)
                 if c is None or not c['used']:continue
@@ -104,12 +117,12 @@ def run(stream,size=65520,slots=8,limit=0,*,regular=False,bound=(1,2,3,4,5),stdo
                     assert s==size+1
                     chunk=c['data'][c['cursor']:c['cursor']+count];c['cursor']+=len(chunk)
                     c.update(status=0,moved=len(chunk),eof=int(len(chunk)<count))
-                    cost['channel_bits']+=8*len(chunk);store_bytes(memory,d,chunk)
+                    cost['channel_bits']+=8*len(chunk);cost['copies']+=bool(chunk);store_bytes(memory,d,chunk)
                 else:
                     if d==size+2 and stdout_error:c.update(status=stdout_error,moved=0);continue
                     chunk=payload(before,s,count);end=c['cursor']+count
                     if end>len(c['data']):c['data'].extend(bytes(end-len(c['data'])))
-                    c['data'][c['cursor']:end]=chunk;c['cursor']=end;c.update(status=0,moved=count);cost['channel_bits']+=8*count
+                    c['data'][c['cursor']:end]=chunk;c['cursor']=end;c.update(status=0,moved=count);cost['channel_bits']+=8*count;cost['copies']+=1
         ticks+=1;cost['layers']+=1;states.append(bytes(memory))
         if ticks>1000:raise AssertionError('reference exceeded test tick bound')
     result=dict(memory=bytes(memory),ticks=ticks,channels=channels,response=bytes(response),enabled=enabled,states=states)
