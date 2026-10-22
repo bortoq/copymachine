@@ -1259,7 +1259,7 @@ vm2 пока не выполнена: она явно запланирована
 `space/vm2/doc/emulator-contract.md`. Всё — в `tools/research/symbolic/`,
 только стандартная библиотека.
 
-#### ❌ 13.5.1. Библиотека ROBDD
+#### ✅ 13.5.1. Библиотека ROBDD
 
 - **Исполнитель:** Sonnet 5.5, medium. **Зависит:** —
 - **Сделать:** `tools/research/symbolic/bdd.py` — стандартная
