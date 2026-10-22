@@ -1143,7 +1143,7 @@ vm2 пока не выполнена: она явно запланирована
   `## Итог`.
 - **Проверка:** `python3 -B -c "import json;g=json.load(open('docs/research/definition-graph.json'));assert g['nodes'] and g['edges'] and 'cycles' in g and 'dependents' in g" && for h in Циклы 'Косвенные ссылки' 'Число зависимых' Итог; do grep -q "^## $h" docs/research/definition-graph.md || exit 1; done`
 
-### ❌ 13.2. Зашитые механизмы ядра K и минимальный набор слов
+### ✅ 13.2. Зашитые механизмы ядра K и минимальный набор слов
 
 Общие входы подпунктов: отчёт 13.1; `space/forth/scripts/forthc/`
 (kernel.fth, forthc.fth, main.fth, prelude.fth, model.py);
@@ -1186,7 +1186,7 @@ vm2 пока не выполнена: она явно запланирована
   в том же файле — таблица из 13 строк.
 - **Проверка:** `grep -q '^## Соответствие минимальному набору' docs/research/kernel-mechanisms.md && test "$(sed -n '/^## Соответствие минимальному набору/,/^## /p' docs/research/kernel-mechanisms.md | grep -c '^| *[^-| ]')" -ge 14`
 
-#### ❌ 13.2.3. Связывание понятия с определением: факты и такты
+#### ✅ 13.2.3. Связывание понятия с определением: факты и такты
 
 - **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 13.2.1
 - **Сделать:** (1) описать, как скомпилированный код ссылается на слово
