@@ -1,0 +1,14 @@
+{
+ "base": 72.0,
+ "call_return": 19.0,
+ "execute": 24.0,
+ "model_layers": {
+  "call": 8,
+  "ret": 9,
+  "call_return": 17,
+  "call_indirect": 10,
+  "execute": 19,
+  "note": "слои Seq.layer, добавленные одним вызовом (разность с пустым main); execute = call_indirect + ret"
+ },
+ "command": "make -C space/vm2 -j1 checked-emulator && python3 -B tools/research/call_ticks.py"
+}
