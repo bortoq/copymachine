@@ -2,8 +2,11 @@
 """Генерирует docs/research/sys-usage.md из таблицы мест использования SYS и каналов (пункт 13.3).
 
 Таблица составлена вручную по поиску в space/ (ссылки file:line проверены чтением).
-Запуск: python3 -B tools/research/sys_usage.py
+Запуск: python3 -B tools/research/sys_usage.py [--check]
+Режим --check проверяет ссылки файл:строка таблицы (файл и строки существуют, в диапазоне есть признак канала или SYS), печатает ошибки, код возврата 1.
 """
+import re
+import sys
 from pathlib import Path
 from collections import OrderedDict
 
@@ -159,4 +162,71 @@ def main():
     OUT.write_text('\n'.join(L), encoding='utf-8')
     print(len(rows), 'rows ->', OUT)
 
-main()
+# Признаки канала или SYS: хотя бы один должен встретиться в диапазоне строк ссылки.
+MARKERS = ['size+', 'S+', 'cs_read', 'cs_write', 'cs_exit', 'FSTAT', 'SEEK', 'CLOSE', 'IOCTL',
+           'EXEC', 'KEY', 'EMIT', 'ECALL', 'STDIN', 'STDOUT', 'stdin', 'stdout', 'Channel', 'SysWidth',
+           'sys', 'SYS', 'debug', 'status', 'snapshot', 'channel', 'chan', 'out(', 'space_bits+', 'halt', 'key', 'emit', 'type', 'fc-read', 'cc-out',
+           'device']
+
+def _expand_braces(path):
+    m = re.search(r'\{([^}]*)\}', path)
+    if not m:
+        return [path]
+    return [path[:m.start()] + alt + path[m.end():] for alt in m.group(1).split(',')]
+
+def _find(path, prev_dir):
+    """Файл относительно корня; для сокращённой ссылки - относительно каталога предыдущей и его предков."""
+    cands = [ROOT / path]
+    d = prev_dir
+    while d is not None and d != ROOT and ROOT in d.parents:
+        cands.append(d / path)
+        d = d.parent
+    for c in cands:
+        if c.is_file():
+            return c
+    return None
+
+def check_rows(rows):
+    """Возвращает список сообщений об ошибках для таблицы rows."""
+    errs = []
+    for i, r in enumerate(rows, 1):
+        loc = re.sub(r',\s+', ',', re.sub(r'\s*\([^)]*\)', '', r[1]))
+        prev_dir = None
+        for part in loc.split(';'):
+            part = part.strip()
+            if not part:
+                continue
+            m = re.match(r'^(.*?)((?::\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*)?)((?:\s+и\s+:\d+)*)$', part)
+            path, spec = m.group(1), m.group(2)
+            files = []
+            for pth in _expand_braces(path):
+                f = _find(pth, prev_dir)
+                if f is None:
+                    errs.append(f'строка {i}: файл не найден: {pth}')
+                else:
+                    files.append(f)
+                    prev_dir = f.parent
+            if not spec or len(files) != 1:
+                continue
+            lines = files[0].read_text(encoding='utf-8', errors='replace').splitlines()
+            for rng in spec[1:].split(','):
+                a, _, b = rng.partition('-')
+                a, b = int(a), int(b or a)
+                if a < 1 or b < a or b > len(lines):
+                    errs.append(f'строка {i}: {path}:{rng} вне файла (строк {len(lines)})')
+                elif not any(k in ln for ln in lines[a-1:b] for k in MARKERS):
+                    errs.append(f'строка {i}: {path}:{rng} нет признака канала или SYS')
+    return errs
+
+def check():
+    errs = check_rows(rows)
+    for e in errs:
+        print('ОШИБКА', e)
+    if not errs:
+        print('ссылки таблицы:', len(rows), 'строк, ошибок нет')
+    return 1 if errs else 0
+
+if __name__ == '__main__':
+    if '--check' in sys.argv[1:]:
+        sys.exit(check())
+    main()
