@@ -1291,7 +1291,7 @@ vm2 пока не выполнена: она явно запланирована
   в `docs/research/tables/` (по файлу на программу).
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/test_programs.py && test "$(ls docs/research/tables | wc -l)" -ge 4`
 
-#### ❌ 13.5.3. Символьный исполнитель копимашины
+#### ✅ 13.5.3. Символьный исполнитель копимашины
 
 - **Исполнитель:** Sonnet 5.5, high. **Зависит:** 13.5.1, 13.5.2
 - **Сделать:** `tools/research/symbolic/symexec.py` повторяет семантику
