@@ -15,7 +15,16 @@
 а не по 2^k наборам: так поле, зависящее от 16 переменных (цепочка сравнения C
 с w=8 на последнем шаге), но принимающее мало значений, обрабатывается за
 число этих значений. Предел 2^12 относится к числу различных троек (вариантов);
-больше — исключение TooLarge («слишком велико»).
+больше — исключение TooLarge («слишком велико»). Смысл предела: на одну
+инструкцию допускается не более 2^12 различных троек (n,dst,src); сколько
+переменных стоит за ними, не важно. Поэтому cost['bits'] символьной копии —
+максимум n по вариантам (цена копии определяется самым длинным вариантом),
+а не сумма и не 2^k.
+
+Соответствие эталону: как `vm2_reference.run` (список `spans`), на каждом такте
+отрезки [dst,dst+n) и [src,src+n) всех копий не должны пересекаться; проверка
+выполняется для каждого варианта поля и каждой пары совместимых вариантов
+разных инструкций, нарушение даёт AssertionError (как у эталона).
 
 Не поддерживается (исключение Unsupported): канал и SYS — копия с концом
 >= size при n > 0 (и в любом варианте поля), а также останов, зависящий от
@@ -144,37 +153,64 @@ class SymExec:
             raise Unsupported('останов зависит от переменных')
         before = self.mem
         new = list(before)
+        plan = []                      # по строке: список (n, d, s, условие)
         for n_bits, d_bits, s_bits in rows:
             fields = n_bits + d_bits + s_bits
             if all(f < 2 for f in fields):
                 n, d, s = (sum(f << k for k, f in enumerate(x)) for x in (n_bits, d_bits, s_bits))
-                self._copy_const(new, before, n, d, s)
+                if n:
+                    self._check(n, d, s)
+                    self.cost['copies'] += 1
+                    self.cost['bits'] += n
+                    plan.append([(n, d, s, 1)])
                 continue
             groups = self._variants(n_bits, d_bits, s_bits)
             self.cost['variants'] += len(groups)
             self.cost['copies'] += 1
             self.cost['bits'] += max(t[0] for t in groups)
-            for (n, d, s), cond in groups.items():
+            for (n, d, s) in groups:
                 self._check(n, d, s)
+            plan.append([(n, d, s, c) for (n, d, s), c in groups.items() if n])
+        self._check_spans(plan)
+        for variants in plan:
+            for n, d, s, cond in variants:
                 for j in range(n):
-                    new[d + j] = b.ite(cond, before[s + j], new[d + j])
+                    new[d + j] = before[s + j] if cond == 1 else b.ite(cond, before[s + j], new[d + j])
         self.mem = new
         self.cost['layers'] += 1
         return True
+
+    def _check_spans(self, plan):
+        """Проверка непересечения копий, как в эталоне (`spans` в vm2_reference).
+
+        Отрезки [d,d+n) и [s,s+n) всех копий такта не должны пересекаться
+        (в том числе внутри одной инструкции). Для поля с вариантами проверяется
+        каждый вариант (n,dst,src); между инструкциями — каждая пара вариантов,
+        условия которых совместимы (конъюнкция BDD не 0). Нарушение даёт тот же
+        AssertionError, что и эталон.
+        """
+        def spans(n, d, s):
+            return [(d, d + n), (s, s + n)]
+
+        def clash(x, y):
+            return any(a < q and p < b for a, b in x for p, q in y)
+
+        flat = []
+        for i, variants in enumerate(plan):
+            for n, d, s, cond in variants:
+                sp = spans(n, d, s)
+                assert not clash(sp[:1], sp[1:]), ('пересекающиеся копии', n, d, s)
+                flat.append((i, sp, cond))
+        for k, (i, x, c1) in enumerate(flat):
+            for j, y, c2 in flat[k + 1:]:
+                if i != j and clash(x, y) and self.bdd.and_(c1, c2) != 0:
+                    raise AssertionError(('пересекающиеся копии', x, y))
 
     def _check(self, n, d, s):
         if n and max(d, s) >= self.size:
             raise Unsupported('канал или SYS не поддерживаются')
         if n and not (0 <= d and d + n <= self.size and 0 <= s and s + n <= self.size):
             raise Unsupported('копия выходит за память')
-
-    def _copy_const(self, new, before, n, d, s):
-        if not n:
-            return
-        self._check(n, d, s)
-        self.cost['copies'] += 1
-        self.cost['bits'] += n
-        new[d:d + n] = before[s:s + n]
 
     def run(self):
         ticks = 0

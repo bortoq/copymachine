@@ -124,6 +124,27 @@ def main():
         raise SystemExit('ожидалось Unsupported')
     except S.Unsupported as e:
         print('Unsupported:', e)
+    # пересекающиеся копии: эталон и символьный исполнитель отвергают одинаково
+    prog = progs['B']
+    size, slots = prog.size, prog.slots
+    a = size.bit_length()
+    z, isz = a - 1, 3 * a - 1
+    img = bytearray(prog.image)
+    for k, (n, d, s) in enumerate([(4, 3000, 2000), (4, 2002, 3500)]):   # src 2000..2004 и dst 2002..2006
+        for off, w, v in ((0, z, n), (z, a, d), (z + a, a, s)):
+            put(img, k * isz + off, w, v)
+    try:
+        run(boot_stream(bytes(img), size, slots), size, slots)
+        raise SystemExit('эталон должен отвергнуть пересечение')
+    except AssertionError as e:
+        ref_err = type(e)
+    mem = [(img[i // 8] >> (7 - i % 8)) & 1 for i in range(size)]
+    try:
+        S.SymExec(BDD(), mem, size, slots).step()
+        raise SystemExit('символьный исполнитель должен отвергнуть пересечение')
+    except AssertionError as e:
+        assert type(e) is ref_err
+    print('пересечение: эталон и символьный исполнитель дали AssertionError')
     print('OK')
 
 
