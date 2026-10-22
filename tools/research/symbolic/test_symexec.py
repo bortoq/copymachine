@@ -2,7 +2,7 @@
 """Тест 13.5.3: символьный исполнитель копимашины.
 
 (1) для A, B, C BDD выходных бит на каждом наборе читаемых бит совпадает со
-    столбцом out таблицы docs/research/tables/X.tsv (и с expected);
+    столбцом out таблицы docs/research/tables/X.tsv или X.tsv.gz (и с expected);
 (2) выходы A и B — одни и те же узлы (равенство реализаций сложения);
 (3) выходы A и D — разные узлы;
 дополнительно: полное состояние памяти после исполнения совпадает с эталоном
@@ -32,7 +32,7 @@ TABLES = P.ROOT / 'docs/research/tables'
 
 def read_table(name):
     rows = []
-    for line in (TABLES / f'{name}.tsv').read_text(encoding='utf-8').splitlines():
+    for line in P.read_table_text(TABLES, name).splitlines():
         if line.startswith('#') or line.startswith('a\t') or not line.strip():
             continue
         a, b, out, exp, ok = line.split('\t')

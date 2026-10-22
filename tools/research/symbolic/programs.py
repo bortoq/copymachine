@@ -248,3 +248,31 @@ def execute(prog, *values, counters=False):
 def default_programs():
     return {'A': build_lookup_add(4), 'B': build_ripple_add(4), 'C': build_less(8),
             'D': build_lookup_add(4, corrupt=(3, 5), name='D')}
+
+
+def table_path(tables, name):
+    """Путь к таблице name: `.tsv`, если есть, иначе `.tsv.gz`."""
+    for ext in ('.tsv', '.tsv.gz'):
+        f = Path(tables) / (name + ext)
+        if f.exists():
+            return f
+    raise FileNotFoundError(f'нет таблицы {name} (.tsv или .tsv.gz) в {tables}')
+
+
+def read_table_text(tables, name):
+    """Текст таблицы name из `.tsv` или `.tsv.gz`."""
+    f = table_path(tables, name)
+    if f.suffix == '.gz':
+        import gzip
+        return gzip.decompress(f.read_bytes()).decode('utf-8')
+    return f.read_text(encoding='utf-8')
+
+
+def write_table_gz(path, text):
+    """Записать `.tsv.gz` детерминированно (без времени и имени в заголовке)."""
+    import gzip
+    import io
+    buf = io.BytesIO()
+    with gzip.GzipFile(filename='', mode='wb', fileobj=buf, mtime=0, compresslevel=9) as g:
+        g.write(text.encode('utf-8'))
+    Path(path).write_bytes(buf.getvalue())

@@ -2,11 +2,16 @@
 """Тест 13.5.2: полный перебор читаемых бит через vm2_reference.run.
 
 A, B, C совпадают с арифметикой Python на всех входах, D расходится хотя бы
-на одном. Полные таблицы пишутся в docs/research/tables/{A,B,C,D}.tsv.
-Запуск: python3 -B tools/research/symbolic/test_programs.py
+на одном. Таблицы A, B, D лежат в docs/research/tables/{A,B,D}.tsv (пишутся только
+если файла нет), C — в C.tsv.gz.
+C по умолчанию сверяется по выборке из 4096 входов (seed 1) и со строками
+сохранённой таблицы; полный перебор C (65536 входов, ~4 мин) и перезапись
+C.tsv.gz — только с флагом --full.
+Запуск: python3 -B tools/research/symbolic/test_programs.py [--full]
 """
 import itertools
 import os
+import random
 import sys
 from pathlib import Path
 
@@ -37,10 +42,17 @@ def _row(args):
 _CACHE = {}
 
 
-def full_table(name):
+C_SAMPLE = 4096
+
+
+def full_table(name, sample=None):
     prog = BUILD[name]()
     ra, rb = (1 << w for _, _, w in prog.reads)
-    jobs = [(name, a, b) for b in range(rb) for a in range(ra)]
+    if sample:
+        rnd = random.Random(1)
+        jobs = [(name, rnd.randrange(ra), rnd.randrange(rb)) for _ in range(sample)]
+    else:
+        jobs = [(name, a, b) for b in range(rb) for a in range(ra)]
     rows = list(map(_row, jobs))
     return prog, rows
 
@@ -62,16 +74,33 @@ def save(name, prog, rows, cost):
     for a, b, out in rows:
         e = prog.expected(a, b)
         body.append(f'{a}\t{b}\t{out}\t{e}\t{int(out == e)}')
-    (TABLES / f'{name}.tsv').write_text('\n'.join(head + body) + '\n', encoding='utf-8')
+    text = '\n'.join(head + body) + '\n'
+    if name == 'C':
+        P.write_table_gz(TABLES / 'C.tsv.gz', text)
+        return
+    f = TABLES / f'{name}.tsv'
+    if not f.exists():          # существующие A, B, D не переписываются
+        f.write_text(text, encoding='utf-8')
 
 
 def main():
+    full = '--full' in sys.argv[1:]
     results = {}
     if True:
         for name in 'ABCD':
-            prog, rows = full_table(name)
+            sample = C_SAMPLE if name == 'C' and not full else None
+            prog, rows = full_table(name, sample)
             _, cost = P.execute(prog, 0, 0, counters=True)
-            save(name, prog, rows, cost)
+            if sample:
+                saved = {}
+                for line in P.read_table_text(TABLES, 'C').splitlines():
+                    if line and line[0] != '#' and not line.startswith('a\t'):
+                        a, b, out, _, _ = line.split('\t')
+                        saved[int(a), int(b)] = int(out)
+                assert len(saved) == 65536, len(saved)
+                assert all(saved[a, b] == o for a, b, o in rows), 'выборка C расходится с таблицей'
+            else:
+                save(name, prog, rows, cost)
             bad = [(a, b, o, prog.expected(a, b)) for a, b, o in rows if o != prog.expected(a, b)]
             results[name] = (len(rows), bad)
             print(name, 'inputs', len(rows), 'mismatches', len(bad), 'layers', prog.layers, cost)
@@ -81,7 +110,7 @@ def main():
     n, bad = results['D']
     assert len(bad) >= 1, 'D must differ from Python arithmetic'
     assert bad == [(3, 5, 9, 8)], bad
-    assert results['A'][0] == 256 and results['B'][0] == 256 and results['C'][0] == 65536
+    assert results['A'][0] == 256 and results['B'][0] == 256 and results['C'][0] == (65536 if full else C_SAMPLE)
     # параметризация шириной: B на 8 и 12 бит (выборка), A на 3 бит полностью
     import random
     rnd = random.Random(1)

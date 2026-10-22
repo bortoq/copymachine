@@ -1522,7 +1522,7 @@ vm2 пока не выполнена: она явно запланирована
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/test_symexec.py && grep -q 'spans\|overlap\|пересеч' tools/research/symbolic/symexec.py`
 - **Сверка:** новый тест вызывает и эталон, и символьный исполнитель?
 
-#### ❌ 13.6.7. Замеры 13.5: воспроизводимость, время, размер (7, 9)
+#### ✅ 13.6.7. Замеры 13.5: воспроизводимость, время, размер (7, 9)
 
 - **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 13.6.6
 - **Факт:** `measure.py` переписывает `docs/research/symbolic.md` при каждом
