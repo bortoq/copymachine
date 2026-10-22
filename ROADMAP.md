@@ -1062,7 +1062,7 @@ vm2 пока не выполнена: она явно запланирована
 и `legacy/VERIFICATION.md`. Сборки, кэши, локальные Git-хранилища и gitlink
 в общий снимок не включены.
 
-## ✅ Этап 13. Подготовительные исследования к language (исполнение субагентами)
+## ❌ Этап 13. Подготовительные исследования к language (исполнение субагентами)
 
 Дата: 2026-10-22. Готовит данные для перехода с Форта на язык language
 и с SYS на хост пространство. Решения по языку принимает автор; этот этап
@@ -1299,7 +1299,9 @@ vm2 пока не выполнена: она явно запланирована
   биты — переменные. Копирование переносит узлы. Если поле инструкции
   зависит от переменных, исполнитель перебирает все значения этих
   переменных (не больше 2^12 вариантов, сверх — исключение
-  «слишком велико») и собирает результат выбором через `ite`. Каналы
+  «слишком велико» (принятый смысл: не более 2^12 различных троек
+  `(n,dst,src)` на одну инструкцию, а не 2^(число переменных); см. 13.6.6))
+  и собирает результат выбором через `ite`. Каналы
   и SYS не поддерживаются (исключение). Тест `test_symexec.py`:
   (1) для A, B, C из 13.5.2 BDD выходных битов, вычисленная на каждом
   наборе, совпадает с таблицей из `docs/research/tables/`; (2) выходы
@@ -1320,12 +1322,276 @@ vm2 пока не выполнена: она явно запланирована
   2^12, ширины).
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/measure.py && for h in Замеры Ограничения; do grep -q "^## $h" docs/research/symbolic.md || exit 1; done`
 
+### ❌ 13.6. Исправления по аудиту
+
+Источник — `audit.md` (оценка этапа 7/10). Отчёты 13.1, 13.2.3 и 13.4.2
+содержат фактические ошибки и подмены, а слабые проверки их пропустили.
+Пункты ниже исправляют их по одному файлу или группе связанных файлов.
+Каждый пункт пересказывает нужную часть аудита, поэтому субагенту не нужно
+читать `audit.md`. Номера рекомендаций аудита указаны в скобках.
+
+**Дополнения к правилам 13.0 (действуют для 13.6 и последующих этапов):**
+
+1. Пункты без исполнителя-субагента («Исполнитель: оркестратор») оркестратор
+   делает сам: это правки ROADMAP.md и копирование файлов, а не исследования.
+2. **Файлы.** Каждый пункт перечисляет файлы, которые разрешено менять. После
+   субагента оркестратор смотрит `./project-git status --porcelain`. Если
+   появились изменения вне списка, а также вне ROADMAP.md и файлов,
+   изменённых до начала этапа (`README.md`, `docs/dictionary.md`, `audit.md`,
+   `exclude_this_file_from_git.txt`), он останавливается и сообщает автору.
+   Сам он ничего не откатывает.
+3. **Сверка** вместо п. 7 правил 13.0. Если «Проверка» вернула 0, оркестратор
+   отвечает «да» или «нет» на вопросы «Сверки» пункта. Читать при этом можно
+   только названные файлы и места; самостоятельно ничего не исследовать.
+   Ответ «нет» хотя бы на один вопрос — такая же неудача, как ненулевой код
+   проверки: следующая ступень лестницы (п. 5), и новому субагенту передаётся
+   вопрос, на который получен ответ «нет». Подмена способа получения числа
+   (оценка вместо замера, модель вместо прогона) — всегда «нет».
+4. Тексты пунктов 13.1–13.5 меняет только оркестратор и только там, где
+   это требует пункт 13.6.
+5. **Детерминированность.** Каждый скрипт, который пишет отчёт, запускается
+   в «Проверке» дважды, и результаты сравниваются через `cmp`. Времена
+   выполнения в файлы, сравниваемые так, не пишутся.
+6. Для будущих этапов: «Проверка» содержит содержательные утверждения
+   (известные факты, отсутствие подмены, повторяемость), а не только наличие
+   заголовков; у каждого пункта есть «Сверка».
+
+**Экономия без риска.** Пункты механические: в тексте уже указано, что
+неверно (файл:строка), что сделать и какое значение ожидается. Поэтому все
+субагенты начинают с Sonnet medium, а ошибку ловят строгие проверки и Сверка.
+Пункты, которые меняют один и тот же отчёт, сведены так, чтобы каждый
+отчёт переписывался один раз: замер тактов (13.6.2) выполняется до
+переписывания `kernel-mechanisms.md` (13.6.3). Код эталона vm2, который
+используется в `make check`, меняет только 13.6.4, и его проверка включает
+полный `make check`.
+
+#### ✅ 13.6.0. Подготовка
+
+- **Исполнитель:** оркестратор. **Зависит:** —
+- **Сделать:** скопировать `audit.md` в `docs/research/audit-13.md`
+  (исходный файл не трогать). В тексте 13.5.3 после слов «сверх — исключение
+  «слишком велико»» дописать: «(принятый смысл: не более 2^12 различных троек
+  `(n,dst,src)` на одну инструкцию, а не 2^(число переменных); см. 13.6.6)».
+- **Файлы:** `docs/research/audit-13.md`, ROADMAP.md.
+- **Проверка:** `cmp audit.md docs/research/audit-13.md && grep -q 'различных троек' ROADMAP.md`
+
+#### ❌ 13.6.1. Граф 13.1: векторы исполнения и xt-аргументы (1)
+
+- **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 13.6.0
+- **Факт:** `find_via` в `tools/research/defgraph.py` (около строк 239–252)
+  считает вектором любую переменную, которая стоит перед первым `!` в восьми
+  токенах после `[']`. В `space/copycode/forth/compute.fth:168` строка
+  `['] cc-add-entry 9 3 cc-table cc-t-add !` передаёт xt через стек в
+  `cc-table`. Тот кладёт его в `cc-tx` (`compute.fth:117,136`) и исполняет
+  (`:120,124,138`), а в `cc-t-add` записывается адрес таблицы, а не xt.
+  Так же устроены все `cc-t-*` и `fc-t-*`, а также `fc-m4`, `fc-qsel`, `fc-sub`.
+  Настоящие векторы исполнения в K — `cc-sink`, `cc-start-cell`, `cc-tx`.
+- **Сделать:** (1) вектором считать только переменную V, которая встречается
+  в `V @ execute` или `V @ ?dup if execute`; записи `['] X … V !` учитывать
+  только для таких V. (2) Если `['] X` не записан в вектор, создавать ребро
+  с `sub: "xt-arg"` и полем `receiver` — словом, которое принимает xt
+  (`cc-table`, `cc-table2`, `catch` и т. п.: первое слово после `[']`,
+  которое не литерал и не стековое). (3) Для `cc-tx` вывести писателей
+  `cc-table` и `cc-table2` (запись через `rot cc-tx !`). (4) Пересчитать
+  `docs/research/definition-graph.json` и `.md`. В `## Итог` указать
+  отдельными строками «Векторов исполнения: 3» и «xt-аргументов: N».
+  Таблица `## Косвенные ссылки` делится на две подтаблицы — векторы
+  и xt-аргументы.
+- **Файлы:** `tools/research/defgraph.py`, `docs/research/definition-graph.json`,
+  `docs/research/definition-graph.md`.
+- **Проверка:** `T=$(mktemp -d) && python3 -B tools/research/defgraph.py && cp docs/research/definition-graph.json docs/research/definition-graph.md $T/ && python3 -B tools/research/defgraph.py && cmp $T/definition-graph.json docs/research/definition-graph.json && cmp $T/definition-graph.md docs/research/definition-graph.md && python3 -B -c "import json;g=json.load(open('docs/research/definition-graph.json'));assert g['nodes'] and g['edges'] and 'cycles' in g and 'dependents' in g;v={k for k,x in g['vectors'].items() if x['executors']};assert v=={'cc-sink','cc-start-cell','cc-tx'},v;assert all(x['executors'] for x in g['vectors'].values());xa=[e for e in g['edges'] if e.get('sub')=='xt-arg'];assert xa and all(e.get('receiver') for e in xa);assert {'cc-table','cc-table2'}<={w['in'] for w in g['vectors']['cc-tx']['writes']}" && grep -q 'Векторов исполнения: 3' docs/research/definition-graph.md && grep -q 'xt-аргументов' docs/research/definition-graph.md`
+  (Если генератор запускается иначе, чем без аргументов, исполнитель
+  сообщает команду, а оркестратор подставляет её в проверку без других
+  изменений.)
+- **Сверка:** в `## Итог` нет прежних чисел 26/27/28 векторов? Ребро
+  `compute.fth:168` (`cc-add-entry`) имеет `sub: "xt-arg"` и `receiver: "cc-table"`?
+
+#### ❌ 13.6.2. Измеренные такты вызова, возврата и `EXECUTE` (3)
+
+- **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 13.6.0
+- **Факт:** в `space/forth/doc/forthc.md` и
+  `space/forth/doc/measurements/forthc/result.json` этих замеров нет.
+  13.2.3 подставил вместо них слои модели (`model.py`, 17 и 19), не проверив,
+  что слой равен такту.
+- **Сделать:** скрипт `tools/research/call_ticks.py` импортирует функцию
+  `compiled` из `space/forth/tools/forthc_costs.py` (тот же путь, которым
+  получен `result.json`). По её схеме разности (`op_cost`: два размера цикла,
+  9 и 1, минус пустой цикл) он меряет три тела цикла: пустое (база), `w`
+  и `['] w execute`, где перед `main` определено `: w ;`. Результат —
+  `docs/research/call-ticks.json` с полями `base`, `call_return` (такты
+  на вызов+возврат), `execute` (такты на `['] w execute`), `model_layers`
+  (числа слоёв модели для тех же операций из `tools/research/call_layers.py`
+  или `model.py`) и `command` (команда воспроизведения). В файле нет времени
+  и путей хоста. Эмулятор собирается до запуска.
+- **Файлы:** `tools/research/call_ticks.py`, `docs/research/call-ticks.json`.
+- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 make -C space/vm2 -j1 checked-emulator && T=$(mktemp -d) && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/call_ticks.py && cp docs/research/call-ticks.json $T/ && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/call_ticks.py && cmp $T/call-ticks.json docs/research/call-ticks.json && python3 -B -c "import json;d=json.load(open('docs/research/call-ticks.json'));assert d['call_return']>0 and d['execute']>0 and d['execute']>=d['call_return'];assert d['model_layers'] and d['command']"`
+- **Сверка:** числа получены прогоном эмулятора через `compiled`, а не из
+  `model.py`?
+
+#### ❌ 13.6.3. Пересчёт `kernel-mechanisms.md` (2, 4)
+
+- **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 13.6.1, 13.6.2
+- **Факт:** в документе три разных числа векторов (26, 27 и 28) — в п. 7
+  таблицы соответствия, в замечаниях к 13.2.1 и в подразделах (1) и (3) 13.2.3.
+  `tools/research/binding_sites.py:12` сортирует топ-10 по прямым зависимым,
+  хотя 13.2.3 требует числа из `## Число зависимых` 13.1 (транзитивные).
+  Цена перекомпиляции «≈34 200 тактов на слово» — это время компиляции
+  одного слова исходника, а зависимое состоит из многих слов. Столбец
+  «Косвенный (тактов)» везде одинаков.
+- **Сделать:** (1) все упоминания векторов заменить числами из нового
+  `definition-graph.json`: 3 вектора исполнения и отдельно число
+  xt-аргументов (одно значение во всём файле). (2) `binding_sites.py`
+  сортирует по тому же ключу, что и `## Число зависимых` в
+  `definition-graph.md`; столбец прямых зависимых остаётся.
+  (3) Цена перекомпиляции зависимого = такты на слово исходника × число
+  слов в его теле (сумма `count` по исходящим рёбрам зависимого плюс
+  литералы). Для топ-10 это сумма по всем зависимым; единица указывается
+  в заголовке столбца. (4) Цены вызова в таблице «Три способа связывания»
+  берутся из `docs/research/call-ticks.json` (`call_return`, `execute`).
+  Одинаковый столбец заменить примечанием под таблицей. (5) Из подраздела (2)
+  убрать оговорку «слой = такт не проверено» и указать, что модель
+  сверена с замером (числа модели и замера — рядом).
+- **Файлы:** `tools/research/binding_sites.py`, `docs/research/kernel-mechanisms.md`.
+- **Проверка:** проверки 13.2.1–13.2.3 из этого файла, затем `python3 -B tools/research/binding_sites.py >/dev/null && ! grep -Eq '(2[678]) (вектор|пар)' docs/research/kernel-mechanisms.md && grep -q '3 вектор' docs/research/kernel-mechanisms.md && python3 -B -c "import json,re;d=json.load(open('docs/research/call-ticks.json'));t=open('docs/research/kernel-mechanisms.md').read();s=t[t.index('## Связывание понятия с определением'):];f=lambda x:('%g'%x).replace('.',',');assert any(v in s for v in (f(d['call_return']),'%g'%d['call_return'])),'call';assert any(v in s for v in (f(d['execute']),'%g'%d['execute'])),'execute';md=open('docs/research/definition-graph.md').read();sec=md[md.index('## Число зависимых'):];sec=sec[:sec.index('\n## ',1)];top=re.findall(r'^\|[^|]*\|\s*\x60([^\x60]+)\x60',sec,re.M)[:10];assert len(top)==10;assert all('\x60%s\x60'%w in s for w in top),top"`
+- **Сверка:** топ-10 в 13.2.3 совпадает с первыми десятью словами
+  `## Число зависимых` 13.1? У цены перекомпиляции указана единица
+  и способ подсчёта?
+
+#### ❌ 13.6.4. Полнота счётчиков эталона (5)
+
+- **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 13.6.0
+- **Факт:** в `space/vm2/tests/vm2_reference.py` (около строк 95–113)
+  `cost['copies']+=1` стоит до проверки канала. Поэтому считаются копии
+  в незанятый или закрытый канал и запись при `stdout_error`. Запись запроса
+  SYS (`d==size`, ширина `max(n,120+a)`) и чтение ответа (`s==size`, `97+z`
+  бит) не попадают ни в один счётчик. Тест `test_cost_counters.py`
+  не входит в `make check`.
+- **Новые определения** (заменяют определения 13.4): `copies` — инструкции
+  с n>0, которые изменили память или передали хотя бы один бит через канал
+  или SYS; `bits` и `channel_bits` — как в 13.4; новый счётчик `sys_bits` —
+  биты записи запроса SYS и чтения ответа SYS. Без нового параметра
+  поведение и возвращаемые значения `run` не меняются.
+- **Сделать:** поправить счётчики по определениям. Записать определения
+  в докстринг `run`. В тест добавить сценарии: чтение stdin с коротким
+  остатком (EOF), FSTAT через S, копия в закрытый канал. Ожидаемые значения
+  посчитать вручную и записать числами с комментарием. Строку
+  `python3 -B tests/test_cost_counters.py` добавить в цель `check-direct`
+  `space/vm2/Makefile`; другие цели не трогать.
+- **Файлы:** `space/vm2/tests/vm2_reference.py`,
+  `space/vm2/tests/test_cost_counters.py`, `space/vm2/Makefile`.
+- **Проверка:** `python3 -B space/vm2/tests/test_cost_counters.py && grep -q 'test_cost_counters' space/vm2/Makefile && grep -q 'sys_bits' space/vm2/tests/vm2_reference.py && test "$(grep -c 'def test\|^ *(' space/vm2/tests/test_cost_counters.py)" -ge 6 && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 make -C space/vm2 -j1 check`
+- **Сверка:** `./project-git diff space/vm2/Makefile` — добавлена ровно одна
+  строка в `check-direct`? Сценарий копии в закрытый канал ожидает
+  `copies`, не увеличенный этой копией?
+
+#### ❌ 13.6.5. Расширенные базовые замеры (6)
+
+- **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 13.6.4
+- **Факт:** в `cost-baseline.md` три реальных сценария, ещё три — программы
+  теста 13.4.1, почти вся цена в них — загрузка. Утверждение, что
+  `test_guest.py` нельзя подать без изменения кода, неверно: в
+  `space/vm2/tests/test_guest.py:24` тест сам вызывает
+  `reference(stream,size,slots,ticks,…)`. Фраза «Код эталона не менялся»
+  ложна.
+- **Сделать:** (1) `cost_baseline.py` подменяет `vm2_reference.run`
+  обёрткой до импорта `test_guest.py` и собирает его потоки; сам тест
+  не менять. (2) Добавить программы A–D, B8 и B12 из
+  `tools/research/symbolic/programs.py`. (3) В таблице `## Замеры` столбцы:
+  сценарий, layers, copies, bits, channel_bits, sys_bits, `load_bits`
+  (`channel_bits` такта 1) и `work_bits` (остальное). (4) Убрать фразу
+  «Код эталона не менялся». `## Определения счётчиков` — копия определений
+  13.6.4. (5) Отчёт не содержит времени.
+- **Файлы:** `tools/research/cost_baseline.py`, `docs/research/cost-baseline.md`.
+- **Проверка:** `T=$(mktemp -d) && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/cost_baseline.py && cp docs/research/cost-baseline.md $T/ && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/cost_baseline.py && cmp $T/cost-baseline.md docs/research/cost-baseline.md && for h in 'Определения счётчиков' Замеры 'Не измерено'; do grep -q "^## $h" docs/research/cost-baseline.md || exit 1; done && S="$(sed -n '/^## Замеры/,/^## /p' docs/research/cost-baseline.md)" && echo "$S" | grep -q test_guest && echo "$S" | grep -q work_bits && echo "$S" | grep -q sys_bits && for p in A B C D B8 B12; do echo "$S" | grep -Eq "^\| *\`?$p\`? *\|" || exit 1; done && test "$(echo "$S" | grep -c '^| *[^-| ]')" -ge 12 && ! grep -q 'Код эталона не менялся' docs/research/cost-baseline.md && ! sed -n '/^## Не измерено/,$p' docs/research/cost-baseline.md | grep -q test_guest`
+- **Сверка:** `copies` у A и B совпадают с выводом `test_programs.py`
+  (11 и 32) или расхождение объяснено новым определением 13.6.4?
+
+#### ❌ 13.6.6. Символьный исполнитель: соответствие эталону (8)
+
+- **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 13.6.0
+- **Сделать:** (1) в `SymExec.step` (`tools/research/symbolic/symexec.py`)
+  для каждого варианта значений поля выполнять ту же проверку непересечения
+  копий, что делает эталон (`vm2_reference.py`, `spans`), и выдавать то же
+  исключение. (2) В докстринге модуля записать смысл предела (2^12 различных
+  троек `(n,dst,src)` на инструкцию) и то, что `cost['bits']` символьной
+  копии — максимум n по вариантам. (3) В `test_symexec.py` добавить случай
+  с пересекающимися копиями: эталон и символьный исполнитель отвергают его
+  одинаково.
+- **Файлы:** `tools/research/symbolic/symexec.py`,
+  `tools/research/symbolic/test_symexec.py`.
+- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/test_symexec.py && grep -q 'spans\|overlap\|пересеч' tools/research/symbolic/symexec.py`
+- **Сверка:** новый тест вызывает и эталон, и символьный исполнитель?
+
+#### ❌ 13.6.7. Замеры 13.5: воспроизводимость, время, размер (7, 9)
+
+- **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 13.6.6
+- **Факт:** `measure.py` переписывает `docs/research/symbolic.md` при каждом
+  запуске (рабочее дерево после проверки грязное). Для C взята оценка, хотя
+  `FULL_MAX = 1 << 10`, а полный перебор C — 65536 входов, около 4 мин.
+  `test_programs.py` идёт 234 с из-за перебора C. `docs/research/tables/C.tsv`
+  весит 860 КБ.
+- **Сделать:** (1) `measure.py` пишет отчёт только с флагом `--write`. Без
+  флага он печатает и проверяет только детерминированные столбцы (узлы BDD,
+  варианты поля, пик узлов) и не пишет файлов. (2) `FULL_MAX = 1 << 16`:
+  C считается полным перебором, оценка остаётся только для B8/B12 и помечена
+  в таблице. (3) Новые столбцы: «вариантов поля» (сумма по инструкциям числа
+  различных троек) и «пик узлов» (`len(bdd.nodes)` в конце). (4) В
+  `## Ограничения` объяснить, что `layers` символьного исполнителя (3 у A)
+  не включает загрузку и останов, а `layers` эталона (6 у A) включает.
+  (5) `test_programs.py` сверяет C по выборке из 4096 входов с фиксированным
+  зерном; полный перебор C — только с флагом `--full`. (6) Таблицу C хранить
+  как `docs/research/tables/C.tsv.gz`; `test_symexec.py` и `measure.py` читают
+  `.tsv` и `.tsv.gz`. Таблицы A, B, D не трогать.
+- **Файлы:** `tools/research/symbolic/measure.py`,
+  `tools/research/symbolic/test_programs.py`,
+  `tools/research/symbolic/test_symexec.py`, `tools/research/symbolic/programs.py`
+  (только если нужно для записи `.gz`), `docs/research/symbolic.md`,
+  `docs/research/tables/C.tsv` (удалить), `docs/research/tables/C.tsv.gz`.
+- **Проверка:** `T=$(mktemp -d) && cp docs/research/symbolic.md $T/ && python3 -B space/vm2/tools/limited_run.py --seconds 600 --memory-mib 768 python3 -B tools/research/symbolic/measure.py && cmp $T/symbolic.md docs/research/symbolic.md && python3 -B space/vm2/tools/limited_run.py --seconds 120 --memory-mib 768 python3 -B tools/research/symbolic/test_programs.py && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/test_symexec.py && test ! -e docs/research/tables/C.tsv && test -s docs/research/tables/C.tsv.gz && test "$(ls docs/research/tables | wc -l)" -ge 4 && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/measure.py --write && for h in Замеры Ограничения; do grep -q "^## $h" docs/research/symbolic.md || exit 1; done && grep -q 'вариантов поля' docs/research/symbolic.md && grep -q 'пик узлов' docs/research/symbolic.md && sed -n '/^## Замеры/,/^## /p' docs/research/symbolic.md | grep -E '^\| *`?C`? *\|' | grep -vqi 'оценк'`
+  (Первый `cmp` сравнивает с отчётом до пункта: запуск без `--write` не должен
+  менять файл.)
+- **Сверка:** в `## Ограничения` есть пояснение о `layers` 3 и 6?
+
+#### ❌ 13.6.8. Самопроверка ссылок 13.3 (10)
+
+- **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 13.6.0
+- **Факт:** `tools/research/sys_usage.py` только печатает таблицу,
+  заполненную вручную, поэтому устаревшие ссылки после правок кода
+  не обнаруживаются.
+- **Сделать:** в `sys_usage.py` добавить режим `--check`. Для каждой пары
+  `файл:строка` из таблицы он проверяет, что файл и строка существуют
+  и в строке есть признак канала или SYS (`size+`, `S+`, `cs_read`,
+  `cs_write`, `FSTAT`, `SEEK`, `CLOSE`, `IOCTL`, `EXEC`, `KEY`, `EMIT`
+  и т. п.; список признаков — в скрипте). При ошибке он печатает её и
+  возвращает 1. Если ссылки устарели, исправить их в
+  `docs/research/sys-usage.md` и в таблице скрипта. Тест
+  `tools/research/test_sys_usage.py`: целая таблица проходит, а таблица
+  с одной испорченной строкой (номер строки +10000) не проходит.
+- **Файлы:** `tools/research/sys_usage.py`, `tools/research/test_sys_usage.py`,
+  `docs/research/sys-usage.md`.
+- **Проверка:** `python3 -B tools/research/sys_usage.py --check && python3 -B tools/research/test_sys_usage.py && for h in Таблица 'Сводка по компонентам' Итог; do grep -q "^## $h" docs/research/sys-usage.md || exit 1; done`
+- **Сверка:** если ссылки менялись, число мест в `## Сводка по компонентам`
+  совпадает с числом строк `## Таблица`?
+
+#### ❌ 13.6.9. Итоговая перепроверка
+
+- **Исполнитель:** оркестратор. **Зависит:** 13.6.1–13.6.8
+- **Сделать:** заново запустить «Проверки» 13.1–13.5.4 (у 13.4.2 и 13.5.4
+  теперь работают новые проверки 13.6.5 и 13.6.7) и всех пунктов 13.6.
+  Убедиться, что `./project-git status --porcelain` после них показывает
+  только файлы, изменённые до этапа. В `docs/research/audit-13.md` дописать
+  раздел `## Исправлено` — таблицу: рекомендация аудита, пункт 13.6, коммит.
+- **Файлы:** `docs/research/audit-13.md`, ROADMAP.md.
+- **Проверка:** `grep -q '^## Исправлено' docs/research/audit-13.md && test "$(sed -n '/^## Исправлено/,$p' docs/research/audit-13.md | grep -c '^| *[0-9]')" -ge 10`
+
 **Порядок:** 13.1 → 13.2.1 → 13.2.2 → 13.2.3 → 13.3 → 13.4.1 → 13.4.2 →
-13.5.1 → 13.5.2 → 13.5.3 → 13.5.4.
+13.5.1 → 13.5.2 → 13.5.3 → 13.5.4 → 13.6.0 → 13.6.1 → 13.6.2 → 13.6.3 →
+13.6.4 → 13.6.5 → 13.6.6 → 13.6.7 → 13.6.8 → 13.6.9.
 
 **Приёмка этапа:** все пункты ✅, проверки проходят, ветка
-`research/language-prep` содержит отчёты и прототипы; рабочий путь не изменён.
-Выводы отчётов автор переносит в обсуждение дизайна language.
+`research/language-prep` содержит отчёты и прототипы. Рабочий путь не изменён;
+единственное разрешённое исключение — строка теста счётчиков в `check-direct`
+(13.6.4). Выводы отчётов автор переносит в обсуждение дизайна language.
 
 ## Порядок исполнения и ближайшая задача
 
