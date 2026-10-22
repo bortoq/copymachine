@@ -1062,7 +1062,7 @@ vm2 пока не выполнена: она явно запланирована
 и `legacy/VERIFICATION.md`. Сборки, кэши, локальные Git-хранилища и gitlink
 в общий снимок не включены.
 
-## ❌ Этап 13. Подготовительные исследования к language (исполнение субагентами)
+## ✅ Этап 13. Подготовительные исследования к language (исполнение субагентами)
 
 Дата: 2026-10-22. Готовит данные для перехода с Форта на язык language
 и с SYS на хост пространство. Решения по языку принимает автор; этот этап
@@ -1322,7 +1322,7 @@ vm2 пока не выполнена: она явно запланирована
   2^12, ширины).
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/measure.py && for h in Замеры Ограничения; do grep -q "^## $h" docs/research/symbolic.md || exit 1; done`
 
-### ❌ 13.6. Исправления по аудиту
+### ✅ 13.6. Исправления по аудиту
 
 Источник — `audit.md` (оценка этапа 7/10). Отчёты 13.1, 13.2.3 и 13.4.2
 содержат фактические ошибки и подмены, а слабые проверки их пропустили.
@@ -1547,9 +1547,10 @@ vm2 пока не выполнена: она явно запланирована
   `tools/research/symbolic/test_symexec.py`, `tools/research/symbolic/programs.py`
   (только если нужно для записи `.gz`), `docs/research/symbolic.md`,
   `docs/research/tables/C.tsv` (удалить), `docs/research/tables/C.tsv.gz`.
-- **Проверка:** `T=$(mktemp -d) && cp docs/research/symbolic.md $T/ && python3 -B space/vm2/tools/limited_run.py --seconds 600 --memory-mib 768 python3 -B tools/research/symbolic/measure.py && cmp $T/symbolic.md docs/research/symbolic.md && python3 -B space/vm2/tools/limited_run.py --seconds 120 --memory-mib 768 python3 -B tools/research/symbolic/test_programs.py && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/test_symexec.py && test ! -e docs/research/tables/C.tsv && test -s docs/research/tables/C.tsv.gz && test "$(ls docs/research/tables | wc -l)" -ge 4 && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/measure.py --write && for h in Замеры Ограничения; do grep -q "^## $h" docs/research/symbolic.md || exit 1; done && grep -q 'вариантов поля' docs/research/symbolic.md && grep -q 'пик узлов' docs/research/symbolic.md && sed -n '/^## Замеры/,/^## /p' docs/research/symbolic.md | grep -E '^\| *`?C`? *\|' | grep -vqi 'оценк'`
+- **Проверка:** `T=$(mktemp -d) && cp docs/research/symbolic.md $T/ && python3 -B space/vm2/tools/limited_run.py --seconds 600 --memory-mib 768 python3 -B tools/research/symbolic/measure.py && cmp $T/symbolic.md docs/research/symbolic.md && python3 -B space/vm2/tools/limited_run.py --seconds 120 --memory-mib 768 python3 -B tools/research/symbolic/test_programs.py && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/test_symexec.py && test ! -e docs/research/tables/C.tsv && test -s docs/research/tables/C.tsv.gz && test "$(ls docs/research/tables | wc -l)" -ge 4 && python3 -B space/vm2/tools/limited_run.py --seconds 1800 --memory-mib 768 python3 -B tools/research/symbolic/measure.py --write && for h in Замеры Ограничения; do grep -q "^## $h" docs/research/symbolic.md || exit 1; done && grep -q 'вариантов поля' docs/research/symbolic.md && grep -q 'пик узлов' docs/research/symbolic.md && sed -n '/^## Замеры/,/^## /p' docs/research/symbolic.md | grep -E '^\| *`?C`? *\|' | grep -vqi 'оценк' && ./project-git checkout docs/research/symbolic.md`
   (Первый `cmp` сравнивает с отчётом до пункта: запуск без `--write` не должен
-  менять файл.)
+  менять файл. `--write` пишет измеренные времена, поэтому в конце файл
+  возвращается к закоммиченному виду.)
 - **Сверка:** в `## Ограничения` есть пояснение о `layers` 3 и 6?
 
 #### ✅ 13.6.8. Самопроверка ссылок 13.3 (10)
@@ -1573,7 +1574,7 @@ vm2 пока не выполнена: она явно запланирована
 - **Сверка:** если ссылки менялись, число мест в `## Сводка по компонентам`
   совпадает с числом строк `## Таблица`?
 
-#### ❌ 13.6.9. Итоговая перепроверка
+#### ✅ 13.6.9. Итоговая перепроверка
 
 - **Исполнитель:** оркестратор. **Зависит:** 13.6.1–13.6.8
 - **Сделать:** заново запустить «Проверки» 13.1–13.5.4 (у 13.4.2 и 13.5.4
