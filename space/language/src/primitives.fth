@@ -1,4 +1,4 @@
-\ Primitives as generators (14.3-14.6): words of the compiler, executed when the
+\ Primitives as generators (14.3-14.7): words of the compiler, executed when the
 \ source names the word of the language, that write its copycode (as an
 \ IMMEDIATE word) or define a word. Compiled after forthc.fth, before main.fth;
 \ the host pForth loads it with the compiler. A generator folds the values
@@ -126,9 +126,25 @@ variable fc-lv
 : gen-paren ( -- ) begin fc-next! s" )" fc-is? until ;   \ ( a comment )
 : gen-char ( -- ) fc-code fc-word-raw 0= if -16 throw then fc-raw fc-literal ;
 : gen-string ( -- ) fc-code fc-string-token dup >r fc-store-string fc-literal r> fc-literal ;
+\ Literals, digits, numbers (14.7). A digit 0..9 is a word of the language, the
+\ synonym of a literal (an entry of kind 0, FC-LITERAL-NAME): in a definition
+\ it compiles the literal of its value (FC-LITERAL: one copy of a constant), at
+\ the top level it is a value known at compile time. A number is a word of
+\ digits, after - if negative: the generator LITERAL gets every word not found
+\ in the dictionary (FC-WORD-TOKEN) and builds the value from the values of
+\ the digits (each looked up in the dictionary as a word) modulo 2^32, then
+\ compiles it as a digit is compiled; another word is unknown, -13.
+: fc-digit@ ( addr -- d ) \ the value of the digit at addr (a word of one byte)
+  1 fc-lookup dup if dup 2 cells + @ 0= if 3 cells + @ exit then then -13 throw ;
+: gen-literal ( -- )
+  fc-tok fc-tl @ over c@ [char] - = if 1 /string -1 else 1 then >r
+  dup 0= if -13 throw then
+  0 -rot over + swap do 10 * i fc-digit@ + loop r> *
+  fc-defining? if fc-literal else fc-ct+ then ;
 \ The name of two bytes c1 c2 (S": a quote cannot be written in a string).
 : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
-\ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel layout).
+\ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel
+\ layout); the digits: name and value of the literal.
 : fc-generators ( -- )
   s" +" ['] gen+ 0 fc-generator  s" -" ['] gen- 0 fc-generator
   s" *" ['] gen* 1 fc-generator  s" /" ['] gen/ 2 fc-generator
@@ -165,6 +181,10 @@ variable fc-lv
   s" allot" ['] gen-allot 0 fc-generator  s" constant" ['] gen-constant 0 fc-generator
   s" decimal" ['] gen-decimal 0 fc-generator  s" kernel-layout" ['] gen-kernel-layout 4 fc-generator
   s" (" ['] gen-paren 0 fc-generator  s" [char]" ['] gen-char 0 fc-generator
-  [char] s [char] " fc-name2 ['] gen-string 0 fc-generator ;
+  [char] s [char] " fc-name2 ['] gen-string 0 fc-generator
+  s" literal" ['] gen-literal 0 fc-generator
+  s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name
+  s" 4" 4 fc-literal-name  s" 5" 5 fc-literal-name  s" 6" 6 fc-literal-name  s" 7" 7 fc-literal-name
+  s" 8" 8 fc-literal-name  s" 9" 9 fc-literal-name ;
 : fc-install-generators ( -- ) ['] fc-generators fc-gens ! ;
 fc-install-generators

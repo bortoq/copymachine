@@ -89,6 +89,23 @@ variable fc-cb
   fc-nconsts @ fc-ck@ >r r@ 2 cells + ! r@ cell+ ! r@ ! fc-cb @ @ r> 3 cells + !
   fc-nconsts @ 1+ fc-cb @ ! fc-nconsts @ 64 * fc-consts + 1 fc-nconsts +! ;
 : fc-const ( value -- addr ) 0 32 fc-const2 ;
+
+\ --- literals (14.7) -----------------------------------------------------------
+\ A literal is a half-interval [lo, hi) of positions of the space whose bits
+\ are constant: a part of a record of the constant area (FC-CONST), written
+\ with the stream. The record of a value v holds its 32 bits; the literal of v
+\ is [lo, lo + n), n the length of v in bits (1 at least, 32 if v < 0), and the
+\ record is zero above it. Bit 0 and bit 1 are the literals of length 1.
+: fc-lit ( v n -- lo hi ) swap fc-const tuck + ;     \ the low n bits of v, n <= 32
+: fc-bit0 ( -- lo hi ) 0 1 fc-lit ;
+: fc-bit1 ( -- lo hi ) 1 1 fc-lit ;
+: fc-length ( v -- n ) 0 swap begin ?dup while 1 rshift swap 1+ swap repeat 1 max ;
+: fc-lit-of ( v -- lo hi ) \ the literal of v: 0 and 1 are the bits
+  dup 2 u< if if fc-bit1 else fc-bit0 then exit then dup fc-length fc-lit ;
+\ The literal as a cell of register r: one copy of the 32 bits of its record
+\ from lo (above hi they are zeros).
+: fc-load ( lo hi r -- ) nip 32 swap rot cc-copy cc-layer cc-row drop ;
+
 \ Link pool: the link fields (cell, cell+layer) of each continuation, one
 \ entry per call site, written to the stream fc-link-chunk at a time.
 variable fc-nlinks variable fc-link-buf variable fc-nbuf
@@ -244,7 +261,7 @@ variable fc-v0 variable fc-v1
   r> -1 fc-call-indirect fc-begin-block drop
   fc-rstk fc-rp 3 64 fc-mem-pop 0 fc-npin !
   cc-lookups-begin fc-handler 1 fc-popped@ fc-restore cc-lookups
-  0 fc-n ! 0 fc-reg dup fc-push 32 swap rot fc-const cc-copy fc-rows1 fc-spill
+  0 fc-n ! 0 fc-reg dup fc-push >r fc-lit-of r> fc-load fc-spill
   dup cc-jump fc-end
   swap fc-begin-block drop fc-reg dup >r 32 swap fc-code cc-copy fc-rows1 0 fc-n ! r> fc-push fc-spill
   dup cc-jump fc-end fc-begin-block drop ;
@@ -466,8 +483,8 @@ variable fc-s1 variable fc-s2 variable fc-r1
 \ --- primitives ---------------------------------------------------------------
 \ The literal compiled by the previous word (for N PICK, N ROLL).
 variable fc-ll variable fc-llr variable fc-llv variable fc-plit variable fc-plr variable fc-plv
-: fc-literal ( value -- )
-  dup fc-llv ! fc-reg dup fc-llr ! -1 fc-ll ! dup fc-push 32 swap rot fc-const cc-copy fc-rows1 ;
+: fc-literal ( value -- ) \ the literal of value onto the stack
+  dup fc-llv ! fc-reg dup fc-llr ! -1 fc-ll ! dup fc-push >r fc-lit-of r> fc-load ;
 : fc-or-zero ( out r -- ) \ out = (r == 0) as 32 bits
   cc-lookups-begin fc-z swap 0 32 cc-or-chunks cc-lookups
   >r cc-lookups-begin fc-t-zero32 @ 6 32 r> 0 cc-item fc-z 4 0 cc-seg cc-lookups ;
@@ -555,28 +572,22 @@ create fc-tok 256 allot variable fc-tl
   begin fc-more? if fc-ch [char] " <> else 0 then while 1 fc-pos +! repeat
   fc-more? 0= if -16 throw then
   fc-text @ over + fc-pos @ rot - 1 fc-pos +! ;
-\ A decimal literal, optionally negative, modulo 2^32.
-: fc-number ( -- n true | false )
-  fc-tok fc-tl @ over c@ [char] - = if 1 /string -1 else 1 then >r
-  dup 0= if 2drop r> drop 0 exit then
-  0 -rot over + swap do
-    i c@ [char] 0 - dup 10 u< 0= if 2drop unloop r> drop 0 exit then swap 10 * +
-  loop r> * -1 ;
 variable fc-names-size 4096 fc-names-size ! variable fc-max-words 256 fc-max-words !
 variable fc-names variable fc-names-used
 variable fc-wt variable fc-nwords variable fc-wbk   \ entries: offset len kind value next
 : fc-wt@ ( i -- addr ) dup 2 lshift + cells fc-wt @ + ;
-: fc-whash ( -- addr )
-  0 fc-tl @ 0 ?do dup 5 lshift swap - fc-tok i + c@ + loop fc-nbuckets @ 1- and cells fc-wbk @ + ;
+: fc-hash ( addr u -- bucket ) \ of the name addr u
+  0 swap 0 ?do dup 5 lshift swap - over i + c@ + loop nip fc-nbuckets @ 1- and cells fc-wbk @ + ;
 : fc-define ( kind value -- ) \ the newest definition heads its chain
   fc-nwords @ fc-max-words @ = fc-names-used @ fc-tl @ + fc-names-size @ > or if -8 throw then
   fc-nwords @ fc-wt@ >r r@ 3 cells + ! r@ 2 cells + !
-  fc-names-used @ r@ ! fc-tl @ r@ cell+ ! fc-whash dup @ r> 4 cells + ! fc-nwords @ 1+ swap !
+  fc-names-used @ r@ ! fc-tl @ r@ cell+ ! fc-tok fc-tl @ fc-hash dup @ r> 4 cells + ! fc-nwords @ 1+ swap !
   fc-tok fc-names @ fc-names-used @ + fc-tl @ cmove fc-tl @ fc-names-used +! 1 fc-nwords +! ;
-: fc-find ( -- entry|0 )
-  fc-whash @ begin ?dup while
-    1- fc-wt@ dup @ fc-names @ + over cell+ @ fc-tok fc-tl @ compare 0= if exit then 4 cells + @
-  repeat 0 ;
+: fc-lookup ( addr u -- entry|0 ) \ the newest entry of the name addr u
+  2dup fc-hash @ begin ?dup while
+    1- fc-wt@ dup @ fc-names @ + over cell+ @ 4 pick 4 pick compare 0= if nip nip exit then 4 cells + @
+  repeat 2drop 0 ;
+: fc-find ( -- entry|0 ) fc-tok fc-tl @ fc-lookup ;   \ of the word read
 
 \ --- compiler -------------------------------------------------------------
 variable fc-here variable fc-word variable fc-uses
@@ -696,6 +707,8 @@ variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-st
 variable fc-gens
 : fc-generator ( addr u xt uses -- ) \ the entry: name addr u, xt, needs
   2 lshift 2 or swap 2swap dup fc-tl ! fc-tok swap cmove fc-define ;
+: fc-literal-name ( addr u v -- ) \ the name addr u of the literal v (14.7: a digit)
+  >r dup fc-tl ! fc-tok swap cmove 0 r> fc-define ;
 : fc-words ( -- ) \ the dictionary: cleared, then the generators
   fc-wt @ 0= if
     fc-max-words @ 5 * cells allocate throw fc-wt ! fc-names-size @ allocate throw fc-names !
@@ -718,19 +731,21 @@ variable fc-gens
 \ Words of the top level only (defining words): inside a definition -13.
 : fc-top-only ( -- ) fc-defining? if -13 throw then ;
 
-\ One word of the channel (14.6): the word is looked up in the dictionary; a
-\ generator is executed (the defining words : ; VARIABLE ... are generators
-\ too), a word is called, data is a literal (at the top level a value known
-\ at compile time, as a number; there numbers come first). Top-level code
-\ runs before MAIN as parts, in order (FC-CODE).
+\ A word not in the dictionary goes to the generator LITERAL (14.7: the word
+\ of numbers, primitives.fth; the newest entry of that name); without it the
+\ word is unknown, -13.
+: fc-not-found ( -- entry )
+  s" literal" fc-lookup dup if dup 2 cells + @ 2 and if exit then then -13 throw ;
+\ One word of the channel (14.6): the word is looked up in the dictionary,
+\ else it is given to LITERAL; a generator is executed (the defining words
+\ : ; VARIABLE ... are generators too), a word is called, data (a digit, a
+\ constant, a variable) is a literal: at the top level a value known at
+\ compile time. Top-level code runs before MAIN as parts, in order (FC-CODE).
 : fc-word-token ( -- )
-  fc-defining? 0= if fc-number if fc-ct+ exit then then
-  fc-find ?dup if
-    dup 3 cells + @ swap 2 cells + @ dup 2 and if drop execute exit then
-    dup fc-defining? or 0= if drop fc-ct+ exit then
-    fc-code if fc-call else fc-literal then exit
-  then
-  fc-defining? if fc-number if fc-literal exit then then -13 throw ;
+  fc-find ?dup 0= if fc-not-found then
+  dup 3 cells + @ swap 2 cells + @ dup 2 and if drop execute exit then
+  dup fc-defining? or 0= if drop fc-ct+ exit then
+  fc-code if fc-call else fc-literal then ;
 : fc-compile ( -- )
   fc-words fc-scan-uses fc-uses @ 4 and fc-layout fc-init
   fc-uses @ 1 and if fc-build-mul fc-mul-exit ! fc-mul-entry ! then

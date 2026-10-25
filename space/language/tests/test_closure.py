@@ -1,7 +1,8 @@
 """The closure check agrees with the graph of docs/research/definition-graph.json:
 the words of the generators (14.3-14.6, src/primitives.fth) are defined, the defining words
 among them; after 14.6 no name is external, and the compiler has no branch by the name of a
-word (FC-IS? only defined in forthc.fth)."""
+word (FC-IS? only defined in forthc.fth). 14.7: the digits 0..9 are words (names of literals),
+the numbers of the definition use them and the word `literal`, the compiler parses no number."""
 import sys
 from pathlib import Path
 
@@ -12,10 +13,16 @@ import paths
 names, nodes = check_closure.external_names()
 assert not names, sorted(names)
 generated = {name for name, _, _ in check_closure.generators()}
-assert len(generated) == 70 and {'+', '*', '/mod', 'cell+', '0=', 'dup', '@', '!', 'i', 'j', 'roll', 'spacec!', 'key',
+assert len(generated) == 71 and {'+', '*', '/mod', 'cell+', '0=', 'dup', '@', '!', 'i', 'j', 'roll', 'spacec!', 'key',
                                'if', 'then', '?do', 'loop', 'leave', 'exit', 'recurse', "[']", 'catch', 'throw',
                                ':', ';', 'variable', 'constant', 'create', 'allot', '(', '[char]', 's"',
-                               'decimal', 'kernel-layout'} <= generated, sorted(generated)
+                               'decimal', 'kernel-layout', 'literal'} <= generated, sorted(generated)
+digits = check_closure.literal_names()
+assert [(name, value) for name, value, _ in digits] == [(str(d), str(d)) for d in range(10)], digits
+numbers = check_closure.number_uses(['space/language/src/' + name for name in paths.KERNEL_FILES])
+assert set(numbers) == {str(d) for d in range(10)} | {'literal'}, numbers
 compiler = (paths.SRC / 'forthc.fth').read_text()
 assert compiler.count('fc-is?') <= 2 and 'fc-primitive' not in compiler, compiler.count('fc-is?')
-print(f'PASS closure: 0 external names, {len(generated)} words of generators, {nodes - 1} definitions')
+assert 'fc-number' not in compiler and 'fc-number' not in (paths.SRC / 'primitives.fth').read_text()
+print(f'PASS closure: 0 external names, {len(generated)} words of generators, {len(digits)} digits'
+      f' ({numbers["literal"]} numbers of the definition go through literal), {nodes - 1} definitions')

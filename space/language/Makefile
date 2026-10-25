@@ -20,7 +20,8 @@ L0 ?= $(OUT)/L0.boot
 # without the auxiliary libraries of copycode/forth; 68 with them, docs/research/definition-graph.md;
 # 14.3: 39, the 19 words of the generators of src/primitives.fth are defined; 14.4: 19, 20 more;
 # 14.5: 2, the control words are generators: DECIMAL and KERNEL-LAYOUT remain; 14.6: 0, the
-# defining words, ( [CHAR] S" DECIMAL KERNEL-LAYOUT are generators too).
+# defining words, ( [CHAR] S" DECIMAL KERNEL-LAYOUT are generators too; 14.7: 0, the digits and
+# LITERAL, used by the numbers of the definition, are defined too).
 MAX_EXTERNAL ?= 0
 STREAMS ?=
 BOOT_SECONDS ?= 600
@@ -50,6 +51,8 @@ check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_provenance.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_closure.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_boot.py
+	$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_literals.py
 check: check-programs check-closure check-tests
 clean:
 ifneq ($(WORKSPACE_ROOT),)

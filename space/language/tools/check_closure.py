@@ -13,9 +13,16 @@ NAME of kind `generator` with an edge to WORD (space/language/doc/generators.md)
 A name with a quote (S", 14.6) is registered as `[char] C1 [char] C2 fc-name2 ['] WORD USES
 fc-generator`.
 
+Literals, digits, numbers (14.7): a registration `s" D" V fc-literal-name` defines the word D
+of the language, the name of the literal V (a digit, node of kind `literal`). A number of the
+definition (a token -?[0-9]+, which tools/research/defgraph.py skips) is a word built by the
+word `literal` from digits: it uses each of its digits and, unless it is a digit itself,
+`literal` (the generator of the words not found in the dictionary). These uses count as
+external if the names are not defined (space/language/doc/literals.md).
+
 Usage: check_closure.py [--max-external N]   (default: the environment MAX_EXTERNAL, else 0)
 """
-import argparse, os, re, sys
+import argparse, collections, os, re, sys
 
 import paths
 
@@ -24,6 +31,7 @@ import defgraph  # noqa: E402
 
 
 GENERATOR = re.compile(r'(?i)s" (\S+)" \[\'\] (\S+) \S+ fc-generator(?!\S)')
+LITERAL = re.compile(r'(?i)s" (\S+)" (\S+) fc-literal-name(?!\S)')
 NAME2 = re.compile(r'(?i)\[char\] (\S) \[char\] (\S) fc-name2 \[\'\] (\S+) \S+ fc-generator(?!\S)')
 
 
@@ -35,6 +43,27 @@ def generators():
         found += [(name.lower(), word.lower(), line) for name, word in GENERATOR.findall(code)]
         found += [((c1 + c2).lower(), word.lower(), line) for c1, c2, word in NAME2.findall(code)]
     return found
+
+
+def literal_names():
+    """Names of literals of src/primitives.fth (the digits): [(name, value, line)]."""
+    found = []
+    for line, text in enumerate((paths.SRC / 'primitives.fth').read_text().split('\n'), 1):
+        code = text.split('\\ ')[0]
+        found += [(name.lower(), value, line) for name, value in LITERAL.findall(code)]
+    return found
+
+
+def number_uses(order):
+    """The words that the numbers of the definition use: {name: uses}."""
+    uses = collections.Counter()
+    for path in order:
+        for token, _, _ in defgraph.tokenize(path):
+            if defgraph.is_number(token):
+                uses.update(token.lstrip('-'))
+                if len(token) > 1:
+                    uses['literal'] += 1
+    return uses
 
 
 def external_names():
@@ -55,8 +84,12 @@ def external_names():
     for name, word, line in generators():       # the word of the language -> its generator
         node = graph.new_node(name, 'generator', 'space/language/src/primitives.fth', line, 'K')
         graph.add_edge(node, graph.lookup(word, 'K'), 'direct', line, sub='generator')
+    for name, value, line in literal_names():   # a digit: the name of a literal
+        graph.new_node(name, 'literal', 'space/language/src/primitives.fth', line, 'K')
     defined = {node['name'] for node in graph.nodes if node['kind'] != 'init'}
-    return {name: uses for name, uses in graph.externals.items() if name not in defined}, len(graph.nodes)
+    externals = collections.Counter(graph.externals)
+    externals.update(number_uses(order))
+    return {name: uses for name, uses in externals.items() if name not in defined}, len(graph.nodes)
 
 
 def main():
