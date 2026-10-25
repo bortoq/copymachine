@@ -1,0 +1,45 @@
+{
+ "note": "Copies of the sources of kernel K (space/forth) for the language experiment (stage 14); the origin is not changed. The order of compilation is that of KERNEL in space/forth/tests/test_kernel.py. copy_sha256 is the digest at the time of copying; the copies may change later, the origins are checked by tests/test_provenance.py.",
+ "workspace_commit": "60a6f9af5e0d6366af59d35552bcf90088c47a7e",
+ "branch": "language/experiment",
+ "order": [
+  "prelude.fth",
+  "backend.fth",
+  "compute.fth",
+  "forthc.fth",
+  "main.fth",
+  "kernel.fth"
+ ],
+ "files": {
+  "src/prelude.fth": {
+   "origin": "space/forth/scripts/forthc/prelude.fth",
+   "origin_sha256": "d3ee8771431c289d7a236734ea2a31125a919d190c3fdfccaf4223d9a346133b",
+   "copy_sha256": "d3ee8771431c289d7a236734ea2a31125a919d190c3fdfccaf4223d9a346133b"
+  },
+  "src/backend.fth": {
+   "origin": "space/copycode/forth/backend.fth",
+   "origin_sha256": "f2bbfcbb2c8e238e30b7c5737a6d299d4425b113f92b230ed5429cca75733d61",
+   "copy_sha256": "f2bbfcbb2c8e238e30b7c5737a6d299d4425b113f92b230ed5429cca75733d61"
+  },
+  "src/compute.fth": {
+   "origin": "space/copycode/forth/compute.fth",
+   "origin_sha256": "2b53b215f46533c39686acab40cb51abf2f2b8b5549dc7a1863488fed68dd286",
+   "copy_sha256": "2b53b215f46533c39686acab40cb51abf2f2b8b5549dc7a1863488fed68dd286"
+  },
+  "src/forthc.fth": {
+   "origin": "space/forth/scripts/forthc/forthc.fth",
+   "origin_sha256": "e92154756df16fa0a748d7676d3f42e499e5be03b44da882070d1f83aa56966c",
+   "copy_sha256": "e92154756df16fa0a748d7676d3f42e499e5be03b44da882070d1f83aa56966c"
+  },
+  "src/main.fth": {
+   "origin": "space/forth/scripts/forthc/main.fth",
+   "origin_sha256": "dd1b96bf578c18e48a0ecafa518cf95acdf19b161da5e9d580b212ac6a2f7162",
+   "copy_sha256": "dd1b96bf578c18e48a0ecafa518cf95acdf19b161da5e9d580b212ac6a2f7162"
+  },
+  "src/kernel.fth": {
+   "origin": "space/forth/scripts/forthc/kernel.fth",
+   "origin_sha256": "b9214dad574a6a6c26af179700b5583efe3e0931e9f6a087bffd8584f3903f92",
+   "copy_sha256": "b9214dad574a6a6c26af179700b5583efe3e0931e9f6a087bffd8584f3903f92"
+  }
+ }
+}

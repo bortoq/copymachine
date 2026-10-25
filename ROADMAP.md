@@ -1670,7 +1670,7 @@ vm2 пока не выполнена: она явно запланирована
 Длительные цели запускаются через
 `python3 -B space/vm2/tools/limited_run.py --seconds N --memory-mib 768`.
 
-### ❌ 14.1. Компонент space/language и бут через хостовой pForth
+### ✅ 14.1. Компонент space/language и бут через хостовой pForth
 
 - **Исполнитель:** Sonnet 5.5, high. **Зависит:** —
 - **Сделать:** `space/language/` — `src/` (копии `prelude.fth`, `backend.fth`,
@@ -1717,16 +1717,16 @@ vm2 пока не выполнена: она явно запланирована
   `src/primitives.fth`, компилируется до программ) арифметику и логику:
   `+ - * / mod /mod and or xor lshift rshift = < u< 0= 2* 1+ 1- cells cell+`
   — убрать их ветви `fc-is?`. Поток не меняется.
-- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 make -C space/language boot check-programs STREAMS=equal check-closure MAX_EXTERNAL=<число из 14.1 минус перенесённые>`
-  (исполнитель записывает новое `MAX_EXTERNAL` в Makefile; оно должно
-  уменьшиться не меньше чем на 18).
+- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 make -C space/language boot check-programs STREAMS=equal check-closure MAX_EXTERNAL=39`
+  (в 14.1 внешних имён 58; из перечисленных внешними были 19;
+  исполнитель записывает новое `MAX_EXTERNAL` в Makefile).
 
 ### ❌ 14.4. Генераторы: стек, память, каналы
 
 - **Исполнитель:** Sonnet 5.5, high. **Зависит:** 14.3
 - **Сделать:** как 14.3 для `dup drop swap over rot pick roll >r r> r@ i j
   @ ! c@ c! space! spacec! emit key`. Поток не меняется.
-- **Проверка:** как в 14.3; `MAX_EXTERNAL` уменьшается не меньше чем на 18.
+- **Проверка:** как в 14.3 с `MAX_EXTERNAL=19`.
 
 ### ❌ 14.5. Генераторы: управление
 
@@ -1734,7 +1734,7 @@ vm2 пока не выполнена: она явно запланирована
 - **Сделать:** как 14.3 для `if else then begin until while repeat again
   do ?do loop leave unloop exit recurse execute ['] catch throw`. Поток не
   меняется.
-- **Проверка:** как в 14.3; `MAX_EXTERNAL` уменьшается не меньше чем на 18.
+- **Проверка:** как в 14.3 с `MAX_EXTERNAL=2`.
 
 ### ❌ 14.6. Генераторы: определяющие слова
 
@@ -1744,7 +1744,7 @@ vm2 пока не выполнена: она явно запланирована
   компиляторе нет ветвей по имени слова: цикл компиляции только читает
   слово из канала, ищет его в словаре и исполняет генератор либо
   компилирует вызов. Поток не меняется.
-- **Проверка:** как в 14.3 и `test "$(grep -c 'fc-is?' space/language/src/forthc.fth)" -le 2`
+- **Проверка:** как в 14.3 с `MAX_EXTERNAL=0` и `test "$(grep -c 'fc-is?' space/language/src/forthc.fth)" -le 2`
   (остаются только определение `fc-is?` и его использование в поиске).
 
 ### ❌ 14.7. Литералы, цифры, числа
