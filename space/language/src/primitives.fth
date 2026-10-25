@@ -123,8 +123,12 @@ variable fc-lv
 : gen-decimal ( -- ) ;                  \ numbers are decimal only
 \ The layout itself is chosen before the code: FC-SCAN-USES finds the need 4.
 : gen-kernel-layout ( -- ) fc-top-only ;
+\ The word \ (a comment to the end of the line) has the need 8: it is executed
+\ also in FC-SCAN-USES, the words of the comment are not the words of the source.
+: gen-backslash ( -- )
+  begin fc-more? if fc-ch 10 <> else 0 then while 1 fc-pos +! repeat ;
 : gen-paren ( -- ) begin fc-next! s" )" fc-is? until ;   \ ( a comment )
-: gen-char ( -- ) fc-code fc-word-raw 0= if -16 throw then fc-raw fc-literal ;
+: gen-char ( -- ) fc-code fc-next 0= if -16 throw then fc-raw fc-literal ;
 : gen-string ( -- ) fc-code fc-string-token dup >r fc-store-string fc-literal r> fc-literal ;
 \ Literals, digits, numbers (14.7). A digit 0..9 is a word of the language, the
 \ synonym of a literal (an entry of kind 0, FC-LITERAL-NAME): in a definition
@@ -180,7 +184,7 @@ variable fc-lv
   s" variable" ['] gen-variable 0 fc-generator  s" create" ['] gen-create 0 fc-generator
   s" allot" ['] gen-allot 0 fc-generator  s" constant" ['] gen-constant 0 fc-generator
   s" decimal" ['] gen-decimal 0 fc-generator  s" kernel-layout" ['] gen-kernel-layout 4 fc-generator
-  s" (" ['] gen-paren 0 fc-generator  s" [char]" ['] gen-char 0 fc-generator
+  s" \" ['] gen-backslash 8 fc-generator  s" (" ['] gen-paren 0 fc-generator  s" [char]" ['] gen-char 0 fc-generator
   [char] s [char] " fc-name2 ['] gen-string 0 fc-generator
   s" literal" ['] gen-literal 0 fc-generator
   s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name

@@ -544,9 +544,10 @@ create fc-tok 256 allot variable fc-tl
 : fc| ( "line" -- ) source >in @ /string fc-append source nip >in ! ;
 : fc-ch ( -- c ) fc-text @ fc-pos @ + c@ ;
 : fc-more? ( -- f ) fc-pos @ fc-tlen @ < ;
-\ Next word into fc-tok, ASCII letters folded to lower case; a word \ ends
-\ the line. Words are runs of bytes above 32. False at the end of the text.
-: fc-word-raw ( -- f ) \ the next word, without comment handling ([CHAR] \)
+\ Next word into fc-tok, ASCII letters folded to lower case. Words are runs of
+\ bytes above 32. False at the end of the text. The word \ is not special here:
+\ it is a generator of the language (GEN-BACKSLASH, primitives.fth).
+: fc-next ( -- f )
   begin fc-more? if fc-ch 33 < else 0 then while 1 fc-pos +! repeat
   fc-more? 0= if 0 exit then
   0 fc-tl !
@@ -554,11 +555,6 @@ create fc-tok 256 allot variable fc-tl
     fc-tl @ 255 = if -8 throw then
     fc-ch dup [char] A [char] Z 1+ over - >r - r> u< if 32 + then fc-tok fc-tl @ + c! 1 fc-tl +! 1 fc-pos +!
   repeat -1 ;
-: fc-next ( -- f )
-  begin fc-word-raw while
-    fc-tl @ 1 = fc-tok c@ [char] \ = and 0= if -1 exit then
-    begin fc-more? if fc-ch 10 <> else 0 then while 1 fc-pos +! repeat
-  repeat 0 ;
 : fc-next! ( -- ) fc-next 0= if -16 throw then ;
 \ The word read is the name addr u (for the generators: the end of a comment).
 : fc-is? ( addr u -- f ) \ length and first byte first: most words differ there
@@ -639,10 +635,15 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
   fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
 \ Before the code: each word of the source is looked up in the dictionary (the
 \ generators only) and the needs of its generator are collected (1: the
-\ multiplication, 2: the division, 4: the kernel layout, KERNEL-LAYOUT).
+\ multiplication, 2: the division, 4: the kernel layout, KERNEL-LAYOUT). A
+\ generator with the need 8 (the comment to the end of the line, \) is executed
+\ here too: the words of the comment are not the words of the source.
 : fc-scan-uses ( -- )
   0 fc-uses ! 0 fc-pos ! begin fc-next while
-    fc-find ?dup if 2 cells + @ 2 rshift fc-uses @ or fc-uses ! then
+    fc-find ?dup if
+      dup 2 cells + @ 2 rshift dup 8 and if drop 3 cells + @ execute
+      else fc-uses @ or fc-uses ! drop then
+    then
   repeat 0 fc-pos ! ;
 \ N PICK and N ROLL: N is the literal just compiled, on top of the cache.
 : fc-const-shift ( right? k -- )
