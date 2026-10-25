@@ -1772,7 +1772,7 @@ vm2 пока не выполнена: она явно запланирована
   в определении (по графу), в `space/language/doc/core.md`.
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 make -C space/language boot check MAX_EXTERNAL=0`
 
-### ❌ 14.9. language.md — определение языка на русском
+### ✅ 14.9. language.md — определение языка на русском
 
 - **Исполнитель:** Opus 5.5, high. **Зависит:** 14.8
 - **Сделать:** `space/language/doc/language.md` — определение языка на

@@ -35,7 +35,7 @@ limit =
 endif
 SOURCES = $(wildcard src/*.fth)
 TOOLS = $(wildcard tools/*.py)
-.PHONY: all boot check check-programs check-closure check-kernel check-tests clean
+.PHONY: all boot check check-programs check-closure check-kernel check-tests check-language-md clean
 all: boot
 boot: $(L0)
 $(L0): $(SOURCES) $(TOOLS)
@@ -45,6 +45,9 @@ check-programs:
 	$(call limit,$(PROGRAMS_SECONDS)) $(PYTHON) -B tools/check_programs.py $(if $(filter equal,$(STREAMS)),--streams-equal)
 check-closure:
 	MAX_EXTERNAL=$(MAX_EXTERNAL) $(PYTHON) -B tools/check_closure.py
+# doc/language.md (14.9): one record per word of the core, file:line and hash of the definition.
+check-language-md:
+	$(PYTHON) -B tools/language_md.py --check
 check-kernel: $(L0)
 	$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy
 	$(call limit,$(KERNEL_SECONDS)) $(PYTHON) -B tools/check_kernel.py --l0 "$(L0)"
@@ -56,7 +59,8 @@ check-tests: $(L0)
 	$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_comments.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_literals.py
-check: check-programs check-closure check-tests
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_language_md.py
+check: check-programs check-closure check-tests check-language-md
 clean:
 ifneq ($(WORKSPACE_ROOT),)
 	rm -rf "$(BUILD_DIR)" "$(L0)"
