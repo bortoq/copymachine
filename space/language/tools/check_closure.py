@@ -10,6 +10,8 @@ Generators (14.3, src/primitives.fth) are defined words: a registration
 `s" NAME" ['] WORD USES fc-generator` defines the word NAME of the language by the
 generator WORD (the name in the Forth dictionary differs), so the graph gets a node
 NAME of kind `generator` with an edge to WORD (space/language/doc/generators.md).
+A name with a quote (S", 14.6) is registered as `[char] C1 [char] C2 fc-name2 ['] WORD USES
+fc-generator`.
 
 Usage: check_closure.py [--max-external N]   (default: the environment MAX_EXTERNAL, else 0)
 """
@@ -22,13 +24,16 @@ import defgraph  # noqa: E402
 
 
 GENERATOR = re.compile(r'(?i)s" (\S+)" \[\'\] (\S+) \S+ fc-generator(?!\S)')
+NAME2 = re.compile(r'(?i)\[char\] (\S) \[char\] (\S) fc-name2 \[\'\] (\S+) \S+ fc-generator(?!\S)')
 
 
 def generators():
     """Registrations of src/primitives.fth: [(language name, generator word, line)]."""
     found = []
     for line, text in enumerate((paths.SRC / 'primitives.fth').read_text().split('\n'), 1):
-        found += [(name.lower(), word.lower(), line) for name, word in GENERATOR.findall(text.split('\\ ')[0])]
+        code = text.split('\\ ')[0]
+        found += [(name.lower(), word.lower(), line) for name, word in GENERATOR.findall(code)]
+        found += [((c1 + c2).lower(), word.lower(), line) for c1, c2, word in NAME2.findall(code)]
     return found
 
 

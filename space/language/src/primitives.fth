@@ -1,10 +1,11 @@
-\ Primitives as generators (14.3-14.5): words of the compiler, executed when the
+\ Primitives as generators (14.3-14.6): words of the compiler, executed when the
 \ source names the word of the language, that write its copycode (as an
-\ IMMEDIATE word). Compiled after forthc.fth, before main.fth; the host pForth
-\ loads it with the compiler. A generator folds the values known at the top
-\ level (FC-FOLD?) or writes code; the code is that of the branches of
-\ FC-PRIMITIVE it replaces. The language names are given in FC-GENERATORS:
-\ the names here differ (pForth itself uses + - * ...).
+\ IMMEDIATE word) or define a word. Compiled after forthc.fth, before main.fth;
+\ the host pForth loads it with the compiler. A generator folds the values
+\ known at the top level (FC-FOLD?) or writes code; the code is that of the
+\ branches by the name of the word the compiler had before. The language
+\ names are given in FC-GENERATORS: the names here differ (pForth itself uses
+\ + - * ...).
 : gen+ ( -- ) 2 fc-fold? if fc-ct2 + fc-ct+ exit then 0 fc-binary ;
 : gen- ( -- ) 2 fc-fold? if fc-ct2 - fc-ct+ exit then 1 fc-binary ;
 : gen-and ( -- ) 2 fc-fold? if fc-ct2 and fc-ct+ exit then 2 fc-binary ;
@@ -107,7 +108,27 @@ variable fc-lv
 : gen-tick ( -- ) fc-code fc-next! fc-find dup 0= if -13 throw then 3 cells + @ fc-literal ;
 : gen-catch ( -- ) fc-code fc-catch ;
 : gen-throw ( -- ) fc-code fc-throw ;
-\ Language name, generator, helpers (1 multiplication, 2 division).
+\ Defining words and the channel (14.6). : VARIABLE CREATE CONSTANT ALLOT and
+\ KERNEL-LAYOUT belong to the top level (FC-TOP-ONLY: else -13); ; to a
+\ definition (at the top level -22). ( [CHAR] S" read the channel.
+: gen-colon ( -- ) \ : NAME starts the word NAME (visible at once: RECURSE)
+  fc-top-only fc-close-init fc-next! 0 cc-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
+  0 fc-live ! 0 fc-n ! fc-begin-block drop ;
+: gen-semicolon ( -- ) \ ; returns and ends the definition
+  fc-defining? 0= if -22 throw then fc-nctl @ if -22 throw then fc-ret 0 fc-word ! ;
+: gen-variable ( -- ) fc-top-only fc-next! 4 fc-define-data ;
+: gen-create ( -- ) fc-top-only fc-next! 0 fc-define-data ;
+: gen-allot ( -- ) fc-top-only fc-ct- fc-here +! fc-check-here ;
+: gen-constant ( -- ) fc-top-only fc-ct- fc-next! 0 swap fc-define ;
+: gen-decimal ( -- ) ;                  \ numbers are decimal only
+\ The layout itself is chosen before the code: FC-SCAN-USES finds the need 4.
+: gen-kernel-layout ( -- ) fc-top-only ;
+: gen-paren ( -- ) begin fc-next! s" )" fc-is? until ;   \ ( a comment )
+: gen-char ( -- ) fc-code fc-word-raw 0= if -16 throw then fc-raw fc-literal ;
+: gen-string ( -- ) fc-code fc-string-token dup >r fc-store-string fc-literal r> fc-literal ;
+\ The name of two bytes c1 c2 (S": a quote cannot be written in a string).
+: fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
+\ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel layout).
 : fc-generators ( -- )
   s" +" ['] gen+ 0 fc-generator  s" -" ['] gen- 0 fc-generator
   s" *" ['] gen* 1 fc-generator  s" /" ['] gen/ 2 fc-generator
@@ -138,6 +159,12 @@ variable fc-lv
   s" unloop" ['] gen-unloop 0 fc-generator  s" exit" ['] gen-exit 0 fc-generator
   s" recurse" ['] gen-recurse 0 fc-generator  s" execute" ['] gen-execute 0 fc-generator
   s" [']" ['] gen-tick 0 fc-generator  s" catch" ['] gen-catch 0 fc-generator
-  s" throw" ['] gen-throw 0 fc-generator ;
+  s" throw" ['] gen-throw 0 fc-generator
+  s" :" ['] gen-colon 0 fc-generator  s" ;" ['] gen-semicolon 0 fc-generator
+  s" variable" ['] gen-variable 0 fc-generator  s" create" ['] gen-create 0 fc-generator
+  s" allot" ['] gen-allot 0 fc-generator  s" constant" ['] gen-constant 0 fc-generator
+  s" decimal" ['] gen-decimal 0 fc-generator  s" kernel-layout" ['] gen-kernel-layout 4 fc-generator
+  s" (" ['] gen-paren 0 fc-generator  s" [char]" ['] gen-char 0 fc-generator
+  [char] s [char] " fc-name2 ['] gen-string 0 fc-generator ;
 : fc-install-generators ( -- ) ['] fc-generators fc-gens ! ;
 fc-install-generators

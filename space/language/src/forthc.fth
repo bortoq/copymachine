@@ -10,9 +10,10 @@
 decimal
 1 31 lshift constant fc-size  1024 constant fc-cellb  1024 constant fc-l  32 constant fc-a
 \ The data region at fc-d and the first code cell: a program at 2^30 and 2,
-\ a kernel (a source with KERNEL-LAYOUT) in the upper half of both, so the
-\ programs it installs in its own space keep their layout (model: layout).
-variable fc-d variable fc-first variable fc-kernel
+\ a kernel (a source with KERNEL-LAYOUT: FC-SCAN-USES) in the upper half of
+\ both, so the programs it installs in its own space keep their layout
+\ (model: layout).
+variable fc-d variable fc-first
 : fc-layout ( kernel? -- )
   if 3 29 lshift 1 19 lshift else 1 30 lshift 2 then fc-first ! fc-d ! ;
 : fc-d+ ( offset -- addr ) fc-d @ + ;
@@ -542,11 +543,10 @@ create fc-tok 256 allot variable fc-tl
     begin fc-more? if fc-ch 10 <> else 0 then while 1 fc-pos +! repeat
   repeat 0 ;
 : fc-next! ( -- ) fc-next 0= if -16 throw then ;
+\ The word read is the name addr u (for the generators: the end of a comment).
 : fc-is? ( addr u -- f ) \ length and first byte first: most words differ there
   dup fc-tl @ <> if 2drop 0 exit then over c@ fc-tok c@ <> if 2drop 0 exit then
   fc-tok fc-tl @ compare 0= ;
-: fc-squote? ( -- f ) \ the word S"
-  fc-tl @ 2 = fc-tok c@ [char] s = and fc-tok 1+ c@ [char] " = and ;
 \ The first byte of the word as written (not folded).
 : fc-raw ( -- c ) fc-text @ fc-pos @ fc-tl @ - + c@ ;
 \ S" text": one delimiter, then the bytes up to the closing quote.
@@ -626,14 +626,13 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
   cc-lone 0 over cc-next! cc-layer-cell fc-ex ! cc-flush
   0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-chunk 8 * allocate throw fc-link-buf ! then
   fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
-: fc-scan-uses ( -- ) \ helpers the generators need (1: *  2: / MOD /MOD); and KERNEL-LAYOUT
-  0 fc-uses ! 0 fc-kernel ! 0 fc-pos ! begin fc-next while
-    s" kernel-layout" fc-is? if -1 fc-kernel ! then
+\ Before the code: each word of the source is looked up in the dictionary (the
+\ generators only) and the needs of its generator are collected (1: the
+\ multiplication, 2: the division, 4: the kernel layout, KERNEL-LAYOUT).
+: fc-scan-uses ( -- )
+  0 fc-uses ! 0 fc-pos ! begin fc-next while
     fc-find ?dup if 2 cells + @ 2 rshift fc-uses @ or fc-uses ! then
   repeat 0 fc-pos ! ;
-: fc-primitive ( -- ) \ the words that are not generators yet
-  s" decimal" fc-is? if exit then
-  -13 throw ;
 \ N PICK and N ROLL: N is the literal just compiled, on top of the cache.
 : fc-const-shift ( right? k -- )
   dup 0= if 2drop fc-pop fc-push exit then
@@ -675,16 +674,6 @@ variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-st
   >r 0 0 fc-stx @ dup r> + fc-strow @ cc-row
   32 fc-strow @ cc-layer-cell 2 pick 0 cc-field fc-stlo @ cc-copy fc-stp @ cc-row drop
   32 fc-strow @ cc-layer-cell rot 1 cc-field fc-sthi @ cc-copy fc-stp @ cc-row drop ;
-: fc-control-token ( -- ) \ inside a definition: words (a generator is executed), literals
-  fc-find ?dup if
-    dup 3 cells + @ swap 2 cells + @ dup 2 and if drop execute exit then if fc-call else fc-literal then exit
-  then fc-number if fc-literal exit then
-  fc-primitive ;
-: fc-word-token ( -- ) \ inside a definition
-  s" ;" fc-is? if fc-nctl @ if -22 throw then fc-ret 0 fc-word ! exit then
-  s" [char]" fc-is? if fc-word-raw 0= if -16 throw then fc-raw fc-literal exit then
-  fc-squote? if fc-string-token dup >r fc-store-string fc-literal r> fc-literal exit then
-  fc-control-token ;
 : fc-close-init ( -- )
   fc-nct @ if -22 throw then
   fc-init-open @ if fc-ret 0 fc-init-open ! 0 fc-word ! then ;
@@ -696,15 +685,16 @@ variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-st
   fc-nct @ 0 ?do fc-ct i cells + @ fc-literal loop 0 fc-nct ! ;
 
 \ --- generators (14.3) ----------------------------------------------------
-\ A generator is a dictionary entry of kind 2 (+ 4 * the helpers it needs:
-\ 1 multiplication, 2 division) whose value is the xt of a word of the
-\ compiler: found in the source, it is executed and writes the copycode.
+\ A generator is a dictionary entry of kind 2 (+ 4 * what it needs before the
+\ code: 1 multiplication, 2 division, 4 the kernel layout) whose value is the
+\ xt of a word of the compiler: found in the source, it is executed and writes
+\ the copycode (or defines a word, reads the channel).
 \ Generators are registered by the word in FC-GENS (primitives.fth) when
 \ the dictionary is cleared, before the source is read; the source may
 \ redefine their names. The words below are the state of the compiler a
 \ generator uses (space/language/doc/generators.md).
 variable fc-gens
-: fc-generator ( addr u xt uses -- ) \ the entry: name addr u, xt, helpers
+: fc-generator ( addr u xt uses -- ) \ the entry: name addr u, xt, needs
   2 lshift 2 or swap 2swap dup fc-tl ! fc-tok swap cmove fc-define ;
 : fc-words ( -- ) \ the dictionary: cleared, then the generators
   fc-wt @ 0= if
@@ -716,39 +706,39 @@ variable fc-gens
 : fc-depth ( -- n ) fc-n @ ;           \ items in the stack cache
 : fc-ctl-depth ( -- n ) fc-nctl @ ;    \ entries of the control stack
 : fc-known ( -- n ) fc-nct @ ;         \ values known at compile time
+\ True inside a definition (the word being defined is in FC-WORD), false at
+\ the top level, also while its code (a part before MAIN) is open.
+: fc-defining? ( -- f ) fc-word @ fc-init-open @ 0= and ;
 \ Code at the top level runs before MAIN: open its part (the known values
 \ become literals); inside a definition nothing is needed.
-: fc-code ( -- ) fc-word @ fc-init-open @ 0= and 0= if fc-open-init 0 fc-plit ! then ;
+: fc-code ( -- ) fc-defining? 0= if fc-open-init 0 fc-plit ! then ;
 \ True: n values are known (the generator folds them with FC-CT- FC-CT+);
 \ else FC-CODE and false (the generator writes code).
 : fc-fold? ( n -- f ) fc-known > if fc-code 0 else -1 then ;
+\ Words of the top level only (defining words): inside a definition -13.
+: fc-top-only ( -- ) fc-defining? if -13 throw then ;
 
-\ Definitions; constant expressions are evaluated here, other code runs before
-\ MAIN as parts of the top-level code, in order.
-: fc-top-token ( -- )
-  s" :" fc-is? if
-    fc-close-init fc-next! 0 cc-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
-    0 fc-live ! 0 fc-n ! fc-begin-block drop exit then
-  s" variable" fc-is? if fc-next! 4 fc-define-data exit then
-  s" create" fc-is? if fc-next! 0 fc-define-data exit then
-  s" decimal" fc-is? s" kernel-layout" fc-is? or if exit then
-  s" allot" fc-is? if fc-ct- fc-here +! fc-check-here exit then
-  s" constant" fc-is? if fc-ct- fc-next! 0 swap fc-define exit then
-  fc-number if fc-ct+ exit then
+\ One word of the channel (14.6): the word is looked up in the dictionary; a
+\ generator is executed (the defining words : ; VARIABLE ... are generators
+\ too), a word is called, data is a literal (at the top level a value known
+\ at compile time, as a number; there numbers come first). Top-level code
+\ runs before MAIN as parts, in order (FC-CODE).
+: fc-word-token ( -- )
+  fc-defining? 0= if fc-number if fc-ct+ exit then then
   fc-find ?dup if
-    dup 3 cells + @ swap 2 cells + @ dup 0= if drop fc-ct+ exit then 2 and if execute exit then drop
+    dup 3 cells + @ swap 2 cells + @ dup 2 and if drop execute exit then
+    dup fc-defining? or 0= if drop fc-ct+ exit then
+    fc-code if fc-call else fc-literal then exit
   then
-  fc-open-init 0 fc-plit ! fc-word-token fc-word @ 0= if -22 throw then ;
+  fc-defining? if fc-number if fc-literal exit then then -13 throw ;
 : fc-compile ( -- )
-  fc-words fc-scan-uses fc-kernel @ fc-layout fc-init
+  fc-words fc-scan-uses fc-uses @ 4 and fc-layout fc-init
   fc-uses @ 1 and if fc-build-mul fc-mul-exit ! fc-mul-entry ! then
   fc-uses @ 2 and if fc-build-div fc-div-exit ! fc-div-entry ! then
   begin fc-next while
-    fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll !
-    s" (" fc-is? if begin fc-next! s" )" fc-is? until
-    else fc-word @ fc-init-open @ 0= and if fc-word-token else fc-top-token then then
+    fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! fc-word-token
   repeat
-  fc-word @ fc-init-open @ 0= and if -22 throw then fc-close-init
+  fc-defining? if -22 throw then fc-close-init
   s" main" fc-tok swap dup fc-tl ! cmove fc-find dup 0= if -16 throw then >r
   0 fc-live ! 0 fc-n ! 0 cc-group fc-begin-block cc-new-cell
   dup fc-push-frame fc-ninit @ 0 ?do fc-inits i cells + @ fc-call loop
