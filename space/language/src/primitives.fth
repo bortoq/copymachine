@@ -1,4 +1,4 @@
-\ Primitives as generators (14.3): words of the compiler, executed when the
+\ Primitives as generators (14.3, 14.4): words of the compiler, executed when the
 \ source names the word of the language, that write its copycode (as an
 \ IMMEDIATE word). Compiled after forthc.fth, before main.fth; the host pForth
 \ loads it with the compiler. A generator folds the values known at the top
@@ -30,6 +30,32 @@
 : gen/ ( -- ) fc-code fc-div-entry @ fc-div-exit @ fc-call-helper fc-mq fc-result1 ;
 : gen-mod ( -- ) fc-code fc-div-entry @ fc-div-exit @ fc-call-helper fc-mr fc-result1 ;
 : gen/mod ( -- ) fc-code fc-div-entry @ fc-div-exit @ fc-call-helper fc-mr fc-mq fc-result2 ;
+\ Stack, memory, channels (14.4). At the top level FC-CODE opens the part of
+\ the code first (a definition needs nothing), as the path of the words that
+\ were not found did before.
+: gen-dup ( -- ) fc-code 1 fc-need fc-n @ 1- fc-c@ fc-push ;
+: gen-drop ( -- ) fc-code fc-n @ if fc-pop1 drop else 0 fc-noff ! fc-sp -1 fc-adjust then ;
+: gen-swap ( -- ) fc-code 2 fc-need fc-pop1 fc-pop1 swap fc-push fc-push ;
+: gen-over ( -- ) fc-code 2 fc-need fc-n @ 2 - fc-c@ fc-push ;
+: gen-rot ( -- ) fc-code 3 fc-need fc-pop1 fc-pop1 fc-pop1 >r fc-push fc-push r> fc-push ;
+: gen-pick ( -- ) fc-code 0 fc-pick-roll ;
+: gen-roll ( -- ) fc-code -1 fc-pick-roll ;
+: gen->r ( -- ) fc-code fc-pop fc-src1 fc-rstk fc-rp 32 fc-mem-push ;
+: gen-r> ( -- ) fc-code fc-rstk fc-rp 1 32 fc-mem-pop 0 fc-npin ! 0 fc-popped@ fc-push ;
+: gen-r@ ( -- ) fc-code -1 fc-r-at ;     \ R@ and I
+: gen-j ( -- ) fc-code -3 fc-r-at ;
+: gen-@ ( -- )
+  fc-code fc-pop dup fc-pin ! 1 fc-npin ! fc-reg fc-cres ! 0 fc-npin ! 0 fc-check fc-cres @ fc-push ;
+: gen-! ( -- ) fc-code 2 fc-need fc-pop1 fc-pop1 fc-cv ! 1 fc-check ;
+: gen-c@ ( -- )
+  fc-code fc-pop dup fc-pin ! 1 fc-npin ! fc-reg fc-cres ! 0 fc-npin ! 2 fc-check fc-cres @ fc-push ;
+: gen-c! ( -- ) fc-code 2 fc-need fc-pop1 fc-pop1 fc-cv ! 3 fc-check ;
+: gen-space! ( -- ) fc-code 32 fc-space-store ;
+: gen-spacec! ( -- ) fc-code 8 fc-space-store ;
+: gen-emit ( -- )
+  fc-code fc-pop cc-lookups-begin fc-t-rev8 @ 4 8 fc-xr 0 cc-item 8 0 cc-seg cc-lookups
+  cc-stdout dup fc-xr dup 8 + fc-rows1 ;
+: gen-key ( -- ) fc-code fc-read-key ;
 \ Language name, generator, helpers (1 multiplication, 2 division).
 : fc-generators ( -- )
   s" +" ['] gen+ 0 fc-generator  s" -" ['] gen- 0 fc-generator
@@ -41,6 +67,16 @@
   s" <" ['] gen< 0 fc-generator  s" u<" ['] gen-u< 0 fc-generator
   s" 0=" ['] gen-0= 0 fc-generator  s" 2*" ['] gen-2* 0 fc-generator
   s" 1+" ['] gen-1+ 0 fc-generator  s" 1-" ['] gen-1- 0 fc-generator
-  s" cells" ['] gen-cells 0 fc-generator  s" cell+" ['] gen-cell+ 0 fc-generator ;
+  s" cells" ['] gen-cells 0 fc-generator  s" cell+" ['] gen-cell+ 0 fc-generator
+  s" dup" ['] gen-dup 0 fc-generator  s" drop" ['] gen-drop 0 fc-generator
+  s" swap" ['] gen-swap 0 fc-generator  s" over" ['] gen-over 0 fc-generator
+  s" rot" ['] gen-rot 0 fc-generator  s" pick" ['] gen-pick 0 fc-generator
+  s" roll" ['] gen-roll 0 fc-generator  s" >r" ['] gen->r 0 fc-generator
+  s" r>" ['] gen-r> 0 fc-generator  s" r@" ['] gen-r@ 0 fc-generator
+  s" i" ['] gen-r@ 0 fc-generator  s" j" ['] gen-j 0 fc-generator
+  s" @" ['] gen-@ 0 fc-generator  s" !" ['] gen-! 0 fc-generator
+  s" c@" ['] gen-c@ 0 fc-generator  s" c!" ['] gen-c! 0 fc-generator
+  s" space!" ['] gen-space! 0 fc-generator  s" spacec!" ['] gen-spacec! 0 fc-generator
+  s" emit" ['] gen-emit 0 fc-generator  s" key" ['] gen-key 0 fc-generator ;
 : fc-install-generators ( -- ) ['] fc-generators fc-gens ! ;
 fc-install-generators

@@ -626,28 +626,9 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
     s" kernel-layout" fc-is? if -1 fc-kernel ! then
     fc-find ?dup if 2 cells + @ 2 rshift fc-uses @ or fc-uses ! then
   repeat 0 fc-pos ! ;
-: fc-primitive ( -- )
+: fc-primitive ( -- ) \ the words that are not generators yet
   s" decimal" fc-is? if exit then
-  s" key" fc-is? if fc-read-key exit then
-  s" j" fc-is? if -3 fc-r-at exit then
   s" unloop" fc-is? if 0 fc-noff ! fc-rp -2 fc-adjust exit then
-  s" c@" fc-is? if fc-pop dup fc-pin ! 1 fc-npin ! fc-reg fc-cres ! 0 fc-npin ! 2 fc-check fc-cres @ fc-push exit then
-  s" c!" fc-is? if 2 fc-need fc-pop1 fc-pop1 fc-cv ! 3 fc-check exit then
-  s" dup" fc-is? if 1 fc-need fc-n @ 1- fc-c@ fc-push exit then
-  s" drop" fc-is? if
-    fc-n @ if fc-pop1 drop else 0 fc-noff ! fc-sp -1 fc-adjust then exit then
-  s" swap" fc-is? if 2 fc-need fc-pop1 fc-pop1 swap fc-push fc-push exit then
-  s" over" fc-is? if 2 fc-need fc-n @ 2 - fc-c@ fc-push exit then
-  s" rot" fc-is? if 3 fc-need fc-pop1 fc-pop1 fc-pop1 >r fc-push fc-push r> fc-push exit then
-  s" >r" fc-is? if fc-pop fc-src1 fc-rstk fc-rp 32 fc-mem-push exit then
-  s" r>" fc-is? if fc-rstk fc-rp 1 32 fc-mem-pop 0 fc-npin ! 0 fc-popped@ fc-push exit then
-  s" r@" fc-is? s" i" fc-is? or if -1 fc-r-at exit then
-  s" @" fc-is? if
-    fc-pop dup fc-pin ! 1 fc-npin ! fc-reg fc-cres ! 0 fc-npin ! 0 fc-check fc-cres @ fc-push exit then
-  s" !" fc-is? if 2 fc-need fc-pop1 fc-pop1 fc-cv ! 1 fc-check exit then
-  s" emit" fc-is? if
-    fc-pop cc-lookups-begin fc-t-rev8 @ 4 8 fc-xr 0 cc-item 8 0 cc-seg cc-lookups
-    cc-stdout dup fc-xr dup 8 + fc-rows1 exit then
   -13 throw ;
 variable fc-lv
 : fc-loop ( -- )
@@ -746,8 +727,6 @@ variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-st
   s" [']" fc-is? if fc-next! fc-find dup 0= if -13 throw then 3 cells + @ fc-literal exit then
   s" [char]" fc-is? if fc-word-raw 0= if -16 throw then fc-raw fc-literal exit then
   fc-squote? if fc-string-token dup >r fc-store-string fc-literal r> fc-literal exit then
-  s" pick" fc-is? if 0 fc-pick-roll exit then
-  s" space!" fc-is? if 32 fc-space-store exit then  s" spacec!" fc-is? if 8 fc-space-store exit then  s" roll" fc-is? if -1 fc-pick-roll exit then
   fc-control-token ;
 : fc-close-init ( -- )
   fc-nct @ if -22 throw then
