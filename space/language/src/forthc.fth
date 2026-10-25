@@ -590,6 +590,11 @@ create fc-ctl 96 cells allot variable fc-nctl variable fc-cleave
   fc-nctl @ 0= if -22 throw then -1 fc-nctl +! fc-nctl @ fc-ctl@ >r r@ @ r@ cell+ @ r> 2 cells + @ fc-cleave ! ;
 : fc-do-entry ( -- addr ) \ the innermost loop
   fc-nctl @ 0 ?do fc-nctl @ 1- i - fc-ctl@ dup @ 5 = if unloop exit then drop loop -22 throw ;
+\ The leave cell (14.5): of the entry FC-CTL- took (0: none), of the top
+\ entry, of the loop entry (a new cell if it has none yet).
+: fc-ctl-leave ( -- cell ) fc-cleave @ ;
+: fc-ctl-leave! ( cell -- ) fc-nctl @ 1- fc-ctl@ 2 cells + ! ;
+: fc-loop-leave ( entry -- cell ) dup 2 cells + @ 0= if cc-new-cell over 2 cells + ! then 2 cells + @ ;
 \ Data memory: HERE is cell aligned for each definition and string.
 : fc-align ( -- ) fc-here @ 3 + -4 and fc-here ! ;
 : fc-check-here ( -- ) fc-here @ 4 fc-mw lshift > if -8 throw then ;
@@ -628,29 +633,7 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
   repeat 0 fc-pos ! ;
 : fc-primitive ( -- ) \ the words that are not generators yet
   s" decimal" fc-is? if exit then
-  s" unloop" fc-is? if 0 fc-noff ! fc-rp -2 fc-adjust exit then
   -13 throw ;
-variable fc-lv
-: fc-loop ( -- )
-  fc-ctl- nip fc-cleave @ fc-lv ! fc-spill fc-rstk fc-rp 2 32 fc-mem-pop 0 fc-npin !
-  fc-regs fc-nregs 1- 64 * + >r
-  cc-t-add @ fc-tmp 1 fc-popped@ 1 fc-const 0 cc-adder 32 r@ fc-tmp cc-copy fc-rows1
-  cc-t-xor @ fc-xr r@ 0 fc-popped@ cc-logic
-  fc-xr fc-branch ( start zero more ) cc-seq cc-layer drop
-  0 fc-popped@ fc-srcs ! r> fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
-  swap cc-jump fc-end
-  fc-lv @ ?dup if swap cc-new-record over swap cc-next! cc-flush then fc-begin-block drop ;
-variable fc-di variable fc-dl
-\ ?DO: equal limit and index skip the loop, straight to its leave cell.
-: fc-qdo ( -- )
-  2 fc-need fc-pop1 fc-di ! fc-pop1 fc-dl ! fc-spill
-  cc-t-xor @ fc-xr fc-di @ fc-dl @ cc-logic fc-xr fc-branch
-  cc-new-cell dup >r rot cc-new-record cc-next! cc-flush fc-begin-block drop
-  fc-dl @ fc-srcs ! fc-di @ fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
-  5 -1 fc-begin-block fc-ctl+ r> fc-nctl @ 1- fc-ctl@ 2 cells + ! ;
-: fc-leave ( -- )
-  fc-do-entry fc-spill 0 fc-noff ! fc-rp -2 fc-adjust
-  dup 2 cells + @ 0= if cc-new-cell over 2 cells + ! then 2 cells + @ fc-jump fc-end -1 fc-begin-block drop ;
 \ N PICK and N ROLL: N is the literal just compiled, on top of the cache.
 : fc-const-shift ( right? k -- )
   dup 0= if 2drop fc-pop fc-push exit then
@@ -692,39 +675,13 @@ variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-st
   >r 0 0 fc-stx @ dup r> + fc-strow @ cc-row
   32 fc-strow @ cc-layer-cell 2 pick 0 cc-field fc-stlo @ cc-copy fc-stp @ cc-row drop
   32 fc-strow @ cc-layer-cell rot 1 cc-field fc-sthi @ cc-copy fc-stp @ cc-row drop ;
-: fc-control-token ( -- ) \ inside a definition: control words, words, literals
-  s" execute" fc-is? if fc-pop -1 fc-call-indirect fc-begin-block drop exit then
-  s" catch" fc-is? if fc-catch exit then
-  s" throw" fc-is? if fc-throw exit then
-  s" if" fc-is? if fc-pop fc-spill fc-branch swap 1 swap fc-ctl+ fc-begin-block drop exit then
-  s" else" fc-is? if
-    fc-ctl- nip fc-spill cc-new-cell dup fc-jump fc-end 2 swap fc-ctl+ fc-begin-block drop exit then
-  s" then" fc-is? if
-    fc-ctl- fc-spill swap 1 = if
-      cc-new-cell dup fc-jump cc-flush swap cc-new-record over swap cc-next! fc-end fc-begin-block drop
-    else fc-begin-block drop then exit then
-  s" begin" fc-is? if fc-spill 3 -1 fc-begin-block fc-ctl+ exit then
-  s" until" fc-is? if
-    fc-pop fc-spill fc-branch swap cc-new-record fc-ctl- nip swap cc-next! cc-flush fc-begin-block drop exit then
-  s" while" fc-is? if fc-pop fc-spill fc-branch swap 4 swap fc-ctl+ fc-begin-block drop exit then
-  s" repeat" fc-is? if
-    fc-ctl- nip fc-ctl- nip fc-spill fc-jump fc-end fc-begin-block drop exit then
-  s" again" fc-is? if fc-ctl- nip fc-spill fc-jump fc-end -1 fc-begin-block drop exit then
-  s" do" fc-is? if
-    2 fc-need fc-pop1 fc-pop1 fc-spill fc-srcs ! fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
-    5 -1 fc-begin-block fc-ctl+ exit then
-  s" ?do" fc-is? if fc-qdo exit then
-  s" leave" fc-is? if fc-leave exit then
-  s" loop" fc-is? if fc-loop exit then
+: fc-control-token ( -- ) \ inside a definition: words (a generator is executed), literals
   fc-find ?dup if
     dup 3 cells + @ swap 2 cells + @ dup 2 and if drop execute exit then if fc-call else fc-literal then exit
   then fc-number if fc-literal exit then
   fc-primitive ;
 : fc-word-token ( -- ) \ inside a definition
   s" ;" fc-is? if fc-nctl @ if -22 throw then fc-ret 0 fc-word ! exit then
-  s" exit" fc-is? if fc-ret -1 fc-begin-block drop exit then
-  s" recurse" fc-is? if fc-word @ 3 cells + @ fc-call exit then
-  s" [']" fc-is? if fc-next! fc-find dup 0= if -13 throw then 3 cells + @ fc-literal exit then
   s" [char]" fc-is? if fc-word-raw 0= if -16 throw then fc-raw fc-literal exit then
   fc-squote? if fc-string-token dup >r fc-store-string fc-literal r> fc-literal exit then
   fc-control-token ;

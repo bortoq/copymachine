@@ -18,8 +18,9 @@ OUT ?= $(if $(WORKSPACE_ROOT),$(WORKSPACE_ROOT)/build/$(WORKSPACE_COMPONENT),$(B
 L0 ?= $(OUT)/L0.boot
 # The number of names used in the definition and not defined in it (14.1: 58 in the sources of K
 # without the auxiliary libraries of copycode/forth; 68 with them, docs/research/definition-graph.md;
-# 14.3: 39, the 19 words of the generators of src/primitives.fth are defined; 14.4: 19, 20 more).
-MAX_EXTERNAL ?= 19
+# 14.3: 39, the 19 words of the generators of src/primitives.fth are defined; 14.4: 19, 20 more;
+# 14.5: 2, the control words are generators: DECIMAL and KERNEL-LAYOUT remain).
+MAX_EXTERNAL ?= 2
 STREAMS ?=
 BOOT_SECONDS ?= 600
 PROGRAMS_SECONDS ?= 1800

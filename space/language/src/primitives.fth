@@ -1,4 +1,4 @@
-\ Primitives as generators (14.3, 14.4): words of the compiler, executed when the
+\ Primitives as generators (14.3-14.5): words of the compiler, executed when the
 \ source names the word of the language, that write its copycode (as an
 \ IMMEDIATE word). Compiled after forthc.fth, before main.fth; the host pForth
 \ loads it with the compiler. A generator folds the values known at the top
@@ -56,6 +56,57 @@
   fc-code fc-pop cc-lookups-begin fc-t-rev8 @ 4 8 fc-xr 0 cc-item 8 0 cc-seg cc-lookups
   cc-stdout dup fc-xr dup 8 + fc-rows1 ;
 : gen-key ( -- ) fc-code fc-read-key ;
+\ Control (14.5): the branches of FC-CONTROL-TOKEN and FC-WORD-TOKEN. An open
+\ structure is an entry of the control stack (FC-CTL+ FC-CTL-): kind (1 if,
+\ 2 else, 3 begin, 4 while, 5 do), its cell and, for a loop, its leave cell.
+: gen-if ( -- ) fc-code fc-pop fc-spill fc-branch swap 1 swap fc-ctl+ fc-begin-block drop ;
+: gen-else ( -- )
+  fc-code fc-ctl- nip fc-spill cc-new-cell dup fc-jump fc-end 2 swap fc-ctl+ fc-begin-block drop ;
+: gen-then ( -- )
+  fc-code fc-ctl- fc-spill swap 1 = if
+    cc-new-cell dup fc-jump cc-flush swap cc-new-record over swap cc-next! fc-end fc-begin-block drop
+  else fc-begin-block drop then ;
+: gen-begin ( -- ) fc-code fc-spill 3 -1 fc-begin-block fc-ctl+ ;
+: gen-until ( -- )
+  fc-code fc-pop fc-spill fc-branch swap cc-new-record fc-ctl- nip swap cc-next! cc-flush fc-begin-block drop ;
+: gen-while ( -- ) fc-code fc-pop fc-spill fc-branch swap 4 swap fc-ctl+ fc-begin-block drop ;
+: gen-repeat ( -- ) fc-code fc-ctl- nip fc-ctl- nip fc-spill fc-jump fc-end fc-begin-block drop ;
+: gen-again ( -- ) fc-code fc-ctl- nip fc-spill fc-jump fc-end -1 fc-begin-block drop ;
+\ DO: limit and index to the return stack, the loop starts a block.
+: gen-do ( -- )
+  fc-code 2 fc-need fc-pop1 fc-pop1 fc-spill fc-srcs ! fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
+  5 -1 fc-begin-block fc-ctl+ ;
+\ ?DO: equal limit and index skip the loop, straight to its leave cell.
+variable fc-di variable fc-dl
+: gen-?do ( -- )
+  fc-code 2 fc-need fc-pop1 fc-di ! fc-pop1 fc-dl ! fc-spill
+  cc-t-xor @ fc-xr fc-di @ fc-dl @ cc-logic fc-xr fc-branch
+  cc-new-cell dup >r rot cc-new-record cc-next! cc-flush fc-begin-block drop
+  fc-dl @ fc-srcs ! fc-di @ fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
+  5 -1 fc-begin-block fc-ctl+ r> fc-ctl-leave! ;
+\ LOOP: index + 1, back to the start unless it equals the limit; then the leave cell.
+variable fc-lv
+: gen-loop ( -- )
+  fc-code fc-ctl- nip fc-ctl-leave fc-lv ! fc-spill fc-rstk fc-rp 2 32 fc-mem-pop 0 fc-npin !
+  fc-regs fc-nregs 1- 64 * + >r
+  cc-t-add @ fc-tmp 1 fc-popped@ 1 fc-const 0 cc-adder 32 r@ fc-tmp cc-copy fc-rows1
+  cc-t-xor @ fc-xr r@ 0 fc-popped@ cc-logic
+  fc-xr fc-branch ( start zero more ) cc-seq cc-layer drop
+  0 fc-popped@ fc-srcs ! r> fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
+  swap cc-jump fc-end
+  fc-lv @ ?dup if swap cc-new-record over swap cc-next! cc-flush then fc-begin-block drop ;
+: gen-leave ( -- )
+  fc-code fc-do-entry fc-spill 0 fc-noff ! fc-rp -2 fc-adjust
+  fc-loop-leave fc-jump fc-end -1 fc-begin-block drop ;
+: gen-unloop ( -- ) fc-code 0 fc-noff ! fc-rp -2 fc-adjust ;
+\ Calls: EXIT returns, RECURSE calls the word being defined, EXECUTE calls an xt;
+\ ['] X compiles the xt of X (the next word of the channel) as a literal.
+: gen-exit ( -- ) fc-code fc-ret -1 fc-begin-block drop ;
+: gen-recurse ( -- ) fc-code fc-word @ 3 cells + @ fc-call ;
+: gen-execute ( -- ) fc-code fc-pop -1 fc-call-indirect fc-begin-block drop ;
+: gen-tick ( -- ) fc-code fc-next! fc-find dup 0= if -13 throw then 3 cells + @ fc-literal ;
+: gen-catch ( -- ) fc-code fc-catch ;
+: gen-throw ( -- ) fc-code fc-throw ;
 \ Language name, generator, helpers (1 multiplication, 2 division).
 : fc-generators ( -- )
   s" +" ['] gen+ 0 fc-generator  s" -" ['] gen- 0 fc-generator
@@ -77,6 +128,16 @@
   s" @" ['] gen-@ 0 fc-generator  s" !" ['] gen-! 0 fc-generator
   s" c@" ['] gen-c@ 0 fc-generator  s" c!" ['] gen-c! 0 fc-generator
   s" space!" ['] gen-space! 0 fc-generator  s" spacec!" ['] gen-spacec! 0 fc-generator
-  s" emit" ['] gen-emit 0 fc-generator  s" key" ['] gen-key 0 fc-generator ;
+  s" emit" ['] gen-emit 0 fc-generator  s" key" ['] gen-key 0 fc-generator
+  s" if" ['] gen-if 0 fc-generator  s" else" ['] gen-else 0 fc-generator
+  s" then" ['] gen-then 0 fc-generator  s" begin" ['] gen-begin 0 fc-generator
+  s" until" ['] gen-until 0 fc-generator  s" while" ['] gen-while 0 fc-generator
+  s" repeat" ['] gen-repeat 0 fc-generator  s" again" ['] gen-again 0 fc-generator
+  s" do" ['] gen-do 0 fc-generator  s" ?do" ['] gen-?do 0 fc-generator
+  s" loop" ['] gen-loop 0 fc-generator  s" leave" ['] gen-leave 0 fc-generator
+  s" unloop" ['] gen-unloop 0 fc-generator  s" exit" ['] gen-exit 0 fc-generator
+  s" recurse" ['] gen-recurse 0 fc-generator  s" execute" ['] gen-execute 0 fc-generator
+  s" [']" ['] gen-tick 0 fc-generator  s" catch" ['] gen-catch 0 fc-generator
+  s" throw" ['] gen-throw 0 fc-generator ;
 : fc-install-generators ( -- ) ['] fc-generators fc-gens ! ;
 fc-install-generators
