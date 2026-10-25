@@ -6,7 +6,8 @@
 исходников ядра K, происхождение в `PROVENANCE.json`) и бут — его первая
 компиляция. Исполнитель первого бута — хостовой 32-битный pForth: он исполняет
 текст определения (`prelude`, `backend`, `compute`, `forthc`, `main`, `kernel`,
-в порядке `KERNEL` из `space/forth/tests/test_kernel.py`) и выдаёт поток L0 —
+в порядке `KERNEL` из `space/forth/tests/test_kernel.py`; с 14.3 после `forthc` —
+`primitives`, генераторы примитивов, `doc/generators.md`) и выдаёт поток L0 —
 ядро языка в индексном коде. Рабочий путь (`space/forth`, корневой Makefile,
 выпуски) не менялся: исходники скопированы, `host32.py` и `common.py` только
 импортируются.
@@ -21,7 +22,7 @@
    хосте `ALLOCATE` не хватает памяти (ABORT, код -1). Размер словаря (имена и код
    самого pForth) не менялся — его хватает.
 2. `tools/boot.py` подаёт хосту на stdin: библиотеки компилятора (`backend.fth`,
-   `compute.fth`, `forthc.fth`) как исходник pForth, строку размеров
+   `compute.fth`, `forthc.fth`, с 14.3 и `primitives.fth`) как исходник pForth, строку размеров
    (`131072 fc-text-size ! 4096 fc-max-consts ! 2048 fc-max-words ! 32768 fc-names-size ! 1024 fc-nbuckets !`),
    затем весь текст определения построчно как `fc| <строка>` и `fc-go bye`.
    Компилятор (`forthc.fth`, исполняемый pForth) читает текст определения, а не
@@ -52,6 +53,8 @@
 - Размер L0: 14 596 459 байт (14.6 МБ), sha256 `700f91fb26f13bd7…`; равен K0.
 - Определений в языке: 635 (слова и данные по графу `check-closure`).
 - Внешних имён (`MAX_EXTERNAL`): **58**.
+- После 14.3 (генераторы): L0 14 586 891 байт, равен K0 модели для нового текста;
+  определений 687; внешних имён **39** (`doc/generators.md`).
 
 ## Число внешних имён: 58, а не 68
 
@@ -61,7 +64,7 @@
 языка — только K, и в нём 58 внешних имён (4925 использований). Десять лишних —
 имена только aux: `2>r`, `2r>`, `base`, `d+`, `interpret`, `pop-source-id`,
 `push-source-id`, `set-source`, `space`, `um/mod`. `MAX_EXTERNAL = 58` записан в
-`Makefile`; его можно понизить, но не повышать.
+`Makefile`; его можно понизить, но не повышать (14.3: 39).
 
 Внешние имена: `@ ! + if then dup cells drop i exit swap and r> >r * loop over
 lshift 0= r@ throw else rshift ?do - = or pick 1- 1+ cell+ rot do < c@ 2* begin

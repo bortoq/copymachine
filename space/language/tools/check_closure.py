@@ -6,14 +6,30 @@ tools/research/defgraph.py, order of compilation as in the kernel) and prints
 `external N`: the number of names used in the definition but not defined in it,
 then the list of the names (with the number of uses). Exit code 0 if N <= MAX_EXTERNAL.
 
+Generators (14.3, src/primitives.fth) are defined words: a registration
+`s" NAME" ['] WORD USES fc-generator` defines the word NAME of the language by the
+generator WORD (the name in the Forth dictionary differs), so the graph gets a node
+NAME of kind `generator` with an edge to WORD (space/language/doc/generators.md).
+
 Usage: check_closure.py [--max-external N]   (default: the environment MAX_EXTERNAL, else 0)
 """
-import argparse, os, sys
+import argparse, os, re, sys
 
 import paths
 
 sys.path.insert(0, str(paths.WORKSPACE / 'tools/research'))
 import defgraph  # noqa: E402
+
+
+GENERATOR = re.compile(r'(?i)s" (\S+)" \[\'\] (\S+) \S+ fc-generator(?!\S)')
+
+
+def generators():
+    """Registrations of src/primitives.fth: [(language name, generator word, line)]."""
+    found = []
+    for line, text in enumerate((paths.SRC / 'primitives.fth').read_text().split('\n'), 1):
+        found += [(name.lower(), word.lower(), line) for name, word in GENERATOR.findall(text.split('\\ ')[0])]
+    return found
 
 
 def external_names():
@@ -31,6 +47,9 @@ def external_names():
     graph = defgraph.Graph()
     for path in order:
         defgraph.process(graph, path, 'K')
+    for name, word, line in generators():       # the word of the language -> its generator
+        node = graph.new_node(name, 'generator', 'space/language/src/primitives.fth', line, 'K')
+        graph.add_edge(node, graph.lookup(word, 'K'), 'direct', line, sub='generator')
     defined = {node['name'] for node in graph.nodes if node['kind'] != 'init'}
     return {name: uses for name, uses in graph.externals.items() if name not in defined}, len(graph.nodes)
 

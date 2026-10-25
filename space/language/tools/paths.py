@@ -10,11 +10,13 @@ COPYCODE_ROOT = Path(os.environ.get('COPYCODE_ROOT', WORKSPACE / 'space/copycode
 EMULATOR_ROOT = Path(os.environ.get('EMULATOR_ROOT', WORKSPACE / 'emulator')).resolve()
 SRC = ROOT / "src"
 SIZE = 1 << 31                                         # bits of the space (emulator -s), as model.SIZE
-# Order of compilation of the language definition (as KERNEL in space/forth/tests/test_kernel.py).
-COMPILER_FILES = ['prelude.fth', 'backend.fth', 'compute.fth', 'forthc.fth', 'main.fth']
+# Order of compilation of the language definition (as KERNEL in space/forth/tests/test_kernel.py,
+# with primitives.fth, the generators of 14.3, after the compiler forthc.fth).
+COMPILER_FILES = ['prelude.fth', 'backend.fth', 'compute.fth', 'forthc.fth', 'primitives.fth', 'main.fth']
 KERNEL_FILES = COMPILER_FILES + ['kernel.fth']
-# Libraries loaded natively into the host pForth (the compiler forthc.fth and what it needs).
-LIBRARY_FILES = ['backend.fth', 'compute.fth', 'forthc.fth']
+# Libraries loaded natively into the host pForth (the compiler forthc.fth, what it needs and
+# its generators).
+LIBRARY_FILES = ['backend.fth', 'compute.fth', 'forthc.fth', 'primitives.fth']
 
 sys.path[:0] = [str(COPYCODE_ROOT / 'src'), str(VM2_ROOT)]
 from copycode.hostpaths import output_dir  # noqa: E402

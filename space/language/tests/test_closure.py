@@ -1,5 +1,6 @@
 """The closure check agrees with the graph of docs/research/definition-graph.json:
-the names outside the definition of the language are primitives of the compiler (no definer among them)."""
+the names outside the definition of the language are primitives of the compiler (no definer among them);
+the words of the generators (14.3, src/primitives.fth) are defined."""
 import sys
 from pathlib import Path
 
@@ -9,6 +10,9 @@ import check_closure
 names, _ = check_closure.external_names()
 assert names and all(uses > 0 for uses in names.values())
 assert not {':', ';', 'variable', 'constant', 'create'} & set(names), 'a definer is not a primitive name'
-for must in ('@', '!', '+', 'if', 'then', 'dup'):
+for must in ('@', '!', 'if', 'then', 'dup'):
     assert must in names, must
+generated = {name for name, _, _ in check_closure.generators()}
+assert len(generated) == 20 and {'+', '*', '/mod', 'cell+', '0='} <= generated, sorted(generated)
+assert not generated & set(names), sorted(generated & set(names))
 print(f'PASS closure: {len(names)} external names, most used {max(names, key=names.get)!r}')

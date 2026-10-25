@@ -1,5 +1,5 @@
-"""PROVENANCE.json: every source in src/ has a recorded origin, the origin is unchanged, and the
-order of compilation of PROVENANCE.json is the one the tools use."""
+"""PROVENANCE.json: every source in src/ has a recorded origin (null: a new source of the language),
+the origin is unchanged, and the order of compilation of PROVENANCE.json is the one the tools use."""
 import hashlib, json, sys
 from pathlib import Path
 
@@ -11,6 +11,9 @@ assert record['order'] == paths.KERNEL_FILES, record['order']
 assert sorted(record['files']) == sorted('src/' + name for name in paths.KERNEL_FILES)
 for name, entry in record['files'].items():
     assert (paths.ROOT / name).is_file(), name
+    if entry['origin'] is None:
+        print('PASS provenance', name, '<- new in', entry['item'])
+        continue
     origin = paths.WORKSPACE / entry['origin']
     assert hashlib.sha256(origin.read_bytes()).hexdigest() == entry['origin_sha256'], ('the origin changed', name)
     print('PASS provenance', name, '<-', entry['origin'])

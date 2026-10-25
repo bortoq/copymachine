@@ -1,5 +1,5 @@
 {
- "note": "Copies of the sources of kernel K (space/forth) for the language experiment (stage 14); the origin is not changed. The order of compilation is that of KERNEL in space/forth/tests/test_kernel.py. copy_sha256 is the digest at the time of copying; the copies may change later, the origins are checked by tests/test_provenance.py.",
+ "note": "Copies of the sources of kernel K (space/forth) for the language experiment (stage 14); the origin is not changed. The order of compilation is that of KERNEL in space/forth/tests/test_kernel.py. copy_sha256 is the digest at the time of copying; the copies may change later, the origins are checked by tests/test_provenance.py. A file with origin null is a new source of the language, not a copy (src/primitives.fth, 14.3).",
  "workspace_commit": "60a6f9af5e0d6366af59d35552bcf90088c47a7e",
  "branch": "language/experiment",
  "order": [
@@ -7,6 +7,7 @@
   "backend.fth",
   "compute.fth",
   "forthc.fth",
+  "primitives.fth",
   "main.fth",
   "kernel.fth"
  ],
@@ -30,6 +31,11 @@
    "origin": "space/forth/scripts/forthc/forthc.fth",
    "origin_sha256": "e92154756df16fa0a748d7676d3f42e499e5be03b44da882070d1f83aa56966c",
    "copy_sha256": "e92154756df16fa0a748d7676d3f42e499e5be03b44da882070d1f83aa56966c"
+  },
+  "src/primitives.fth": {
+   "origin": null,
+   "item": "14.3",
+   "note": "the generators of the primitives (arithmetic and logic), moved from the branches FC-IS? of src/forthc.fth"
   },
   "src/main.fth": {
    "origin": "space/forth/scripts/forthc/main.fth",

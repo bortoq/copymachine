@@ -605,62 +605,34 @@ create fc-ct 64 cells allot variable fc-nct
 : fc-ct+ ( v -- ) fc-nct @ 64 = if -8 throw then fc-ct fc-nct @ cells + ! 1 fc-nct +! ;
 : fc-ct- ( -- v ) fc-nct @ 0= if -22 throw then -1 fc-nct +! fc-ct fc-nct @ cells + @ ;
 : fc-ct2 ( -- a b ) fc-ct- fc-ct- swap ;
-: fc-ct-op ( -- f ) \ + - * AND OR XOR LSHIFT RSHIFT on two values, CELLS 2* 1+ 1- CELL+ on one
-  fc-nct @ 1 > if
-    s" +" fc-is? if fc-ct2 + fc-ct+ -1 exit then  s" -" fc-is? if fc-ct2 - fc-ct+ -1 exit then
-    s" *" fc-is? if fc-ct2 * fc-ct+ -1 exit then  s" and" fc-is? if fc-ct2 and fc-ct+ -1 exit then
-    s" or" fc-is? if fc-ct2 or fc-ct+ -1 exit then  s" xor" fc-is? if fc-ct2 xor fc-ct+ -1 exit then
-    s" lshift" fc-is? if fc-ct2 31 and lshift fc-ct+ -1 exit then
-    s" rshift" fc-is? if fc-ct2 31 and rshift fc-ct+ -1 exit then
-  then
-  fc-nct @ 0> if
-    s" cells" fc-is? if fc-ct- 4 * fc-ct+ -1 exit then  s" 2*" fc-is? if fc-ct- 2 * fc-ct+ -1 exit then
-    s" 1+" fc-is? if fc-ct- 1+ fc-ct+ -1 exit then  s" 1-" fc-is? if fc-ct- 1- fc-ct+ -1 exit then
-    s" cell+" fc-is? if fc-ct- 4 + fc-ct+ -1 exit then
-  then 0 ;
 \ Other top-level code runs before MAIN: parts, each a word of its own.
 create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
 : fc-init ( -- )
   fc-size 8 fc-cellb 4096 cc-machine fc-first @ cc-builder fc-tables
   fc-ck @ 0= if
-    fc-max-consts @ 4 * cells allocate throw fc-ck ! fc-max-words @ 5 * cells allocate throw fc-wt !
-    fc-names-size @ allocate throw fc-names ! fc-ring 8 * cells allocate throw fc-stabs !
-    fc-nbuckets @ cells allocate throw fc-cbk ! fc-nbuckets @ cells allocate throw fc-wbk !
+    fc-max-consts @ 4 * cells allocate throw fc-ck ! fc-ring 8 * cells allocate throw fc-stabs !
+    fc-nbuckets @ cells allocate throw fc-cbk !
   then
-  fc-cbk @ fc-nbuckets @ cells 0 fill fc-wbk @ fc-nbuckets @ cells 0 fill
-  0 fc-nconsts ! 0 fc-n ! 0 fc-npin ! 0 fc-live ! 0 fc-nseg ! 0 fc-nwords ! 0 fc-names-used !
+  fc-cbk @ fc-nbuckets @ cells 0 fill
+  0 fc-nconsts ! 0 fc-n ! 0 fc-npin ! 0 fc-live ! 0 fc-nseg !
   0 fc-nctl ! fc-data-start fc-here ! 0 fc-word !
   0 fc-nct ! 0 fc-ninit ! 0 fc-init-open ! 0 fc-ll ! 0 fc-plit !
   cc-lone fc-cellb over cc-next! cc-layer-cell fc-tramp ! cc-flush
   cc-lone 0 over cc-next! cc-layer-cell fc-ex ! cc-flush
   0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-chunk 8 * allocate throw fc-link-buf ! then
   fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
-: fc-scan-uses ( -- ) \ 1: *  2: / MOD /MOD; and KERNEL-LAYOUT
+: fc-scan-uses ( -- ) \ helpers the generators need (1: *  2: / MOD /MOD); and KERNEL-LAYOUT
   0 fc-uses ! 0 fc-kernel ! 0 fc-pos ! begin fc-next while
     s" kernel-layout" fc-is? if -1 fc-kernel ! then
-    s" *" fc-is? if fc-uses @ 1 or fc-uses ! then
-    s" /" fc-is? s" mod" fc-is? or s" /mod" fc-is? or if fc-uses @ 2 or fc-uses ! then
+    fc-find ?dup if 2 cells + @ 2 rshift fc-uses @ or fc-uses ! then
   repeat 0 fc-pos ! ;
 : fc-primitive ( -- )
-  s" +" fc-is? if 0 fc-binary exit then  s" -" fc-is? if 1 fc-binary exit then
-  s" and" fc-is? if 2 fc-binary exit then  s" or" fc-is? if 3 fc-binary exit then
-  s" xor" fc-is? if 4 fc-binary exit then  s" =" fc-is? if 5 fc-binary exit then
-  s" <" fc-is? if 6 fc-binary exit then  s" u<" fc-is? if 7 fc-binary exit then
-  s" lshift" fc-is? if 8 fc-binary exit then  s" rshift" fc-is? if 9 fc-binary exit then
-  s" cells" fc-is? if 2 fc-shift-copy exit then  s" 2*" fc-is? if 1 fc-shift-copy exit then
-  s" 1+" fc-is? if cc-t-add @ 1 0 fc-inc exit then  s" 1-" fc-is? if cc-t-sub @ 1 1 fc-inc exit then
-  s" cell+" fc-is? if cc-t-add @ 4 0 fc-inc exit then
   s" decimal" fc-is? if exit then
   s" key" fc-is? if fc-read-key exit then
   s" j" fc-is? if -3 fc-r-at exit then
   s" unloop" fc-is? if 0 fc-noff ! fc-rp -2 fc-adjust exit then
   s" c@" fc-is? if fc-pop dup fc-pin ! 1 fc-npin ! fc-reg fc-cres ! 0 fc-npin ! 2 fc-check fc-cres @ fc-push exit then
   s" c!" fc-is? if 2 fc-need fc-pop1 fc-pop1 fc-cv ! 3 fc-check exit then
-  s" *" fc-is? if fc-mul-entry @ fc-mul-exit @ fc-call-helper fc-mp fc-result1 exit then
-  s" /" fc-is? if fc-div-entry @ fc-div-exit @ fc-call-helper fc-mq fc-result1 exit then
-  s" mod" fc-is? if fc-div-entry @ fc-div-exit @ fc-call-helper fc-mr fc-result1 exit then
-  s" /mod" fc-is? if fc-div-entry @ fc-div-exit @ fc-call-helper fc-mr fc-mq fc-result2 exit then
-  s" 0=" fc-is? if fc-pop fc-reg tuck swap fc-or-zero fc-push exit then
   s" dup" fc-is? if 1 fc-need fc-n @ 1- fc-c@ fc-push exit then
   s" drop" fc-is? if
     fc-n @ if fc-pop1 drop else 0 fc-noff ! fc-sp -1 fc-adjust then exit then
@@ -708,15 +680,18 @@ variable fc-di variable fc-dl
     32 fc-sk @ - over fc-sk @ + 3 pick cc-copy r@ cc-row drop
     fc-sk @ over fc-zero cc-copy r> cc-row drop
   then fc-push drop ;
-\ A literal power of two before *, or a literal shift below 32: a shift by
-\ copying, one layer.
-: fc-shift-lit? ( -- f )
-  fc-plit @ 0= fc-n @ 0= or if 0 exit then fc-n @ 1- fc-c@ fc-plr @ <> if 0 exit then
-  fc-plv @ s" *" fc-is? if
-    dup 0= over dup 1- and or if drop 0 exit then
-    0 swap begin dup 1 u> while 1 rshift swap 1+ swap repeat drop
-  else dup 32 u< 0= if drop 0 exit then then
-  fc-pop1 drop s" rshift" fc-is? swap fc-const-shift -1 ;
+\ A literal power of two before * (the generator of *), or a literal shift
+\ below 32 (of LSHIFT, RSHIFT): a shift by copying, one layer.
+: fc-lit? ( -- f ) \ the top of the cache is the literal just compiled
+  fc-plit @ 0= fc-n @ 0= or if 0 exit then fc-n @ 1- fc-c@ fc-plr @ = ;
+: fc-mul-lit? ( -- f )
+  fc-lit? 0= if 0 exit then fc-plv @
+  dup 0= over dup 1- and or if drop 0 exit then
+  0 swap begin dup 1 u> while 1 rshift swap 1+ swap repeat drop
+  fc-pop1 drop 0 swap fc-const-shift -1 ;
+: fc-shift-lit? ( right? -- f )
+  fc-lit? 0= if drop 0 exit then fc-plv @ dup 32 u< 0= if 2drop 0 exit then
+  fc-pop1 drop fc-const-shift -1 ;
 : fc-pick-roll ( roll? -- )
   fc-plit @ 0= fc-n @ 0= or if -13 throw then fc-n @ 1- fc-c@ fc-plr @ <> if -13 throw then
   fc-pop1 drop fc-plv @ dup 1+ fc-need fc-n @ 1- swap - ( index )
@@ -760,8 +735,9 @@ variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-st
   s" ?do" fc-is? if fc-qdo exit then
   s" leave" fc-is? if fc-leave exit then
   s" loop" fc-is? if fc-loop exit then
-  fc-find ?dup if dup 2 cells + @ if 3 cells + @ fc-call else 3 cells + @ fc-literal then exit then
-  fc-number if fc-literal exit then
+  fc-find ?dup if
+    dup 3 cells + @ swap 2 cells + @ dup 2 and if drop execute exit then if fc-call else fc-literal then exit
+  then fc-number if fc-literal exit then
   fc-primitive ;
 : fc-word-token ( -- ) \ inside a definition
   s" ;" fc-is? if fc-nctl @ if -22 throw then fc-ret 0 fc-word ! exit then
@@ -770,7 +746,6 @@ variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-st
   s" [']" fc-is? if fc-next! fc-find dup 0= if -13 throw then 3 cells + @ fc-literal exit then
   s" [char]" fc-is? if fc-word-raw 0= if -16 throw then fc-raw fc-literal exit then
   fc-squote? if fc-string-token dup >r fc-store-string fc-literal r> fc-literal exit then
-  s" *" fc-is? s" lshift" fc-is? or s" rshift" fc-is? or if fc-shift-lit? if exit then then
   s" pick" fc-is? if 0 fc-pick-roll exit then
   s" space!" fc-is? if 32 fc-space-store exit then  s" spacec!" fc-is? if 8 fc-space-store exit then  s" roll" fc-is? if -1 fc-pick-roll exit then
   fc-control-token ;
@@ -783,6 +758,35 @@ variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-st
     -1 fc-init-open ! -1 fc-word ! 0 fc-live ! 0 fc-n ! fc-begin-block drop
   then
   fc-nct @ 0 ?do fc-ct i cells + @ fc-literal loop 0 fc-nct ! ;
+
+\ --- generators (14.3) ----------------------------------------------------
+\ A generator is a dictionary entry of kind 2 (+ 4 * the helpers it needs:
+\ 1 multiplication, 2 division) whose value is the xt of a word of the
+\ compiler: found in the source, it is executed and writes the copycode.
+\ Generators are registered by the word in FC-GENS (primitives.fth) when
+\ the dictionary is cleared, before the source is read; the source may
+\ redefine their names. The words below are the state of the compiler a
+\ generator uses (space/language/doc/generators.md).
+variable fc-gens
+: fc-generator ( addr u xt uses -- ) \ the entry: name addr u, xt, helpers
+  2 lshift 2 or swap 2swap dup fc-tl ! fc-tok swap cmove fc-define ;
+: fc-words ( -- ) \ the dictionary: cleared, then the generators
+  fc-wt @ 0= if
+    fc-max-words @ 5 * cells allocate throw fc-wt ! fc-names-size @ allocate throw fc-names !
+    fc-nbuckets @ cells allocate throw fc-wbk !
+  then
+  fc-wbk @ fc-nbuckets @ cells 0 fill 0 fc-nwords ! 0 fc-names-used !
+  fc-gens @ ?dup if execute then ;
+: fc-depth ( -- n ) fc-n @ ;           \ items in the stack cache
+: fc-ctl-depth ( -- n ) fc-nctl @ ;    \ entries of the control stack
+: fc-known ( -- n ) fc-nct @ ;         \ values known at compile time
+\ Code at the top level runs before MAIN: open its part (the known values
+\ become literals); inside a definition nothing is needed.
+: fc-code ( -- ) fc-word @ fc-init-open @ 0= and 0= if fc-open-init 0 fc-plit ! then ;
+\ True: n values are known (the generator folds them with FC-CT- FC-CT+);
+\ else FC-CODE and false (the generator writes code).
+: fc-fold? ( n -- f ) fc-known > if fc-code 0 else -1 then ;
+
 \ Definitions; constant expressions are evaluated here, other code runs before
 \ MAIN as parts of the top-level code, in order.
 : fc-top-token ( -- )
@@ -795,11 +799,12 @@ variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-st
   s" allot" fc-is? if fc-ct- fc-here +! fc-check-here exit then
   s" constant" fc-is? if fc-ct- fc-next! 0 swap fc-define exit then
   fc-number if fc-ct+ exit then
-  fc-find ?dup if dup 2 cells + @ 0= if 3 cells + @ fc-ct+ exit then drop then
-  fc-ct-op if exit then
+  fc-find ?dup if
+    dup 3 cells + @ swap 2 cells + @ dup 0= if drop fc-ct+ exit then 2 and if execute exit then drop
+  then
   fc-open-init 0 fc-plit ! fc-word-token fc-word @ 0= if -22 throw then ;
 : fc-compile ( -- )
-  fc-scan-uses fc-kernel @ fc-layout fc-init
+  fc-words fc-scan-uses fc-kernel @ fc-layout fc-init
   fc-uses @ 1 and if fc-build-mul fc-mul-exit ! fc-mul-entry ! then
   fc-uses @ 2 and if fc-build-div fc-div-exit ! fc-div-entry ! then
   begin fc-next while
