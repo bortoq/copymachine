@@ -51,8 +51,6 @@
 : gen-c@ ( -- )
   fc-code fc-pop dup fc-pin ! 1 fc-npin ! fc-reg fc-cres ! 0 fc-npin ! 2 fc-check fc-cres @ fc-push ;
 : gen-c! ( -- ) fc-code 2 fc-need fc-pop1 fc-pop1 fc-cv ! 3 fc-check ;
-: gen-space! ( -- ) fc-code 32 fc-space-store ;
-: gen-spacec! ( -- ) fc-code 8 fc-space-store ;
 : gen-emit ( -- )
   fc-code fc-pop cc-lookups-begin fc-t-rev8 @ 4 8 fc-xr 0 cc-item 8 0 cc-seg cc-lookups
   cc-stdout dup fc-xr dup 8 + fc-rows1 ;
@@ -104,16 +102,53 @@ variable fc-lv
 \ ['] X compiles the xt of X (the next word of the channel) as a literal.
 : gen-exit ( -- ) fc-code fc-ret -1 fc-begin-block drop ;
 : gen-recurse ( -- ) fc-code fc-word @ 3 cells + @ fc-call ;
-: gen-execute ( -- ) fc-code fc-pop -1 fc-call-indirect fc-begin-block drop ;
 : gen-tick ( -- ) fc-code fc-next! fc-find dup 0= if -13 throw then 3 cells + @ fc-literal ;
-: gen-catch ( -- ) fc-code fc-catch ;
 : gen-throw ( -- ) fc-code fc-throw ;
+\ Isolation of the kernel (14.10). In the program of the kernel (FC-GUARD, set by the kernel
+\ while it compiles a program) the generators of SPACE! SPACEC! SPACE@ SPACEC@ EXECUTE CATCH
+\ write a check before their code: -9 THROW unless [lo,hi) is in the half of the program, or the
+\ address is the entry of a word of the program. A generator is called as the loop of
+\ FC-COMPILE calls it (GEN-CALL: the literal compiled by the previous word is seen); the checks
+\ call the generators themselves, not the words of the dictionary, which the program may redefine.
+: gen-call ( xt -- ) fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! execute ;
+: gen-lit ( v -- ) fc-code fc-literal ;
+\ N PICK as a check needs it: the literal N, then the pick (also at the top level).
+: gen-pick-n ( n -- ) gen-lit fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! 0 fc-pick-roll ;
+\ ( lo hi -- lo hi ) for a store or a fetch of n bits: -9 THROW unless hi - lo = n (the interval of the
+\ copy is valid), lo and hi - 1 are in the same block of 2^29 bits, and the block is 0 or 2 (bits 29 and
+\ 31 of lo are zero). Then [lo, hi) is in the half of the program: [0, 2^29) or [2^30, 2^30 + 2^29).
+: gen-check-range ( n -- )
+  >r ['] gen-over gen-call ['] gen-over gen-call ['] gen-swap gen-call ['] gen- gen-call
+  r> gen-lit ['] gen-xor gen-call 2 gen-pick-n 2 gen-pick-n ['] gen-1- gen-call ['] gen-xor gen-call
+  29 gen-lit ['] gen-rshift gen-call ['] gen-or gen-call
+  2 gen-pick-n 5 29 lshift gen-lit ['] gen-and gen-call ['] gen-or gen-call
+  ['] gen-if gen-call -9 gen-lit ['] gen-throw gen-call ['] gen-then gen-call ;
+\ The entry of a word (a colon definition of the program of the kernel) holds, in the first row of
+\ its first layer, the copy of 32 zero bits to FC-MARK: the field dl of that row, at the start of
+\ the cell, is the mark.
+: fc-mark-entry ( -- ) 32 fc-mark fc-zero cc-copy cc-last cc-row drop ;
+: gen-space! ( -- ) fc-code fc-guard @ if 32 gen-check-range then 32 fc-space-store ;
+: gen-spacec! ( -- ) fc-code fc-guard @ if 8 gen-check-range then 8 fc-space-store ;
+: gen-space@ ( -- ) fc-code fc-guard @ if 32 gen-check-range then 32 fc-space-fetch ;
+: gen-spacec@ ( -- ) fc-code fc-guard @ if 8 gen-check-range then 8 fc-space-fetch ;
+\ ( xt -- xt ) for EXECUTE and CATCH: -9 THROW unless xt is in the code of the program (bits 29 and above
+\ are zero) and the 32 bits at the start of its cell are the mark. The read is of the aligned 32 bits
+\ of the code ((xt and 2^29 - 32), 32 bits), so it never leaves the code of the program.
+: gen-check-entry ( -- )
+  0 0 0 cc-field if -24 throw then
+  ['] gen-dup gen-call 29 gen-lit ['] gen-rshift gen-call ['] gen-over gen-call
+  1 29 lshift 32 - gen-lit ['] gen-and gen-call ['] gen-dup gen-call 32 gen-lit ['] gen+ gen-call
+  32 fc-space-fetch fc-mark gen-lit ['] gen-xor gen-call ['] gen-or gen-call
+  ['] gen-if gen-call -9 gen-lit ['] gen-throw gen-call ['] gen-then gen-call ;
+: gen-execute ( -- )
+  fc-code fc-guard @ if gen-check-entry then fc-pop -1 fc-call-indirect fc-begin-block drop ;
+: gen-catch ( -- ) fc-code fc-guard @ if gen-check-entry then fc-catch ;
 \ Defining words and the channel (14.6). : VARIABLE CREATE CONSTANT ALLOT and
 \ KERNEL-LAYOUT belong to the top level (FC-TOP-ONLY: else -13); ; to a
 \ definition (at the top level -22). ( [CHAR] S" read the channel.
 : gen-colon ( -- ) \ : NAME starts the word NAME (visible at once: RECURSE)
   fc-top-only fc-close-init fc-next! 0 cc-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
-  0 fc-live ! 0 fc-n ! fc-begin-block drop ;
+  0 fc-live ! 0 fc-n ! fc-begin-block drop fc-guard @ if fc-mark-entry then ;
 : gen-semicolon ( -- ) \ ; returns and ends the definition
   fc-defining? 0= if -22 throw then fc-nctl @ if -22 throw then fc-ret 0 fc-word ! ;
 : gen-variable ( -- ) fc-top-only fc-next! 4 fc-define-data ;
@@ -169,6 +204,7 @@ variable fc-lv
   s" @" ['] gen-@ 0 fc-generator  s" !" ['] gen-! 0 fc-generator
   s" c@" ['] gen-c@ 0 fc-generator  s" c!" ['] gen-c! 0 fc-generator
   s" space!" ['] gen-space! 0 fc-generator  s" spacec!" ['] gen-spacec! 0 fc-generator
+  s" space@" ['] gen-space@ 0 fc-generator  s" spacec@" ['] gen-spacec@ 0 fc-generator
   s" emit" ['] gen-emit 0 fc-generator  s" key" ['] gen-key 0 fc-generator
   s" if" ['] gen-if 0 fc-generator  s" else" ['] gen-else 0 fc-generator
   s" then" ['] gen-then 0 fc-generator  s" begin" ['] gen-begin 0 fc-generator

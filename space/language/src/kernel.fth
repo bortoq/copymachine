@@ -21,7 +21,7 @@ variable kn-at
   then
   0 ?do dup i + c@ kn-at @ dup 8 + spacec! 8 kn-at +! loop drop ;
 : kn-order ( -- ) 256 0 do i cc-rev i + c! loop ;
-: kn-compile ( -- ) fc-sizes kn-order ['] kn-put cc-sink ! fc-read fc-go ;
+: kn-compile ( -- ) fc-sizes kn-order 1 fc-guard ! ['] kn-put cc-sink ! fc-read fc-go ;
 : kn-.n ( n -- ) \ decimal
   dup 0< if [char] - emit negate then
   dup 10 / ?dup if recurse then 10 mod [char] 0 + emit ;

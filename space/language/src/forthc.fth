@@ -14,6 +14,9 @@ decimal
 \ both, so the programs it installs in its own space keep their layout
 \ (model: layout).
 variable fc-d variable fc-first
+\ The program of the kernel (14.10): nonzero while the kernel compiles a program into its own
+\ space; the generators then write the checks of isolation (primitives.fth). Zero: no checks.
+variable fc-guard
 : fc-layout ( kernel? -- )
   if 3 29 lshift 1 19 lshift else 1 30 lshift 2 then fc-first ! fc-d ! ;
 : fc-d+ ( offset -- addr ) fc-d @ + ;
@@ -23,6 +26,7 @@ variable fc-d variable fc-first
 : fc-flt 4672 fc-d+ ;
 : fc-ma 4800 fc-d+ ;  : fc-mb 4864 fc-d+ ;  : fc-mp 4928 fc-d+ ;  : fc-mq 4992 fc-d+ ;  : fc-mr 5056 fc-d+ ;
 : fc-zero 5120 fc-d+ ;  : fc-consts 8192 fc-d+ ;
+: fc-mark 5632 fc-d+ ;   \ the sink of the entry mark of a word (14.10)
 : fc-sw 5376 fc-d+ ;  : fc-su 5440 fc-d+ ;  : fc-key 5504 fc-d+ ;  : fc-bp 5568 fc-d+ ;
 : fc-tab 1 19 lshift fc-d+ ;  : fc-stk 1 21 lshift fc-d+ ;
 : fc-rstk 1 21 lshift 1 15 lshift + fc-d+ ;  : fc-scr0 1 21 lshift 1 16 lshift + fc-d+ ;
@@ -686,6 +690,23 @@ variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-st
   >r 0 0 fc-stx @ dup r> + fc-strow @ cc-row
   32 fc-strow @ cc-layer-cell 2 pick 0 cc-field fc-stlo @ cc-copy fc-stp @ cc-row drop
   32 fc-strow @ cc-layer-cell rot 1 cc-field fc-sthi @ cc-copy fc-stp @ cc-row drop ;
+\ SPACE@ and SPACEC@ ( lo hi -- x ): the low 32 (8) bits of x are bits [lo,hi) of the space (the
+\ upper 24 bits are zero); the source of the copy is patched two layers ahead, as the destination
+\ of SPACE!. The result register is not lo nor hi.
+variable fc-ftr
+: fc-space-fetch ( n -- )
+  >r 2 fc-need fc-pop1 fc-sthi ! fc-pop1 fc-stlo !
+  fc-sthi @ fc-stlo @ = if
+    fc-stlo @ fc-pin ! 1 fc-npin ! fc-reg fc-sthi ! 0 fc-npin !
+    32 fc-sthi @ fc-stlo @ cc-copy fc-rows1
+  then
+  fc-stlo @ fc-pin ! fc-sthi @ fc-pin cell+ ! 2 fc-npin ! fc-reg fc-ftr ! 0 fc-npin !
+  cc-layer fc-stp ! cc-layer drop cc-layer fc-strow !
+  fc-ftr @ dup r@ + 0 0 fc-strow @ cc-row
+  r@ 8 = if 24 fc-ftr @ 8 + fc-zero cc-copy fc-strow @ cc-row drop then
+  32 fc-strow @ cc-layer-cell 2 pick 2 cc-field fc-stlo @ cc-copy fc-stp @ cc-row drop
+  32 fc-strow @ cc-layer-cell rot 3 cc-field fc-sthi @ cc-copy fc-stp @ cc-row drop
+  r> drop fc-ftr @ fc-push ;
 : fc-close-init ( -- )
   fc-nct @ if -22 throw then
   fc-init-open @ if fc-ret 0 fc-init-open ! 0 fc-word ! then ;
