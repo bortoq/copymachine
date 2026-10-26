@@ -150,11 +150,23 @@ variable fc-lv
 \ Defining words and the channel (14.6). : VARIABLE CREATE CONSTANT ALLOT and
 \ KERNEL-LAYOUT belong to the top level (FC-TOP-ONLY: else -13); ; to a
 \ definition (at the top level -22). ( [CHAR] S" read the channel.
+\ The replacement (14.13, space/language/doc/replace.md). In a program that names it each word has a
+\ concept cell in the code (CELL, its record: cell 3), a layer that jumps to its entry (with the
+\ entry mark in the program of the kernel); a call and the xt of the word go to it. The log starts
+\ with it: the price of the word is that of its path from the concept cell.
+: fc-concept ( cell -- )
+  fc-log-begin dup fc-word @ 3 cells + ! cc-seq cc-layer drop fc-guard @ if fc-mark-entry then
+  fc-word @ 6 cells + @ cc-jump cc-flush ;
+\ : A B ; with B a word is the synonym A of B, no code (14.13). In a program of the replacement the
+\ concept cell of the word (FC-CONCEPT) is the group before its entry.
 : gen-colon ( -- ) \ : NAME starts the word NAME (visible at once: RECURSE)
-  fc-top-only fc-close-init fc-next! 0 cc-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
-  0 fc-live ! 0 fc-n ! fc-begin-block drop fc-guard @ if fc-mark-entry then fc-log-begin ;
+  fc-top-only fc-close-init fc-next! fc-synonym? ?dup if fc-synonym-of exit then
+  fc-rt @ if 0 cc-group else 0 then 0 cc-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
+  swap ?dup if fc-concept then
+  0 fc-live ! 0 fc-n ! fc-begin-block drop fc-guard @ if fc-mark-entry then fc-rt @ 0= if fc-log-begin then ;
 : gen-semicolon ( -- ) \ ; returns and ends the definition, its price is counted (14.11)
-  fc-defining? 0= if -22 throw then fc-nctl @ if -22 throw then fc-ret fc-word @ fc-price-word 0 fc-word ! ;
+  fc-defining? 0= if -22 throw then fc-nctl @ if -22 throw then fc-ret fc-word @ fc-price-word
+  fc-rt @ if fc-word @ fc-concept-record then 0 fc-word ! ;
 : gen-variable ( -- ) fc-top-only fc-next! 4 fc-define-data ;
 : gen-create ( -- ) fc-top-only fc-next! 0 fc-define-data ;
 : gen-allot ( -- ) fc-top-only fc-ct- fc-here +! fc-check-here ;
@@ -197,8 +209,8 @@ variable fc-lv
 \ The name of two bytes c1 c2 (S": a quote cannot be written in a string).
 : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
 \ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel
-\ layout, 8 a comment, 16 the words of the proof, FC-LIBRARY); the digits: name
-\ and value of the literal.
+\ layout, 8 a comment, 16 the words of the proof, FC-LIBRARY, 32 the replacement,
+\ 14.13); the digits: name and value of the literal.
 : fc-generators ( -- )
   s" +" ['] gen+ 0 fc-generator  s" -" ['] gen- 0 fc-generator
   s" *" ['] gen* 1 fc-generator  s" /" ['] gen/ 2 fc-generator
@@ -241,6 +253,7 @@ variable fc-lv
   s" cost" ['] gen-cost 0 fc-generator  s" price" ['] gen-price 0 fc-generator
   s" proved?" ['] gen-proved? 0 fc-generator
   s" check-table" ['] gen-library 19 fc-generator  s" accuracy" ['] gen-library 19 fc-generator
+  s" replace" ['] gen-library 51 fc-generator
   s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name
   s" 4" 4 fc-literal-name  s" 5" 5 fc-literal-name  s" 6" 6 fc-literal-name  s" 7" 7 fc-literal-name
   s" 8" 8 fc-literal-name  s" 9" 9 fc-literal-name ;

@@ -1838,7 +1838,7 @@ vm2 пока не выполнена: она явно запланирована
   таблицы равны, оба доказаны; испорченное сложение не проходит.
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 sh -c 'make -C space/language boot check && python3 -B space/language/tests/test_proof.py'`
 
-### ❌ 14.13. Замена определения и синонимы
+### ✅ 14.13. Замена определения и синонимы
 
 - **Исполнитель:** Opus 5.5, high. **Зависит:** 14.12
 - **Сделать:** `replace ( xt concept -- ok )`: проверку кандидата выполняет

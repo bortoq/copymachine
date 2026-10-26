@@ -740,6 +740,9 @@ create fc-unproved 12 allot fc-unproved 12 0 fill
 
 \ --- compiler -------------------------------------------------------------
 variable fc-here variable fc-word variable fc-uses
+\ A program that names the word of the replacement (14.13): FC-RT the address of the table of the
+\ records of its words in its memory (0: another program), FC-RTA of the next record.
+variable fc-rt variable fc-rta
 \ Control entries: kind (1 if, 2 else, 3 begin, 4 while, 5 do), cell, and for
 \ a loop its leave cell (0: none yet).
 create fc-ctl 96 cells allot variable fc-nctl variable fc-cleave
@@ -781,7 +784,7 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
   fc-cbk @ fc-nbuckets @ cells 0 fill
   0 fc-nconsts ! 0 fc-n ! 0 fc-npin ! 0 fc-live ! 0 fc-nseg !
   0 fc-nctl ! fc-data-start fc-here ! 0 fc-word !
-  0 fc-nct ! 0 fc-ninit ! 0 fc-init-open ! 0 fc-ll ! 0 fc-plit !
+  0 fc-nct ! 0 fc-ninit ! 0 fc-init-open ! 0 fc-ll ! 0 fc-plit ! 0 fc-rt !
   cc-lone fc-cellb over cc-next! cc-layer-cell fc-tramp ! cc-flush
   cc-lone 0 over cc-next! cc-layer-cell fc-ex ! cc-flush
   0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-chunk 8 * allocate throw fc-link-buf ! then
@@ -922,10 +925,27 @@ variable fc-gens
 \ One word of the channel, with the bookkeeping of the literal compiled by the previous word (the loop
 \ of FC-COMPILE and FC-EVAL).
 : fc-token ( -- ) fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! fc-word-token ;
-\ A synonym: the name addr u for the word addr2 u2, with its definition and its price.
-: fc-synonym ( addr u addr2 u2 -- )
-  fc-lookup >r dup fc-tl ! fc-tok swap cmove 1 r@ 3 cells + @ fc-define
-  r> 9 cells + fc-nwords @ 1- fc-wt@ 9 cells + 5 cells cmove ;
+\ A synonym (14.13): the word read is a name of the word of the record: its concept cell (cell 5:
+\ of a synonym the concept cell of the first word of the chain), definitions, price, proof, stack.
+: fc-synonym-of ( record -- ) 1 0 fc-define 5 cells + fc-nwords @ 1- fc-wt@ 5 cells + 11 cells cmove ;
+\ The name addr u for the word addr2 u2.
+: fc-synonym ( addr u addr2 u2 -- ) fc-lookup >r dup fc-tl ! fc-tok swap cmove r> fc-synonym-of ;
+\ : A B ; with B a word (14.13): the record of B, the word read is A again and the text goes on after
+\ the ; (else 0, the text goes on after A).
+variable fc-sy
+: fc-synonym? ( -- record|0 )
+  fc-pos @ fc-tl @ - fc-sy ! fc-next drop fc-find dup if dup 2 cells + @ 1 = and then
+  fc-next drop s" ;" fc-is? and fc-pos @ fc-sy @ fc-pos ! fc-next drop over if fc-pos ! else drop then ;
+\ The replacement (14.13, space/language/doc/replace.md): the records of the words in the program.
+\ 32 bits of value v at FC-RTA in the memory of the program, with the stream; FC-RTA to the next cell.
+: fc-poke ( v -- ) fc-rta @ 2 rshift 64 * fc-mem + 4 swap cc-put-numeric 4 fc-rta +! ;
+\ The record of the word in the table of the program, cells 3, 6-13 and 15 of the record of the
+\ compiler: 0 the concept cell, 4 8 12 the definitions (index: its entry, copy, host space), 16 size,
+\ 20 bits, 24 copies, 28 layers, 32 known, 36 the stack of definitions (0: empty). The table ends with
+\ a record of zeros: 99 records.
+: fc-concept-record ( record -- )
+  fc-rta @ fc-rt @ - 3960 = if -8 throw then
+  dup 3 cells + @ fc-poke 14 6 do dup i cells + @ fc-poke loop drop 4 fc-rta +! ;
 \ A text of the language compiled in the middle of the channel (14.12): the text being compiled goes
 \ on after it. FC-LIBRARY: the words of the program that CHECK-TABLE and ACCURACY need (the
 \ registry of the proofs, keyed by xt), compiled before the program when its source names them.
@@ -933,20 +953,46 @@ variable fc-gens
   fc-text @ fc-tlen @ fc-pos @ >r >r >r fc-tlen ! fc-text ! 0 fc-pos !
   begin fc-next while fc-token repeat
   r> r> r> fc-pos ! fc-tlen ! fc-text ! ;
+\ The table of the records of the words (FC-CONCEPT-RECORD), the stack of definitions and the fields
+\ of the link row of a concept cell, before the words of the program (14.13).
+: fc-concepts ( -- )
+  s" create %w 4000 allot create %ds 1280 allot variable %nd" fc-eval
+  s" %w" fc-lookup 3 cells + @ dup fc-rt ! fc-rta !
+  s" %l2" 0 cc-slots @ 1- 2 cc-field fc-literal-name s" %lb" cc-layer-bits fc-literal-name ;
+\ The replacement: %REC the record of a concept cell, %COST its price, %LINK writes a definition into a
+\ concept cell; %REPLACE ( xt concept -- ok ): -1 replaced, else the reason: 0 not words, 1 the
+\ artifacts (none: the concept was not checked by a table; or the check of xt failed), 2 the
+\ accuracy, 3 the price (not less, or not known at compile time).
+: fc-replacement ( -- )
+  s" variable %k variable %q variable %y variable %z : %rec %w begin dup @ while over over @ =" fc-eval
+  s" if swap drop exit then 40 + repeat drop drop 0 ; : %cost %rec dup if dup 16 + @ over 20 + @ 2 pick" fc-eval
+  s" 24 + @ 3 pick 28 + @ 4 roll 32 + @ else drop 0 0 0 0 0 then ; : %price %cost >r price r> ;" fc-eval
+  s" : %link over over %l2 + dup 32 + space! swap %lb + swap %l2 + 32 + dup 32 + space! ;" fc-eval
+  s" : %replace dup %rec %k ! over %rec %q ! %k @ 0= %q @ 0= or if drop drop 0 exit then %slot %y !" fc-eval
+  s" %y @ 12 + @ 0= if drop 1 exit then dup %y @ 8 + @ %y @ 20 + @ %y @ 24 + @ %check 0= if" fc-eval
+  s" drop 1 exit then dup %acc %k @ @ %acc < if drop 2 exit then dup %price %k @ @ %price rot and" fc-eval
+  s" 0= if drop drop drop 3 exit then < 0= if drop 3 exit then %nd @ 32 = if -8 throw then" fc-eval
+  s" %nd @ 40 * %ds + %z ! %nd @ 1+ %nd ! 10 0 do %k @ i cells + @ %z @ i cells + ! loop" fc-eval
+  s" %z @ %k @ 36 + ! 9 1 do %q @ i cells + @ %k @ i cells + ! loop %k @ 4 + @ %k @ @ %link" fc-eval
+  s" %slot dup 4 + @ %y @ 4 + ! 16 + @ %y @ 16 + ! -1 ;" fc-eval
+  s" cost" s" %cost" fc-synonym s" replace" s" %replace" fc-synonym ;
 : fc-library ( -- )
+  fc-uses @ 32 and if fc-concepts then
   s" variable %n create %e 1024 allot create %proved 4 allot 1 %proved ! variable %x" fc-eval
-  s" variable %m variable %t variable %v variable %c" fc-eval
+  s" variable %m variable %t variable %v variable %c variable %o" fc-eval
   s" : %slot %n @ 0 ?do dup i 5 lshift %e + @ = if drop i 5 lshift %e + unloop exit then loop" fc-eval
   s" %n @ 32 = if -8 throw then %n @ 5 lshift %e + swap over ! %n @ 1+ %n ! ;" fc-eval
-  s" : %check %t ! dup 1- 32 u< swap 32 swap - -1 swap rshift %m ! over 32 u< and %v !" fc-eval
-  s" swap %slot %x ! dup 1 swap lshift %v @ and swap %v @ and %x @ 8 + ! 0 %c !" fc-eval
+  s" : %check %t ! dup %o ! dup 1- 32 u< swap 32 swap - -1 swap rshift %m ! over 32 u< and %v !" fc-eval
+  s" swap %slot %x ! %o @ %x @ 20 + ! %t @ %x @ 24 + !" fc-eval
+  s" dup 1 swap lshift %v @ and swap %v @ and %x @ 8 + ! 0 %c !" fc-eval
   s" 0 ?do i %x @ @ execute %m @ and %t @ i cells + @ %m @ and xor 0= %c @ swap - %c ! loop" fc-eval
   s" %c @ %x @ 4 + ! %c @ 1 %x @ 8 + @ lshift %v @ and = %v @ and" fc-eval
   s" dup %proved and %x @ 16 + ! %v @ 1 and %x @ 12 + ! ;" fc-eval
   s" : %prv %slot 16 + @ %proved = ;" fc-eval
   s" : %acc %slot dup 4 + @ swap 8 + @ dup 11 - dup 0 < if drop 0 then >r" fc-eval
   s" swap r@ rshift swap r> - 1 swap lshift swap 1000000 * swap / ;" fc-eval
-  s" check-table" s" %check" fc-synonym s" accuracy" s" %acc" fc-synonym s" proved?" s" %prv" fc-synonym ;
+  s" check-table" s" %check" fc-synonym s" accuracy" s" %acc" fc-synonym s" proved?" s" %prv" fc-synonym
+  fc-uses @ 32 and if fc-replacement then ;
 \ The price of the helpers, built before the code (FC-COMPILE, 14.11): their last layers are still
 \ pending, they go to the log as they are, unwritten.
 : fc-helpers-cost ( -- )
@@ -955,10 +1001,11 @@ variable fc-gens
   fc-uses @ 2 and if fc-div-entry @ fc-cellb 0 fc-path fc-div-cost fc-cost! then
   fc-log-end ;
 \ The price of the word just defined (14.11): its size, the cells from its entry to the first free
-\ one, exactly; the bits, copies, layers of its longest path if known at compile time.
+\ one, exactly; the bits, copies, layers of its longest path if known at compile time (from its
+\ concept cell: the entry, or in a program of the replacement the cell of FC-CONCEPT).
 : fc-price-word ( record -- )
   >r cc-next-cell @ r@ 6 cells + @ cc-cell-bit rshift - r@ 9 cells + !
-  r@ 6 cells + @ fc-tramp @ -1 fc-path r> 10 cells + fc-cost! fc-log-end ;
+  r@ 3 cells + @ fc-tramp @ -1 fc-path r> 10 cells + fc-cost! fc-log-end ;
 : fc-compile ( -- )
   fc-log-end fc-words fc-scan-uses fc-uses @ 4 and fc-layout fc-init
   fc-uses @ 3 and if fc-log-begin then

@@ -35,7 +35,7 @@ limit =
 endif
 SOURCES = $(wildcard src/*.fth)
 TOOLS = $(wildcard tools/*.py)
-.PHONY: all boot check check-programs check-closure check-kernel check-tests check-language-md check-isolation check-proof clean
+.PHONY: all boot check check-programs check-closure check-kernel check-tests check-language-md check-isolation check-proof check-replace clean
 all: boot
 boot: $(L0)
 $(L0): $(SOURCES) $(TOOLS)
@@ -68,6 +68,10 @@ check-isolation: $(L0)
 # Check and proof (14.12): CHECK-TABLE, ACCURACY, PROVED? on checked-emulator and on L0 (about 3 minutes).
 check-proof: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_proof.py
+# Replacement and synonyms (14.13): REPLACE, synonyms, the price from the concept cell on the counters
+# and L0 (about 5 minutes).
+check-replace: $(L0)
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_replace.py
 check: check-programs check-closure check-tests check-language-md
 clean:
 ifneq ($(WORKSPACE_ROOT),)

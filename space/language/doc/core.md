@@ -4,7 +4,7 @@
 
 Ядро языка — слова, использованные в определении языка (`src/*.fth`), по графу определения (`tools/research/defgraph.py` с генераторами, цифрами и ссылками по имени): слово использовано, если до него доходят ссылки из кода верхнего уровня файлов, из входов бута и из последнего `main`. Определение замкнуто: имён, использованных и не определённых в нём, нет (`external 0`). Слова — в порядке определения.
 
-**Слов в ядре: 856** (определение `:` — 429, переменная — 280, генератор — 71, данные `create` — 43, константа — 17, цифра (литерал) — 10, основание — 6).
+**Слов в ядре: 866** (определение `:` — 436, переменная — 283, генератор — 71, данные `create` — 43, константа — 17, цифра (литерал) — 10, основание — 6).
 
 ## Основание
 
@@ -32,7 +32,7 @@
 | 5 | `2drop` | определение `:` | src/prelude.fth:10 | 21 |  |
 | 6 | `2swap` | определение `:` | src/prelude.fth:11 | 6 |  |
 | 7 | `2over` | определение `:` | src/prelude.fth:12 | 2 |  |
-| 8 | `?dup` | определение `:` | src/prelude.fth:13 | 18 |  |
+| 8 | `?dup` | определение `:` | src/prelude.fth:13 | 20 |  |
 | 9 | `negate` | определение `:` | src/prelude.fth:14 | 5 |  |
 | 10 | `invert` | определение `:` | src/prelude.fth:15 | 1 |  |
 | 11 | `>` | определение `:` | src/prelude.fth:16 | 10 |  |
@@ -43,7 +43,7 @@
 | 16 | `0<>` | определение `:` | src/prelude.fth:21 | 4 |  |
 | 17 | `max` | определение `:` | src/prelude.fth:22 | 20 |  |
 | 18 | `min` | определение `:` | src/prelude.fth:23 | 5 |  |
-| 19 | `+!` | определение `:` | src/prelude.fth:24 | 59 |  |
+| 19 | `+!` | определение `:` | src/prelude.fth:24 | 61 |  |
 | 20 | `2@` | определение `:` | src/prelude.fth:25 | 4 |  |
 | 21 | `2!` | определение `:` | src/prelude.fth:26 | 2 |  |
 | 22 | `fill-cell` | переменная | src/prelude.fth:28 | 2 |  |
@@ -62,7 +62,7 @@
 | 35 | `>in` | переменная | src/prelude.fth:51 | 2 |  |
 | 36 | `cc-size` | переменная | src/backend.fth:14 | 9 |  |
 | 37 | `cc-a` | переменная | src/backend.fth:14 | 15 |  |
-| 38 | `cc-slots` | переменная | src/backend.fth:14 | 13 |  |
+| 38 | `cc-slots` | переменная | src/backend.fth:14 | 14 |  |
 | 39 | `cc-cell-bits` | переменная | src/backend.fth:14 | 13 |  |
 | 40 | `cc-chunk` | переменная | src/backend.fth:15 | 8 |  |
 | 41 | `cc-chunk-buf` | переменная | src/backend.fth:15 | 6 |  |
@@ -75,7 +75,7 @@
 | 48 | `cc-rev` | данные `create` | src/backend.fth:18 | 10 |  |
 | 49 | `cc-rev-init` | определение `:` | src/backend.fth:19 | 1 |  |
 | 50 | `cc-inst` | определение `:` | src/backend.fth:23 | 8 |  |
-| 51 | `cc-layer-bits` | определение `:` | src/backend.fth:24 | 8 |  |
+| 51 | `cc-layer-bits` | определение `:` | src/backend.fth:24 | 9 |  |
 | 52 | `cc-lbytes` | определение `:` | src/backend.fth:25 | 6 |  |
 | 53 | `cc-stdin` | определение `:` | src/backend.fth:26 | 3 |  |
 | 54 | `cc-stdout` | определение `:` | src/backend.fth:27 | 2 |  |
@@ -94,7 +94,7 @@
 | 67 | `cc-begin-chunk` | определение `:` | src/backend.fth:67 | 2 |  |
 | 68 | `cc-put` | определение `:` | src/backend.fth:69 | 10 |  |
 | 69 | `cc-scratch` | данные `create` | src/backend.fth:87 | 2 |  |
-| 70 | `cc-put-numeric` | определение `:` | src/backend.fth:88 | 1 |  |
+| 70 | `cc-put-numeric` | определение `:` | src/backend.fth:88 | 2 |  |
 | 71 | `cc-max-layers` | константа | src/backend.fth:93 | 4 |  |
 | 72 | `cc-record` | определение `:` | src/backend.fth:94 | 2 |  |
 | 73 | `cc-pending` | переменная | src/backend.fth:95 | 10 |  |
@@ -107,14 +107,14 @@
 | 80 | `cc-foff` | данные `create` | src/backend.fth:98 | 2 |  |
 | 81 | `cc-foff-init` | определение `:` | src/backend.fth:99 | 1 |  |
 | 82 | `cc-machine` | определение `:` | src/backend.fth:100 | 1 |  |
-| 83 | `cc-field` | определение `:` | src/backend.fth:117 | 36 |  |
+| 83 | `cc-field` | определение `:` | src/backend.fth:117 | 37 |  |
 | 84 | `cc-link-row` | основание | src/backend.fth:118 | 2 | основание: строка: копирование ссылки на следующий слой; определение инструкции — она сама |
 | 85 | `cc-copy` | основание | src/backend.fth:119 | 73 | основание: строка: копирование n бит из источника в приёмник; определение инструкции — она сама |
 | 86 | `cc-builder` | определение `:` | src/backend.fth:121 | 1 |  |
 | 87 | `cc-new-cell` | определение `:` | src/backend.fth:122 | 13 |  |
 | 88 | `cc-branch-bit` | определение `:` | src/backend.fth:125 | 14 |  |
 | 89 | `cc-branch-step` | определение `:` | src/backend.fth:126 | 4 |  |
-| 90 | `cc-group` | определение `:` | src/backend.fth:128 | 5 |  |
+| 90 | `cc-group` | определение `:` | src/backend.fth:128 | 6 |  |
 | 91 | `cc-layer-cell` | определение `:` | src/backend.fth:131 | 38 |  |
 | 92 | `cc-next!` | определение `:` | src/backend.fth:132 | 20 |  |
 | 93 | `cc-count` | определение `:` | src/backend.fth:133 | 7 |  |
@@ -126,11 +126,11 @@
 | 99 | `cc-write-oldest` | определение `:` | src/backend.fth:147 | 1 |  |
 | 100 | `cc-new-record` | основание | src/backend.fth:148 | 10 | основание: слой: новый слой в ячейке; определение инструкции — она сама |
 | 101 | `cc-lone` | основание | src/backend.fth:152 | 5 | основание: слой: отдельный слой в новой ячейке; определение инструкции — она сама |
-| 102 | `cc-seq` | определение `:` | src/backend.fth:153 | 8 |  |
+| 102 | `cc-seq` | определение `:` | src/backend.fth:153 | 9 |  |
 | 103 | `cc-last` | определение `:` | src/backend.fth:154 | 5 |  |
-| 104 | `cc-layer` | основание | src/backend.fth:155 | 72 | основание: слой: следующий слой последовательности; определение инструкции — она сама |
+| 104 | `cc-layer` | основание | src/backend.fth:155 | 73 | основание: слой: следующий слой последовательности; определение инструкции — она сама |
 | 105 | `cc-entry` | определение `:` | src/backend.fth:160 | 4 |  |
-| 106 | `cc-jump` | определение `:` | src/backend.fth:161 | 11 |  |
+| 106 | `cc-jump` | определение `:` | src/backend.fth:161 | 12 |  |
 | 107 | `cc-l1` | переменная | src/backend.fth:162 | 4 |  |
 | 108 | `cc-h1` | переменная | src/backend.fth:162 | 3 |  |
 | 109 | `cc-l2` | переменная | src/backend.fth:162 | 4 |  |
@@ -146,7 +146,7 @@
 | 119 | `cc-clashes?` | определение `:` | src/backend.fth:179 | 2 |  |
 | 120 | `cc-fits?` | определение `:` | src/backend.fth:184 | 2 |  |
 | 121 | `cc-row` | основание | src/backend.fth:186 | 72 | основание: строка: добавляет строку в слой; определение инструкции — она сама |
-| 122 | `cc-flush` | определение `:` | src/backend.fth:190 | 12 |  |
+| 122 | `cc-flush` | определение `:` | src/backend.fth:190 | 13 |  |
 | 123 | `cc-finish` | определение `:` | src/backend.fth:193 | 1 |  |
 | 124 | `cc-t1` | переменная | src/compute.fth:10 | 25 |  |
 | 125 | `cc-t2` | переменная | src/compute.fth:10 | 13 |  |
@@ -274,7 +274,7 @@
 | 247 | `fc-a` | константа | src/forthc.fth:11 | 3 |  |
 | 248 | `fc-d` | переменная | src/forthc.fth:16 | 2 |  |
 | 249 | `fc-first` | переменная | src/forthc.fth:16 | 2 |  |
-| 250 | `fc-guard` | переменная | src/forthc.fth:19 | 8 |  |
+| 250 | `fc-guard` | переменная | src/forthc.fth:19 | 9 |  |
 | 251 | `fc-layout` | определение `:` | src/forthc.fth:20 | 1 |  |
 | 252 | `fc-d+` | определение `:` | src/forthc.fth:22 | 29 |  |
 | 253 | `fc-sp` | определение `:` | src/forthc.fth:23 | 6 |  |
@@ -307,7 +307,7 @@
 | 280 | `fc-links` | определение `:` | src/forthc.fth:33 | 2 |  |
 | 281 | `fc-max-links` | константа | src/forthc.fth:33 | 1 |  |
 | 282 | `fc-link-chunk` | константа | src/forthc.fth:33 | 2 |  |
-| 283 | `fc-mem` | определение `:` | src/forthc.fth:34 | 4 |  |
+| 283 | `fc-mem` | определение `:` | src/forthc.fth:34 | 5 |  |
 | 284 | `fc-mw` | константа | src/forthc.fth:34 | 5 |  |
 | 285 | `fc-htab` | определение `:` | src/forthc.fth:34 | 1 |  |
 | 286 | `fc-data-start` | константа | src/forthc.fth:35 | 1 |  |
@@ -421,7 +421,7 @@
 | 394 | `fc-row-n` | определение `:` | src/forthc.fth:236 | 1 |  |
 | 395 | `fc-mem-row?` | определение `:` | src/forthc.fth:237 | 1 |  |
 | 396 | `fc-log-layer` | определение `:` | src/forthc.fth:238 | 2 |  |
-| 397 | `fc-log-begin` | определение `:` | src/forthc.fth:249 | 2 |  |
+| 397 | `fc-log-begin` | определение `:` | src/forthc.fth:249 | 3 |  |
 | 398 | `fc-log-end` | определение `:` | src/forthc.fth:251 | 4 |  |
 | 399 | `fc-by-execution` | определение `:` | src/forthc.fth:253 | 8 |  |
 | 400 | `fc-dec@` | определение `:` | src/forthc.fth:254 | 2 |  |
@@ -604,18 +604,18 @@
 | 577 | `fc-read-key` | определение `:` | src/forthc.fth:655 | 1 |  |
 | 578 | `fc-text` | переменная | src/forthc.fth:661 | 13 |  |
 | 579 | `fc-tlen` | переменная | src/forthc.fth:661 | 14 |  |
-| 580 | `fc-pos` | переменная | src/forthc.fth:661 | 17 |  |
+| 580 | `fc-pos` | переменная | src/forthc.fth:661 | 21 |  |
 | 581 | `fc-text-size` | переменная | src/forthc.fth:661 | 6 | вход бута (хост) |
 | 582 | `fc-tok` | данные `create` | src/forthc.fth:662 | 15 |  |
-| 583 | `fc-tl` | переменная | src/forthc.fth:662 | 19 |  |
+| 583 | `fc-tl` | переменная | src/forthc.fth:662 | 20 |  |
 | 584 | `fc-reset` | определение `:` | src/forthc.fth:663 | 3 |  |
 | 585 | `fc-append` | определение `:` | src/forthc.fth:664 | 1 |  |
 | 586 | `fc\|` | определение `:` | src/forthc.fth:668 | 1 | вход бута (хост) |
 | 587 | `fc-ch` | определение `:` | src/forthc.fth:669 | 5 |  |
 | 588 | `fc-more?` | определение `:` | src/forthc.fth:670 | 6 |  |
-| 589 | `fc-next` | определение `:` | src/forthc.fth:674 | 5 |  |
+| 589 | `fc-next` | определение `:` | src/forthc.fth:674 | 8 |  |
 | 590 | `fc-next!` | определение `:` | src/forthc.fth:682 | 6 |  |
-| 591 | `fc-is?` | определение `:` | src/forthc.fth:684 | 1 |  |
+| 591 | `fc-is?` | определение `:` | src/forthc.fth:684 | 2 |  |
 | 592 | `fc-raw` | определение `:` | src/forthc.fth:688 | 1 |  |
 | 593 | `fc-string-token` | определение `:` | src/forthc.fth:690 | 1 |  |
 | 594 | `fc-names-size` | переменная | src/forthc.fth:695 | 5 | вход бута (хост) |
@@ -632,263 +632,273 @@
 | 605 | `fc-xt` | определение `:` | src/forthc.fth:718 | 5 |  |
 | 606 | `fc-hash` | определение `:` | src/forthc.fth:719 | 2 |  |
 | 607 | `fc-define` | определение `:` | src/forthc.fth:721 | 6 |  |
-| 608 | `fc-lookup` | определение `:` | src/forthc.fth:726 | 4 |  |
-| 609 | `fc-find` | определение `:` | src/forthc.fth:730 | 4 |  |
+| 608 | `fc-lookup` | определение `:` | src/forthc.fth:726 | 5 |  |
+| 609 | `fc-find` | определение `:` | src/forthc.fth:730 | 5 |  |
 | 610 | `fc-word-of` | определение `:` | src/forthc.fth:732 | 2 |  |
 | 611 | `fc-cost` | определение `:` | src/forthc.fth:736 | 1 |  |
 | 612 | `fc-proved?` | определение `:` | src/forthc.fth:739 | 1 |  |
 | 613 | `fc-here` | переменная | src/forthc.fth:742 | 9 |  |
-| 614 | `fc-word` | переменная | src/forthc.fth:742 | 8 |  |
-| 615 | `fc-uses` | переменная | src/forthc.fth:742 | 11 |  |
-| 616 | `fc-ctl` | данные `create` | src/forthc.fth:745 | 1 |  |
-| 617 | `fc-nctl` | переменная | src/forthc.fth:745 | 12 |  |
-| 618 | `fc-cleave` | переменная | src/forthc.fth:745 | 2 |  |
-| 619 | `fc-ctl@` | определение `:` | src/forthc.fth:746 | 4 |  |
-| 620 | `fc-ctl+` | определение `:` | src/forthc.fth:747 | 6 |  |
-| 621 | `fc-ctl-` | определение `:` | src/forthc.fth:749 | 7 |  |
-| 622 | `fc-do-entry` | определение `:` | src/forthc.fth:751 | 1 |  |
-| 623 | `fc-ctl-leave` | определение `:` | src/forthc.fth:755 | 1 |  |
-| 624 | `fc-ctl-leave!` | определение `:` | src/forthc.fth:756 | 1 |  |
-| 625 | `fc-loop-leave` | определение `:` | src/forthc.fth:757 | 1 |  |
-| 626 | `fc-align` | определение `:` | src/forthc.fth:759 | 2 |  |
-| 627 | `fc-check-here` | определение `:` | src/forthc.fth:760 | 3 |  |
-| 628 | `fc-define-data` | определение `:` | src/forthc.fth:761 | 2 |  |
-| 629 | `fc-sat` | переменная | src/forthc.fth:762 | 3 |  |
-| 630 | `fc-store-string` | определение `:` | src/forthc.fth:763 | 1 |  |
-| 631 | `fc-ct` | данные `create` | src/forthc.fth:769 | 3 |  |
-| 632 | `fc-nct` | переменная | src/forthc.fth:769 | 11 |  |
-| 633 | `fc-ct+` | определение `:` | src/forthc.fth:770 | 15 |  |
-| 634 | `fc-ct-` | определение `:` | src/forthc.fth:771 | 9 |  |
-| 635 | `fc-ct2` | определение `:` | src/forthc.fth:772 | 8 |  |
-| 636 | `fc-inits` | данные `create` | src/forthc.fth:774 | 2 |  |
-| 637 | `fc-ninit` | переменная | src/forthc.fth:774 | 5 |  |
-| 638 | `fc-init-open` | переменная | src/forthc.fth:774 | 6 |  |
-| 639 | `fc-init` | определение `:` | src/forthc.fth:775 | 1 |  |
-| 640 | `fc-scan-uses` | определение `:` | src/forthc.fth:794 | 1 |  |
-| 641 | `fc-const-shift` | определение `:` | src/forthc.fth:802 | 2 |  |
-| 642 | `fc-lit?` | определение `:` | src/forthc.fth:813 | 3 |  |
-| 643 | `fc-mul-lit?` | определение `:` | src/forthc.fth:815 | 1 |  |
-| 644 | `fc-shift-lit?` | определение `:` | src/forthc.fth:820 | 2 |  |
-| 645 | `fc-pick-roll` | определение `:` | src/forthc.fth:823 | 3 |  |
-| 646 | `fc-stx` | переменная | src/forthc.fth:831 | 3 |  |
-| 647 | `fc-stlo` | переменная | src/forthc.fth:831 | 11 |  |
-| 648 | `fc-sthi` | переменная | src/forthc.fth:831 | 11 |  |
-| 649 | `fc-stp` | переменная | src/forthc.fth:831 | 6 |  |
-| 650 | `fc-strow` | переменная | src/forthc.fth:831 | 9 |  |
-| 651 | `fc-space-store` | определение `:` | src/forthc.fth:832 | 2 |  |
-| 652 | `fc-ftr` | переменная | src/forthc.fth:845 | 4 |  |
-| 653 | `fc-space-fetch` | определение `:` | src/forthc.fth:846 | 3 |  |
-| 654 | `fc-close-init` | определение `:` | src/forthc.fth:859 | 2 |  |
-| 655 | `fc-open-init` | определение `:` | src/forthc.fth:862 | 1 |  |
-| 656 | `fc-gens` | переменная | src/forthc.fth:878 | 3 |  |
-| 657 | `fc-generator` | определение `:` | src/forthc.fth:879 | 79 |  |
-| 658 | `fc-literal-name` | определение `:` | src/forthc.fth:881 | 10 |  |
-| 659 | `fc-words` | определение `:` | src/forthc.fth:883 | 1 |  |
-| 660 | `fc-known` | определение `:` | src/forthc.fth:894 | 1 |  |
-| 661 | `fc-defining?` | определение `:` | src/forthc.fth:897 | 6 |  |
-| 662 | `fc-code` | определение `:` | src/forthc.fth:900 | 52 | вариант 2 |
-| 663 | `fc-fold?` | определение `:` | src/forthc.fth:903 | 13 |  |
-| 664 | `fc-top-only` | определение `:` | src/forthc.fth:905 | 6 |  |
-| 665 | `fc-not-found` | определение `:` | src/forthc.fth:910 | 1 |  |
-| 666 | `fc-word-token` | определение `:` | src/forthc.fth:917 | 1 |  |
-| 667 | `fc-token` | определение `:` | src/forthc.fth:924 | 2 |  |
-| 668 | `fc-synonym` | определение `:` | src/forthc.fth:926 | 3 |  |
-| 669 | `fc-eval` | определение `:` | src/forthc.fth:932 | 12 |  |
-| 670 | `fc-library` | определение `:` | src/forthc.fth:936 | 1 |  |
-| 671 | `fc-helpers-cost` | определение `:` | src/forthc.fth:952 | 1 |  |
-| 672 | `fc-price-word` | определение `:` | src/forthc.fth:959 | 1 |  |
-| 673 | `fc-compile` | определение `:` | src/forthc.fth:962 | 1 |  |
-| 674 | `fc-go` | определение `:` | src/forthc.fth:978 | 3 | вход бута (хост) |
-| 675 | `gen+` | определение `:` | src/primitives.fth:9 | 6 |  |
-| 676 | `gen-` | определение `:` | src/primitives.fth:10 | 3 |  |
-| 677 | `gen-and` | определение `:` | src/primitives.fth:11 | 4 |  |
-| 678 | `gen-or` | определение `:` | src/primitives.fth:12 | 5 |  |
-| 679 | `gen-xor` | определение `:` | src/primitives.fth:13 | 5 |  |
-| 680 | `gen=` | определение `:` | src/primitives.fth:14 | 2 |  |
-| 681 | `gen<` | определение `:` | src/primitives.fth:15 | 2 |  |
-| 682 | `gen-u<` | определение `:` | src/primitives.fth:16 | 2 |  |
-| 683 | `gen-lshift` | определение `:` | src/primitives.fth:17 | 2 |  |
-| 684 | `gen-rshift` | определение `:` | src/primitives.fth:19 | 4 |  |
-| 685 | `gen-0=` | определение `:` | src/primitives.fth:21 | 2 |  |
-| 686 | `gen-cells` | определение `:` | src/primitives.fth:22 | 2 |  |
-| 687 | `gen-2*` | определение `:` | src/primitives.fth:23 | 2 |  |
-| 688 | `gen-1+` | определение `:` | src/primitives.fth:24 | 2 |  |
-| 689 | `gen-1-` | определение `:` | src/primitives.fth:25 | 3 |  |
-| 690 | `gen-cell+` | определение `:` | src/primitives.fth:26 | 2 |  |
-| 691 | `gen*` | определение `:` | src/primitives.fth:28 | 2 |  |
-| 692 | `gen/` | определение `:` | src/primitives.fth:31 | 2 |  |
-| 693 | `gen-mod` | определение `:` | src/primitives.fth:32 | 2 |  |
-| 694 | `gen/mod` | определение `:` | src/primitives.fth:33 | 2 |  |
-| 695 | `gen-dup` | определение `:` | src/primitives.fth:37 | 4 |  |
-| 696 | `gen-drop` | определение `:` | src/primitives.fth:38 | 2 |  |
-| 697 | `gen-swap` | определение `:` | src/primitives.fth:39 | 3 |  |
-| 698 | `gen-over` | определение `:` | src/primitives.fth:40 | 5 |  |
-| 699 | `gen-rot` | определение `:` | src/primitives.fth:41 | 2 |  |
-| 700 | `gen-pick` | определение `:` | src/primitives.fth:42 | 2 |  |
-| 701 | `gen-roll` | определение `:` | src/primitives.fth:43 | 2 |  |
-| 702 | `gen->r` | определение `:` | src/primitives.fth:44 | 2 |  |
-| 703 | `gen-r>` | определение `:` | src/primitives.fth:45 | 2 |  |
-| 704 | `gen-r@` | определение `:` | src/primitives.fth:46 | 4 |  |
-| 705 | `gen-j` | определение `:` | src/primitives.fth:47 | 2 |  |
-| 706 | `gen-@` | определение `:` | src/primitives.fth:48 | 2 |  |
-| 707 | `gen-!` | определение `:` | src/primitives.fth:50 | 2 |  |
-| 708 | `gen-c@` | определение `:` | src/primitives.fth:51 | 2 |  |
-| 709 | `gen-c!` | определение `:` | src/primitives.fth:53 | 2 |  |
-| 710 | `gen-emit` | определение `:` | src/primitives.fth:54 | 2 |  |
-| 711 | `gen-key` | определение `:` | src/primitives.fth:57 | 2 |  |
-| 712 | `gen-if` | определение `:` | src/primitives.fth:61 | 4 |  |
-| 713 | `gen-else` | определение `:` | src/primitives.fth:62 | 2 |  |
-| 714 | `gen-then` | определение `:` | src/primitives.fth:64 | 4 |  |
-| 715 | `gen-begin` | определение `:` | src/primitives.fth:68 | 2 |  |
-| 716 | `gen-until` | определение `:` | src/primitives.fth:69 | 2 |  |
-| 717 | `gen-while` | определение `:` | src/primitives.fth:71 | 2 |  |
-| 718 | `gen-repeat` | определение `:` | src/primitives.fth:72 | 2 |  |
-| 719 | `gen-again` | определение `:` | src/primitives.fth:73 | 2 |  |
-| 720 | `gen-do` | определение `:` | src/primitives.fth:75 | 2 |  |
-| 721 | `fc-di` | переменная | src/primitives.fth:79 | 3 |  |
-| 722 | `fc-dl` | переменная | src/primitives.fth:79 | 3 |  |
-| 723 | `gen-?do` | определение `:` | src/primitives.fth:80 | 2 |  |
-| 724 | `fc-lv` | переменная | src/primitives.fth:87 | 2 |  |
-| 725 | `gen-loop` | определение `:` | src/primitives.fth:88 | 2 |  |
-| 726 | `gen-leave` | определение `:` | src/primitives.fth:97 | 2 |  |
-| 727 | `gen-unloop` | определение `:` | src/primitives.fth:100 | 2 |  |
-| 728 | `gen-exit` | определение `:` | src/primitives.fth:103 | 2 |  |
-| 729 | `gen-recurse` | определение `:` | src/primitives.fth:106 | 2 |  |
-| 730 | `gen-tick` | определение `:` | src/primitives.fth:107 | 2 |  |
-| 731 | `gen-throw` | определение `:` | src/primitives.fth:110 | 4 |  |
-| 732 | `gen-call` | определение `:` | src/primitives.fth:117 | 28 |  |
-| 733 | `gen-lit` | определение `:` | src/primitives.fth:118 | 10 |  |
-| 734 | `gen-pick-n` | определение `:` | src/primitives.fth:120 | 3 |  |
-| 735 | `gen-check-range` | определение `:` | src/primitives.fth:124 | 4 |  |
-| 736 | `fc-mark-entry` | определение `:` | src/primitives.fth:133 | 1 |  |
-| 737 | `gen-space!` | определение `:` | src/primitives.fth:134 | 2 |  |
-| 738 | `gen-spacec!` | определение `:` | src/primitives.fth:135 | 2 |  |
-| 739 | `gen-space@` | определение `:` | src/primitives.fth:136 | 2 |  |
-| 740 | `gen-spacec@` | определение `:` | src/primitives.fth:137 | 2 |  |
-| 741 | `gen-check-entry` | определение `:` | src/primitives.fth:141 | 2 |  |
-| 742 | `gen-execute` | определение `:` | src/primitives.fth:147 | 2 |  |
-| 743 | `gen-catch` | определение `:` | src/primitives.fth:149 | 2 |  |
-| 744 | `gen-colon` | определение `:` | src/primitives.fth:153 | 2 |  |
-| 745 | `gen-semicolon` | определение `:` | src/primitives.fth:156 | 2 |  |
-| 746 | `gen-variable` | определение `:` | src/primitives.fth:158 | 2 |  |
-| 747 | `gen-create` | определение `:` | src/primitives.fth:159 | 2 |  |
-| 748 | `gen-allot` | определение `:` | src/primitives.fth:160 | 2 |  |
-| 749 | `gen-constant` | определение `:` | src/primitives.fth:161 | 2 |  |
-| 750 | `gen-decimal` | определение `:` | src/primitives.fth:162 | 2 |  |
-| 751 | `gen-kernel-layout` | определение `:` | src/primitives.fth:164 | 2 |  |
-| 752 | `gen-backslash` | определение `:` | src/primitives.fth:167 | 2 |  |
-| 753 | `gen-paren` | определение `:` | src/primitives.fth:169 | 2 |  |
-| 754 | `gen-char` | определение `:` | src/primitives.fth:170 | 2 |  |
-| 755 | `gen-string` | определение `:` | src/primitives.fth:171 | 2 |  |
-| 756 | `fc-digit@` | определение `:` | src/primitives.fth:180 | 1 |  |
-| 757 | `gen-literal` | определение `:` | src/primitives.fth:182 | 2 |  |
-| 758 | `fc-known-xt` | определение `:` | src/primitives.fth:191 | 2 |  |
-| 759 | `gen-cost` | определение `:` | src/primitives.fth:192 | 2 |  |
-| 760 | `gen-proved?` | определение `:` | src/primitives.fth:194 | 2 |  |
-| 761 | `gen-library` | определение `:` | src/primitives.fth:195 | 4 |  |
-| 762 | `gen-price` | определение `:` | src/primitives.fth:196 | 2 |  |
-| 763 | `fc-name2` | определение `:` | src/primitives.fth:198 | 1 |  |
-| 764 | `fc-generators` | определение `:` | src/primitives.fth:202 | 1 |  |
-| 765 | `+` | генератор | src/primitives.fth:203 | 516 | слово компилятора `gen+` |
-| 766 | `-` | генератор | src/primitives.fth:203 | 48 | слово компилятора `gen-` |
-| 767 | `*` | генератор | src/primitives.fth:204 | 79 | слово компилятора `gen*` |
-| 768 | `/` | генератор | src/primitives.fth:204 | 3 | слово компилятора `gen/` |
-| 769 | `mod` | генератор | src/primitives.fth:205 | 1 | слово компилятора `gen-mod` |
-| 770 | `and` | генератор | src/primitives.fth:206 | 103 | слово компилятора `gen-and` |
-| 771 | `or` | генератор | src/primitives.fth:206 | 42 | слово компилятора `gen-or` |
-| 772 | `xor` | генератор | src/primitives.fth:207 | 5 | слово компилятора `gen-xor` |
-| 773 | `lshift` | генератор | src/primitives.fth:207 | 79 | слово компилятора `gen-lshift` |
-| 774 | `rshift` | генератор | src/primitives.fth:208 | 55 | слово компилятора `gen-rshift` |
-| 775 | `=` | генератор | src/primitives.fth:208 | 59 | слово компилятора `gen=` |
-| 776 | `<` | генератор | src/primitives.fth:209 | 29 | слово компилятора `gen<` |
-| 777 | `u<` | генератор | src/primitives.fth:209 | 13 | слово компилятора `gen-u<` |
-| 778 | `0=` | генератор | src/primitives.fth:210 | 78 | слово компилятора `gen-0=` |
-| 779 | `2*` | генератор | src/primitives.fth:210 | 28 | слово компилятора `gen-2*` |
-| 780 | `1+` | генератор | src/primitives.fth:211 | 42 | слово компилятора `gen-1+` |
-| 781 | `1-` | генератор | src/primitives.fth:211 | 44 | слово компилятора `gen-1-` |
-| 782 | `cells` | генератор | src/primitives.fth:212 | 255 | слово компилятора `gen-cells` |
-| 783 | `cell+` | генератор | src/primitives.fth:212 | 53 | слово компилятора `gen-cell+` |
-| 784 | `dup` | генератор | src/primitives.fth:213 | 282 | слово компилятора `gen-dup` |
-| 785 | `drop` | генератор | src/primitives.fth:213 | 188 | слово компилятора `gen-drop` |
-| 786 | `swap` | генератор | src/primitives.fth:214 | 127 | слово компилятора `gen-swap` |
-| 787 | `over` | генератор | src/primitives.fth:214 | 82 | слово компилятора `gen-over` |
-| 788 | `rot` | генератор | src/primitives.fth:215 | 38 | слово компилятора `gen-rot` |
-| 789 | `pick` | генератор | src/primitives.fth:215 | 49 | слово компилятора `gen-pick` |
-| 790 | `roll` | генератор | src/primitives.fth:216 | 5 | слово компилятора `gen-roll` |
-| 791 | `>r` | генератор | src/primitives.fth:216 | 104 | слово компилятора `gen->r` |
-| 792 | `r>` | генератор | src/primitives.fth:217 | 108 | слово компилятора `gen-r>` |
-| 793 | `r@` | генератор | src/primitives.fth:217 | 95 | слово компилятора `gen-r@` |
-| 794 | `i` | генератор | src/primitives.fth:218 | 160 | слово компилятора `gen-r@` |
-| 795 | `j` | генератор | src/primitives.fth:218 | 12 | слово компилятора `gen-j` |
-| 796 | `@` | генератор | src/primitives.fth:219 | 1104 | слово компилятора `gen-@` |
-| 797 | `!` | генератор | src/primitives.fth:219 | 606 | слово компилятора `gen-!` |
-| 798 | `c@` | генератор | src/primitives.fth:220 | 22 | слово компилятора `gen-c@` |
-| 799 | `c!` | генератор | src/primitives.fth:220 | 17 | слово компилятора `gen-c!` |
-| 800 | `space!` | генератор | src/primitives.fth:221 | 1 | слово компилятора `gen-space!` |
-| 801 | `spacec!` | генератор | src/primitives.fth:221 | 1 | слово компилятора `gen-spacec!` |
-| 802 | `emit` | генератор | src/primitives.fth:223 | 4 | слово компилятора `gen-emit` |
-| 803 | `key` | генератор | src/primitives.fth:223 | 1 | слово компилятора `gen-key` |
-| 804 | `if` | генератор | src/primitives.fth:224 | 254 | слово компилятора `gen-if` |
-| 805 | `else` | генератор | src/primitives.fth:224 | 64 | слово компилятора `gen-else` |
-| 806 | `then` | генератор | src/primitives.fth:225 | 254 | слово компилятора `gen-then` |
-| 807 | `begin` | генератор | src/primitives.fth:225 | 23 | слово компилятора `gen-begin` |
-| 808 | `until` | генератор | src/primitives.fth:226 | 1 | слово компилятора `gen-until` |
-| 809 | `while` | генератор | src/primitives.fth:226 | 21 | слово компилятора `gen-while` |
-| 810 | `repeat` | генератор | src/primitives.fth:227 | 21 | слово компилятора `gen-repeat` |
-| 811 | `again` | генератор | src/primitives.fth:227 | 1 | слово компилятора `gen-again` |
-| 812 | `do` | генератор | src/primitives.fth:228 | 30 | слово компилятора `gen-do` |
-| 813 | `?do` | генератор | src/primitives.fth:228 | 53 | слово компилятора `gen-?do` |
-| 814 | `loop` | генератор | src/primitives.fth:229 | 83 | слово компилятора `gen-loop` |
-| 815 | `leave` | генератор | src/primitives.fth:229 | 1 | слово компилятора `gen-leave` |
-| 816 | `unloop` | генератор | src/primitives.fth:230 | 6 | слово компилятора `gen-unloop` |
-| 817 | `exit` | генератор | src/primitives.fth:230 | 65 | слово компилятора `gen-exit` |
-| 818 | `recurse` | генератор | src/primitives.fth:231 | 1 | слово компилятора `gen-recurse` |
-| 819 | `execute` | генератор | src/primitives.fth:231 | 10 | слово компилятора `gen-execute` |
-| 820 | `[']` | генератор | src/primitives.fth:232 | 136 | слово компилятора `gen-tick` |
-| 821 | `catch` | генератор | src/primitives.fth:232 | 1 | слово компилятора `gen-catch` |
-| 822 | `throw` | генератор | src/primitives.fth:233 | 75 | слово компилятора `gen-throw` |
-| 823 | `:` | генератор | src/primitives.fth:234 | 448 | слово компилятора `gen-colon` |
-| 824 | `;` | генератор | src/primitives.fth:234 | 448 | слово компилятора `gen-semicolon` |
-| 825 | `variable` | генератор | src/primitives.fth:235 | 287 | слово компилятора `gen-variable` |
-| 826 | `create` | генератор | src/primitives.fth:235 | 43 | слово компилятора `gen-create` |
-| 827 | `allot` | генератор | src/primitives.fth:236 | 41 | слово компилятора `gen-allot` |
-| 828 | `constant` | генератор | src/primitives.fth:236 | 17 | слово компилятора `gen-constant` |
-| 829 | `decimal` | генератор | src/primitives.fth:237 | 3 | слово компилятора `gen-decimal` |
-| 830 | `kernel-layout` | генератор | src/primitives.fth:237 | 1 | слово компилятора `gen-kernel-layout` |
-| 831 | `\` | генератор | src/primitives.fth:238 | 334 | слово компилятора `gen-backslash` |
-| 832 | `(` | генератор | src/primitives.fth:238 | 424 | слово компилятора `gen-paren` |
-| 833 | `[char]` | генератор | src/primitives.fth:238 | 8 | слово компилятора `gen-char` |
-| 834 | `s"` | генератор | src/primitives.fth:239 | 111 | слово компилятора `gen-string` |
-| 835 | `literal` | генератор | src/primitives.fth:240 | 449 | слово компилятора `gen-literal` |
-| 836 | `0` | цифра (литерал) | src/primitives.fth:244 | 498 | значение 0 |
-| 837 | `1` | цифра (литерал) | src/primitives.fth:244 | 402 | значение 1 |
-| 838 | `2` | цифра (литерал) | src/primitives.fth:244 | 427 | значение 2 |
-| 839 | `3` | цифра (литерал) | src/primitives.fth:244 | 279 | значение 3 |
-| 840 | `4` | цифра (литерал) | src/primitives.fth:245 | 222 | значение 4 |
-| 841 | `5` | цифра (литерал) | src/primitives.fth:245 | 100 | значение 5 |
-| 842 | `6` | цифра (литерал) | src/primitives.fth:245 | 134 | значение 6 |
-| 843 | `7` | цифра (литерал) | src/primitives.fth:245 | 42 | значение 7 |
-| 844 | `8` | цифра (литерал) | src/primitives.fth:246 | 147 | значение 8 |
-| 845 | `9` | цифра (литерал) | src/primitives.fth:246 | 43 | значение 9 |
-| 846 | `fc-install-generators` | определение `:` | src/primitives.fth:247 | 1 |  |
-| 847 | `heap-start` | данные `create` | src/main.fth:4 | 1 |  |
-| 848 | `fc-read` | определение `:` | src/main.fth:7 | 2 |  |
-| 849 | `fc-sizes` | определение `:` | src/main.fth:12 | 2 |  |
-| 850 | `kn-at` | переменная | src/kernel.fth:12 | 5 |  |
-| 851 | `kn-put` | определение `:` | src/kernel.fth:13 | 1 |  |
-| 852 | `kn-order` | определение `:` | src/kernel.fth:23 | 1 |  |
-| 853 | `kn-compile` | определение `:` | src/kernel.fth:24 | 1 |  |
-| 854 | `kn-.n` | определение `:` | src/kernel.fth:25 | 1 |  |
-| 855 | `main` | определение `:` | src/kernel.fth:29 | 1 | вариант 2 |
-| 856 | `kn-heap-start` | данные `create` | src/kernel.fth:34 | 1 |  |
+| 614 | `fc-word` | переменная | src/forthc.fth:742 | 11 |  |
+| 615 | `fc-uses` | переменная | src/forthc.fth:742 | 13 |  |
+| 616 | `fc-rt` | переменная | src/forthc.fth:745 | 6 |  |
+| 617 | `fc-rta` | переменная | src/forthc.fth:745 | 5 |  |
+| 618 | `fc-ctl` | данные `create` | src/forthc.fth:748 | 1 |  |
+| 619 | `fc-nctl` | переменная | src/forthc.fth:748 | 12 |  |
+| 620 | `fc-cleave` | переменная | src/forthc.fth:748 | 2 |  |
+| 621 | `fc-ctl@` | определение `:` | src/forthc.fth:749 | 4 |  |
+| 622 | `fc-ctl+` | определение `:` | src/forthc.fth:750 | 6 |  |
+| 623 | `fc-ctl-` | определение `:` | src/forthc.fth:752 | 7 |  |
+| 624 | `fc-do-entry` | определение `:` | src/forthc.fth:754 | 1 |  |
+| 625 | `fc-ctl-leave` | определение `:` | src/forthc.fth:758 | 1 |  |
+| 626 | `fc-ctl-leave!` | определение `:` | src/forthc.fth:759 | 1 |  |
+| 627 | `fc-loop-leave` | определение `:` | src/forthc.fth:760 | 1 |  |
+| 628 | `fc-align` | определение `:` | src/forthc.fth:762 | 2 |  |
+| 629 | `fc-check-here` | определение `:` | src/forthc.fth:763 | 3 |  |
+| 630 | `fc-define-data` | определение `:` | src/forthc.fth:764 | 2 |  |
+| 631 | `fc-sat` | переменная | src/forthc.fth:765 | 3 |  |
+| 632 | `fc-store-string` | определение `:` | src/forthc.fth:766 | 1 |  |
+| 633 | `fc-ct` | данные `create` | src/forthc.fth:772 | 3 |  |
+| 634 | `fc-nct` | переменная | src/forthc.fth:772 | 11 |  |
+| 635 | `fc-ct+` | определение `:` | src/forthc.fth:773 | 15 |  |
+| 636 | `fc-ct-` | определение `:` | src/forthc.fth:774 | 9 |  |
+| 637 | `fc-ct2` | определение `:` | src/forthc.fth:775 | 8 |  |
+| 638 | `fc-inits` | данные `create` | src/forthc.fth:777 | 2 |  |
+| 639 | `fc-ninit` | переменная | src/forthc.fth:777 | 5 |  |
+| 640 | `fc-init-open` | переменная | src/forthc.fth:777 | 6 |  |
+| 641 | `fc-init` | определение `:` | src/forthc.fth:778 | 1 |  |
+| 642 | `fc-scan-uses` | определение `:` | src/forthc.fth:797 | 1 |  |
+| 643 | `fc-const-shift` | определение `:` | src/forthc.fth:805 | 2 |  |
+| 644 | `fc-lit?` | определение `:` | src/forthc.fth:816 | 3 |  |
+| 645 | `fc-mul-lit?` | определение `:` | src/forthc.fth:818 | 1 |  |
+| 646 | `fc-shift-lit?` | определение `:` | src/forthc.fth:823 | 2 |  |
+| 647 | `fc-pick-roll` | определение `:` | src/forthc.fth:826 | 3 |  |
+| 648 | `fc-stx` | переменная | src/forthc.fth:834 | 3 |  |
+| 649 | `fc-stlo` | переменная | src/forthc.fth:834 | 11 |  |
+| 650 | `fc-sthi` | переменная | src/forthc.fth:834 | 11 |  |
+| 651 | `fc-stp` | переменная | src/forthc.fth:834 | 6 |  |
+| 652 | `fc-strow` | переменная | src/forthc.fth:834 | 9 |  |
+| 653 | `fc-space-store` | определение `:` | src/forthc.fth:835 | 2 |  |
+| 654 | `fc-ftr` | переменная | src/forthc.fth:848 | 4 |  |
+| 655 | `fc-space-fetch` | определение `:` | src/forthc.fth:849 | 3 |  |
+| 656 | `fc-close-init` | определение `:` | src/forthc.fth:862 | 2 |  |
+| 657 | `fc-open-init` | определение `:` | src/forthc.fth:865 | 1 |  |
+| 658 | `fc-gens` | переменная | src/forthc.fth:881 | 3 |  |
+| 659 | `fc-generator` | определение `:` | src/forthc.fth:882 | 80 |  |
+| 660 | `fc-literal-name` | определение `:` | src/forthc.fth:884 | 12 |  |
+| 661 | `fc-words` | определение `:` | src/forthc.fth:886 | 1 |  |
+| 662 | `fc-known` | определение `:` | src/forthc.fth:897 | 1 |  |
+| 663 | `fc-defining?` | определение `:` | src/forthc.fth:900 | 6 |  |
+| 664 | `fc-code` | определение `:` | src/forthc.fth:903 | 52 | вариант 2 |
+| 665 | `fc-fold?` | определение `:` | src/forthc.fth:906 | 13 |  |
+| 666 | `fc-top-only` | определение `:` | src/forthc.fth:908 | 6 |  |
+| 667 | `fc-not-found` | определение `:` | src/forthc.fth:913 | 1 |  |
+| 668 | `fc-word-token` | определение `:` | src/forthc.fth:920 | 1 |  |
+| 669 | `fc-token` | определение `:` | src/forthc.fth:927 | 2 |  |
+| 670 | `fc-synonym-of` | определение `:` | src/forthc.fth:930 | 2 |  |
+| 671 | `fc-synonym` | определение `:` | src/forthc.fth:932 | 5 |  |
+| 672 | `fc-sy` | переменная | src/forthc.fth:935 | 2 |  |
+| 673 | `fc-synonym?` | определение `:` | src/forthc.fth:936 | 1 |  |
+| 674 | `fc-poke` | определение `:` | src/forthc.fth:941 | 2 |  |
+| 675 | `fc-concept-record` | определение `:` | src/forthc.fth:946 | 1 |  |
+| 676 | `fc-eval` | определение `:` | src/forthc.fth:952 | 25 |  |
+| 677 | `fc-concepts` | определение `:` | src/forthc.fth:958 | 1 |  |
+| 678 | `fc-replacement` | определение `:` | src/forthc.fth:966 | 1 |  |
+| 679 | `fc-library` | определение `:` | src/forthc.fth:979 | 1 |  |
+| 680 | `fc-helpers-cost` | определение `:` | src/forthc.fth:998 | 1 |  |
+| 681 | `fc-price-word` | определение `:` | src/forthc.fth:1006 | 1 |  |
+| 682 | `fc-compile` | определение `:` | src/forthc.fth:1009 | 1 |  |
+| 683 | `fc-go` | определение `:` | src/forthc.fth:1025 | 3 | вход бута (хост) |
+| 684 | `gen+` | определение `:` | src/primitives.fth:9 | 6 |  |
+| 685 | `gen-` | определение `:` | src/primitives.fth:10 | 3 |  |
+| 686 | `gen-and` | определение `:` | src/primitives.fth:11 | 4 |  |
+| 687 | `gen-or` | определение `:` | src/primitives.fth:12 | 5 |  |
+| 688 | `gen-xor` | определение `:` | src/primitives.fth:13 | 5 |  |
+| 689 | `gen=` | определение `:` | src/primitives.fth:14 | 2 |  |
+| 690 | `gen<` | определение `:` | src/primitives.fth:15 | 2 |  |
+| 691 | `gen-u<` | определение `:` | src/primitives.fth:16 | 2 |  |
+| 692 | `gen-lshift` | определение `:` | src/primitives.fth:17 | 2 |  |
+| 693 | `gen-rshift` | определение `:` | src/primitives.fth:19 | 4 |  |
+| 694 | `gen-0=` | определение `:` | src/primitives.fth:21 | 2 |  |
+| 695 | `gen-cells` | определение `:` | src/primitives.fth:22 | 2 |  |
+| 696 | `gen-2*` | определение `:` | src/primitives.fth:23 | 2 |  |
+| 697 | `gen-1+` | определение `:` | src/primitives.fth:24 | 2 |  |
+| 698 | `gen-1-` | определение `:` | src/primitives.fth:25 | 3 |  |
+| 699 | `gen-cell+` | определение `:` | src/primitives.fth:26 | 2 |  |
+| 700 | `gen*` | определение `:` | src/primitives.fth:28 | 2 |  |
+| 701 | `gen/` | определение `:` | src/primitives.fth:31 | 2 |  |
+| 702 | `gen-mod` | определение `:` | src/primitives.fth:32 | 2 |  |
+| 703 | `gen/mod` | определение `:` | src/primitives.fth:33 | 2 |  |
+| 704 | `gen-dup` | определение `:` | src/primitives.fth:37 | 4 |  |
+| 705 | `gen-drop` | определение `:` | src/primitives.fth:38 | 2 |  |
+| 706 | `gen-swap` | определение `:` | src/primitives.fth:39 | 3 |  |
+| 707 | `gen-over` | определение `:` | src/primitives.fth:40 | 5 |  |
+| 708 | `gen-rot` | определение `:` | src/primitives.fth:41 | 2 |  |
+| 709 | `gen-pick` | определение `:` | src/primitives.fth:42 | 2 |  |
+| 710 | `gen-roll` | определение `:` | src/primitives.fth:43 | 2 |  |
+| 711 | `gen->r` | определение `:` | src/primitives.fth:44 | 2 |  |
+| 712 | `gen-r>` | определение `:` | src/primitives.fth:45 | 2 |  |
+| 713 | `gen-r@` | определение `:` | src/primitives.fth:46 | 4 |  |
+| 714 | `gen-j` | определение `:` | src/primitives.fth:47 | 2 |  |
+| 715 | `gen-@` | определение `:` | src/primitives.fth:48 | 2 |  |
+| 716 | `gen-!` | определение `:` | src/primitives.fth:50 | 2 |  |
+| 717 | `gen-c@` | определение `:` | src/primitives.fth:51 | 2 |  |
+| 718 | `gen-c!` | определение `:` | src/primitives.fth:53 | 2 |  |
+| 719 | `gen-emit` | определение `:` | src/primitives.fth:54 | 2 |  |
+| 720 | `gen-key` | определение `:` | src/primitives.fth:57 | 2 |  |
+| 721 | `gen-if` | определение `:` | src/primitives.fth:61 | 4 |  |
+| 722 | `gen-else` | определение `:` | src/primitives.fth:62 | 2 |  |
+| 723 | `gen-then` | определение `:` | src/primitives.fth:64 | 4 |  |
+| 724 | `gen-begin` | определение `:` | src/primitives.fth:68 | 2 |  |
+| 725 | `gen-until` | определение `:` | src/primitives.fth:69 | 2 |  |
+| 726 | `gen-while` | определение `:` | src/primitives.fth:71 | 2 |  |
+| 727 | `gen-repeat` | определение `:` | src/primitives.fth:72 | 2 |  |
+| 728 | `gen-again` | определение `:` | src/primitives.fth:73 | 2 |  |
+| 729 | `gen-do` | определение `:` | src/primitives.fth:75 | 2 |  |
+| 730 | `fc-di` | переменная | src/primitives.fth:79 | 3 |  |
+| 731 | `fc-dl` | переменная | src/primitives.fth:79 | 3 |  |
+| 732 | `gen-?do` | определение `:` | src/primitives.fth:80 | 2 |  |
+| 733 | `fc-lv` | переменная | src/primitives.fth:87 | 2 |  |
+| 734 | `gen-loop` | определение `:` | src/primitives.fth:88 | 2 |  |
+| 735 | `gen-leave` | определение `:` | src/primitives.fth:97 | 2 |  |
+| 736 | `gen-unloop` | определение `:` | src/primitives.fth:100 | 2 |  |
+| 737 | `gen-exit` | определение `:` | src/primitives.fth:103 | 2 |  |
+| 738 | `gen-recurse` | определение `:` | src/primitives.fth:106 | 2 |  |
+| 739 | `gen-tick` | определение `:` | src/primitives.fth:107 | 2 |  |
+| 740 | `gen-throw` | определение `:` | src/primitives.fth:110 | 4 |  |
+| 741 | `gen-call` | определение `:` | src/primitives.fth:117 | 28 |  |
+| 742 | `gen-lit` | определение `:` | src/primitives.fth:118 | 10 |  |
+| 743 | `gen-pick-n` | определение `:` | src/primitives.fth:120 | 3 |  |
+| 744 | `gen-check-range` | определение `:` | src/primitives.fth:124 | 4 |  |
+| 745 | `fc-mark-entry` | определение `:` | src/primitives.fth:133 | 2 |  |
+| 746 | `gen-space!` | определение `:` | src/primitives.fth:134 | 2 |  |
+| 747 | `gen-spacec!` | определение `:` | src/primitives.fth:135 | 2 |  |
+| 748 | `gen-space@` | определение `:` | src/primitives.fth:136 | 2 |  |
+| 749 | `gen-spacec@` | определение `:` | src/primitives.fth:137 | 2 |  |
+| 750 | `gen-check-entry` | определение `:` | src/primitives.fth:141 | 2 |  |
+| 751 | `gen-execute` | определение `:` | src/primitives.fth:147 | 2 |  |
+| 752 | `gen-catch` | определение `:` | src/primitives.fth:149 | 2 |  |
+| 753 | `fc-concept` | определение `:` | src/primitives.fth:157 | 1 |  |
+| 754 | `gen-colon` | определение `:` | src/primitives.fth:162 | 2 |  |
+| 755 | `gen-semicolon` | определение `:` | src/primitives.fth:167 | 2 |  |
+| 756 | `gen-variable` | определение `:` | src/primitives.fth:170 | 2 |  |
+| 757 | `gen-create` | определение `:` | src/primitives.fth:171 | 2 |  |
+| 758 | `gen-allot` | определение `:` | src/primitives.fth:172 | 2 |  |
+| 759 | `gen-constant` | определение `:` | src/primitives.fth:173 | 2 |  |
+| 760 | `gen-decimal` | определение `:` | src/primitives.fth:174 | 2 |  |
+| 761 | `gen-kernel-layout` | определение `:` | src/primitives.fth:176 | 2 |  |
+| 762 | `gen-backslash` | определение `:` | src/primitives.fth:179 | 2 |  |
+| 763 | `gen-paren` | определение `:` | src/primitives.fth:181 | 2 |  |
+| 764 | `gen-char` | определение `:` | src/primitives.fth:182 | 2 |  |
+| 765 | `gen-string` | определение `:` | src/primitives.fth:183 | 2 |  |
+| 766 | `fc-digit@` | определение `:` | src/primitives.fth:192 | 1 |  |
+| 767 | `gen-literal` | определение `:` | src/primitives.fth:194 | 2 |  |
+| 768 | `fc-known-xt` | определение `:` | src/primitives.fth:203 | 2 |  |
+| 769 | `gen-cost` | определение `:` | src/primitives.fth:204 | 2 |  |
+| 770 | `gen-proved?` | определение `:` | src/primitives.fth:206 | 2 |  |
+| 771 | `gen-library` | определение `:` | src/primitives.fth:207 | 6 |  |
+| 772 | `gen-price` | определение `:` | src/primitives.fth:208 | 2 |  |
+| 773 | `fc-name2` | определение `:` | src/primitives.fth:210 | 1 |  |
+| 774 | `fc-generators` | определение `:` | src/primitives.fth:214 | 1 |  |
+| 775 | `+` | генератор | src/primitives.fth:215 | 522 | слово компилятора `gen+` |
+| 776 | `-` | генератор | src/primitives.fth:215 | 50 | слово компилятора `gen-` |
+| 777 | `*` | генератор | src/primitives.fth:216 | 80 | слово компилятора `gen*` |
+| 778 | `/` | генератор | src/primitives.fth:216 | 3 | слово компилятора `gen/` |
+| 779 | `mod` | генератор | src/primitives.fth:217 | 1 | слово компилятора `gen-mod` |
+| 780 | `and` | генератор | src/primitives.fth:218 | 107 | слово компилятора `gen-and` |
+| 781 | `or` | генератор | src/primitives.fth:218 | 42 | слово компилятора `gen-or` |
+| 782 | `xor` | генератор | src/primitives.fth:219 | 5 | слово компилятора `gen-xor` |
+| 783 | `lshift` | генератор | src/primitives.fth:219 | 79 | слово компилятора `gen-lshift` |
+| 784 | `rshift` | генератор | src/primitives.fth:220 | 56 | слово компилятора `gen-rshift` |
+| 785 | `=` | генератор | src/primitives.fth:220 | 61 | слово компилятора `gen=` |
+| 786 | `<` | генератор | src/primitives.fth:221 | 29 | слово компилятора `gen<` |
+| 787 | `u<` | генератор | src/primitives.fth:221 | 13 | слово компилятора `gen-u<` |
+| 788 | `0=` | генератор | src/primitives.fth:222 | 79 | слово компилятора `gen-0=` |
+| 789 | `2*` | генератор | src/primitives.fth:222 | 28 | слово компилятора `gen-2*` |
+| 790 | `1+` | генератор | src/primitives.fth:223 | 42 | слово компилятора `gen-1+` |
+| 791 | `1-` | генератор | src/primitives.fth:223 | 45 | слово компилятора `gen-1-` |
+| 792 | `cells` | генератор | src/primitives.fth:224 | 260 | слово компилятора `gen-cells` |
+| 793 | `cell+` | генератор | src/primitives.fth:224 | 53 | слово компилятора `gen-cell+` |
+| 794 | `dup` | генератор | src/primitives.fth:225 | 288 | слово компилятора `gen-dup` |
+| 795 | `drop` | генератор | src/primitives.fth:225 | 194 | слово компилятора `gen-drop` |
+| 796 | `swap` | генератор | src/primitives.fth:226 | 129 | слово компилятора `gen-swap` |
+| 797 | `over` | генератор | src/primitives.fth:226 | 83 | слово компилятора `gen-over` |
+| 798 | `rot` | генератор | src/primitives.fth:227 | 38 | слово компилятора `gen-rot` |
+| 799 | `pick` | генератор | src/primitives.fth:227 | 49 | слово компилятора `gen-pick` |
+| 800 | `roll` | генератор | src/primitives.fth:228 | 5 | слово компилятора `gen-roll` |
+| 801 | `>r` | генератор | src/primitives.fth:228 | 104 | слово компилятора `gen->r` |
+| 802 | `r>` | генератор | src/primitives.fth:229 | 108 | слово компилятора `gen-r>` |
+| 803 | `r@` | генератор | src/primitives.fth:229 | 94 | слово компилятора `gen-r@` |
+| 804 | `i` | генератор | src/primitives.fth:230 | 161 | слово компилятора `gen-r@` |
+| 805 | `j` | генератор | src/primitives.fth:230 | 12 | слово компилятора `gen-j` |
+| 806 | `@` | генератор | src/primitives.fth:231 | 1125 | слово компилятора `gen-@` |
+| 807 | `!` | генератор | src/primitives.fth:231 | 613 | слово компилятора `gen-!` |
+| 808 | `c@` | генератор | src/primitives.fth:232 | 22 | слово компилятора `gen-c@` |
+| 809 | `c!` | генератор | src/primitives.fth:232 | 17 | слово компилятора `gen-c!` |
+| 810 | `space!` | генератор | src/primitives.fth:233 | 1 | слово компилятора `gen-space!` |
+| 811 | `spacec!` | генератор | src/primitives.fth:233 | 1 | слово компилятора `gen-spacec!` |
+| 812 | `emit` | генератор | src/primitives.fth:235 | 4 | слово компилятора `gen-emit` |
+| 813 | `key` | генератор | src/primitives.fth:235 | 1 | слово компилятора `gen-key` |
+| 814 | `if` | генератор | src/primitives.fth:236 | 265 | слово компилятора `gen-if` |
+| 815 | `else` | генератор | src/primitives.fth:236 | 66 | слово компилятора `gen-else` |
+| 816 | `then` | генератор | src/primitives.fth:237 | 265 | слово компилятора `gen-then` |
+| 817 | `begin` | генератор | src/primitives.fth:237 | 23 | слово компилятора `gen-begin` |
+| 818 | `until` | генератор | src/primitives.fth:238 | 1 | слово компилятора `gen-until` |
+| 819 | `while` | генератор | src/primitives.fth:238 | 21 | слово компилятора `gen-while` |
+| 820 | `repeat` | генератор | src/primitives.fth:239 | 21 | слово компилятора `gen-repeat` |
+| 821 | `again` | генератор | src/primitives.fth:239 | 1 | слово компилятора `gen-again` |
+| 822 | `do` | генератор | src/primitives.fth:240 | 31 | слово компилятора `gen-do` |
+| 823 | `?do` | генератор | src/primitives.fth:240 | 53 | слово компилятора `gen-?do` |
+| 824 | `loop` | генератор | src/primitives.fth:241 | 84 | слово компилятора `gen-loop` |
+| 825 | `leave` | генератор | src/primitives.fth:241 | 1 | слово компилятора `gen-leave` |
+| 826 | `unloop` | генератор | src/primitives.fth:242 | 6 | слово компилятора `gen-unloop` |
+| 827 | `exit` | генератор | src/primitives.fth:242 | 66 | слово компилятора `gen-exit` |
+| 828 | `recurse` | генератор | src/primitives.fth:243 | 1 | слово компилятора `gen-recurse` |
+| 829 | `execute` | генератор | src/primitives.fth:243 | 10 | слово компилятора `gen-execute` |
+| 830 | `[']` | генератор | src/primitives.fth:244 | 137 | слово компилятора `gen-tick` |
+| 831 | `catch` | генератор | src/primitives.fth:244 | 1 | слово компилятора `gen-catch` |
+| 832 | `throw` | генератор | src/primitives.fth:245 | 76 | слово компилятора `gen-throw` |
+| 833 | `:` | генератор | src/primitives.fth:246 | 455 | слово компилятора `gen-colon` |
+| 834 | `;` | генератор | src/primitives.fth:246 | 455 | слово компилятора `gen-semicolon` |
+| 835 | `variable` | генератор | src/primitives.fth:247 | 290 | слово компилятора `gen-variable` |
+| 836 | `create` | генератор | src/primitives.fth:247 | 43 | слово компилятора `gen-create` |
+| 837 | `allot` | генератор | src/primitives.fth:248 | 41 | слово компилятора `gen-allot` |
+| 838 | `constant` | генератор | src/primitives.fth:248 | 17 | слово компилятора `gen-constant` |
+| 839 | `decimal` | генератор | src/primitives.fth:249 | 3 | слово компилятора `gen-decimal` |
+| 840 | `kernel-layout` | генератор | src/primitives.fth:249 | 1 | слово компилятора `gen-kernel-layout` |
+| 841 | `\` | генератор | src/primitives.fth:250 | 359 | слово компилятора `gen-backslash` |
+| 842 | `(` | генератор | src/primitives.fth:250 | 431 | слово компилятора `gen-paren` |
+| 843 | `[char]` | генератор | src/primitives.fth:250 | 8 | слово компилятора `gen-char` |
+| 844 | `s"` | генератор | src/primitives.fth:251 | 133 | слово компилятора `gen-string` |
+| 845 | `literal` | генератор | src/primitives.fth:252 | 457 | слово компилятора `gen-literal` |
+| 846 | `0` | цифра (литерал) | src/primitives.fth:257 | 504 | значение 0 |
+| 847 | `1` | цифра (литерал) | src/primitives.fth:257 | 407 | значение 1 |
+| 848 | `2` | цифра (литерал) | src/primitives.fth:257 | 432 | значение 2 |
+| 849 | `3` | цифра (литерал) | src/primitives.fth:257 | 285 | значение 3 |
+| 850 | `4` | цифра (литерал) | src/primitives.fth:258 | 227 | значение 4 |
+| 851 | `5` | цифра (литерал) | src/primitives.fth:258 | 102 | значение 5 |
+| 852 | `6` | цифра (литерал) | src/primitives.fth:258 | 137 | значение 6 |
+| 853 | `7` | цифра (литерал) | src/primitives.fth:258 | 42 | значение 7 |
+| 854 | `8` | цифра (литерал) | src/primitives.fth:259 | 148 | значение 8 |
+| 855 | `9` | цифра (литерал) | src/primitives.fth:259 | 42 | значение 9 |
+| 856 | `fc-install-generators` | определение `:` | src/primitives.fth:260 | 1 |  |
+| 857 | `heap-start` | данные `create` | src/main.fth:4 | 1 |  |
+| 858 | `fc-read` | определение `:` | src/main.fth:7 | 2 |  |
+| 859 | `fc-sizes` | определение `:` | src/main.fth:12 | 2 |  |
+| 860 | `kn-at` | переменная | src/kernel.fth:12 | 5 |  |
+| 861 | `kn-put` | определение `:` | src/kernel.fth:13 | 1 |  |
+| 862 | `kn-order` | определение `:` | src/kernel.fth:23 | 1 |  |
+| 863 | `kn-compile` | определение `:` | src/kernel.fth:24 | 1 |  |
+| 864 | `kn-.n` | определение `:` | src/kernel.fth:25 | 1 |  |
+| 865 | `main` | определение `:` | src/kernel.fth:29 | 1 | вариант 2 |
+| 866 | `kn-heap-start` | данные `create` | src/kernel.fth:34 | 1 |  |
 
 ## Числа определения
 
-Число — слово: его строит генератор `literal` из цифр (`doc/literals.md`); в ядро входят сами цифры и `literal`. Различных чисел в определении: 84.
+Число — слово: его строит генератор `literal` из цифр (`doc/literals.md`); в ядро входят сами цифры и `literal`. Различных чисел в определении: 86.
 
 ## Определены, но не использованы
 
-Слов: 28. Они есть в тексте определения (замкнутость от этого не нарушается), но по графу до них не доходит ни одна ссылка.
+Слов: 29. Они есть в тексте определения (замкнутость от этого не нарушается), но по графу до них не доходит ни одна ссылка.
 
 | Слово | Вид | Файл:строка |
 |---|---|---|
@@ -909,16 +919,17 @@
 | `cc-halt-end` | определение `:` | src/compute.fth:254 |
 | `cc-stub-on` | определение `:` | src/compute.fth:255 |
 | `cc-stub` | определение `:` | src/compute.fth:256 |
-| `fc-depth` | определение `:` | src/forthc.fth:892 |
-| `fc-ctl-depth` | определение `:` | src/forthc.fth:893 |
-| `/mod` | генератор | src/primitives.fth:205 |
-| `space@` | генератор | src/primitives.fth:222 |
-| `spacec@` | генератор | src/primitives.fth:222 |
-| `cost` | генератор | src/primitives.fth:241 |
-| `price` | генератор | src/primitives.fth:241 |
-| `proved?` | генератор | src/primitives.fth:242 |
-| `check-table` | генератор | src/primitives.fth:243 |
-| `accuracy` | генератор | src/primitives.fth:243 |
+| `fc-depth` | определение `:` | src/forthc.fth:895 |
+| `fc-ctl-depth` | определение `:` | src/forthc.fth:896 |
+| `/mod` | генератор | src/primitives.fth:217 |
+| `space@` | генератор | src/primitives.fth:234 |
+| `spacec@` | генератор | src/primitives.fth:234 |
+| `cost` | генератор | src/primitives.fth:253 |
+| `price` | генератор | src/primitives.fth:253 |
+| `proved?` | генератор | src/primitives.fth:254 |
+| `check-table` | генератор | src/primitives.fth:255 |
+| `accuracy` | генератор | src/primitives.fth:255 |
+| `replace` | генератор | src/primitives.fth:256 |
 | `main` (вариант 1) | определение `:` | src/main.fth:15 |
 
 ## Слова, которые при буте исполняет хост
