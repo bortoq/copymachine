@@ -45,6 +45,7 @@
 | `check-programs` | 37 программ `forthc_programs.py` компилируются определением на хосте, поток исполняется на checked-emulator; вывод — ожидаемый (для `PROGRAMS` — вывод того же текста на хостовом pForth, для `EXPECTED` — заданный); `STREAMS=equal` добавляет побайтное равенство потоку модели |
 | `check-closure` | граф определения (по `tools/research/defgraph.py`, порядок K): печатает `external N` и имена и (14.8) записывает ядро языка в `doc/core.md`; код 0, если `N <= MAX_EXTERNAL` |
 | `check-kernel` | L0 на emulator компилирует и запускает те же программы внутри своего пространства (`test_kernel.py --programs-only`); `tools/check_kernel.py --rebuild` — ещё и пересборка (около полутора часов) |
+| `check-self` | (14.15) L0 на emulator компилирует определение языка (шаг 4 `test_kernel.py`: stdin — L0, исходники компилятора, нулевой байт, исходники языка); поток L1 равен L0 побайтно; запускать с `--file-mib 64` (L0 больше 16 МиБ) |
 | `check-language-md` | (14.9) `tools/language_md.py --check`: `doc/language.md` синхронизирован с ядром языка — запись на каждое слово ядра, файл, строка и хеш определения совпадают |
 | `check` | `check-programs`, `check-closure`, `tests/` (происхождение, замкнутость, бут = K0, с 14.7 — литералы `test_literals.py`, с 14.9 — `test_language_md.py`, с 14.11 — запись слова и цена `test_word.py`), с 14.9 — `check-language-md` |
 
@@ -75,3 +76,14 @@ repeat while c! j u< execute roll unloop xor emit / decimal again catch
 kernel-layout key leave mod space! spacec! until` (слова управления и
 стековые примитивы, которые компилятор строит сам, плюс шесть слов ядра:
 `kernel-layout`, `space!`, `spacec!`, `key`, `emit`, `decimal`).
+
+## Язык компилирует себя (14.15)
+
+`make -C space/language check-self` (`tools/check_self.py`): L0 на emulator читает определение языка
+(исходники `COMPILER_FILES`, нулевой байт, исходники `KERNEL_FILES`) и пишет поток L1.
+
+- Результат: L1 = 16 967 309 байт, равен L0 побайтно (`cmp` внутри инструмента), с первого прогона.
+- Время: 5792 с (1 ч 36 мин 32 с по `time`), один ядровой процесс, лимит 14400 с с запасом.
+- Для сравнения: бут на хостовом pForth около 12 с, то есть язык на emulator в сотни раз медленнее хоста.
+- При расхождении инструмент печатает размеры и номер первого отличающегося байта.
+- Запускать через `limited_run.py ... --file-mib 64`; макрос `limit` в Makefile тоже задаёт `--file-mib 64`.

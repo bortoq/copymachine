@@ -28,14 +28,15 @@ STREAMS ?=
 BOOT_SECONDS ?= 600
 PROGRAMS_SECONDS ?= 1800
 KERNEL_SECONDS ?= 12000
+SELF_SECONDS ?= 14000
 TEST_SECONDS ?= 1800
-limit = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(1) --memory-mib 768
+limit = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(1) --memory-mib 768 --file-mib 64
 ifeq ($(COPYMACHINE_LIMITED),1)
 limit =
 endif
 SOURCES = $(wildcard src/*.fth)
 TOOLS = $(wildcard tools/*.py)
-.PHONY: all boot check check-programs check-closure check-kernel check-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
+.PHONY: all boot check check-programs check-closure check-kernel check-self check-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
 all: boot
 boot: $(L0)
 $(L0): $(SOURCES) $(TOOLS)
@@ -52,6 +53,11 @@ check-language-md:
 check-kernel: $(L0)
 	$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy
 	$(call limit,$(KERNEL_SECONDS)) $(PYTHON) -B tools/check_kernel.py --l0 "$(L0)"
+# Self-compilation (14.15): L0 on the emulator compiles the definition of the language, L1 = L0
+# (hours; run with --file-mib 64, L0 is larger than 16 MiB).
+check-self: $(L0)
+	$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy
+	$(call limit,$(SELF_SECONDS)) $(PYTHON) -B tools/check_self.py --l0 "$(L0)"
 check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_provenance.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_closure.py

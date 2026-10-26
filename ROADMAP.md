@@ -1863,7 +1863,7 @@ vm2 пока не выполнена: она явно запланирована
   программы остался прежний код.
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 --file-mib 64 sh -c 'make -C space/language boot check && python3 -B space/language/tests/test_user_programs.py'`
 
-### ❌ 14.15. Язык компилирует себя
+### ✅ 14.15. Язык компилирует себя
 
 - **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 14.10, 14.14
 - **Сделать:** цель `check-self`: L0 на emulator компилирует определение
