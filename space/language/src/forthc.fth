@@ -221,6 +221,51 @@ create fc-rest 8 cells allot variable fc-nrest
   repeat ;
 : fc-pop ( -- r ) 1 fc-need fc-pop1 ;
 
+\ --- the log of the layers of a word (14.11) --------------------------------------------
+\ While a word is compiled (and the helpers * / are built) every written layer goes to the log
+\ (CC-ON-WRITE): its cell, copies, bits, next cell. Copies: the rows of n > 0 bits and the link row;
+\ bits: n of the copies between positions of the space (not of a channel), the link row a layer.
+\ The layers that choose a target (decisions) and the calls are noted when they are made. From
+\ the log FC-PATH finds the longest path of the word. Nothing of this goes to the stream.
+2048 constant fc-max-log 64 constant fc-max-notes
+variable fc-log variable fc-nlog variable fc-decs variable fc-ndec variable fc-calls variable fc-ncall
+variable fc-pend variable fc-npend variable fc-unknown
+variable fc-lc variable fc-lb
+\ The width of a row (dl dh sl sh at addr): of its destination or of its source, the larger (a pair
+\ of fields that the code writes at run time is 0 0 until then: SPACE! SPACE@).
+: fc-row-n ( addr -- n ) dup cell+ @ over @ - swap dup 3 cells + @ swap 2 cells + @ - max ;
+: fc-mem-row? ( addr -- f ) dup @ cc-size @ u< swap 2 cells + @ cc-size @ u< and ;
+: fc-log-layer ( layer -- ) \ CC-ON-WRITE: the layer into the log
+  fc-nlog @ fc-max-log = if drop -1 fc-unknown ! exit then
+  1 fc-lc ! cc-layer-bits fc-lb !
+  dup cc-count 0 ?do
+    dup i cc-row-addr dup fc-row-n ?dup if
+      1 fc-lc +! swap fc-mem-row? if fc-lb +! else drop then
+    else drop then
+  loop
+  fc-nlog @ 2 lshift cells fc-log @ + >r
+  dup cc-layer-cell r@ ! cell+ @ r@ 3 cells + ! fc-lc @ r@ cell+ ! fc-lb @ r> 2 cells + !
+  1 fc-nlog +! ;
+: fc-log-begin ( -- )
+  0 fc-nlog ! 0 fc-ndec ! 0 fc-ncall ! 0 fc-unknown ! ['] fc-log-layer cc-on-write ! ;
+: fc-log-end ( -- ) 0 cc-on-write ! ;
+\ The price is by execution (a loop, recursion, a call of an xt): the log stops.
+: fc-by-execution ( -- ) -1 fc-unknown ! fc-log-end ;
+: fc-dec@ ( i -- addr ) 2* cells fc-decs @ + ;
+: fc-call@ ( i -- addr ) dup 2* + cells fc-calls @ + ;
+\ The last layer chooses one of 2^k targets, CC-BRANCH-STEP apart from its next cell.
+: fc-log-decision ( k -- )
+  cc-on-write @ 0= if drop exit then
+  fc-ndec @ fc-max-notes = if drop fc-by-execution exit then
+  fc-ndec @ fc-dec@ >r r@ cell+ ! cc-last cc-layer-cell r> ! 1 fc-ndec +! ;
+\ The last layer jumps to a callee and the path goes on at cont, with the price of the callee:
+\ block holds its bits, copies, layers, known (a record of a word from its cell 10, or a helper).
+: fc-log-call ( cont block -- )
+  cc-on-write @ 0= if 2drop exit then
+  fc-ncall @ fc-max-notes = if 2drop fc-by-execution exit then
+  fc-ncall @ fc-call@ >r r@ 2 cells + ! r@ cell+ ! cc-last cc-layer-cell r> ! 1 fc-ncall +! ;
+variable fc-callee   \ the record of the word FC-CALL calls (0: not a word)
+
 \ --- control --------------------------------------------------------------
 variable fc-live variable fc-tramp variable fc-ex variable fc-thrower
 : fc-jump ( target -- ) cc-seq# @ 0= if cc-layer drop then cc-jump ;
@@ -234,10 +279,12 @@ variable fc-live variable fc-tramp variable fc-ex variable fc-thrower
 : fc-nonzero ( r -- e )
   cc-lookups-begin fc-z swap 0 32 cc-or-chunks cc-lookups
   cc-lookups-begin fc-t-nz2 @ 2 2 fc-xr 0 cc-item fc-z 4 0 cc-seg cc-lookups fc-xr ;
-: fc-branch ( flag -- zero yes ) fc-nonzero 1 cc-decide fc-end dup cc-branch-step + ;
+: fc-branch ( flag -- zero yes ) fc-nonzero 1 cc-decide 1 fc-log-decision fc-end dup cc-branch-step + ;
+\ A call of a word (FC-CALLEE: its record) is noted in the log (14.11).
 : fc-call ( entry -- )
   fc-spill cc-new-cell >r r@ fc-link-const fc-src1 fc-rstk fc-rp 64 fc-mem-push
-  cc-jump fc-end r> fc-begin-block drop ;
+  cc-jump fc-callee @ ?dup if r@ swap 10 cells + fc-log-call then 0 fc-callee !
+  fc-end r> fc-begin-block drop ;
 variable fc-v0 variable fc-v1
 : fc-call-indirect ( xt cont|-1 -- cont )
   fc-spill dup -1 = if drop cc-new-cell then >r
@@ -313,7 +360,7 @@ variable fc-r1l0 variable fc-r1l1 variable fc-r1r
   cc-layer fc-cl0 ! cc-layer fc-cl1 ! cc-layer drop cc-layer fc-cr !
   fc-t-fault @ 6 34 fc-flt fc-chk-read fc-z 2 0 fc-chk-seg
   fc-cmode @ 2 and 0= if fc-ca @ 2 2 fc-chk-seg then
-  1 cc-group fc-cg ! cc-layer >r cc-layer drop cc-layer fc-cx ! fc-cg @ fc-cx @ cc-next!
+  1 cc-group fc-cg ! cc-layer >r cc-layer drop cc-layer fc-cx ! fc-cg @ fc-cx @ cc-next! 1 fc-log-decision
   1 fc-cx @ cc-layer-cell 7 2 cc-field cc-branch-bit + fc-flt cc-copy r@ cc-row drop
   1 fc-cx @ cc-layer-cell 7 3 cc-field cc-branch-bit + fc-flt 1+ cc-copy r> cc-row drop
   fc-cg @ cc-seq
@@ -453,7 +500,7 @@ variable fc-w variable fc-lo variable fc-tlo variable fc-t0 variable fc-t1 varia
   fc-w @ 0 32 r@ 0 fc-slookup fc-tr ! r> fc-rem !
   1 fc-q @ fc-k @ + fc-qr @ fc-tqk @ fc-scopy fc-tq @ max fc-tq ! ;
 : fc-build-div ( -- entry exit )
-  -1 cc-seq cc-layer drop cc-entry fc-mb fc-nonzero 1 cc-decide fc-end
+  -1 cc-seq cc-layer drop cc-entry fc-mb fc-nonzero 1 cc-decide 1 fc-log-decision fc-end
   dup cc-new-record >r 32 fc-code -10 fc-const cc-copy r@ cc-row drop fc-thrower @ r> cc-next!
   cc-branch-step + fc-sinit
   3 0 do ['] cc-sub-entry 9 3 cc-table i cells fc-sub + ! loop
@@ -470,6 +517,8 @@ variable fc-w variable fc-lo variable fc-tlo variable fc-t0 variable fc-t1 varia
   fc-sfinish ;
 variable fc-mul-entry variable fc-mul-exit variable fc-div-entry variable fc-div-exit
 variable fc-hl variable fc-hcont
+\ The price of the helpers (14.11): bits, copies, layers, known of the path from entry to exit.
+create fc-mul-cost 16 allot create fc-div-cost 16 allot
 : fc-row-or-new ( dl dh sl sh -- )
   2over 2over fc-hl @ cc-fits? if fc-hl @ cc-row drop else cc-layer dup fc-hl ! cc-row drop then ;
 \ Operands to MA/MB and the exit link patched with the continuation, one layer.
@@ -477,12 +526,83 @@ variable fc-hl variable fc-hcont
   2 fc-need fc-pop1 fc-pop1 2swap cc-new-cell fc-hcont !
   64 swap 7 2 cc-field fc-hcont @ fc-link-const cc-copy cc-layer dup fc-hl ! cc-row drop
   ( b a entry ) >r 32 fc-ma rot cc-copy fc-row-or-new 32 fc-mb rot cc-copy fc-row-or-new
-  r> cc-jump cc-flush fc-hcont @ cc-seq ;
+  r> dup cc-jump fc-mul-entry @ = if fc-mul-cost else fc-div-cost then fc-hcont @ swap fc-log-call
+  cc-flush fc-hcont @ cc-seq ;
 : fc-result1 ( src -- ) fc-reg dup fc-push 32 swap rot cc-copy fc-rows1 ;
 variable fc-s1 variable fc-s2 variable fc-r1
 : fc-result2 ( src1 src2 -- )
   fc-s2 ! fc-s1 ! fc-reg dup fc-push fc-r1 ! fc-reg dup fc-push
   32 fc-r1 @ fc-s1 @ cc-copy cc-layer dup >r cc-row drop 32 swap fc-s2 @ cc-copy r> cc-row drop ;
+
+\ --- the longest path (14.11) ----------------------------------------------------------------
+\ The price of a word without loops and recursion at compile time. The layers of the log are in
+\ the order they were made, and a path of such a word only goes to later layers: a loop or a call of
+\ an xt leaves a target that no later layer takes, and the price is then by execution. For each
+\ counter the longest path from the entry to the exit: the sum over its layers and calls, the
+\ largest branch. A path to the thrower (THROW, a fault) leaves the word and is not counted.
+variable fc-pexit variable fc-ptramp variable fc-pd variable fc-pc variable fc-ends
+variable fc-pb variable fc-pcp variable fc-pln variable fc-pk variable fc-pcall
+create fc-best 12 allot
+: fc-pend@ ( i -- addr ) 2 lshift cells fc-pend @ + ;   \ cell, bits, copies, layers
+\ A path reaches cell with these counters: kept, the largest of each.
+: fc-reach ( bits copies layers cell -- )
+  fc-npend @ 0 ?do
+    i fc-pend@ @ over = if
+      drop i fc-pend@ cell+ >r
+      r@ 2 cells + @ max r@ 2 cells + ! r@ cell+ @ max r@ cell+ ! r@ @ max r> ! unloop exit
+    then
+  loop
+  fc-npend @ fc-max-notes = if 2drop 2drop -1 fc-unknown ! exit then
+  fc-npend @ fc-pend@ >r r@ ! r@ 3 cells + ! r@ 2 cells + ! r> cell+ ! 1 fc-npend +! ;
+\ The counters of the paths that reach cell, taken off (0: no path reaches it).
+: fc-take ( cell -- bits copies layers -1 | 0 )
+  fc-npend @ 0 ?do
+    i fc-pend@ @ over = if
+      drop i fc-pend@ dup cell+ @ over 2 cells + @ rot 3 cells + @
+      -1 fc-npend +! fc-npend @ fc-pend@ i fc-pend@ 4 cells cmove -1 unloop exit
+    then
+  loop drop 0 ;
+\ A path reaches the exit; the exit of a word is the trampoline of the return, one layer more.
+: fc-end-path ( bits copies layers -- )
+  fc-ptramp @ if 1+ rot cc-layer-bits + rot 1+ rot then
+  fc-best 2 cells + @ max fc-best 2 cells + ! fc-best cell+ @ max fc-best cell+ ! fc-best @ max fc-best !
+  -1 fc-ends ! ;
+\ The path through the layer (counters in FC-PB FC-PCP FC-PL) goes on at cell.
+: fc-to ( cell -- )
+  dup fc-pexit @ = if drop fc-pb @ fc-pcp @ fc-pln @ fc-end-path exit then
+  dup fc-thrower @ = if drop exit then
+  >r fc-pb @ fc-pcp @ fc-pln @ r> fc-reach ;
+\ A layer of the log (its entry): the notes made for it; if a path reaches it, its targets.
+: fc-node ( entry -- )
+  -1 fc-pk ! 0 fc-pcall !
+  fc-pd @ fc-ndec @ < if
+    fc-pd @ fc-dec@ dup @ 2 pick @ = if cell+ @ fc-pk ! 1 fc-pd +! else drop then
+  then
+  fc-pc @ fc-ncall @ < if
+    fc-pc @ fc-call@ dup @ 2 pick @ = if fc-pcall ! 1 fc-pc +! else drop then
+  then
+  dup @ fc-take 0= if drop exit then
+  fc-pln ! fc-pcp ! fc-pb !
+  dup cell+ @ fc-pcp +! dup 2 cells + @ fc-pb +! 1 fc-pln +!
+  3 cells + @
+  fc-pk @ 0< 0= if 1 fc-pk @ lshift 0 ?do dup i cc-branch-bit lshift + fc-to loop drop exit then
+  fc-pcall @ ?dup if
+    nip dup cell+ @ swap 2 cells + @
+    dup 3 cells + @ 0= if 2drop -1 fc-unknown ! exit then
+    dup @ fc-pb +! dup cell+ @ fc-pcp +! 2 cells + @ fc-pln +!
+  then fc-to ;
+\ The longest path from the cell entry to the cell exit (tramp?: a word, the exit is the
+\ trampoline); known: -1, or 0 and no counters (by execution).
+: fc-path ( entry exit tramp? -- bits copies layers known )
+  fc-ptramp ! fc-pexit !
+  fc-unknown @ if drop 0 0 0 0 exit then
+  0 fc-npend ! 0 fc-ends ! fc-best 12 0 fill 0 fc-pd ! 0 fc-pc !
+  >r 0 0 0 r> fc-reach
+  fc-nlog @ 0 ?do i 2 lshift cells fc-log @ + fc-node loop
+  fc-unknown @ fc-npend @ or fc-ends @ 0= or fc-pd @ fc-ndec @ <> or fc-pc @ fc-ncall @ <> or
+  if 0 0 0 0 exit then
+  fc-best @ fc-best cell+ @ fc-best 2 cells + @ -1 ;
+: fc-cost! ( bits copies layers known block -- ) >r r@ 3 cells + ! r@ 2 cells + ! r@ cell+ ! r> ! ;
 
 \ --- primitives ---------------------------------------------------------------
 \ The literal compiled by the previous word (for N PICK, N ROLL).
@@ -574,20 +694,49 @@ create fc-tok 256 allot variable fc-tl
   fc-text @ over + fc-pos @ rot - 1 fc-pos +! ;
 variable fc-names-size 4096 fc-names-size ! variable fc-max-words 256 fc-max-words !
 variable fc-names variable fc-names-used
-variable fc-wt variable fc-nwords variable fc-wbk   \ entries: offset len kind value next
-: fc-wt@ ( i -- addr ) dup 2 lshift + cells fc-wt @ + ;
+variable fc-wt variable fc-nwords variable fc-wbk   \ records of 16 cells (14.11)
+\ The record of a word (14.11, space/language/doc/word.md): 0 the offset of the name, 1 its length,
+\ 2 the kind, 3 the value (of a word: its concept cell, the xt of the current definition), 4 the
+\ next record of the chain. The concept: 5 the address of the concept cell, through which the word
+\ is called. The definitions by type of addressing: 6 index space (the entry), 7 copy space,
+\ 8 host space (0: none). The price: 9 size (cells), 10 bits, 11 copies, 12 layers, 13 known
+\ (-1: at compile time, 0: by execution). 14 the proof: FC-PROVED, or a record of the unproved.
+\ 15 the stack of definitions (0: empty).
+: fc-wt@ ( i -- addr ) 4 lshift cells fc-wt @ + ;
+\ The common word "proved": a table of one value of one bit, 1. The proof of a proved word refers to
+\ it; that of an unproved word to a record of what was checked: inputs, their bits, the way
+\ (FC-UNPROVED: nothing was checked, 0 0 0).
+create fc-proved 4 allot 1 fc-proved !
+create fc-unproved 12 allot fc-unproved 12 0 fill
+\ The mechanisms of a new record: the concept cell is its own, the index definition its value (if a
+\ word), no price yet, not proved, no earlier definitions.
+: fc-mechanisms ( record -- )
+  dup 5 cells + 11 cells 0 fill
+  dup 3 cells + over 5 cells + !
+  dup 2 cells + @ 1 = if dup 3 cells + @ over 6 cells + ! then
+  fc-unproved swap 14 cells + ! ;
+: fc-xt ( record -- xt ) 5 cells + @ @ ;   \ the xt of a word: the content of its concept cell
 : fc-hash ( addr u -- bucket ) \ of the name addr u
   0 swap 0 ?do dup 5 lshift swap - over i + c@ + loop nip fc-nbuckets @ 1- and cells fc-wbk @ + ;
 : fc-define ( kind value -- ) \ the newest definition heads its chain
   fc-nwords @ fc-max-words @ = fc-names-used @ fc-tl @ + fc-names-size @ > or if -8 throw then
   fc-nwords @ fc-wt@ >r r@ 3 cells + ! r@ 2 cells + !
-  fc-names-used @ r@ ! fc-tl @ r@ cell+ ! fc-tok fc-tl @ fc-hash dup @ r> 4 cells + ! fc-nwords @ 1+ swap !
-  fc-tok fc-names @ fc-names-used @ + fc-tl @ cmove fc-tl @ fc-names-used +! 1 fc-nwords +! ;
+  fc-names-used @ r@ ! fc-tl @ r@ cell+ ! fc-tok fc-tl @ fc-hash dup @ r@ 4 cells + ! fc-nwords @ 1+ swap !
+  r> fc-mechanisms fc-tok fc-names @ fc-names-used @ + fc-tl @ cmove fc-tl @ fc-names-used +! 1 fc-nwords +! ;
 : fc-lookup ( addr u -- entry|0 ) \ the newest entry of the name addr u
   2dup fc-hash @ begin ?dup while
     1- fc-wt@ dup @ fc-names @ + over cell+ @ 4 pick 4 pick compare 0= if nip nip exit then 4 cells + @
   repeat 2drop 0 ;
 : fc-find ( -- entry|0 ) fc-tok fc-tl @ fc-lookup ;   \ of the word read
+\ The mechanisms for COST and PROVED? (14.11): the newest word whose concept cell holds xt.
+: fc-word-of ( xt -- record|0 )
+  fc-nwords @ begin dup while
+    1- dup fc-wt@ dup 2 cells + @ 1 = if dup fc-xt 3 pick = if nip nip exit then then drop
+  repeat nip ;
+: fc-cost ( xt -- size bits copies layers known ) \ the price of the word of xt; no word: 0 0 0 0 0
+  fc-word-of ?dup 0= if 0 0 0 0 0 exit then
+  >r r@ 9 cells + @ r@ 10 cells + @ r@ 11 cells + @ r@ 12 cells + @ r> 13 cells + @ ;
+: fc-proved? ( xt -- f ) fc-word-of dup if 14 cells + @ fc-proved = then ;
 
 \ --- compiler -------------------------------------------------------------
 variable fc-here variable fc-word variable fc-uses
@@ -733,8 +882,10 @@ variable fc-gens
   >r dup fc-tl ! fc-tok swap cmove 0 r> fc-define ;
 : fc-words ( -- ) \ the dictionary: cleared, then the generators
   fc-wt @ 0= if
-    fc-max-words @ 5 * cells allocate throw fc-wt ! fc-names-size @ allocate throw fc-names !
+    fc-max-words @ 4 lshift cells allocate throw fc-wt ! fc-names-size @ allocate throw fc-names !
     fc-nbuckets @ cells allocate throw fc-wbk !
+    fc-max-log 2 lshift cells allocate throw fc-log ! fc-max-notes 2* cells allocate throw fc-decs !
+    fc-max-notes 3 * cells allocate throw fc-calls ! fc-max-notes 2 lshift cells allocate throw fc-pend !
   then
   fc-wbk @ fc-nbuckets @ cells 0 fill 0 fc-nwords ! 0 fc-names-used !
   fc-gens @ ?dup if execute then ;
@@ -765,13 +916,27 @@ variable fc-gens
 \ compile time. Top-level code runs before MAIN as parts, in order (FC-CODE).
 : fc-word-token ( -- )
   fc-find ?dup 0= if fc-not-found then
-  dup 3 cells + @ swap 2 cells + @ dup 2 and if drop execute exit then
-  dup fc-defining? or 0= if drop fc-ct+ exit then
-  fc-code if fc-call else fc-literal then ;
+  dup 2 cells + @ dup 2 and if drop 3 cells + @ execute exit then
+  dup fc-defining? or 0= if drop 3 cells + @ fc-ct+ exit then
+  fc-code if dup fc-callee ! fc-xt fc-call else 3 cells + @ fc-literal then ;
+\ The price of the helpers, built before the code (FC-COMPILE, 14.11): their last layers are still
+\ pending, they go to the log as they are, unwritten.
+: fc-helpers-cost ( -- )
+  cc-pending @ 0 ?do i cc-pending@ fc-log-layer loop
+  fc-uses @ 1 and if fc-mul-entry @ fc-cellb 0 fc-path fc-mul-cost fc-cost! then
+  fc-uses @ 2 and if fc-div-entry @ fc-cellb 0 fc-path fc-div-cost fc-cost! then
+  fc-log-end ;
+\ The price of the word just defined (14.11): its size, the cells from its entry to the first free
+\ one, exactly; the bits, copies, layers of its longest path if known at compile time.
+: fc-price-word ( record -- )
+  >r cc-next-cell @ r@ 6 cells + @ cc-cell-bit rshift - r@ 9 cells + !
+  r@ 6 cells + @ fc-tramp @ -1 fc-path r> 10 cells + fc-cost! fc-log-end ;
 : fc-compile ( -- )
-  fc-words fc-scan-uses fc-uses @ 4 and fc-layout fc-init
+  fc-log-end fc-words fc-scan-uses fc-uses @ 4 and fc-layout fc-init
+  fc-uses @ 3 and if fc-log-begin then
   fc-uses @ 1 and if fc-build-mul fc-mul-exit ! fc-mul-entry ! then
   fc-uses @ 2 and if fc-build-div fc-div-exit ! fc-div-entry ! then
+  fc-uses @ 3 and if fc-helpers-cost then
   begin fc-next while
     fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! fc-word-token
   repeat
@@ -779,7 +944,7 @@ variable fc-gens
   s" main" fc-tok swap dup fc-tl ! cmove fc-find dup 0= if -16 throw then >r
   0 fc-live ! 0 fc-n ! 0 cc-group fc-begin-block cc-new-cell
   dup fc-push-frame fc-ninit @ 0 ?do fc-inits i cells + @ fc-call loop
-  r> 3 cells + @ fc-call fc-cellb fc-jump cc-flush
+  r> fc-xt fc-call fc-cellb fc-jump cc-flush
   cc-new-record fc-cellb swap cc-next! cc-flush
   fc-sp fc-zeros 8 cc-put fc-rp fc-zeros 8 cc-put fc-handler fc-zeros 8 cc-put
   fc-zero fc-zeros 16 cc-put fc-put-consts fc-put-links cc-finish ;

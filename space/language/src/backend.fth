@@ -138,7 +138,12 @@ create cc-foff 32 cells allot
   cc-clear-rows dup 3 cells + cc-rows 2 pick cc-count 2 lshift cells cmove
   cell+ @ cc-link-row cc-slots @ 1- cc-row!
   cc-ebuf @ cc-dest ! cc-rows cc-slots @ cc-encode ;
-: cc-write ( layer -- ) dup cc-encode-layer cc-layer-cell cc-ebuf @ cc-lbytes cc-put ;
+\ An xt ( layer -- ) in cc-on-write sees every layer as it is written (0: none); the price of
+\ a word (14.11) is counted from them. The stream does not change.
+variable cc-on-write 0 cc-on-write !
+: cc-write ( layer -- )
+  cc-on-write @ ?dup if over swap execute then
+  dup cc-encode-layer cc-layer-cell cc-ebuf @ cc-lbytes cc-put ;
 : cc-write-oldest ( -- ) 0 cc-pending@ cc-write cc-head @ 1+ cc-max-layers 1- and cc-head ! -1 cc-pending +! ;
 : cc-new-record ( cell -- layer )
   cc-pending @ cc-max-layers = if cc-write-oldest then

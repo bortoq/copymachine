@@ -2,7 +2,8 @@
 the words of the generators (14.3-14.6, src/primitives.fth) are defined, the defining words
 among them; after 14.6 no name is external, and the compiler has no branch by the name of a
 word (FC-IS? only defined in forthc.fth). 14.7: the digits 0..9 are words (names of literals),
-the numbers of the definition use them and the word `literal`, the compiler parses no number."""
+the numbers of the definition use them and the word `literal`, the compiler parses no number.
+14.11: the words of the mechanisms of a word cost, price, proved? are generators too (77 registrations)."""
 import sys
 from pathlib import Path
 
@@ -13,13 +14,13 @@ import paths
 names, nodes = check_closure.external_names()
 assert not names, sorted(names)
 generated = {name for name, _, _ in check_closure.generators()}
-assert len(generated) == 74 and {'+', '*', '/mod', 'cell+', '0=', 'dup', '@', '!', 'i', 'j', 'roll', 'spacec!', 'key',
+assert len(generated) == 77 and {'+', '*', '/mod', 'cell+', '0=', 'dup', '@', '!', 'i', 'j', 'roll', 'spacec!', 'key',
                                'if', 'then', '?do', 'loop', 'leave', 'exit', 'recurse', "[']", 'catch', 'throw',
                                ':', ';', 'variable', 'constant', 'create', 'allot', '(', '[char]', 's"',
-                               'decimal', 'kernel-layout', 'literal', '\\'} <= generated, sorted(generated)
+                               'decimal', 'kernel-layout', 'literal', '\\', 'cost', 'price', 'proved?'} <= generated, sorted(generated)
 # every registration of the generators and of the digits is seen by the graph (no word is registered unseen)
 tokens = [t for t, _, _ in check_closure.defgraph.tokenize('space/language/src/primitives.fth')]
-assert tokens.count('fc-generator') == len(check_closure.generators()) == 74, tokens.count('fc-generator')
+assert tokens.count('fc-generator') == len(check_closure.generators()) == 77, tokens.count('fc-generator')
 assert tokens.count('fc-literal-name') == 10, tokens.count('fc-literal-name')
 digits = check_closure.literal_names()
 assert [(name, value) for name, value, _ in digits] == [(str(d), str(d)) for d in range(10)], digits

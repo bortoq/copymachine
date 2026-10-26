@@ -46,7 +46,7 @@
 | `check-closure` | граф определения (по `tools/research/defgraph.py`, порядок K): печатает `external N` и имена и (14.8) записывает ядро языка в `doc/core.md`; код 0, если `N <= MAX_EXTERNAL` |
 | `check-kernel` | L0 на emulator компилирует и запускает те же программы внутри своего пространства (`test_kernel.py --programs-only`); `tools/check_kernel.py --rebuild` — ещё и пересборка (около полутора часов) |
 | `check-language-md` | (14.9) `tools/language_md.py --check`: `doc/language.md` синхронизирован с ядром языка — запись на каждое слово ядра, файл, строка и хеш определения совпадают |
-| `check` | `check-programs`, `check-closure`, `tests/` (происхождение, замкнутость, бут = K0, с 14.7 — литералы `test_literals.py`, с 14.9 — `test_language_md.py`), с 14.9 — `check-language-md` |
+| `check` | `check-programs`, `check-closure`, `tests/` (происхождение, замкнутость, бут = K0, с 14.7 — литералы `test_literals.py`, с 14.9 — `test_language_md.py`, с 14.11 — запись слова и цена `test_word.py`), с 14.9 — `check-language-md` |
 
 ## Цифры (этот прогон)
 
@@ -56,6 +56,8 @@
 - Внешних имён (`MAX_EXTERNAL`): **58**.
 - После 14.3 (генераторы): L0 14 586 891 байт, равен K0 модели для нового текста;
   определений 687; внешних имён **39** (`doc/generators.md`).
+- После 14.11 (запись слова, цена при компиляции): L0 16 529 105 байт (после 14.10 — 14 973 769),
+  равен K0; бут около 12 с (`doc/word.md`).
 
 ## Число внешних имён: 58, а не 68
 

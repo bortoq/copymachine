@@ -1810,7 +1810,7 @@ vm2 пока не выполнена: она явно запланирована
   пишут всё пространство.
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 sh -c 'make -C space/language boot check check-kernel && python3 -B space/language/tests/test_isolation.py'`
 
-### ❌ 14.11. Запись слова: механизмы
+### ✅ 14.11. Запись слова: механизмы
 
 - **Исполнитель:** Opus 5.5, high. **Зависит:** 14.10
 - **Сделать:** запись словаря (`space/language/doc/word.md`): понятие (имя,

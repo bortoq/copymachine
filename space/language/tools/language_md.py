@@ -24,6 +24,9 @@ Usage: language_md.py --check     compare the records with the core: the set and
        language_md.py --update    rewrite only the lines `код:` of the existing records
        language_md.py --skeleton  add the missing records (heading, kind, synonyms, `код:`, the
                                   meaning TODO, which --check rejects); create the file if missing
+       language_md.py --prices    rewrite the price of the colon definitions (14.11) from the
+                                  records the compiler makes when the host compiles the definition
+                                  (tools/word_cost.py; tests/test_word.py checks them)
        [--doc PATH]               default doc/language.md
 Exit code of --check: 0 if the document agrees with the core, else 1.
 """
@@ -295,6 +298,43 @@ def update(lines):
     return lines, changed
 
 
+# --- the prices of the words (14.11) ---------------------------------------------------------------
+
+PRICE_KNOWN = 'размер {size} яч., биты {bits}, копирования {copies}, слои {layers} (при компиляции)'
+PRICE_RUN = 'размер {size} яч.; биты, копирования, слои — по исполнению'
+
+
+def price_text(record):
+    """The price of a record of the compiler (word_cost.FIELDS) as the record of the document writes it."""
+    return (PRICE_KNOWN if record['known'] else PRICE_RUN).format(**record)
+
+
+def prices(lines, versions):
+    """The lines with the price of the colon definitions of the core from the records the compiler made when
+    it compiled the definition (versions: word_cost.definition()[2]['versions']): (lines, changed, errors)."""
+    records = {record['key']: record for record in parse(lines)}
+    count, changed, errors = collections.Counter(), 0, []
+    for word in core():
+        if word['kind'] not in ('colon', 'foundation'):
+            continue
+        count[word['name']] += 1
+        compiled = versions.get((word['name'], count[word['name']]))
+        record = records.get(word['key'])
+        if not compiled or not record:
+            errors.append(f'{show(word["key"])}: нет записи компилятора или документа')
+            continue
+        for i in range(record['start'] + 1, record['end']):
+            match = PROPS_LINE.match(lines[i])
+            if match:
+                suffix = ' Основание: ' + FOUNDATION_NOTE + '.' if word['kind'] == 'foundation' else ''
+                line = (f'Тип адресации: {match.group(1)}. Доказательство: {match.group(2)}. '
+                        f'Цена: {price_text(compiled)}.{suffix}')
+                if lines[i] != line:
+                    lines[i] = line
+                    changed += 1
+    return lines, changed, errors
+
+
 def skeleton(lines):
     """Add the missing records: (lines, added). A new record goes after the previous present record of its
     file, else before the next one, else after the heading `## `src/FILE`` and its paragraphs, else at the end."""
@@ -331,6 +371,7 @@ def main():
     mode.add_argument('--check', action='store_true')
     mode.add_argument('--update', action='store_true')
     mode.add_argument('--skeleton', action='store_true')
+    mode.add_argument('--prices', action='store_true')
     parser.add_argument('--doc', default=str(DOC))
     args = parser.parse_args()
     doc = paths.Path(args.doc)
@@ -353,6 +394,14 @@ def main():
         doc.write_text('\n'.join(lines))
         print(f'update: строк кода переписано {changed}')
         return 0
+    if args.prices:
+        import word_cost
+        lines, changed, errors = prices(lines, word_cost.definition()[2]['versions'])
+        for error in errors:
+            print('FAIL', error, file=sys.stderr)
+        doc.write_text('\n'.join(lines))
+        print(f'prices: строк цены переписано {changed}')
+        return 1 if errors else 0
     lines, added = skeleton(lines)
     doc.write_text('\n'.join(lines) + ('' if lines[-1] == '' else '\n'))
     print(f'skeleton: записей добавлено {added}')

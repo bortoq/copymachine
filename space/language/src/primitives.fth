@@ -65,7 +65,7 @@
   fc-code fc-ctl- fc-spill swap 1 = if
     cc-new-cell dup fc-jump cc-flush swap cc-new-record over swap cc-next! fc-end fc-begin-block drop
   else fc-begin-block drop then ;
-: gen-begin ( -- ) fc-code fc-spill 3 -1 fc-begin-block fc-ctl+ ;
+: gen-begin ( -- ) fc-code fc-by-execution fc-spill 3 -1 fc-begin-block fc-ctl+ ;
 : gen-until ( -- )
   fc-code fc-pop fc-spill fc-branch swap cc-new-record fc-ctl- nip swap cc-next! cc-flush fc-begin-block drop ;
 : gen-while ( -- ) fc-code fc-pop fc-spill fc-branch swap 4 swap fc-ctl+ fc-begin-block drop ;
@@ -73,12 +73,12 @@
 : gen-again ( -- ) fc-code fc-ctl- nip fc-spill fc-jump fc-end -1 fc-begin-block drop ;
 \ DO: limit and index to the return stack, the loop starts a block.
 : gen-do ( -- )
-  fc-code 2 fc-need fc-pop1 fc-pop1 fc-spill fc-srcs ! fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
-  5 -1 fc-begin-block fc-ctl+ ;
+  fc-code fc-by-execution 2 fc-need fc-pop1 fc-pop1 fc-spill fc-srcs ! fc-srcs cell+ ! 2 fc-nsrc !
+  fc-rstk fc-rp 32 fc-mem-push 5 -1 fc-begin-block fc-ctl+ ;
 \ ?DO: equal limit and index skip the loop, straight to its leave cell.
 variable fc-di variable fc-dl
 : gen-?do ( -- )
-  fc-code 2 fc-need fc-pop1 fc-di ! fc-pop1 fc-dl ! fc-spill
+  fc-code fc-by-execution 2 fc-need fc-pop1 fc-di ! fc-pop1 fc-dl ! fc-spill
   cc-t-xor @ fc-xr fc-di @ fc-dl @ cc-logic fc-xr fc-branch
   cc-new-cell dup >r rot cc-new-record cc-next! cc-flush fc-begin-block drop
   fc-dl @ fc-srcs ! fc-di @ fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
@@ -101,8 +101,12 @@ variable fc-lv
 \ Calls: EXIT returns, RECURSE calls the word being defined, EXECUTE calls an xt;
 \ ['] X compiles the xt of X (the next word of the channel) as a literal.
 : gen-exit ( -- ) fc-code fc-ret -1 fc-begin-block drop ;
-: gen-recurse ( -- ) fc-code fc-word @ 3 cells + @ fc-call ;
-: gen-tick ( -- ) fc-code fc-next! fc-find dup 0= if -13 throw then 3 cells + @ fc-literal ;
+\ The call of a word goes through its concept cell (FC-XT, 14.11); a loop, RECURSE and a call of an
+\ xt make the price of the word one by execution (FC-BY-EXECUTION).
+: gen-recurse ( -- ) fc-code fc-by-execution fc-word @ dup fc-callee ! fc-xt fc-call ;
+: gen-tick ( -- )
+  fc-code fc-next! fc-find dup 0= if -13 throw then dup 2 cells + @ 1 = if fc-xt else 3 cells + @ then
+  fc-literal ;
 : gen-throw ( -- ) fc-code fc-throw ;
 \ Isolation of the kernel (14.10). In the program of the kernel (FC-GUARD, set by the kernel
 \ while it compiles a program) the generators of SPACE! SPACEC! SPACE@ SPACEC@ EXECUTE CATCH
@@ -141,16 +145,16 @@ variable fc-lv
   32 fc-space-fetch fc-mark gen-lit ['] gen-xor gen-call ['] gen-or gen-call
   ['] gen-if gen-call -9 gen-lit ['] gen-throw gen-call ['] gen-then gen-call ;
 : gen-execute ( -- )
-  fc-code fc-guard @ if gen-check-entry then fc-pop -1 fc-call-indirect fc-begin-block drop ;
-: gen-catch ( -- ) fc-code fc-guard @ if gen-check-entry then fc-catch ;
+  fc-code fc-by-execution fc-guard @ if gen-check-entry then fc-pop -1 fc-call-indirect fc-begin-block drop ;
+: gen-catch ( -- ) fc-code fc-by-execution fc-guard @ if gen-check-entry then fc-catch ;
 \ Defining words and the channel (14.6). : VARIABLE CREATE CONSTANT ALLOT and
 \ KERNEL-LAYOUT belong to the top level (FC-TOP-ONLY: else -13); ; to a
 \ definition (at the top level -22). ( [CHAR] S" read the channel.
 : gen-colon ( -- ) \ : NAME starts the word NAME (visible at once: RECURSE)
   fc-top-only fc-close-init fc-next! 0 cc-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
-  0 fc-live ! 0 fc-n ! fc-begin-block drop fc-guard @ if fc-mark-entry then ;
-: gen-semicolon ( -- ) \ ; returns and ends the definition
-  fc-defining? 0= if -22 throw then fc-nctl @ if -22 throw then fc-ret 0 fc-word ! ;
+  0 fc-live ! 0 fc-n ! fc-begin-block drop fc-guard @ if fc-mark-entry then fc-log-begin ;
+: gen-semicolon ( -- ) \ ; returns and ends the definition, its price is counted (14.11)
+  fc-defining? 0= if -22 throw then fc-nctl @ if -22 throw then fc-ret fc-word @ fc-price-word 0 fc-word ! ;
 : gen-variable ( -- ) fc-top-only fc-next! 4 fc-define-data ;
 : gen-create ( -- ) fc-top-only fc-next! 0 fc-define-data ;
 : gen-allot ( -- ) fc-top-only fc-ct- fc-here +! fc-check-here ;
@@ -180,6 +184,15 @@ variable fc-lv
   dup 0= if -13 throw then
   0 -rot over + swap do 10 * i fc-digit@ + loop r> *
   fc-defining? if fc-literal else fc-ct+ then ;
+\ The mechanisms of a word (14.11, space/language/doc/word.md). COST ( xt -- size bits copies layers
+\ known ) and PROVED? ( xt -- f ) need the xt known at compile time: the literal just compiled
+\ (['] W), else -13; they compile literals. PRICE ( size bits copies layers -- n ): the sum, the
+\ code of three + (at the top level folded, as +).
+: fc-known-xt ( -- xt ) fc-lit? 0= if -13 throw then fc-pop1 drop fc-plv @ ;
+: gen-cost ( -- )
+  fc-known-xt fc-cost >r >r >r >r fc-literal r> fc-literal r> fc-literal r> fc-literal r> fc-literal ;
+: gen-proved? ( -- ) fc-known-xt fc-proved? fc-literal ;
+: gen-price ( -- ) ['] gen+ gen-call ['] gen+ gen-call ['] gen+ gen-call ;
 \ The name of two bytes c1 c2 (S": a quote cannot be written in a string).
 : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
 \ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel
@@ -223,6 +236,8 @@ variable fc-lv
   s" \" ['] gen-backslash 8 fc-generator  s" (" ['] gen-paren 0 fc-generator  s" [char]" ['] gen-char 0 fc-generator
   [char] s [char] " fc-name2 ['] gen-string 0 fc-generator
   s" literal" ['] gen-literal 0 fc-generator
+  s" cost" ['] gen-cost 0 fc-generator  s" price" ['] gen-price 0 fc-generator
+  s" proved?" ['] gen-proved? 0 fc-generator
   s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name
   s" 4" 4 fc-literal-name  s" 5" 5 fc-literal-name  s" 6" 6 fc-literal-name  s" 7" 7 fc-literal-name
   s" 8" 8 fc-literal-name  s" 9" 9 fc-literal-name ;

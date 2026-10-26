@@ -242,3 +242,13 @@ kernel-layout`, из `fc-word-token` — `; [char]` и `s"` (его провер
 `space@ spacec@ ( lo hi -- x )` — чтение полуинтервала, зеркало `space! spacec!`: источник
 строки копирования вписывается в неё двумя слоями раньше (как приёмник у записи). Подробности
 — `doc/isolation.md`.
+
+## 14.11: механизмы слова
+
+Генераторы слов языка cost ( xt -- size bits copies layers known ), proved? ( xt -- f ) и price
+( size bits copies layers -- n ): `gen-cost`, `gen-proved?` (xt — литерал, только что
+скомпилированный, `fc-known-xt`; иначе -13; компилируют литералы из записи слова) и `gen-price`
+(сумма: три вызова `gen+` через `gen-call`). Регистраций в `fc-generators` теперь 77 (76
+генераторов). Генераторы `begin do ?do recurse execute catch` вызывают `fc-by-execution` (цена слова —
+по исполнению), `:` начинает журнал цены, `;` записывает цену (`fc-price-word`), `[']` и `recurse`
+берут xt из ячейки понятия (`fc-xt`). Подробности — `doc/word.md`.

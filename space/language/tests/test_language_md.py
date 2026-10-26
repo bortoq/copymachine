@@ -60,6 +60,11 @@ def main():
         code, out = run(language, '--check')
         assert code != 0 and 'смысл не заполнен' in out, out
         meaning = re.search(r'### `tuck`\n\n.*?\n\n(Смысл: .*?)\n', original).group(1)
+        # 14.11: the price of a colon definition is that of the compiler (--prices), the skeleton writes
+        # «по исполнению»
+        props = re.compile(r'(### `tuck`\n(?:.*\n)*?)(Тип адресации: .*)\n')
+        price = props.search(original).group(2)
+        restored = props.sub(lambda m: m.group(1) + price + '\n', restored, 1)
         assert restored.replace('Смысл: TODO', meaning, 1) == original, 'the skeleton record differs only by the meaning'
         print('PASS --skeleton restores the record with the meaning TODO: --check', code)
 

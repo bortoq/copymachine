@@ -45,7 +45,8 @@ check-programs:
 	$(call limit,$(PROGRAMS_SECONDS)) $(PYTHON) -B tools/check_programs.py $(if $(filter equal,$(STREAMS)),--streams-equal)
 check-closure:
 	MAX_EXTERNAL=$(MAX_EXTERNAL) $(PYTHON) -B tools/check_closure.py
-# doc/language.md (14.9): one record per word of the core, file:line and hash of the definition.
+# doc/language.md (14.9): one record per word of the core, file:line and hash of the definition;
+# 14.11: the prices of its colon definitions are those of the compiler (tests/test_word.py).
 check-language-md:
 	$(PYTHON) -B tools/language_md.py --check
 check-kernel: $(L0)
@@ -60,6 +61,7 @@ check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_comments.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_literals.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_language_md.py
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_word.py
 # Isolation of the kernel (14.10): probes of L0 (about 20 minutes), not part of check.
 check-isolation: $(L0)
 	$(call limit,$(KERNEL_SECONDS)) $(PYTHON) -B tests/test_isolation.py --l0 "$(L0)"
