@@ -35,7 +35,7 @@ limit =
 endif
 SOURCES = $(wildcard src/*.fth)
 TOOLS = $(wildcard tools/*.py)
-.PHONY: all boot check check-programs check-closure check-kernel check-tests check-language-md check-isolation check-proof check-replace clean
+.PHONY: all boot check check-programs check-closure check-kernel check-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
 all: boot
 boot: $(L0)
 $(L0): $(SOURCES) $(TOOLS)
@@ -72,6 +72,10 @@ check-proof: $(L0)
 # and L0 (about 5 minutes).
 check-replace: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_replace.py
+# User programs do not get dearer (14.14): tools/user_programs.py recompiles the programs of the user
+# with a recompiled language and keeps the previous code if the new one is dearer (about 1 minute).
+check-user-programs:
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_user_programs.py
 check: check-programs check-closure check-tests check-language-md
 clean:
 ifneq ($(WORKSPACE_ROOT),)

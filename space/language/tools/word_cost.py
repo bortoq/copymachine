@@ -41,14 +41,18 @@ FIELDS = ('entry', 'size', 'bits', 'copies', 'layers', 'known', 'own_concept', '
           'copy', 'host', 'proof', 'checked', 'checked_bits', 'way', 'stack')
 
 
-def compile_with_records(source, before='', sizes=''):
+def compile_with_records(source, before='', sizes='', libraries=None):
     """(stream, records, info): records {name: dict(FIELDS)} of the newest record of each name, in the
     order of definition; info: dict(tramp, thrower, mul, div, versions) (a helper: bits copies layers
-    known; versions: {(name, n): record} of every record, n-th definition of the name)."""
+    known; versions: {(name, n): record} of every record, n-th definition of the name).
+    LIBRARIES: the bytes of the compiler the host loads (default: src/ of this component; another
+    language, 14.14, gives its own)."""
     executable = host.build()
     task = (before + sizes + '\n' + '\n'.join('fc| ' + line for line in source.split('\n'))
             + '\nfc-go\n' + DUMP + 'cr .( ' + MARK.decode().strip() + ') cr wd.all\nbye\n')
-    out = check_programs.run_host(executable, paths.source_bytes(paths.LIBRARY_FILES) + task.encode('latin-1'))
+    if libraries is None:
+        libraries = paths.source_bytes(paths.LIBRARY_FILES)
+    out = check_programs.run_host(executable, libraries + task.encode('latin-1'))
     at = out.rindex(MARK)
     stream, text = out[:at], out[at + len(MARK):].decode('latin-1')
     records, info = collections.OrderedDict(), {'versions': {}}
