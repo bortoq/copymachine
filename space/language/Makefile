@@ -35,7 +35,7 @@ limit =
 endif
 SOURCES = $(wildcard src/*.fth)
 TOOLS = $(wildcard tools/*.py)
-.PHONY: all boot check check-programs check-closure check-kernel check-tests check-language-md check-isolation clean
+.PHONY: all boot check check-programs check-closure check-kernel check-tests check-language-md check-isolation check-proof clean
 all: boot
 boot: $(L0)
 $(L0): $(SOURCES) $(TOOLS)
@@ -65,6 +65,9 @@ check-tests: $(L0)
 # Isolation of the kernel (14.10): probes of L0 (about 20 minutes), not part of check.
 check-isolation: $(L0)
 	$(call limit,$(KERNEL_SECONDS)) $(PYTHON) -B tests/test_isolation.py --l0 "$(L0)"
+# Check and proof (14.12): CHECK-TABLE, ACCURACY, PROVED? on checked-emulator and on L0 (about 3 minutes).
+check-proof: $(L0)
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_proof.py
 check: check-programs check-closure check-tests check-language-md
 clean:
 ifneq ($(WORKSPACE_ROOT),)

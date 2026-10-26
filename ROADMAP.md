@@ -1827,7 +1827,7 @@ vm2 пока не выполнена: она явно запланирована
   счётчиками `space/vm2/tests/vm2_reference.py` (13.4) на их исполнении.
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 sh -c 'make -C space/language boot check && python3 -B space/language/tests/test_word.py'`
 
-### ❌ 14.12. Проверка и доказательство
+### ✅ 14.12. Проверка и доказательство
 
 - **Исполнитель:** Sonnet 5.5, high. **Зависит:** 14.11
 - **Сделать:** слова `check-table ( xt in-bits out-bits table -- ok )` —

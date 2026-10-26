@@ -919,6 +919,34 @@ variable fc-gens
   dup 2 cells + @ dup 2 and if drop 3 cells + @ execute exit then
   dup fc-defining? or 0= if drop 3 cells + @ fc-ct+ exit then
   fc-code if dup fc-callee ! fc-xt fc-call else 3 cells + @ fc-literal then ;
+\ One word of the channel, with the bookkeeping of the literal compiled by the previous word (the loop
+\ of FC-COMPILE and FC-EVAL).
+: fc-token ( -- ) fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! fc-word-token ;
+\ A synonym: the name addr u for the word addr2 u2, with its definition and its price.
+: fc-synonym ( addr u addr2 u2 -- )
+  fc-lookup >r dup fc-tl ! fc-tok swap cmove 1 r@ 3 cells + @ fc-define
+  r> 9 cells + fc-nwords @ 1- fc-wt@ 9 cells + 5 cells cmove ;
+\ A text of the language compiled in the middle of the channel (14.12): the text being compiled goes
+\ on after it. FC-LIBRARY: the words of the program that CHECK-TABLE and ACCURACY need (the
+\ registry of the proofs, keyed by xt), compiled before the program when its source names them.
+: fc-eval ( addr u -- )
+  fc-text @ fc-tlen @ fc-pos @ >r >r >r fc-tlen ! fc-text ! 0 fc-pos !
+  begin fc-next while fc-token repeat
+  r> r> r> fc-pos ! fc-tlen ! fc-text ! ;
+: fc-library ( -- )
+  s" variable %n create %e 1024 allot create %proved 4 allot 1 %proved ! variable %x" fc-eval
+  s" variable %m variable %t variable %v variable %c" fc-eval
+  s" : %slot %n @ 0 ?do dup i 5 lshift %e + @ = if drop i 5 lshift %e + unloop exit then loop" fc-eval
+  s" %n @ 32 = if -8 throw then %n @ 5 lshift %e + swap over ! %n @ 1+ %n ! ;" fc-eval
+  s" : %check %t ! dup 1- 32 u< swap 32 swap - -1 swap rshift %m ! over 32 u< and %v !" fc-eval
+  s" swap %slot %x ! dup 1 swap lshift %v @ and swap %v @ and %x @ 8 + ! 0 %c !" fc-eval
+  s" 0 ?do i %x @ @ execute %m @ and %t @ i cells + @ %m @ and xor 0= %c @ swap - %c ! loop" fc-eval
+  s" %c @ %x @ 4 + ! %c @ 1 %x @ 8 + @ lshift %v @ and = %v @ and" fc-eval
+  s" dup %proved and %x @ 16 + ! %v @ 1 and %x @ 12 + ! ;" fc-eval
+  s" : %prv %slot 16 + @ %proved = ;" fc-eval
+  s" : %acc %slot dup 4 + @ swap 8 + @ dup 11 - dup 0 < if drop 0 then >r" fc-eval
+  s" swap r@ rshift swap r> - 1 swap lshift swap 1000000 * swap / ;" fc-eval
+  s" check-table" s" %check" fc-synonym s" accuracy" s" %acc" fc-synonym s" proved?" s" %prv" fc-synonym ;
 \ The price of the helpers, built before the code (FC-COMPILE, 14.11): their last layers are still
 \ pending, they go to the log as they are, unwritten.
 : fc-helpers-cost ( -- )
@@ -937,9 +965,8 @@ variable fc-gens
   fc-uses @ 1 and if fc-build-mul fc-mul-exit ! fc-mul-entry ! then
   fc-uses @ 2 and if fc-build-div fc-div-exit ! fc-div-entry ! then
   fc-uses @ 3 and if fc-helpers-cost then
-  begin fc-next while
-    fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! fc-word-token
-  repeat
+  fc-uses @ 16 and if fc-library then
+  begin fc-next while fc-token repeat
   fc-defining? if -22 throw then fc-close-init
   s" main" fc-tok swap dup fc-tl ! cmove fc-find dup 0= if -16 throw then >r
   0 fc-live ! 0 fc-n ! 0 cc-group fc-begin-block cc-new-cell
