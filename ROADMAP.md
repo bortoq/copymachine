@@ -1850,7 +1850,7 @@ vm2 пока не выполнена: она явно запланирована
   ячейку исходного). Тест: сложение заменяется более дешёвым; испорченное
   и более дорогое отклоняются; цепочка из трёх синонимов исполняет текущее
   определение после замены, `cost` синонима равна `cost` исходного.
-- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 sh -c 'make -C space/language boot check && python3 -B space/language/tests/test_replace.py'`
+- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 --file-mib 64 sh -c 'make -C space/language boot check && python3 -B space/language/tests/test_replace.py'`
 
 ### ❌ 14.14. Программы пользователя не дорожают
 
@@ -1861,7 +1861,7 @@ vm2 пока не выполнена: она явно запланирована
   заменено определение слова на более дешёвое — цена программы не выросла;
   язык с более дорогим определением (без проверки цены, вручную) — у
   программы остался прежний код.
-- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 sh -c 'make -C space/language boot check && python3 -B space/language/tests/test_user_programs.py'`
+- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 --file-mib 64 sh -c 'make -C space/language boot check && python3 -B space/language/tests/test_user_programs.py'`
 
 ### ❌ 14.15. Язык компилирует себя
 
@@ -1869,7 +1869,7 @@ vm2 пока не выполнена: она явно запланирована
 - **Сделать:** цель `check-self`: L0 на emulator компилирует определение
   языка (как шаг 4 `test_kernel.py`); поток L1 равен L0. Записать время в
   `space/language/doc/boot.md`.
-- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 14400 --memory-mib 768 make -C space/language check-self`
+- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 14400 --memory-mib 768 --file-mib 64 make -C space/language check-self`
 - **Стоп для автора.**
 
 **Порядок:** 14.1 → 14.2 → 14.3 → 14.4 → 14.5 → 14.6 → 14.7 → 14.8 →
