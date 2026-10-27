@@ -48,7 +48,7 @@ def main():
             assert stream == model.compile_forth(source), (name, 'the stream differs from the model')
         if want is None:
             want = run_host(executable, (source + '\nmain bye\n').encode('latin-1'))
-        run = subprocess.run([str(paths.CHECKED), '-s', str(paths.SIZE), '-p', '8'], input=stream,
+        run = subprocess.run([str(paths.EXECUTOR), '-s', str(paths.SIZE), '-p', '8'], input=stream,
                              capture_output=True, timeout=600)
         assert run.returncode == 0, (name, run.returncode, run.stderr[-300:])
         assert run.stdout == want, (name, run.stdout[-200:], want[-200:])
@@ -57,7 +57,7 @@ def main():
               f' output {len(want)} bytes as expected ({compiled:.1f} s on the host)', flush=True)
     paths.BUILD.mkdir(parents=True, exist_ok=True)
     (paths.BUILD / 'check-programs.json').write_text(json.dumps(results, indent=1) + '\n')
-    print('ALL', len(results), 'programs compiled by the definition on the host pForth, run on checked-emulator', flush=True)
+    print('ALL', len(results), 'programs compiled by the definition on the host pForth, run on ' + paths.EXECUTOR.name, flush=True)
 
 
 if __name__ == '__main__':

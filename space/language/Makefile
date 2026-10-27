@@ -11,7 +11,11 @@ VM2_ROOT ?= $(abspath ../vm2)
 EMULATOR_ROOT ?= $(abspath ../../emulator)
 COPYCODE_ROOT ?= $(abspath ../copycode)
 FORTH_ROOT ?= $(abspath ../forth)
-export VM2_ROOT EMULATOR_ROOT COPYCODE_ROOT FORTH_ROOT
+# The executor of check-programs, check-kernel and check-self (15.1): EMULATOR=path of an emulator binary, for
+# example the one `make space` builds from the definition of the word "space" (space/). Empty: the
+# working one (checked-emulator of vm2 for check-programs, emulator/ bitcopy for check-kernel).
+EMULATOR ?=
+export VM2_ROOT EMULATOR_ROOT COPYCODE_ROOT FORTH_ROOT EMULATOR
 export PYTHONDONTWRITEBYTECODE=1
 # L0 is written to the output directory of the component (build/space/language), the rest to BUILD_DIR.
 OUT ?= $(if $(WORKSPACE_ROOT),$(WORKSPACE_ROOT)/build/$(WORKSPACE_COMPONENT),$(BUILD_DIR))
@@ -30,19 +34,32 @@ PROGRAMS_SECONDS ?= 1800
 KERNEL_SECONDS ?= 12000
 SELF_SECONDS ?= 14000
 TEST_SECONDS ?= 1800
+CC ?= cc
+CFLAGS ?= -Wall -Wextra -pedantic -std=c11 -O2
+# The word "space" (15.1): the text of its definition is space/, the copy of emulator/src of the
+# bitcopy variant; `make space` builds from it the emulator $(SPACE_BIN).
+SPACE_DIR = $(OUT)/space
+SPACE_BIN = $(SPACE_DIR)/emulator
+SPACE_SOURCES = $(wildcard space/*.c space/*.h) space/proto.def space/proto_gen.py
 limit = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(1) --memory-mib 768 --file-mib 64
 ifeq ($(COPYMACHINE_LIMITED),1)
 limit =
 endif
 SOURCES = $(wildcard src/*.fth)
 TOOLS = $(wildcard tools/*.py)
-.PHONY: all boot check check-programs check-closure check-kernel check-self check-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
+.PHONY: all boot space check check-programs check-closure check-kernel check-self check-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
 all: boot
 boot: $(L0)
+space: $(SPACE_BIN)
+space/proto_gen.h: space/proto.def space/proto_gen.py
+	$(PYTHON) -B space/proto_gen.py space/proto.def $@
+$(SPACE_BIN): $(SPACE_SOURCES) space/proto_gen.h Makefile
+	@mkdir -p "$(@D)"
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) space/runtime.c space/sys_ctrl.c space/bitcopy.c space/backend_bitcopy.c -o $@ $(LDLIBS)
 $(L0): $(SOURCES) $(TOOLS)
 	$(call limit,$(BOOT_SECONDS)) $(PYTHON) -B tools/boot.py -o "$(L0)"
 check-programs:
-	$(call limit,600) $(MAKE) -C "$(VM2_ROOT)" -j1 checked-emulator
+	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(VM2_ROOT)" -j1 checked-emulator)
 	$(call limit,$(PROGRAMS_SECONDS)) $(PYTHON) -B tools/check_programs.py $(if $(filter equal,$(STREAMS)),--streams-equal)
 check-closure:
 	MAX_EXTERNAL=$(MAX_EXTERNAL) $(PYTHON) -B tools/check_closure.py
@@ -51,12 +68,12 @@ check-closure:
 check-language-md:
 	$(PYTHON) -B tools/language_md.py --check
 check-kernel: $(L0)
-	$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy
+	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy)
 	$(call limit,$(KERNEL_SECONDS)) $(PYTHON) -B tools/check_kernel.py --l0 "$(L0)"
 # Self-compilation (14.15): L0 on the emulator compiles the definition of the language, L1 = L0
 # (hours; run with --file-mib 64, L0 is larger than 16 MiB).
 check-self: $(L0)
-	$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy
+	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy)
 	$(call limit,$(SELF_SECONDS)) $(PYTHON) -B tools/check_self.py --l0 "$(L0)"
 check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_provenance.py

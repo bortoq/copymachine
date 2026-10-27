@@ -18,3 +18,12 @@ for name, entry in record['files'].items():
     assert hashlib.sha256(origin.read_bytes()).hexdigest() == entry['origin_sha256'], ('the origin changed', name)
     print('PASS provenance', name, '<-', entry['origin'])
 print('ALL', len(record['files']), 'sources have their origin recorded')
+# 15.1: the definition of the word "space", the copy of the sources of the working emulator. The
+# origin is unchanged (the language changes only the copy); the files of space/ are exactly these.
+copies = record['space_files']
+assert sorted(copies) == sorted(str(path.relative_to(paths.ROOT)) for path in (paths.ROOT / 'space').iterdir()), sorted(copies)
+for name, entry in copies.items():
+    origin = paths.WORKSPACE / entry['origin']
+    assert hashlib.sha256(origin.read_bytes()).hexdigest() == entry['origin_sha256'], ('the origin changed', name)
+    print('PASS provenance', name, '<-', entry['origin'])
+print('ALL', len(copies), 'files of the definition of the word "space" have their origin recorded')
