@@ -859,6 +859,15 @@ variable fc-ftr
   32 fc-strow @ cc-layer-cell 2 pick 2 cc-field fc-stlo @ cc-copy fc-stp @ cc-row drop
   32 fc-strow @ cc-layer-cell rot 3 cc-field fc-sthi @ cc-copy fc-stp @ cc-row drop
   r> drop fc-ftr @ fc-push ;
+\ %COPY ( dl dh sl sh -- ) (15.2): one row of copying [dl,dh) <- [sl,sh), its four fields patched ahead
+\ (as the destination of SPACE!), each in a layer of its own: a layer may not read a register twice (DUP).
+\ A channel is [C,C]. Only in a program that names the long copy (FC-LONG).
+\ FC-CP: the patch of the field f of the row (strow, slot) by the register on top, in the layer p.
+: fc-cp ( p strow slot f -- strow slot )
+  >r 2dup swap cc-layer-cell swap r> cc-field 32 swap fc-pop1 cc-copy 6 roll cc-row drop ;
+: fc-copy-row ( -- )
+  fc-code 4 fc-need cc-layer cc-layer cc-layer cc-layer cc-layer drop cc-layer
+  0 0 0 0 4 pick cc-row 3 fc-cp 2 fc-cp 1 fc-cp 0 fc-cp 2drop ;
 : fc-close-init ( -- )
   fc-nct @ if -22 throw then
   fc-init-open @ if fc-ret 0 fc-init-open ! 0 fc-word ! then ;
@@ -993,6 +1002,21 @@ variable fc-sy
   s" swap r@ rshift swap r> - 1 swap lshift swap 1000000 * swap / ;" fc-eval
   s" check-table" s" %check" fc-synonym s" accuracy" s" %acc" fc-synonym s" proved?" s" %prv" fc-synonym
   fc-uses @ 32 and if fc-replacement then ;
+\ The long copy (15.2, space/language/space/proto.def): ( space pos lo hi -- ) to the remote space (synonym
+\ of %LST) and from it (%LLD), written on the language before the program when its source names them.
+\ %LR ( space pos len dir -- ) writes the request record LONG at W = 2^30 + 2^28 (the data region of a
+\ program, above its tables): op 8, chan 32 the remote space, flags 16 the direction, arg 32 the length,
+\ off 64 the position; it is written to the channel S = 2^31 by %COPY. To: the bits of [lo,hi) are copied
+\ after the record (W + 152), then the record and them to S. From: the record to S, then S to [lo,hi) (the
+\ answer read, a later tick). Not in the program of the kernel (-13): %COPY writes anywhere.
+: fc-long ( -- )
+  fc-guard @ if -13 throw then s" %copy" ['] fc-copy-row 0 fc-generator
+  s" variable %la variable %ln : %lr 1342177320 1342177352 space! dup %ln ! 1342177336 1342177368 space!" fc-eval
+  s" 1342177368 1342177400 space! 0 1342177400 1342177432 space! 1342177288 1342177320 space!" fc-eval
+  s" 6 1342177280 1342177288 spacec! ; : %lld over %la ! swap - 1 %lr 2147483648 2147483648 1342177280" fc-eval
+  s" 1342177432 %copy %la @ dup %ln @ + 2147483648 2147483648 %copy ; : %lst over %la ! swap - 0 %lr" fc-eval
+  s" 1342177432 dup %ln @ + %la @ dup %ln @ + %copy 2147483648 2147483648 1342177280 1342177432 %ln @ + %copy ;" fc-eval
+  s" long!" s" %lst" fc-synonym s" long@" s" %lld" fc-synonym ;
 \ The price of the helpers, built before the code (FC-COMPILE, 14.11): their last layers are still
 \ pending, they go to the log as they are, unwritten.
 : fc-helpers-cost ( -- )
@@ -1013,6 +1037,7 @@ variable fc-sy
   fc-uses @ 2 and if fc-build-div fc-div-exit ! fc-div-entry ! then
   fc-uses @ 3 and if fc-helpers-cost then
   fc-uses @ 16 and if fc-library then
+  fc-uses @ 64 and if fc-long then
   begin fc-next while fc-token repeat
   fc-defining? if -22 throw then fc-close-init
   s" main" fc-tok swap dup fc-tl ! cmove fc-find dup 0= if -16 throw then >r

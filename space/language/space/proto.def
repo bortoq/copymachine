@@ -28,6 +28,24 @@ XOP(SEEK,  2)
 XOP(FSTAT, 3)
 XOP(IOCTL, 4)
 XOP(EXEC,  5)
+/*
+ * LONG (15.2, the definition of the word "space"): the long copy, a copy to
+ * or from a remote space (isolated, with its own addressing). The request
+ * record is the same: chan = the number of the remote space, flags bit 0 =
+ * the direction (0: to the remote space, 1: from it), arg = the length in
+ * bits, off = the position (bits) in the remote space. To: the data is the
+ * arg bits written to SYS right after the record (as the command of EXEC).
+ * From: the data is the answer, the next answer reads of SYS get these bits
+ * (taken at the tick of the request) instead of the answer record. Remote
+ * space 0 is the old SYS: the request record (and EXEC command) written to
+ * its position 0 is the old request, a read gives the bits of the old
+ * answer record. Space 1 is the clock: a read gives the 64-bit monotonic
+ * time of the host in nanoseconds (numeric, least significant bit first).
+ * Spaces 2.. are the host files given at startup (-r path, in order), bit
+ * addressed (position 0 is the high bit of byte 0); a read past the end
+ * gives zeros, a write past the end extends the file.
+ */
+XOP(LONG,  6)
 /* reserve: SPAWN, POLL, MMAP, ... */
 
 XFIELD(req, op,    8)

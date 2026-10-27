@@ -1940,7 +1940,7 @@ check-self` проходит; `check-closure` печатает `external 0`; `la
   текст определения, платформа — хост.
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 --file-mib 64 sh -c 'make -C space/language space boot check && make -C space/language check-programs EMULATOR=$PWD/build/space/language/space/emulator'`
 
-### ❌ 15.2. Длинное копирование и часы
+### ✅ 15.2. Длинное копирование и часы
 
 - **Исполнитель:** Opus 5.5, high. **Зависит:** 15.1
 - **Сделать:** в определении «пространство» — одно новое действие:

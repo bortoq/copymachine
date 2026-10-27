@@ -9,6 +9,11 @@
  *
  * REQ fields: op(0) chan(1) flags(2) arg(3) off(4).
  * RSP fields: op(0) status(1) flags(2) size(3) moved(4) eof(5).
+ *
+ * LONG (15.2) is the long copy: chan = remote space, flags bit 0 = from
+ * it, arg = bits, off = position (proto.def). It keeps the old answer of
+ * SYS; a copy from a remote space makes the following answer reads give
+ * its bits. Remote space 0 is the old SYS, 1 the clock, 2.. the -r files.
  */
 #include "sys_ctrl.h"
 #include "proto_gen.h"
@@ -18,6 +23,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <time.h>
 
 typedef enum { CH_SYS, CH_DEV } ch_kind;
 
@@ -39,6 +45,13 @@ static size capacity;                 /* channel positions incl. SYS */
 
 static channel *channels = NULL;      /* channel c sits at space_nbits + c */
 static size nchan = 0;                /* positions in use (SYS included) */
+
+/* the long copy (15.2): the bits of the last copy from a remote space,
+ * given to the answer reads while long_pending; the -r files */
+static unsigned char *long_data = NULL;
+static size long_bits = 0;
+static int long_pending = 0;
+static int *remote_fd = NULL;
 
 /* device stream for an id from the XDEV table (0/1/2 are std streams) */
 static FILE *device_stream(unsigned id, const char *mode)
@@ -404,6 +417,127 @@ static void service(size cidx, size base, size n, size *v)
   }
 }
 
+/* n bits of a numeric value at bit at of a host buffer, as space_put */
+static void buf_put(unsigned char *b, size at, size n, size value)
+{
+  size k;
+  for(k = 0; k < n; k++)
+  {
+    unsigned char mask = (unsigned char)(128u >> ((at + k) % 8));
+    if((value >> k) & 1u) b[(at + k) / 8] |= mask;
+    else b[(at + k) / 8] &= (unsigned char)~mask;
+  }
+}
+
+/* bits [pos, pos+len) of a host buffer of have bits into long_data (zeros past it) */
+static void long_take(const unsigned char *b, size have, size pos, size len)
+{
+  if(pos < have)
+    bitcpy((size_t)(have - pos < len ? have - pos : len), b, (size_t)pos, long_data, 0);
+}
+
+/* the bytes [b0, b0+nb) of remote file k into t (zeros past its end) */
+static void file_read(int fd, unsigned char *t, size b0, size nb)
+{
+  size got = 0;
+  while(fd >= 0 && got < nb)
+  {
+    ssize_t r = pread(fd, t + got, (size_t)(nb - got), (off_t)(b0 + got));
+    if(r <= 0) break;
+    got = (size)(got + (size)r);
+  }
+}
+
+/*
+ * serve a LONG request at bit address base (n bits written to SYS). From a
+ * remote space: its bits [pos, pos+len) go to long_data for the answer
+ * reads. To it: the len bits after the record; space 0 serves them as an
+ * old request at its position 0. Errors are not reported (unknown space,
+ * short request, host IO): the copy does nothing, a read gives zeros.
+ */
+static void long_copy(size base, size n, const size *v)
+{
+  size sp = v[1], from = v[2] & 1u, len = v[3], pos = v[4];
+  size data = (size)(base + req_bits);
+  if(from)
+  {
+    free(long_data);
+    long_data = calloc((size_t)(len / CHAR_BIT + 1), 1);
+    if(long_data == NULL)
+    {
+      fprintf(stderr, "emulator: out of memory\n");
+      exit(EXIT_MEMORY);
+    }
+    long_bits = len;
+    long_pending = 1;
+    if(sp == 0)                       /* the old answer record */
+    {
+      unsigned char rec[64] = {0};
+      size f[RSP_NFIELDS];
+      unsigned i;
+      f[0] = channels[0].op; f[1] = channels[0].status; f[2] = channels[0].flags;
+      f[3] = channels[0].size; f[4] = channels[0].moved; f[5] = channels[0].eof;
+      for(i = 0; i < RSP_NFIELDS; ++i)
+        buf_put(rec, rsp_off[i], rsp_w[i], f[i]);
+      long_take(rec, rsp_bits, pos, len);
+    }
+    else if(sp == 1)                  /* the clock: monotonic ns */
+    {
+      unsigned char t[8] = {0};
+      struct timespec ts;
+      clock_gettime(CLOCK_MONOTONIC, &ts);
+      buf_put(t, 0, 64, (size)ts.tv_sec * 1000000000u + (size)ts.tv_nsec);
+      long_take(t, 64, pos, len);
+    }
+    else if(sp - 2 < (size)nremote && len)
+    {
+      size nb = (size)((pos % CHAR_BIT + len + CHAR_BIT - 1) / CHAR_BIT);
+      unsigned char *t = calloc((size_t)nb, 1);
+      if(t == NULL)
+      {
+        fprintf(stderr, "emulator: out of memory\n");
+        exit(EXIT_MEMORY);
+      }
+      file_read(remote_fd[sp - 2], t, pos / CHAR_BIT, nb);
+      bitcpy((size_t)len, t, (size_t)(pos % CHAR_BIT), long_data, 0);
+      free(t);
+    }
+    return;
+  }
+  long_pending = 0;
+  if(n < (size)(req_bits + len))
+    return;
+  if(sp == 0)                         /* the old request at position 0 */
+  {
+    size w[REQ_NFIELDS];
+    if(pos != 0 || len < req_bits)
+      return;
+    decode_req(data, w);
+    if(w[0] != (size)OP_LONG)
+      service(0, data, len, w);
+  }
+  else if(sp >= 2 && sp - 2 < (size)nremote && len && remote_fd[sp - 2] >= 0)
+  {
+    int fd = remote_fd[sp - 2];
+    size b0 = pos / CHAR_BIT, nb = (size)((pos % CHAR_BIT + len + CHAR_BIT - 1) / CHAR_BIT), put = 0;
+    unsigned char *t = calloc((size_t)nb, 1);
+    if(t == NULL)
+    {
+      fprintf(stderr, "emulator: out of memory\n");
+      exit(EXIT_MEMORY);
+    }
+    file_read(fd, t, b0, nb);         /* the bits around the copy stay */
+    bitcpy((size_t)len, space, (size_t)data, t, (size_t)(pos % CHAR_BIT));
+    while(put < nb)
+    {
+      ssize_t w = pwrite(fd, t + put, (size_t)(nb - put), (off_t)(b0 + put));
+      if(w <= 0) break;
+      put = (size)(put + (size)w);
+    }
+    free(t);
+  }
+}
+
 /* bytes moved by a data copy of n bits (whole bytes; program aligns) */
 static size data_bytes(size n)
 {
@@ -424,7 +558,10 @@ void sys_tick(void)
     if(processor[i][0] == 0)
       continue;
     sidx = channel_index(processor[i][2]);
-    if(sidx == 0)                       /* src = SYS: read the answer */
+    if(sidx == 0 && long_pending)       /* the bits of a long copy */
+      bitcpy((size_t)(processor[i][0] < long_bits ? processor[i][0] : long_bits),
+             long_data, 0, space, (size_t)processor[i][1]);
+    else if(sidx == 0)                  /* src = SYS: read the answer */
       encode_rsp(processor[i][1], &channels[0]);
   }
   /* Control and data are independent operations of the same logical tick.
@@ -436,7 +573,13 @@ void sys_tick(void)
     {
       size v[REQ_NFIELDS];
       decode_req(processor[i][2], v);
-      service(0, processor[i][2], processor[i][0], v);
+      if(v[0] == (size)OP_LONG)
+        long_copy(processor[i][2], processor[i][0], v);
+      else
+      {
+        long_pending = 0;
+        service(0, processor[i][2], processor[i][0], v);
+      }
     }
   for(i = 0; i < (size)proc_n; ++i)
   {
@@ -476,6 +619,18 @@ void sys_init(void)
     fprintf(stderr, "emulator: no room for the SYS channel (-s)\n");
     exit(EXIT_USAGE);
   }
+  if(nremote)                         /* the remote spaces 2.. (15.2) */
+  {
+    size k;
+    remote_fd = malloc(nremote * sizeof *remote_fd);
+    if(remote_fd == NULL)
+    {
+      fprintf(stderr, "emulator: out of memory\n");
+      exit(EXIT_MEMORY);
+    }
+    for(k = 0; k < (size)nremote; ++k)
+      remote_fd[k] = open(remote_paths[k], O_RDWR | O_CREAT | O_CLOEXEC, 0666);
+  }
   channels[0].f = NULL;
   channels[0].used = 1;               /* SYS: present, control, no device */
   channels[0].kind = CH_SYS;
@@ -512,4 +667,14 @@ void sys_shutdown(void)
   free(channels);
   channels = NULL;
   nchan = 0;
+  if(remote_fd != NULL)
+    for(i = 0; i < (size)nremote; ++i)
+      if(remote_fd[i] >= 0)
+        close(remote_fd[i]);
+  free(remote_fd);
+  remote_fd = NULL;
+  free(long_data);
+  long_data = NULL;
+  long_bits = 0;
+  long_pending = 0;
 }

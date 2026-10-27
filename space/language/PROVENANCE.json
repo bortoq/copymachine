@@ -48,22 +48,28 @@
    "copy_sha256": "b9214dad574a6a6c26af179700b5583efe3e0931e9f6a087bffd8584f3903f92"
   }
  },
- "space_note": "15.1: space/ is the text of the definition of the word \"space\": the copy of the sources of the working emulator (emulator/src, the bitcopy variant; the network variant is not copied) and what its build needs; the language changes only this copy, the origin is the first executor of the word.",
+ "space_note": "15.1: space/ is the text of the definition of the word \"space\": the copy of the sources of the working emulator (emulator/src, the bitcopy variant; the network variant is not copied) and what its build needs; the language changes only this copy, the origin is the first executor of the word. A changed copy has \"changed\" (the item that changed it) and \"sha256\", its digest now; an unchanged copy equals its origin (tests/test_provenance.py).",
  "space_files": {
   "space/runtime.c": {
    "origin": "emulator/src/runtime.c",
    "origin_sha256": "8972ddab0ca6cd50fe6837fbf415b53ff8fc8de96893bf81c66a15dd387f0aab",
-   "copy_sha256": "8972ddab0ca6cd50fe6837fbf415b53ff8fc8de96893bf81c66a15dd387f0aab"
+   "copy_sha256": "8972ddab0ca6cd50fe6837fbf415b53ff8fc8de96893bf81c66a15dd387f0aab",
+   "changed": "15.2",
+   "sha256": "d0fd3feb025b9f835f2a3904ca26761f85fcb71ba3cac0e5b5293da623ff3de8"
   },
   "space/sys_ctrl.c": {
    "origin": "emulator/src/sys_ctrl.c",
    "origin_sha256": "67a1f96012bf66c55f2f8b41475d4059a6f059e47cfe286d63fa5a806e69f74e",
-   "copy_sha256": "67a1f96012bf66c55f2f8b41475d4059a6f059e47cfe286d63fa5a806e69f74e"
+   "copy_sha256": "67a1f96012bf66c55f2f8b41475d4059a6f059e47cfe286d63fa5a806e69f74e",
+   "changed": "15.2",
+   "sha256": "4416c5553c526b5e2eeddeeb2befb39a8b3e4cd5bb8f5554f61539c30d0382ee"
   },
   "space/sys_ctrl.h": {
    "origin": "emulator/src/sys_ctrl.h",
    "origin_sha256": "07d8e3e95c24d999954347f3cf55fc01f601ab83f674547002783d5b8720fc4f",
-   "copy_sha256": "07d8e3e95c24d999954347f3cf55fc01f601ab83f674547002783d5b8720fc4f"
+   "copy_sha256": "07d8e3e95c24d999954347f3cf55fc01f601ab83f674547002783d5b8720fc4f",
+   "changed": "15.2",
+   "sha256": "3e10fee7c580bde1bb35e3e4eed0e9b88a63002971049607e4cbbaa6e254c947"
   },
   "space/bitcopy.c": {
    "origin": "emulator/src/bitcopy.c",
@@ -78,17 +84,23 @@
   "space/space.h": {
    "origin": "emulator/src/space.h",
    "origin_sha256": "2aaf6eb8af4184cf3cb84eb2ff6b67a72a93d573a0e2229f6dbc5a8fde7aac5e",
-   "copy_sha256": "2aaf6eb8af4184cf3cb84eb2ff6b67a72a93d573a0e2229f6dbc5a8fde7aac5e"
+   "copy_sha256": "2aaf6eb8af4184cf3cb84eb2ff6b67a72a93d573a0e2229f6dbc5a8fde7aac5e",
+   "changed": "15.2",
+   "sha256": "776d2fc217e205516332ed0bb5d403a8d7af1d80eb79f3afc2abd0cee4b3eec2"
   },
   "space/proto.def": {
    "origin": "emulator/src/proto.def",
    "origin_sha256": "fbe968c01d147ba6f274550c61f536ab975e4bfa77811c15642546515c622789",
-   "copy_sha256": "fbe968c01d147ba6f274550c61f536ab975e4bfa77811c15642546515c622789"
+   "copy_sha256": "fbe968c01d147ba6f274550c61f536ab975e4bfa77811c15642546515c622789",
+   "changed": "15.2",
+   "sha256": "49fd666828c7ebb63b88aa03db2172283c7ddeb7540ae51f98ca5707786ab8d4"
   },
   "space/proto_gen.h": {
    "origin": "emulator/src/proto_gen.h",
    "origin_sha256": "3314ed25aab03a14a0ea45604b94de13a442c7c3f998b22cba87acfea11e8ecd",
-   "copy_sha256": "3314ed25aab03a14a0ea45604b94de13a442c7c3f998b22cba87acfea11e8ecd"
+   "copy_sha256": "3314ed25aab03a14a0ea45604b94de13a442c7c3f998b22cba87acfea11e8ecd",
+   "changed": "15.2",
+   "sha256": "8d6f7fbb14f123ff009e868abfa5760ba88149168d6e6af03a95eab08457ea3b"
   },
   "space/proto_gen.py": {
    "origin": "emulator/tools/proto_gen.py",

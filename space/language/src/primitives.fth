@@ -204,13 +204,13 @@ variable fc-lv
 : gen-cost ( -- )
   fc-known-xt fc-cost >r >r >r >r fc-literal r> fc-literal r> fc-literal r> fc-literal r> fc-literal ;
 : gen-proved? ( -- ) fc-known-xt fc-proved? fc-literal ;
-: gen-library ( -- ) -13 throw ;   \ never called: FC-LIBRARY defines the words of these names
+: gen-library ( -- ) -13 throw ;   \ never called: FC-LIBRARY (FC-LONG) defines the words of these names
 : gen-price ( -- ) ['] gen+ gen-call ['] gen+ gen-call ['] gen+ gen-call ;
 \ The name of two bytes c1 c2 (S": a quote cannot be written in a string).
 : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
 \ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel
 \ layout, 8 a comment, 16 the words of the proof, FC-LIBRARY, 32 the replacement,
-\ 14.13); the digits: name and value of the literal.
+\ 14.13, 64 the long copy, FC-LONG, 15.2); the digits: name and value of the literal.
 : fc-generators ( -- )
   s" +" ['] gen+ 0 fc-generator  s" -" ['] gen- 0 fc-generator
   s" *" ['] gen* 1 fc-generator  s" /" ['] gen/ 2 fc-generator
@@ -254,6 +254,7 @@ variable fc-lv
   s" proved?" ['] gen-proved? 0 fc-generator
   s" check-table" ['] gen-library 19 fc-generator  s" accuracy" ['] gen-library 19 fc-generator
   s" replace" ['] gen-library 51 fc-generator
+  s" long!" ['] gen-library 64 fc-generator  s" long@" ['] gen-library 64 fc-generator
   s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name
   s" 4" 4 fc-literal-name  s" 5" 5 fc-literal-name  s" 6" 6 fc-literal-name  s" 7" 7 fc-literal-name
   s" 8" 8 fc-literal-name  s" 9" 9 fc-literal-name ;
