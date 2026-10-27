@@ -1938,7 +1938,7 @@ check-self` проходит; `check-closure` печатает `external 0`; `la
   `check-programs`, `check-kernel` выбирает исполнителя (по умолчанию
   рабочий). Запись «пространство» в `doc/language.md`: понятие и ссылка на
   текст определения, платформа — хост.
-- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 --file-mib 64 sh -c 'make -C space/language space boot check && make -C space/language check-kernel EMULATOR=build/space/language/space/emulator'`
+- **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 --file-mib 64 sh -c 'make -C space/language space boot check && make -C space/language check-kernel EMULATOR=$PWD/build/space/language/space/emulator'`
 
 ### ❌ 15.2. Длинное копирование
 
