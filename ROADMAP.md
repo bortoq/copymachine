@@ -1957,7 +1957,7 @@ check-self` проходит; `check-closure` печатает `external 0`; `la
   же ответ, что прежняя запись.
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 --file-mib 64 sh -c 'make -C space/language space boot check && python3 -B space/language/tests/test_long_copy.py'`
 
-### ❌ 15.3. Платформа, время и определения на хосте
+### ✅ 15.3. Платформа, время и определения на хосте
 
 - **Исполнитель:** Opus 5.5, high. **Зависит:** 15.2
 - **Сделать:** слово «платформа» — таблица: 0 — гест, 1 — хост; номер

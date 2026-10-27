@@ -4,7 +4,7 @@ among them; after 14.6 no name is external, and the compiler has no branch by th
 word (FC-IS? only defined in forthc.fth). 14.7: the digits 0..9 are words (names of literals),
 the numbers of the definition use them and the word `literal`, the compiler parses no number.
 14.11: the words of the mechanisms of a word cost, price, proved? are generators too (77 registrations); 14.12: check-table and accuracy are registered too (79);
-14.13: replace (80); 15.2: long! and long@ (82)."""
+14.13: replace (80); 15.2: long! and long@ (82); 15.3: host, time, platform, platform-of (86)."""
 import sys
 from pathlib import Path
 
@@ -15,14 +15,14 @@ import paths
 names, nodes = check_closure.external_names()
 assert not names, sorted(names)
 generated = {name for name, _, _ in check_closure.generators()}
-assert len(generated) == 82 and {'+', '*', '/mod', 'cell+', '0=', 'dup', '@', '!', 'i', 'j', 'roll', 'spacec!', 'key',
+assert len(generated) == 86 and {'+', '*', '/mod', 'cell+', '0=', 'dup', '@', '!', 'i', 'j', 'roll', 'spacec!', 'key',
                                'if', 'then', '?do', 'loop', 'leave', 'exit', 'recurse', "[']", 'catch', 'throw',
                                ':', ';', 'variable', 'constant', 'create', 'allot', '(', '[char]', 's"',
                                'decimal', 'kernel-layout', 'literal', '\\', 'cost', 'price', 'proved?', 'check-table', 'accuracy',
-                               'replace', 'long!', 'long@'} <= generated, sorted(generated)
+                               'replace', 'long!', 'long@', 'host', 'time', 'platform', 'platform-of'} <= generated, sorted(generated)
 # every registration of the generators and of the digits is seen by the graph (no word is registered unseen)
 tokens = [t for t, _, _ in check_closure.defgraph.tokenize('space/language/src/primitives.fth')]
-assert tokens.count('fc-generator') == len(check_closure.generators()) == 82, tokens.count('fc-generator')
+assert tokens.count('fc-generator') == len(check_closure.generators()) == 86, tokens.count('fc-generator')
 assert tokens.count('fc-literal-name') == 10, tokens.count('fc-literal-name')
 digits = check_closure.literal_names()
 assert [(name, value) for name, value, _ in digits] == [(str(d), str(d)) for d in range(10)], digits

@@ -968,19 +968,70 @@ variable fc-sy
   s" create %w 4000 allot create %ds 1280 allot variable %nd" fc-eval
   s" %w" fc-lookup 3 cells + @ dup fc-rt ! fc-rta !
   s" %l2" 0 cc-slots @ 1- 2 cc-field fc-literal-name s" %lb" cc-layer-bits fc-literal-name ;
+\ The platforms (15.3, space/language/doc/platform.md), before the replacement. %RUN ( xt -- ns ): the time
+\ of 0 xt (the result dropped) by the clock (the remote space 1). %TIME ( xt -- ns err ): one run, then 7
+\ runs (%RA); %BOTH ( a b -- ta ea tb eb ): one run of each, then 7 of a and 7 of b in turn (%RA, %RB);
+\ %ST: ns the least run, err the second largest less the least. %HOST ( x k -- r ) runs the host program
+\ K (GEN-HOST: its text at HB + 32, the length at HB): the first time the file of the text (the remote
+\ space 2) is emptied, the text written to it and built; x is written to the remote space 3 at 0, the
+\ program runs, r is read at 32. A command is a request EXEC through the remote space 0 (%EXEC: the
+\ record, op 5 and arg its length, before the command); the commands are in the stream at P = 2^30 +
+\ 2^29 + 2^26 + 152, P + 1024, P + 2048, %KL writes the letter of K into them (%RV reverses the bits of a
+\ byte). The table of the platforms %PF: the cell p holds the xt of the word that runs a definition on
+\ the platform p, 0 the guest %GUEST (execute), 1 the host %HOST. Synonyms: TIME, PLATFORM ( p -- xt ).
+\ The clock is read to P + 2920, x at P + 3048, r at P + 3176.
+variable fc-nhost   \ the number of the host programs (GEN-HOST)
+: fc-platform ( -- )
+  0 fc-nhost ! 1677721752 s" : > host.c" cc-put 1677722776 s" cc -O2 -o h? host.c" cc-put
+  1677723800 s" ./h?" cc-put s" variable %tm variable %tn variable %tq variable %hk variable %hl" fc-eval
+  s" create %hf 64 allot create %pf 8 allot create %ra 28 allot create %rb 28 allot" fc-eval
+  s" : %clock 1 0 1677724672 1677724736 %lld 1677724672 1677724704 space@ ;" fc-eval
+  s" : %run %clock >r 0 swap execute drop %clock r> - ; : %st -1 %tm ! 0 %tn ! 0 %tq ! 7 0 do" fc-eval
+  s" dup i cells + @ dup %tm @ u< if dup %tm ! then dup %tn @ u< 0= if %tn @ %tq ! dup %tn ! else" fc-eval
+  s" dup %tq @ u< 0= if dup %tq ! then then drop loop drop %tm @ %tq @ %tm @ - ;" fc-eval
+  s" : %time dup %run drop 7 0 do dup %run %ra i cells + ! loop drop %ra %st ;" fc-eval
+  s" : %both over %run drop dup %run drop 7 0 do over %run %ra i cells + ! dup %run %rb i cells + !" fc-eval
+  s" loop drop drop %ra %st %rb %st ; : %rv dup 1 and 7 lshift over 2 and 5 lshift or over 4 and" fc-eval
+  s" 3 lshift or over 8 and 1 lshift or over 16 and 1 rshift or over 32 and 3 rshift or over 64 and" fc-eval
+  s" 5 rshift or swap 128 and 7 rshift or ; : %kl swap 97 + %rv swap dup 8 + spacec! ;" fc-eval
+  s" : %exec over 5 swap dup 8 + spacec! dup 2 pick 56 + dup 32 + space! 8 * 152 + over + >r >r" fc-eval
+  s" 0 0 r> r> %lst ; : %host dup 1677722864 %kl dup 1677723824 %kl dup 22 lshift 1610612736 +" fc-eval
+  s" dup %hk ! dup 32 + space@ %hl ! cells %hf + dup @ 0= if -1 swap ! 1677721600 10 %exec" fc-eval
+  s" 2 0 %hk @ 32 + dup %hl @ + %lst 1677722624 19 %exec else drop then 1677724800 1677724832" fc-eval
+  s" space! 3 0 1677724800 1677724832 %lst 1677723648 4 %exec 3 32 1677724928 1677724960 %lld" fc-eval
+  s" 1677724928 1677724960 space@ ; : %guest execute ; : %pt cells %pf + @ ;" fc-eval
+  s" ['] %guest %pf ! ['] %host %pf 4 + !" fc-eval
+  s" time" s" %time" fc-synonym s" platform" s" %pt" fc-synonym ;
+\ In a program of the platforms the price of the replacement is the time (2.11.5): %BETTER ( cand
+\ concept -- f ) is true if the time of cand is less by the sum of the errors at least (%BOTH); if the times are
+\ equal, true if the copies of cand are fewer, if equal its bits, if equal its layers (%TIE; all known
+\ at compile time, else false). %PL ( xt -- p ): the platform of the current definition, 1 if the
+\ host definition (cell 12 of the record of the program) is not 0; synonym PLATFORM-OF.
+: fc-time-price ( -- )
+  s" variable %ta variable %tl variable %tb variable %tc variable %bc variable %bk" fc-eval
+  s" : %cbl %cost >r rot swap >r >r >r drop r> r> r> r> ; : %tie %cbl %ta ! %tl ! %tb ! %tc ! %cbl" fc-eval
+  s" %ta @ and 0= if drop drop drop 0 exit then rot dup %tc @ = 0= if swap drop swap drop %tc @ < exit" fc-eval
+  s" then drop swap dup %tb @ = 0= if swap drop %tb @ < exit then drop %tl @ < ;" fc-eval
+  s" : %better over over %bk ! %bc ! %both rot + >r over over - dup 0 < if 0 swap -" fc-eval
+  s" then r> < if drop drop %bc @ %bk @ %tie exit then < ; : %pl %rec dup if 12 + @ 0= 0= 1 and then ;" fc-eval
+  s" platform-of" s" %pl" fc-synonym ;
 \ The replacement: %REC the record of a concept cell, %COST its price, %LINK writes a definition into a
 \ concept cell; %REPLACE ( xt concept -- ok ): -1 replaced, else the reason: 0 not words, 1 the
 \ artifacts (none: the concept was not checked by a table; or the check of xt failed), 2 the
-\ accuracy, 3 the price (not less, or not known at compile time).
+\ accuracy, 3 the price (%BETTER false: not less, or not known at compile time; 15.3: in a program of
+\ the platforms the time, FC-TIME-PRICE).
 : fc-replacement ( -- )
   s" variable %k variable %q variable %y variable %z : %rec %w begin dup @ while over over @ =" fc-eval
   s" if swap drop exit then 40 + repeat drop drop 0 ; : %cost %rec dup if dup 16 + @ over 20 + @ 2 pick" fc-eval
   s" 24 + @ 3 pick 28 + @ 4 roll 32 + @ else drop 0 0 0 0 0 then ; : %price %cost >r price r> ;" fc-eval
+  fc-uses @ 128 and if fc-time-price else
+    s" : %better %price rot %price rot and 0= if drop drop 0 exit then swap < ;" fc-eval
+  then
   s" : %link over over %l2 + dup 32 + space! swap %lb + swap %l2 + 32 + dup 32 + space! ;" fc-eval
   s" : %replace dup %rec %k ! over %rec %q ! %k @ 0= %q @ 0= or if drop drop 0 exit then %slot %y !" fc-eval
   s" %y @ 12 + @ 0= if drop 1 exit then dup %y @ 8 + @ %y @ 20 + @ %y @ 24 + @ %check 0= if" fc-eval
-  s" drop 1 exit then dup %acc %k @ @ %acc < if drop 2 exit then dup %price %k @ @ %price rot and" fc-eval
-  s" 0= if drop drop drop 3 exit then < 0= if drop 3 exit then %nd @ 32 = if -8 throw then" fc-eval
+  s" drop 1 exit then dup %acc %k @ @ %acc < if drop 2 exit then dup %k @ @ %better 0= if" fc-eval
+  s" drop 3 exit then %nd @ 32 = if -8 throw then" fc-eval
   s" %nd @ 40 * %ds + %z ! %nd @ 1+ %nd ! 10 0 do %k @ i cells + @ %z @ i cells + ! loop" fc-eval
   s" %z @ %k @ 36 + ! 9 1 do %q @ i cells + @ %k @ i cells + ! loop %k @ 4 + @ %k @ @ %link" fc-eval
   s" %slot dup 4 + @ %y @ 4 + ! 16 + @ %y @ 16 + ! -1 ;" fc-eval
@@ -1001,7 +1052,7 @@ variable fc-sy
   s" : %acc %slot dup 4 + @ swap 8 + @ dup 11 - dup 0 < if drop 0 then >r" fc-eval
   s" swap r@ rshift swap r> - 1 swap lshift swap 1000000 * swap / ;" fc-eval
   s" check-table" s" %check" fc-synonym s" accuracy" s" %acc" fc-synonym s" proved?" s" %prv" fc-synonym
-  fc-uses @ 32 and if fc-replacement then ;
+  fc-uses @ 128 and if fc-platform then fc-uses @ 32 and if fc-replacement then ;
 \ The long copy (15.2, space/language/space/proto.def): ( space pos lo hi -- ) to the remote space (synonym
 \ of %LST) and from it (%LLD), written on the language before the program when its source names them.
 \ %LR ( space pos len dir -- ) writes the request record LONG at W = 2^30 + 2^28 (the data region of a
@@ -1036,8 +1087,8 @@ variable fc-sy
   fc-uses @ 1 and if fc-build-mul fc-mul-exit ! fc-mul-entry ! then
   fc-uses @ 2 and if fc-build-div fc-div-exit ! fc-div-entry ! then
   fc-uses @ 3 and if fc-helpers-cost then
-  fc-uses @ 16 and if fc-library then
   fc-uses @ 64 and if fc-long then
+  fc-uses @ 16 and if fc-library then
   begin fc-next while fc-token repeat
   fc-defining? if -22 throw then fc-close-init
   s" main" fc-tok swap dup fc-tl ! cmove fc-find dup 0= if -16 throw then >r

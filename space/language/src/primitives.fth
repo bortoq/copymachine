@@ -204,13 +204,55 @@ variable fc-lv
 : gen-cost ( -- )
   fc-known-xt fc-cost >r >r >r >r fc-literal r> fc-literal r> fc-literal r> fc-literal r> fc-literal ;
 : gen-proved? ( -- ) fc-known-xt fc-proved? fc-literal ;
-: gen-library ( -- ) -13 throw ;   \ never called: FC-LIBRARY (FC-LONG) defines the words of these names
+: gen-library ( -- ) -13 throw ;   \ never called: FC-LIBRARY (FC-LONG, FC-PLATFORM) defines these names
 : gen-price ( -- ) ['] gen+ gen-call ['] gen+ gen-call ['] gen+ gen-call ;
+\ Platform 1, the host (15.3, space/language/doc/platform.md): HOST NAME in a definition makes it
+\ the definition of NAME on the host. The text of NAME (the first : NAME of the source; a word of it
+\ inline, to the depth 16) becomes a C program: + - * and or xor lshift rshift dup drop swap over
+\ (generators 0-2, 6-10, 20-23 of FC-GENERATORS: X(100+index)), numbers and digits, else -13. The
+\ text goes to the stream at HB + 32, its length in bits at HB = 2^30 + 2^29 + 2^22 K (K the number of
+\ the host program, 16 at most); the word compiles K and the call of %HOST ( x k -- r ) (FC-PLATFORM);
+\ K+1 goes to the cell 8 of the record (the host definition).
+variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 256 allot
+: fc-hb ( -- at ) fc-nhost @ 22 lshift 1610612736 + ;
+: fc-c, ( addr u -- ) >r >r fc-cpos @ r> r@ cc-put r> 8 * fc-cpos +! ;   \ the C text goes on
+: fc-c1 ( c -- ) fc-eight c! fc-eight 1 fc-c, ;
+: fc-c-gen ( record -- ) \ a generator of the record as C; a comment skipped
+  dup 3 cells + @ ['] gen-paren = if drop gen-paren exit then
+  fc-wt @ - 6 rshift dup 24 u< if 1 over lshift 15730631 and else 0 then 0= if -13 throw then
+  s" X(1" fc-c, dup 10 / 48 + fc-c1 10 mod 48 + fc-c1 s" );" fc-c, ;
+: fc-c-body ( -- ) \ the definition of the word read as C
+  fc-cdepth @ 16 = if -8 throw then 1 fc-cdepth +!
+  fc-tok fc-hname fc-tl @ cmove fc-tl @ fc-hn ! fc-pos @ >r 0 fc-pos !
+  begin fc-next! s" :" fc-is? if fc-next! fc-hname fc-hn @ fc-is? else 0 then until
+  begin fc-next! s" ;" fc-is? 0= while
+    fc-find dup if dup 2 cells + @ dup 1 = if 2drop recurse 0 else 2 and if fc-c-gen 0 else drop
+      fc-tok c@ 48 - 10 u< 0= if -13 throw then -1 then then else drop -1 then
+    if s" s[++p]=" fc-c, fc-tok fc-tl @ fc-c, 59 fc-c1 then
+  repeat r> fc-pos ! -1 fc-cdepth +! ;
+: gen-host ( -- )
+  fc-guard @ fc-defining? 0= or if -13 throw then fc-nhost @ 16 = if -8 throw then
+  fc-next! fc-hb 32 + fc-cpos ! 0 fc-cdepth !
+  s" #include <stdio.h>" fc-c, 10 fc-c1 s" #define S(x) #x" fc-c, 10 fc-c1
+  s" static unsigned s[300],t;static int p=8;static unsigned r8(unsigned b){unsigned r=0;int i;" fc-c,
+  s" for(i=0;i<8;i++)r|=(b>>i&1)<<(7-i);return r;}static void X(int i){switch(i){" fc-c,
+  s" case 100:s[p-1]+=s[p];break;case 101:s[p-1]-=s[p];break;case 102:s[p-1]*=s[p];break;" fc-c,
+  s" case 106:s[p-1]&=s[p];break;case 107:s[p-1]|=s[p];break;case 108:s[p-1]^=s[p];break;" fc-c,
+  s" case 109:s[p-1]=s[p]>31?0:s[p-1]<<s[p];break;case 110:s[p-1]=s[p]>31?0:s[p-1]>>s[p];break;" fc-c,
+  s" case 120:s[p+1]=s[p];p+=2;break;case 122:t=s[p];s[p]=s[p-1];s[p-1]=t;p++;break;" fc-c,
+  s" case 123:s[p+1]=s[p-1];p+=2;}p--;}int main(void){unsigned char b[4];FILE*f=fopen(S(host.io)," fc-c,
+  s" S(r+b));if(!f||fread(b,1,4,f)!=4)return 1;s[8]=r8(b[0])|r8(b[1])<<8|r8(b[2])<<16|r8(b[3])<<24;" fc-c,
+  10 fc-c1 fc-c-body 10 fc-c1 s" t=s[p];for(p=0;p<4;p++)b[p]=r8(t>>8*p&255);fseek(f,4,SEEK_SET);" fc-c,
+  s" fwrite(b,1,4,f);fclose(f);return 0;}" fc-c, 10 fc-c1
+  fc-cpos @ fc-hb - 32 - dup 4194272 u> if -8 throw then 4 fc-hb cc-put-numeric
+  fc-nhost @ dup 1+ fc-word @ 8 cells + ! fc-literal
+  s" %host" dup fc-tl ! fc-tok swap cmove fc-word-token 1 fc-nhost +! ;
 \ The name of two bytes c1 c2 (S": a quote cannot be written in a string).
 : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
 \ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel
 \ layout, 8 a comment, 16 the words of the proof, FC-LIBRARY, 32 the replacement,
-\ 14.13, 64 the long copy, FC-LONG, 15.2); the digits: name and value of the literal.
+\ 14.13, 64 the long copy, FC-LONG, 15.2, 128 the platforms, FC-PLATFORM, 15.3); the digits: name and
+\ value of the literal.
 : fc-generators ( -- )
   s" +" ['] gen+ 0 fc-generator  s" -" ['] gen- 0 fc-generator
   s" *" ['] gen* 1 fc-generator  s" /" ['] gen/ 2 fc-generator
@@ -255,6 +297,8 @@ variable fc-lv
   s" check-table" ['] gen-library 19 fc-generator  s" accuracy" ['] gen-library 19 fc-generator
   s" replace" ['] gen-library 51 fc-generator
   s" long!" ['] gen-library 64 fc-generator  s" long@" ['] gen-library 64 fc-generator
+  s" host" ['] gen-host 243 fc-generator  s" time" ['] gen-library 243 fc-generator
+  s" platform" ['] gen-library 243 fc-generator  s" platform-of" ['] gen-library 243 fc-generator
   s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name
   s" 4" 4 fc-literal-name  s" 5" 5 fc-literal-name  s" 6" 6 fc-literal-name  s" 7" 7 fc-literal-name
   s" 8" 8 fc-literal-name  s" 9" 9 fc-literal-name ;
