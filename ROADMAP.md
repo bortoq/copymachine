@@ -1973,7 +1973,7 @@ check-self` проходит; `check-closure` печатает `external 0`; `la
   равные по времени — по копированиям.
 - **Проверка:** `python3 -B space/vm2/tools/limited_run.py --seconds 3600 --memory-mib 768 --file-mib 64 sh -c 'make -C space/language space boot check && python3 -B space/language/tests/test_platform.py'`
 
-### ❌ 15.4. Замена пространства
+### ✅ 15.4. Замена пространства
 
 - **Исполнитель:** Sonnet 5.5, medium. **Зависит:** 15.3
 - **Сделать:** по 3.5.1 на малом значении: гест через EXEC собирает

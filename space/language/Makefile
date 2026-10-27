@@ -47,7 +47,7 @@ limit =
 endif
 SOURCES = $(wildcard src/*.fth)
 TOOLS = $(wildcard tools/*.py)
-.PHONY: all boot space check check-programs check-closure check-kernel check-self check-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
+.PHONY: all boot space check check-programs check-space-replace check-closure check-kernel check-self check-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
 all: boot
 boot: $(L0)
 space: $(SPACE_BIN)
@@ -61,6 +61,10 @@ $(L0): $(SOURCES) $(TOOLS)
 check-programs:
 	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(VM2_ROOT)" -j1 checked-emulator)
 	$(call limit,$(PROGRAMS_SECONDS)) $(PYTHON) -B tools/check_programs.py $(if $(filter equal,$(STREAMS)),--streams-equal)
+# Replacing the word "space" (15.4, 3.5.1 on the small value): the guest builds the emulator from the text of the
+# definition (space/) through EXEC and runs the programs of check-programs on it.
+check-space-replace: $(SPACE_BIN)
+	$(call limit,$(PROGRAMS_SECONDS)) $(PYTHON) -B tools/check_space_replace.py
 check-closure:
 	MAX_EXTERNAL=$(MAX_EXTERNAL) $(PYTHON) -B tools/check_closure.py
 # doc/language.md (14.9): one record per word of the core, file:line and hash of the definition;
