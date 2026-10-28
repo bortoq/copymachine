@@ -47,7 +47,7 @@ limit =
 endif
 SOURCES = $(wildcard src/*.fth)
 TOOLS = $(wildcard tools/*.py)
-.PHONY: all boot space check check-programs check-space-replace check-closure check-kernel check-self check-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
+.PHONY: all boot space check check-programs check-space-replace check-closure check-kernel check-self check-tests check-language-md check-isolation check-proof check-replace check-user-programs check-pforth clean
 all: boot
 boot: $(L0)
 space: $(SPACE_BIN)
@@ -103,6 +103,11 @@ check-replace: $(L0)
 # with a recompiled language and keeps the previous code if the new one is dearer (about 1 minute).
 check-user-programs:
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_user_programs.py
+# pForth on the language (16.1): pforth/pforth.fth compiled by L0 on the emulator loads system.fth and
+# runs the programs of forthc_programs.py in one run (about 24 minutes, 21 of them L0 compiling pforth.fth).
+check-pforth:
+	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy)
+	$(call limit,3600) $(PYTHON) -B tools/check_pforth.py
 check: check-programs check-closure check-tests check-language-md
 clean:
 ifneq ($(WORKSPACE_ROOT),)
