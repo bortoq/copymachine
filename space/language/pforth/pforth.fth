@@ -12,6 +12,15 @@
 \ (system.fth ends with SAVE-FORTH); after BYE or a fault, if input remains, a new session starts
 \ from that image (as pforth32 from its prepared dictionary, then AUTO.INIT). The end of input
 \ ends QUIT. ALLOCATE takes memory from a pool by a bump pointer (FREE returns only the last block).
+\ Files (16.2): the spaces 2.. of the long copy (emulator -r). Space 2 is the directory of the
+\ volume: 32 records of 64 bytes, 4 bytes space (0: unused), 4 bytes size (both low byte first),
+\ 1 byte length of the name, 55 bytes of the name; the file of a record is the space of the
+\ record. Files are opened, read, written, resized and deleted (the record becomes unused) in
+\ the volume; CREATE-FILE and W/O take an existing record and cut the file to 0 (the host
+\ creates no space). A file is read and written in pieces of 256 bytes through a staging area
+\ of the program half (a file has the high bit of a byte first, the space reads a byte low
+\ bit first: bytes are reversed). READ-LINE (not in the upstream kernel, it is in file.fth) is
+\ the token 206.
 
 \ --- memory -------------------------------------------------------------------------------
 create low 8 allot                    \ language addresses 0..7 stay zero (programs probe them)
@@ -32,9 +41,14 @@ mem 4992 + constant fake      mem 5008 + constant incl-stack  \ 16 frames of 272
 mem 9472 + constant h-start   mem 42240 + constant c-start
 mem 140544 + constant pool    mem 206080 + constant pool-end  \ image of the dictionary after it
 mem 206080 + constant img     64256 constant img-size
-create prims 824 allot        create ptab 824 allot           \ token -> xt, token -> value
+create prims 832 allot        create ptab 832 allot           \ token -> xt, token -> value
 variable sp variable rp variable ip variable cur variable lp
 variable rinit variable dinit variable exc variable eof variable saved variable img-h
+1207959552 constant stg                    \ staging area: 2^30 + 2^27, the program half
+create revtab 256 allot                    \ bytes with reversed bits
+create ftab 256 allot                      \ 16 handles of 16 bytes: space (0 free), position, mode, record
+create cbuf 256 allot                      \ the bytes read ahead from a file
+variable cc-f variable cc-b variable cc-n variable last-ch
 
 \ --- helpers ------------------------------------------------------------------------------
 : > ( a b -- f ) swap < ;
@@ -96,10 +110,131 @@ variable nt-b variable nt-neg variable nt-min
     else 3 pick 2 pick + c! 1+ then
   repeat swap drop swap drop ;
 
+\ --- files (16.2): the volume in the spaces 2.. by the long copy -----------------------------
+: long-name ( -- ) s" Filename too large for name buffer." msg cr ;
+: rev8 ( b -- r ) 0 8 0 do 2 * over i rshift 1 and or loop swap drop ;
+: fread-stg ( space bytepos n -- ) >r 8 * stg stg r> 8 * + long@ ;
+: fwrite-stg ( space bytepos n -- ) >r 8 * stg stg r> 8 * + long! ;
+: stg-byte@ ( i -- c ) 8 * stg + dup 8 + spacec@ revtab + c@ ;
+: stg-byte! ( c i -- ) 8 * stg + swap revtab + c@ swap dup 8 + spacec! ;
+: stg-u32 ( i -- u )
+  dup stg-byte@ over 1+ stg-byte@ 8 lshift or over 2 + stg-byte@ 16 lshift or
+  swap 3 + stg-byte@ 24 lshift or ;
+: u32>stg ( u i -- ) 4 0 do over i 8 * rshift 255 and over i + stg-byte! loop drop drop ;
+: dir-bytes ( e -- ) 2 swap 64 * 64 fread-stg ;
+: dir-space@ ( e -- space ) 2 swap 64 * 4 fread-stg 0 stg-u32 ;
+: dir-size@ ( e -- n ) 2 swap 64 * 4 + 4 fread-stg 0 stg-u32 ;
+: dir-size! ( n e -- ) >r 0 u32>stg 2 r> 64 * 4 + 4 fwrite-stg ;
+: dir-free ( e -- ) 0 0 u32>stg 2 swap 64 * 4 fwrite-stg ;
+variable df-a variable df-n
+: dir-find ( a n -- e | -1 )
+  df-n ! df-a !
+  32 0 do
+    i dir-bytes 0 stg-u32 if
+      8 stg-byte@ df-n @ = if
+        -1 df-n @ 0 ?do 9 i + stg-byte@ df-a @ i + c@ = and loop
+        if i unloop exit then
+      then
+    then
+  loop -1 ;
+variable rb-a variable rb-n variable rb-p variable rb-s variable rb-k
+: file>mem ( addr n bytepos space -- )
+  rb-s ! rb-p ! rb-n ! rb-a !
+  begin rb-n @ 0 > while
+    rb-n @ 256 min rb-k !
+    rb-s @ rb-p @ rb-k @ fread-stg
+    rb-k @ 0 ?do i stg-byte@ rb-a @ i + c! loop
+    rb-k @ rb-a +! rb-k @ rb-p +! 0 rb-k @ - rb-n +!
+  repeat ;
+: mem>file ( addr n bytepos space -- )
+  rb-s ! rb-p ! rb-n ! rb-a !
+  begin rb-n @ 0 > while
+    rb-n @ 256 min rb-k !
+    rb-k @ 0 ?do rb-a @ i + c@ i stg-byte! loop
+    rb-s @ rb-p @ rb-k @ fwrite-stg
+    rb-k @ rb-a +! rb-k @ rb-p +! 0 rb-k @ - rb-n +!
+  repeat ;
+: zero-stg ( n -- ) 0 ?do 0 i stg-byte! loop ;
+variable zf-s variable zf-p variable zf-e
+: zero-file ( space from to -- ) zf-e ! zf-p ! zf-s ! 256 zero-stg
+  begin zf-p @ zf-e @ < while
+    zf-s @ zf-p @ zf-e @ zf-p @ - 256 min fwrite-stg 256 zf-p +!
+  repeat ;
+variable ss-n variable ss-e
+: set-size ( n e -- ) \ the bytes cut off are zeroed
+  ss-e ! ss-n ! 0 cc-f !
+  ss-e @ dir-size@ dup ss-n @ > if ss-e @ dir-space@ ss-n @ rot zero-file else drop then
+  ss-n @ ss-e @ dir-size! ;
+: handle-new ( space e fam -- fid | 0 )
+  16 0 do ftab i 16 * + dup @ 0= if
+      >r r@ 8 + ! r@ 12 + ! r@ ! 0 r@ 4 + ! r> unloop exit
+    then drop loop drop drop drop 0 ;
+variable oc-c variable oc-f variable oc-e
+: file-open ( a n fam create -- fid ior ) \ OPEN-FILE and CREATE-FILE (pfSelectFileMode*)
+  oc-c ! oc-f !
+  dup 254 < 0= if drop drop long-name 0 -2 exit then
+  dir-find dup 0 < if drop 0 -1 exit then oc-e !
+  oc-c @ if oc-f @ -9 and dup 1 = swap 2 = or 0= if 0 -1 exit then then
+  oc-c @ oc-f @ 7 and 2 = or if 0 oc-e @ set-size then
+  oc-e @ dup dir-space@ swap oc-f @ handle-new dup if 0 else -1 then ;
+: fclose ( fid -- ior ) 0 swap ! 0 cc-f ! 0 ;
+: avail ( n fid -- m ) \ min(n, size - position), not below 0
+  dup 12 + @ dir-size@ over 4 + @ - swap drop min dup 0 < if drop 0 then ;
+: fread ( a n fid -- u ior )
+  >r r@ 8 + @ 7 and 2 = if 0 else r@ avail then
+  dup 0 > if over over r@ 4 + @ r@ @ file>mem dup r@ 4 + +! then
+  swap drop r> drop 0 ;
+: fwrite ( a n fid -- ior )
+  >r r@ 8 + @ 7 and 0= if drop drop r> drop -3 exit then
+  0 cc-f !
+  dup 0 > if
+    over over r@ 4 + @ r@ @ mem>file dup r@ 4 + +!
+    r@ 4 + @ r@ 12 + @ dir-size@ > if r@ 4 + @ r@ 12 + @ dir-size! then
+  then drop drop r> drop 0 ;
+: in-cache? ( fid -- f )
+  dup cc-f @ = if 4 + @ cc-b @ - dup 0 < 0= swap cc-n @ < and else drop 0 then ;
+: cache-fill ( fid -- ) \ up to 256 bytes at the position of the file
+  dup cc-f ! dup 4 + @ cc-b ! >r 256 r@ avail cc-n ! cbuf cc-n @ cc-b @ r> @ file>mem ;
+: fgetc ( fid -- c | -1 )
+  dup in-cache? 0= if dup cache-fill then
+  dup in-cache? if dup 4 + @ cc-b @ - cbuf + c@ swap 1 swap 4 + +! else drop -1 then ;
+variable rl-f variable rl-len variable rl-done variable rl-c
+: read-src-line ( fid -- n ) \ readLineFromStream: -1 at the end of the file
+  rl-f ! 0 rl-len ! 0 rl-done !
+  begin rl-len @ 256 < rl-done @ 0= and while
+    rl-f @ fgetc rl-c !
+    rl-c @ 0 < if -1 rl-done ! rl-len @ 1 < if -1 rl-len ! then
+    else rl-c @ 10 = if last-ch @ 13 = 0= if -1 rl-done ! then
+    else rl-c @ 13 = if -1 rl-done !
+    else rl-c @ v-src @ rl-len @ + c! 1 rl-len +! then then then
+    rl-c @ last-ch !
+  repeat
+  rl-len @ 0 < 0= rl-len @ 256 < and if 0 v-src @ rl-len @ + c! then rl-len @ ;
+: eat-lf ( fid -- ) dup fgetc dup 10 = if drop drop else 0 < 0= if -1 swap 4 + +! else drop then then ;
+variable lr-a variable lr-n variable lr-f variable lr-k variable lr-ok variable lr-go
+: read-line-w ( a n f -- u flag ior ) \ READ-LINE
+  lr-f ! lr-n ! lr-a ! 0 lr-k ! 0 lr-ok ! -1 lr-go !
+  begin lr-go @ lr-k @ lr-n @ < and while
+    lr-f @ fgetc rl-c !
+    rl-c @ 0 < if 0 lr-go !
+    else rl-c @ 10 = if -1 lr-ok ! 0 lr-go !
+    else rl-c @ 13 = if -1 lr-ok ! 0 lr-go ! lr-f @ eat-lf
+    else rl-c @ lr-a @ lr-k @ + c! 1 lr-k +! -1 lr-ok ! then then then
+  repeat
+  lr-k @ lr-ok @ 0 ;
+variable rn-e variable rn-a variable rn-n
+: cstr-len ( a -- n ) 0 begin over over + c@ while 1+ repeat swap drop ;
+: rename-to ( e a n -- ior )
+  dup 55 > if drop drop drop -1 exit then
+  rn-n ! rn-a ! dup rn-e ! dir-bytes
+  rn-n @ 8 stg-byte!
+  55 0 do i rn-n @ < if rn-a @ i + c@ else 0 then 9 i + stg-byte! loop
+  2 rn-e @ 64 * 64 fwrite-stg 0 ;
+
 \ --- the inner interpreter (pfCatch of pf_inner.c), registers in memory --------------------
 : inner ( token -- )
   begin
-    begin dup 206 u< 0= while ip @ rpush v-cbase @ + ip ! lit@ repeat
+    begin dup 207 u< 0= while ip @ rpush v-cbase @ + ip ! lit@ repeat
     dup cur ! cells prims + @ execute
     ip @ if lit@ else cur @ then
     rp @ rinit @ < 0=
@@ -198,7 +333,7 @@ variable fn-w variable fn-len
   repeat 0 ;
 : ok? ( -- code ) d-base sp @ - 0 < if -4 else 0 then ;
 : refill ( -- n ) \ ffRefill: 1 a line, 0 end of a file, < 0 an error
-  0 v-in ! v-stream @ if s" sdInputChar" unimpl 0 0
+  0 v-in ! v-stream @ if v-stream @ read-src-line dup -1 = if drop 0 0 else 1 then
   else v-src @ push 256 push v-accxt @ pfcatch ?dup if exit then
     pop dup 0 < if exit then 1 then
   swap v-ntib ! 1 v-line +!
@@ -215,11 +350,11 @@ variable fn-w variable fn-len
     dup @ v-stream ! dup 4 + @ v-in ! dup 8 + @ v-line ! dup 12 + @ v-ntib !
     v-ntib @ dup 0 > swap 255 < and if dup 16 + tib v-ntib @ 1+ cmove then drop then ;
 : include-file ( fid -- code ) \ ffIncludeFile
-  push-stream ?dup if exit then outer dup if
+  dup >r push-stream ?dup if r> drop exit then outer dup if
     s" INCLUDE error on line #" msg v-line @ dot s" , level = " msg v-incl @ dot cr
     v-ntib @ 0 ?do v-src @ i + c@ dup 9 = if drop 32 then io-emit loop cr
     v-in @ 1- dup 0 > if 0 do 94 io-emit loop else drop then cr
-  then pop-stream drop s" sdCloseFile" unimpl ;
+  then pop-stream drop r> fclose drop ;
 : report ( code -- ) \ pfReportThrow
   dup -1 = over -2 = or if s" ABORT" else dup -3 = if s" Stack overflow!" else
   dup -4 = if s" Stack underflow!" else dup -14 = if s" Executing a compile-only word!" else
@@ -236,7 +371,7 @@ variable fn-w variable fn-len
   begin
     outer dup 0= if drop ok? then
     ?dup if dup -256 = eof @ or if drop exit then
-      dots report begin pop-stream ?dup while drop s" sdCloseFile" unimpl
+      dots report begin pop-stream ?dup while fclose drop
         v-incl @ 0= if 0 v-stream ! then repeat reset-task
     else eof @ if exit then then
   again ;
@@ -346,23 +481,24 @@ variable dl variable dh variable bl2 variable bh2 variable dq variable xah
 : p-dup t@ push ;
 : p-emit pop io-emit ;
 : p-?error pop pop if m-throw else drop then ;
-: p-execute ip @ rpush pop dup 206 u< if fake ! fake ip ! else v-cbase @ + ip ! then ;
+: p-execute ip @ rpush pop dup 207 u< if fake ! fake ip ! else v-cbase @ + ip ! then ;
 : p-@ t@ @ t! ;
-: long-name ( -- ) s" Filename too large for name buffer." msg cr ;
-: p-fopen pop drop pop pop drop 254 < if s" sdOpenFile" unimpl 0 push -1 push
-  else long-name 0 push -2 push then ;
-: p-fdelete pop pop drop 254 < if s" sdDeleteFile" unimpl -1 else long-name -2 then push ;
-: p-fclose pop drop s" sdCloseFile" unimpl 0 push ;
-: p-fread pop drop pop pop drop if s" sdReadFile" unimpl then 0 push 0 push ;
-: p-fsize pop drop s" sdTellFile" unimpl s" sdSeekFile" unimpl s" sdTellFile" unimpl
-  s" sdSeekFile" unimpl 0 push 0 push 0 push ;
-: p-fwrite pop drop pop pop drop dup if s" sdWriteFile" unimpl -3 else 0 then swap drop push ;
-: p-frepos pop drop pop pop drop if -3 else s" sdSeekFile" unimpl 0 then push ;
-: p-fpos pop drop s" sdTellFile" unimpl 0 push 0 push 0 push ;
+: p-fopen pop pop pop swap rot 0 file-open swap push push ;
+: p-fcreate pop pop pop swap rot -1 file-open swap push push ;
+: p-fdelete pop pop swap dup 254 < if
+    dir-find dup 0 < if drop -1 else dir-free 0 then
+  else drop drop long-name -2 then push ;
+: p-fclose pop fclose push ;
+: p-fread pop pop pop swap rot fread swap push push ;
+: p-fsize pop 12 + @ dir-size@ push 0 push 0 push ;
+: p-fwrite pop pop pop swap rot fwrite push ;
+: p-frepos pop pop pop swap if drop drop -3 else dup 0 < if drop drop -1 else swap 4 + ! 0 then then push ;
+: p-fpos pop 4 + @ push 0 push 0 push ;
 : p-fbin t@ 8 or t! ;
 : p-fflush pop drop 0 push ;
-: p-frename pop pop drop drop s" sdRenameFile" unimpl -1 push ;
-: p-fresize pop drop pop pop drop drop s" sdResizeFile" unimpl -74 push ;
+: p-frename pop pop dup cstr-len dir-find dup 0 < if drop drop -1 else swap dup cstr-len rename-to then push ;
+: p-fresize pop pop pop swap if drop drop -74 else swap 12 + @ set-size 0 then push ;
+: p-read-line pop pop pop swap rot read-line-w >r >r push r> push r> push ;
 : p-fill pop pop pop swap 0 ?do over over i + c! loop drop drop ;
 : p-find pop ffind swap push push ;
 : p-findnfa pop find-nfa swap push push ;
@@ -377,7 +513,8 @@ variable dl variable dh variable bl2 variable bh2 variable dq variable xah
 : p-leave rpop rpop drop drop branch ;
 : p-literal pop 89 code, code, ;
 : p-lit lit@ push ;
-: p-loadsys s" Load system.fth" msg cr s" sdOpenFile" unimpl s" system.fth could not be opened!" msg cr ;
+: p-loadsys s" Load system.fth" msg cr s" system.fth" 0 0 file-open
+  if drop s" system.fth could not be opened!" msg cr else include-file ?dup if m-throw then then ;
 : p-lentry pop lp @ rpush rp @ lp ! rp @ over cells - dup rp ! swap 0 ?do pop over ! 4 + loop drop ;
 : p-lexit lp @ rp ! rpop lp ! ;
 : p-lfetch t@ cells lp @ swap - @ t! ;
@@ -456,7 +593,7 @@ variable dl variable dh variable bl2 variable bh2 variable dq variable xah
 : e ( xt id -- ) cells prims + ! ;
 : pv ( value id -- ) dup cells ptab + rot swap ! ['] p-push swap e ;
 : init-tables ( -- )
-  206 0 do ['] p-bad i e loop
+  207 0 do ['] p-bad i e loop
   ['] p-exit 0 e ['] p-1- 1 e ['] p-1+ 2 e ['] p-2dup 3 e ['] p-2lit 4 e ['] p-2lit-p 5 e
   ['] p-2- 6 e ['] p-2over 7 e ['] p-2+ 8 e ['] p-2swap 9 e ['] p-2r@ 10 e ['] p-2r> 11 e
   ['] p-2>r 12 e ['] p-accept 13 e ['] p-alit 14 e ['] p-alit-p 15 e ['] p-allocate 16 e
@@ -468,7 +605,7 @@ variable dl variable dh variable bl2 variable bh2 variable dq variable xah
   ['] p-depth 46 e ['] p-/ 47 e ['] p-. 48 e ['] p-.s 49 e ['] p-do 50 e ['] p-drop 51 e
   ['] p-dump 52 e ['] p-dup 53 e ['] p-d- 54 e ['] p-m* 55 e ['] p-mu/mod 56 e ['] p-d+ 57 e
   ['] p-um/mod 58 e ['] p-um* 59 e ['] p-emit 61 e 10 62 pv ['] p-?error 63 e
-  ['] p-execute 64 e ['] p-@ 65 e ['] p-fclose 66 e ['] p-fopen 67 e ['] p-fopen 68 e
+  ['] p-execute 64 e ['] p-@ 65 e ['] p-fclose 66 e ['] p-fcreate 67 e ['] p-fopen 68 e
   ['] p-fpos 69 e ['] p-fread 70 e ['] p-frepos 71 e 0 72 pv 1 73 pv ['] p-fsize 74 e
   ['] p-fwrite 75 e ['] p-fill 76 e ['] p-find 77 e ['] p-findnfa 78 e ['] p-noop 79 e
   ['] p-free 80 e ['] p-here 81 e ['] p-numq 82 e ['] p-i 83 e ['] p-include 84 e ['] p-j 85 e
@@ -492,7 +629,7 @@ variable dl variable dh variable bl2 variable bh2 variable dq variable xah
   ['] p-xor 187 e ['] p-0branch 188 e ['] p-catch 189 e ['] p-throw 190 e
   ['] p-interpret 191 e 2 192 pv ['] p-fbin 193 e 4 194 pv ['] p-cells 195 e
   ['] p-fdelete 196 e ['] p-fflush 197 e ['] p-frename 198 e ['] p-fresize 199 e
-  ['] p-sleep 200 e v-byecode 201 pv 34 202 pv 32 203 pv 31 204 pv r-base 205 pv ;
+  ['] p-sleep 200 e ['] p-read-line 206 e v-byecode 201 pv 34 202 pv 32 203 pv 31 204 pv r-base 205 pv ;
 : cold ( -- ) \ pfInitSystem, pfCreateDictionary, pfBuildDictionary, FindSpecialXTs
   0 v-context ! 0 v-state ! 10 v-base ! 0 v-byecode ! 0 v-echo ! 0 v-tlevel ! 1 v-tstack !
   0 v-tflags ! 0 v-retcode ! 0 v-localxt ! h-start v-hbase ! h-start v-hptr ! c-start v-hlimit !
@@ -520,9 +657,10 @@ variable dl variable dh variable bl2 variable bh2 variable dq variable xah
   s" 162 >R 163 TYPE 165 BASE 201 BYE-CODE 166 CODE-BASE 167 CODE-LIMIT 168 CONTEXT 169 DP 170 ECHO" dic-records
   s" 173 HEADERS-PTR 171 HEADERS-BASE 172 HEADERS-LIMIT 174 #TIB 176 RETURN-CODE 180 TRACE-FLAGS" dic-records
   s" 181 TRACE-LEVEL 182 TRACE-STACK 175 OUT 178 STATE 179 >IN 202 VERSION_CODE 184 WORD 185 W@ 186 W!" dic-records
-  s" 187 XOR 188 0BRANCH 203 FLAG_SMUDGE 204 MASK_NAME_SIZE" dic-records
+  s" 187 XOR 188 0BRANCH 203 FLAG_SMUDGE 204 MASK_NAME_SIZE 206 READ-LINE" dic-records
   s" (QUIT)" find-c v-quitxt ! s" NUMBER?" find-c v-numq ! s" ACCEPT" find-c v-accxt ! ;
 : exec-if ( a n -- ) c>f ffind if pfcatch drop else drop then ; \ pfExecIfDefined
-: warm ( -- ) saved @ if restore else cold then reset-task s" AUTO.INIT" exec-if ;
+: files-init ( -- ) 16 0 do 0 ftab i 16 * + ! loop 0 cc-f ! 0 cc-n ! 0 last-ch ! ;
+: warm ( -- ) files-init saved @ if restore else cold then reset-task s" AUTO.INIT" exec-if ;
 : session ( -- ) ['] quit catch ?dup if 1 = if -1 eof ! then else s" AUTO.TERM" exec-if then ;
-: main ( -- ) init-tables 0 eof ! 0 saved ! cold reset-task begin session eof @ 0= while warm repeat ;
+: main ( -- ) init-tables 256 0 do i rev8 revtab i + c! loop files-init 0 eof ! 0 saved ! cold reset-task begin session eof @ 0= while warm repeat ;
