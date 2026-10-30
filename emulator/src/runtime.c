@@ -14,12 +14,36 @@ size (*processor)[3];
 FILE *channel_in,*channel_out;
 const char **remote_paths; size_t nremote; /* -r path: remote spaces 2.. (15.2) */
 
+/* Bit-reversed byte: stream bytes are MSB-first, numeric fields LSB-first. */
+static const unsigned char reverse8[256]={
+  0,128,64,192,32,160,96,224,16,144,80,208,48,176,112,240,
+  8,136,72,200,40,168,104,232,24,152,88,216,56,184,120,248,
+  4,132,68,196,36,164,100,228,20,148,84,212,52,180,116,244,
+  12,140,76,204,44,172,108,236,28,156,92,220,60,188,124,252,
+  2,130,66,194,34,162,98,226,18,146,82,210,50,178,114,242,
+  10,138,74,202,42,170,106,234,26,154,90,218,58,186,122,250,
+  6,134,70,198,38,166,102,230,22,150,86,214,54,182,118,246,
+  14,142,78,206,46,174,110,238,30,158,94,222,62,190,126,254,
+  1,129,65,193,33,161,97,225,17,145,81,209,49,177,113,241,
+  9,137,73,201,41,169,105,233,25,153,89,217,57,185,121,249,
+  5,133,69,197,37,165,101,229,21,149,85,213,53,181,117,245,
+  13,141,77,205,45,173,109,237,29,157,93,221,61,189,125,253,
+  3,131,67,195,35,163,99,227,19,147,83,211,51,179,115,243,
+  11,139,75,203,43,171,107,235,27,155,91,219,59,187,123,251,
+  7,135,71,199,39,167,103,231,23,151,87,215,55,183,119,247,
+  15,143,79,207,47,175,111,239,31,159,95,223,63,191,127,255};
 size space_get(size at,size n)
 {
   /* Reverse each byte once, then extract its little-endian numeric bits.
    * Read only bytes intersecting the field, including fields at space end. */
   static const unsigned char reverse4[16]={0,8,4,12,2,10,6,14,1,9,5,13,3,11,7,15};
   size v=0,done=0;
+  if(n%8==0&&n<=64&&at%8==0) { /* whole bytes (32 bits is the common field) */
+    const unsigned char *p=space+at/8;
+    if(n==32) return (size)reverse8[p[0]]|(size)reverse8[p[1]]<<8|(size)reverse8[p[2]]<<16|(size)reverse8[p[3]]<<24;
+    for(;done<n;done+=8) v|=(size)reverse8[*p++]<<done;
+    return v;
+  }
   while(done<n) {
     unsigned offset=(unsigned)(at%8),take=8-offset;
     if((size)take>n-done)take=(unsigned)(n-done);
@@ -32,6 +56,11 @@ size space_get(size at,size n)
 }
 void space_put(size n,size value,size at)
 {
+  if(n%8==0&&n<=64&&at%8==0) { /* whole bytes: store the reversed bytes */
+    unsigned char *p=space+at/8;
+    for(size done=0;done<n;done+=8) *p++=reverse8[(value>>done)&255u];
+    return;
+  }
   for(size k=0;k<n;k++) {
     unsigned char mask=(unsigned char)(128u>>((at+k)%8));
     if((value>>k)&1u) space[(at+k)/8]|=mask;

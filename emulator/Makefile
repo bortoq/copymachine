@@ -14,7 +14,7 @@ HEADERS = src/space.h src/sys_ctrl.h src/proto_gen.h
 OUT = $(BUILD_DIR)/bitcopy
 BUILD_CONFIG = $(OUT)/build-config
 
-.PHONY: all emulator FORCE check check-runtime checked runtime-bitcopy coverage clean help
+.PHONY: all emulator pgo FORCE check check-runtime checked runtime-bitcopy coverage clean help
 all: emulator
 FORCE:
 
@@ -46,6 +46,22 @@ emulator: $(OUT)/emulator FORCE
 
 runtime-bitcopy: $(OUT)/emulator
 
+# Optional (18.10): the emulator built with profile-guided optimization (gcc), about 30% faster per tick (18.10).
+# Training: L0 of language compiles a small program (the first PGO_TICKS ticks); the result is
+# $(BUILD_DIR)/pgo/emulator. Neither all, check nor CI depend on it.
+PGO = $(BUILD_DIR)/pgo
+PGO_L0 ?= $(CURDIR)/../language/build/L0.boot
+PGO_TICKS ?= 3000000
+PGO_FLAGS = $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(addprefix $(CURDIR)/,$(SRC_COMMON)) -o emulator $(LDLIBS)
+pgo: $(HEADERS) Makefile
+	$(MAKE) -C ../language boot
+	rm -rf "$(PGO)"
+	mkdir -p "$(PGO)"
+	cd "$(PGO)" && $(CC) $(PGO_FLAGS) -fprofile-generate -fprofile-update=single
+	{ cat "$(PGO_L0)"; printf ': main 65 emit 3 4 + 60 + emit 100 33 - emit 6 7 and 64 or emit 70 3 xor emit ;\0'; } | \
+	  (cd "$(PGO)" && ./emulator -s 2147483648 -p 8 -t $(PGO_TICKS) >/dev/null)
+	cd "$(PGO)" && $(CC) $(PGO_FLAGS) -fprofile-use -fprofile-partial-training -Wno-missing-profile
+
 check: check-runtime
 check-runtime: $(OUT)/emulator $(OUT)/test_runtime $(OUT)/test_sys $(BUILD_DIR)/test_bitcopy
 	$(BUILD_DIR)/test_bitcopy
@@ -75,7 +91,7 @@ clean:
 	rm -f emulator emulator.tmp
 
 help:
-	@echo "Targets: all (emulator), check, checked (audit build), clean"
+	@echo "Targets: all (emulator), check, checked (audit build), pgo (optional, gcc), clean"
 
 src/proto_gen.h: src/proto.def tools/proto_gen.py
 	python3 -B tools/proto_gen.py src/proto.def src/proto_gen.h
