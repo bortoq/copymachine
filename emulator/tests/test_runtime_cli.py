@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Real subprocess tests of the emulator contract."""
 import os
+import resource
 import subprocess
 import tempfile
 from pathlib import Path
@@ -112,6 +113,22 @@ with tempfile.TemporaryDirectory(prefix='emulator-r-') as directory:
     assert remote.read_bytes() == b'remote'
     result = subprocess.run([str(BINS[0]), '-r'], capture_output=True, check=False)
     assert result.returncode == 2 and b'usage' in result.stderr
+    checks += 1
+# Room for SYS and the device channels: S+5 must fit in the address bits. A
+# smaller S is not reported as "no room" but refused as a usage error (exit 2).
+run(BINS[0], layer([], 65530, 1), size=65530, slots=1)
+for size in (65531, 65535):
+    result = subprocess.run([str(BINS[0]), '-s', str(size), '-p', '1'], input=b'', capture_output=True, check=False)
+    assert result.returncode == 2 and result.stdout == b'' and result.stderr.startswith(b'usage: emulator '), (size, result)
+    checks += 1
+# Host memory: the space cannot be allocated under a 64 MiB address-space limit (exit 1, the message).
+# Not with sanitizers: their shadow memory does not fit under the limit.
+def limit_address_space():
+    resource.setrlimit(resource.RLIMIT_AS, (64 << 20, 64 << 20))
+if '-fsanitize' not in os.environ.get('CFLAGS', ''):
+    result = subprocess.run([str(BINS[0]), '-s', '1000000000', '-p', '8'], input=b'', capture_output=True,
+                            preexec_fn=limit_address_space, timeout=60, check=False)
+    assert result.returncode == 1 and result.stdout == b'' and result.stderr == b'emulator: out of memory\n', result
     checks += 1
 # bitcopy-only sizes: wider addresses and more than 128 slots.
 for size, slots in [((1<<29)-16, 256), ((1<<31)-16, 256), (65520, 256), (65519, 8)]:

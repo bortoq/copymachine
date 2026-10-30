@@ -505,7 +505,24 @@ int main(void)
   memset(req, 0, sizeof req);
   req[0] = 999;
   send(req_addr, rsp_addr, req, rsp);
-  CHECK(rsp[1] != 0);
+  CHECK(rsp[1] == (size)EINVAL);
+
+  /* --- NONE (op 0): an all-zero record, answered with status 0 --- */
+  memset(req, 0, sizeof req);
+  send(req_addr, rsp_addr, req, rsp);
+  CHECK(rsp[0] == OP_NONE);
+  CHECK(rsp[1] == 0);
+  CHECK(sys_is_channel(IN_POS()));
+
+  /* --- IOCTL: not supported by any channel -> ENOTTY, nothing moved --- */
+  memset(req, 0, sizeof req);
+  req[0] = OP_IOCTL;
+  req[1] = IN_POS();
+  send(req_addr, rsp_addr, req, rsp);
+  CHECK(rsp[0] == OP_IOCTL);
+  CHECK(rsp[1] == (size)ENOTTY);
+  CHECK(rsp[3] == 0 && rsp[4] == 0 && rsp[5] == 0);
+  CHECK(sys_is_channel(IN_POS()));
 
   /* --- CLOSE stdout: position stops being a channel, data copy is a noop --- */
   memset(req, 0, sizeof req);
@@ -523,6 +540,39 @@ int main(void)
   send(req_addr, rsp_addr, req, rsp);
   CHECK(rsp[0] == OP_FSTAT);
   CHECK(rsp[1] == (size)EBADF);
+
+  /* a closed channel is EBADF for SEEK and CLOSE too; so is a position
+   * that never was a channel (the one just below SYS) */
+  memset(req, 0, sizeof req);
+  req[0] = OP_SEEK;
+  req[1] = OUT_POS();
+  send(req_addr, rsp_addr, req, rsp);
+  CHECK(rsp[0] == OP_SEEK);
+  CHECK(rsp[1] == (size)EBADF);
+
+  memset(req, 0, sizeof req);
+  req[0] = OP_CLOSE;
+  req[1] = OUT_POS();
+  send(req_addr, rsp_addr, req, rsp);
+  CHECK(rsp[0] == OP_CLOSE);
+  CHECK(rsp[1] == (size)EBADF);
+
+  memset(req, 0, sizeof req);
+  req[0] = OP_SEEK;
+  req[1] = (size)space_nbits - 1;
+  send(req_addr, rsp_addr, req, rsp);
+  CHECK(rsp[0] == OP_SEEK);
+  CHECK(rsp[1] == (size)EBADF);
+
+  /* a data copy from a closed channel is ignored: the buffer keeps its bytes */
+  fill_bytes(buf, "-", 1);
+  clear_proc();
+  processor[0][0] = 8;
+  processor[0][1] = buf;
+  processor[0][2] = OUT_POS();
+  sys_tick();
+  read_bytes(buf, (char *)got, 1);
+  CHECK(got[0] == '-');
 
   /* --- CLOSE SYS: isolation (no control, no status possible) --- */
   memset(req, 0, sizeof req);
