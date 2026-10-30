@@ -1,8 +1,8 @@
 # copymachine
 
-**RU.** Пространство копирований (эмулятор: одновременные копирования между полуинтервалами битов) и язык, определение которого написано его собственными словами и компилирует себя: L1 = L0 (L0 = 17 559 635 байт, совпадает с K0 независимой модели). Первые 30 секунд: `make && make check-fast` (сборка около 13 с на 12 ядрах, быстрый набор около 45 с).
+**RU.** Пространство копирований (эмулятор: одновременные копирования между полуинтервалами битов) и язык, определение которого написано его собственными словами и компилирует себя: L1 = L0 (L0 = 17 559 635 байт, совпадает с K0 независимой модели). Первые 30 секунд: `make && make check-fast` (сборка около 13 с на 12 ядрах, быстрый набор около 15 с).
 
-**EN.** A copy space (an emulator of simultaneous copies between bit half-intervals) and a language whose definition is written in its own words and compiles itself: L1 = L0 (L0 = 17,559,635 bytes, equal to K0 of an independent model). First 30 seconds: `make && make check-fast` (build about 13 s on 12 cores, fast suite about 45 s).
+**EN.** A copy space (an emulator of simultaneous copies between bit half-intervals) and a language whose definition is written in its own words and compiles itself: L1 = L0 (L0 = 17,559,635 bytes, equal to K0 of an independent model). First 30 seconds: `make && make check-fast` (build about 13 s on 12 cores, fast suite about 15 s).
 
 ## Раскладка
 
@@ -18,7 +18,7 @@
 | Цель | Что делает | Время |
 |---|---|---|
 | `make` | эмулятор и L0 | около 13 с (12 ядер) |
-| `make check-fast` | быстрый набор без L0 | около 45 с |
+| `make check-fast` | быстрый набор без L0 | около 15 с |
 | `make check` | + бут и `language check` | |
 | `make check-full` | + длинные цели; `check-self`: L0 компилирует определение языка, L1 = L0 | `check-self` около 1,5–2 ч |
 | `make lint`, `make coverage` | ruff; покрытие (эмулятор около 91 % строк) | |
