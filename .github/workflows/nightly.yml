@@ -1,0 +1,73 @@
+name: nightly
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+jobs:
+  check-kernel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - run: tools/ci/long.sh check-kernel
+  check-self:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - run: tools/ci/long.sh check-self
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: check-self
+          path: |
+            language/build/ci/check-self.log
+            language/build/ci/L0.sha256
+  check-isolation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - run: tools/ci/long.sh check-isolation
+  check-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - run: tools/ci/long.sh check-proof
+  check-replace:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - run: tools/ci/long.sh check-replace
+  check-user-programs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - run: tools/ci/long.sh check-user-programs

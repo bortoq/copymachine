@@ -1,0 +1,48 @@
+name: check
+on:
+  push:
+  pull_request:
+jobs:
+  fast:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y gcc-multilib clang
+      - run: pip install ruff
+      - run: tools/ci/fast.sh
+      - run: tools/ci/clean.sh
+  emulator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+        mode: [release, sanitizers]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: tools/ci/emulator.sh ${{ matrix.cc }} ${{ matrix.mode }}
+  language:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - run: tools/ci/language.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: L0
+          path: |
+            language/build/L0.boot
+            language/build/L0.sha256
