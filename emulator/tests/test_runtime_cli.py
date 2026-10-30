@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Real subprocess tests of the new emulator contract, both compile-time backends."""
+"""Real subprocess tests of the emulator contract."""
 import hashlib
 import os
 from pathlib import Path
@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/"tools"))
 from output_paths import output_dir
 
-BINS = [output_dir(ROOT, 'build')/v/'emulator' for v in ('bitcopy', 'network')]
+BINS = [output_dir(ROOT, 'build')/'bitcopy'/'emulator']
 S, P = 65520, 8
 A = S.bit_length()
 RSP_BITS = 97+A
@@ -102,10 +102,6 @@ for binary in BINS:
 # bitcopy-only sizes: wider addresses and more than 128 slots.
 for size, slots in [((1<<29)-16, 256), ((1<<31)-16, 256), (65520, 256), (65519, 8)]:
     run(BINS[0], layer([], size, slots), size=size, slots=slots)
-for args in [('-s','70000'), ('-p','129'), ('-s','65519')]:
-    result = subprocess.run([str(BINS[1]), *args], capture_output=True)
-    assert result.returncode == 2, result
-    checks += 1
 # The independent fixture checker rejects shared sources and accepts adjacency.
 try:
     validate([copy(1, 8, 0, 32), copy(1, 16, 0, 32)], 32)
@@ -114,4 +110,4 @@ except ValueError:
 else:
     raise AssertionError('shared source accepted')
 validate([copy(1, 1, 0, 32), copy(1, 3, 2, 32)], 32)
-print(f'emulator real CLI: {checks} checks passed (both backends, boot, IO, SYS, dimensions, errors)')
+print(f'emulator real CLI: {checks} checks passed (boot, IO, SYS, dimensions, errors)')

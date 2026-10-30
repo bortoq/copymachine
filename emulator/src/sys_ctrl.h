@@ -30,6 +30,9 @@
  * responsibility, like overlapping copies. CLOSE takes effect at the tick
  * boundary; CLOSE SYS preserves old-response reads in its submission tick.
  *
+ * The long copy (15.2, op LONG) copies to or from a remote space: 0 the
+ * old SYS, 1 the clock, 2.. the host files of -r (proto.def).
+ *
  * The protocol (op codes, record fields, pre-bound devices) comes from
  * proto.def via proto_gen.h.
  */

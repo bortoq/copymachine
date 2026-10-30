@@ -25,7 +25,7 @@ WANT = b'AB\\\n'
 
 
 def main():
-    subprocess.run(['make', '-s', '-C', str(paths.VM2_ROOT), '-j1', 'checked-emulator'], check=True)
+    subprocess.run(['make', '-s', '-C', str(paths.EMULATOR_ROOT), '-j1', 'checked'], check=True)
     executable = host.build()
     stream = check_programs.compile_on_host(executable, paths.source_bytes(paths.LIBRARY_FILES), SOURCE)
     sys.path[:0] = [str(paths.FORTH / 'scripts')]

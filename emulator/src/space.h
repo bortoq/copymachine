@@ -22,6 +22,9 @@ extern size (*instructions)[4];
 /* Internal IO/bitcopy view [length,destination,source], not a wire instruction. */
 extern size (*processor)[3];
 extern FILE *channel_in, *channel_out;
+/* Host files of the long copy (15.2): -r path, in order, are the remote spaces 2, 3, ... */
+extern const char **remote_paths;
+extern size_t nremote;
 size space_get(size at, size n);
 void space_put(size n, size value, size at);
 void bitcpy(size_t n,const void *src,size_t s,void *dst,size_t d);

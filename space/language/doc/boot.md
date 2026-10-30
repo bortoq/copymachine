@@ -42,7 +42,7 @@
 | Цель | Что делает |
 |---|---|
 | `boot` | бут, L0 |
-| `space` | (15.1) собирает эмулятор из текста определения слова «пространство» (`space/`) в `build/space/language/space/emulator`; `EMULATOR=<бинарь>` у `check-programs`, `check-kernel` и `check-self` выбирает исполнителя вместо рабочего (checked-emulator, `emulator/`) |
+| `space` | собирает эмулятор из текста определения слова «пространство» (`emulator/src`) в `build/space/language/space/emulator`; `EMULATOR=<бинарь>` у `check-programs`, `check-kernel` и `check-self` выбирает исполнителя вместо рабочего (`make -C emulator checked`, `emulator/`) |
 | `check-programs` | 37 программ `forthc_programs.py` компилируются определением на хосте, поток исполняется на checked-emulator; вывод — ожидаемый (для `PROGRAMS` — вывод того же текста на хостовом pForth, для `EXPECTED` — заданный); `STREAMS=equal` добавляет побайтное равенство потоку модели |
 | `check-closure` | граф определения (по `tools/research/defgraph.py`, порядок K): печатает `external N` и имена и (14.8) записывает ядро языка в `doc/core.md`; код 0, если `N <= MAX_EXTERNAL` |
 | `check-kernel` | L0 на emulator компилирует и запускает те же программы внутри своего пространства (`test_kernel.py --programs-only`); `tools/check_kernel.py --rebuild` — ещё и пересборка (около полутора часов) |

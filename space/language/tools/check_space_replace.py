@@ -6,7 +6,7 @@ host pForth), their expected outputs, the empty files of the remote spaces 2 (ou
 program of the language, running in the guest on the emulator built by `make space` (the first executor of
 the word; it has the long copy):
 
-1. through EXEC (the remote space 0) it builds the emulator NEW from the text of the definition, space/*.c,
+1. through EXEC (the remote space 0) it builds the emulator NEW from the text of the definition, emulator/src/*.c,
    with the C compiler of the host (`cc`, the flags of the Makefile). The text of the definition already is
    files of the host; copying its 44 KiB through long! would give the same files for more time;
 2. for each program k through EXEC it runs NEW on the stream: `NEW -s .. -p 8 < sK > out && cp eK exp`;
@@ -46,7 +46,7 @@ def text(command):
 
 def guest_source(build, workdir, count, words):
     rel = lambda p: os.path.relpath(p, ROOT)         # the guest runs in space/language
-    cc = f'cc {FLAGS} ' + ' '.join(f'space/{s}' for s in SOURCES) + f' -o {rel(build)}'
+    cc = f'cc {FLAGS} ' + ' '.join(f'{rel(paths.EMULATOR_ROOT / "src" / s)}' for s in SOURCES) + f' -o {rel(build)}'
     d = rel(workdir)
     run = f'{rel(build)} -s {paths.SIZE} -p 8 < {d}/s00 > {d}/out && cp {d}/e00 {d}/exp'
     s, e = run.index('/s00') + 2, run.index('/e00') + 2     # offsets of the digits of the numbers
@@ -95,7 +95,7 @@ def main():
         assert result.returncode == 0 and verdict == 'P' * len(cases), (result.returncode, verdict, result.stderr[-300:])
         assert newest.is_file()
         names = list(cases)
-        print(f'PASS space replaced: the guest built the emulator from space/*.c by cc through EXEC and ran the '
+        print(f'PASS space replaced: the guest built the emulator from emulator/src/*.c by cc through EXEC and ran the '
               f'{len(cases)} programs of check-programs on it, each output equals the expected one '
               f'(decided in the guest: {verdict}; {names[0]} .. {names[-1]})')
     print(f'ALL space-replace: {len(cases)} programs, {prepared:.0f} s of preparation, '

@@ -43,9 +43,9 @@ def programs():
     return cases
 
 
-CHECKED = output_dir(VM2_ROOT, 'build') / 'checked-emulator'
+CHECKED = output_dir(EMULATOR_ROOT, 'build') / 'checked-emulator'
 # EMULATOR=path (15.1) chooses the executor: any emulator binary, for example the one built from the
-# definition of the word "space" (space/, build/space/language/space/emulator).
+# definition of the word "space" (emulator/src, build/space/language/space/emulator).
 EMULATOR = Path(os.environ['EMULATOR']).resolve() if os.environ.get('EMULATOR') else output_dir(EMULATOR_ROOT, 'build') / 'bitcopy/emulator'
 # The executor of check-programs: EMULATOR if given, else checked-emulator.
 EXECUTOR = EMULATOR if os.environ.get('EMULATOR') else CHECKED

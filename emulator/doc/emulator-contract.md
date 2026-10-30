@@ -9,8 +9,7 @@ producer's build manifest.
 ## Process interface and compilation
 
 ```
-make                         # BACKEND=bitcopy
-make BACKEND=network          # two-phase addressing, same instruction contract
+make
 ./emulator [-s bits] [-p instructions] [-t ticks] < boot-and-input > output
 ```
 
@@ -28,12 +27,7 @@ also need Python 3.11+ (standard library) and a POSIX shell; optional measuremen
 need GNU time. No sibling repository, external sorter file, diagnostic build,
 host image parser, trace or dump/restore option is required.
 
-BACKEND is a build-time choice. Object/executable/configuration paths are separate
-under `build/bitcopy` and `build/network`. Every `make` refreshes the public emulator
-from the selected variant, even when switching back to a previously built one.
-CC/CPPFLAGS/CFLAGS/LDFLAGS/LDLIBS changes invalidate the corresponding build.
-Bitcopy does not compile or allocate the network mechanism. Network never falls
-back to bitcopy. It constructs its sorting fabric internally during startup.
+CC/CPPFLAGS/CFLAGS/LDFLAGS/LDLIBS changes invalidate the build.
 
 ## Encoding, dimensions and initial state
 

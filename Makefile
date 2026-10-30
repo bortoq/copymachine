@@ -18,7 +18,7 @@ check-archive:
 check-layout:
 	$(PYTHON) -B tools/check_layout.py
 check: layout
-	$(LIMIT) $(MAKE) -C emulator -j1 check-runtime
+	$(LIMIT) $(MAKE) -C emulator -j1 check checked
 	$(LIMIT) $(MAKE) -C space/copycode -j1 check-emulator
 	$(LIMIT) $(MAKE) -C space/vm2 -j1 check
 	$(PYTHON) -B space/vm2/tools/limited_run.py --seconds 600 --memory-mib 768 --cpus $(JOBS) $(MAKE) -C space/rv32i -j1 check JOBS=$(JOBS)

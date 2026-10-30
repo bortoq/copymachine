@@ -24,9 +24,7 @@ Build and run on Linux with a C11 compiler, GNU make and Python 3 for protocol
 header regeneration:
 
 ```sh
-make                          # fast bitcopy, the default
-make BACKEND=network           # verified two-phase addressing mechanism
-make                          # selects bitcopy again, without clean
+make
 ./emulator -s 65520 -p 128 -t 0 < boot.bin
 ```
 
@@ -51,40 +49,14 @@ python3 examples/write-byte.py --write A > /tmp/emulator-a.boot
 ./emulator < /tmp/emulator-a.boot
 ```
 
-Bitcopy supports runtime sizes/slot counts up to representation and available
-memory; 64/256 MiB image budgets are tested. Network supports S divisible by 16,
-up to 65520, and P<=128, subject to processor fit. It constructs the network
-internally: no sorter file is needed. Both executables use the same new ABI on
-common configurations. BACKEND is chosen at compilation; there is no runtime
-backend switch or automatic fallback. Old LDR1/native-word and vm2 three-field
-images require rebuilding, not merely renaming their executable.
+Runtime sizes and slot counts are limited only by representation and available
+memory; 64/256 MiB image budgets are tested. Besides SYS there is the long copy LONG
+(`-r path` gives host files as remote spaces 2, 3, ...; see `src/proto.def`).
 
 Verification (Python 3.11+ standard library and POSIX shell for full checks):
 
 ```sh
-make check CFLAGS='-Wall -Wextra -Werror -pedantic -std=c11 -O2'
-make check-runtime             # both production variants, whole-memory and CLI
-make check-mechanism           # separate historical mechanism controls
-make benchmark                 # optional CPU/process/RSS comparison; GNU time
-make clean                     # removes both builds and generated test/network files
+make check                     # whole-memory oracle (709 cases), SYS, CLI
+make checked                   # the mode of checking disjointness (audit after each tick)
+make clean
 ```
-
-See [runtime verification and measurements](doc/runtime.md),
-[mechanism proof](doc/README.md), [hardware limits](doc/hardware.md),
-[project roadmap](doc/roadmap.md) and the workspace roadmap at `../ROADMAP.md`.
-Исторические проверки механизма выполняются отдельно: они строят текстовые
-сети сортировки и не входят в ограниченную обычную проверку.
-
-The former mechanism's native-word process interface and loader survive only
-as historical test controls; ordinary `make` builds the new common runtime.
-Application software and the vm2 guest implementation belong to other projects.
-
-License: [MIT](LICENSE).
-
-Исходный выпуск собирается `make dist`; `make distcheck` распаковывает его
-в новый каталог с пробелами в имени, сверяет SHA256, выполняет полный набор
-проверок, установку обоих вариантов и запуск установленного бинарника.
-`make install prefix=/usr/local` устанавливает `bin/emulator` и документацию;
-`DESTDIR=/путь` задаёт корень промежуточной установки. Выбранный `BACKEND`
-сохраняется при установке. `make clean` удаляет также `dist/`.
-Архив воспроизводим при одинаковом `SOURCE_DATE_EPOCH` (по умолчанию 0).

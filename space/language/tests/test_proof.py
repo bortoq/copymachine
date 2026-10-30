@@ -143,7 +143,7 @@ def check_kernel_l0():
 
 
 def main():
-    subprocess.run(['make', '-s', '-C', str(paths.VM2_ROOT), '-j1', 'checked-emulator'], check=True)
+    subprocess.run(['make', '-s', '-C', str(paths.EMULATOR_ROOT), '-j1', 'checked'], check=True)
     check_gates()
     check_adders()
     check_registry()

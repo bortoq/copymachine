@@ -1,4 +1,4 @@
-/* generated from src/proto.def by tools/proto_gen.py; do not edit */
+/* generated from space/proto.def by tools/proto_gen.py; do not edit */
 #ifndef PROTO_GEN_H_
 #define PROTO_GEN_H_
 
@@ -9,6 +9,7 @@ enum {
   OP_FSTAT = 3,
   OP_IOCTL = 4,
   OP_EXEC = 5,
+  OP_LONG = 6,
 };
 
 typedef enum { PK_LIT, PK_ADDR, PK_NF } proto_width_kind;

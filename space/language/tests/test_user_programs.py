@@ -189,7 +189,7 @@ def check_command_line(work, dear):
 
 
 def main():
-    subprocess.run(['make', '-s', '-C', str(paths.VM2_ROOT), '-j1', 'checked-emulator'], check=True)
+    subprocess.run(['make', '-s', '-C', str(paths.EMULATOR_ROOT), '-j1', 'checked'], check=True)
     real = Language.load()
     dear = real.replaced('gen-cells', DEAR_CELLS)
     dear_one = real.replaced('gen-1+', DEAR_ONE)

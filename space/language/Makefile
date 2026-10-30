@@ -13,7 +13,7 @@ COPYCODE_ROOT ?= $(abspath ../copycode)
 FORTH_ROOT ?= $(abspath ../forth)
 # The executor of check-programs, check-kernel and check-self (15.1): EMULATOR=path of an emulator binary, for
 # example the one `make space` builds from the definition of the word "space" (space/). Empty: the
-# working one (checked-emulator of vm2 for check-programs, emulator/ bitcopy for check-kernel).
+# working one (`make -C emulator checked` for check-programs, emulator/ for check-kernel).
 EMULATOR ?=
 export VM2_ROOT EMULATOR_ROOT COPYCODE_ROOT FORTH_ROOT EMULATOR
 export PYTHONDONTWRITEBYTECODE=1
@@ -36,11 +36,12 @@ SELF_SECONDS ?= 14000
 TEST_SECONDS ?= 1800
 CC ?= cc
 CFLAGS ?= -Wall -Wextra -pedantic -std=c11 -O2
-# The word "space" (15.1): the text of its definition is space/, the copy of emulator/src of the
-# bitcopy variant; `make space` builds from it the emulator $(SPACE_BIN).
+# The word "space": the text of its definition is emulator/src; `make space` builds from it the
+# emulator $(SPACE_BIN).
 SPACE_DIR = $(OUT)/space
 SPACE_BIN = $(SPACE_DIR)/emulator
-SPACE_SOURCES = $(wildcard space/*.c space/*.h) space/proto.def space/proto_gen.py
+SPACE_SRC = $(EMULATOR_ROOT)/src
+SPACE_SOURCES = $(wildcard $(SPACE_SRC)/*.c $(SPACE_SRC)/*.h) $(SPACE_SRC)/proto.def
 limit = $(PYTHON) -B "$(VM2_ROOT)/tools/limited_run.py" --seconds $(1) --memory-mib 768 --file-mib 64
 ifeq ($(COPYMACHINE_LIMITED),1)
 limit =
@@ -51,18 +52,16 @@ TOOLS = $(wildcard tools/*.py)
 all: boot
 boot: $(L0)
 space: $(SPACE_BIN)
-space/proto_gen.h: space/proto.def space/proto_gen.py
-	$(PYTHON) -B space/proto_gen.py space/proto.def $@
-$(SPACE_BIN): $(SPACE_SOURCES) space/proto_gen.h Makefile
+$(SPACE_BIN): $(SPACE_SOURCES) Makefile
 	@mkdir -p "$(@D)"
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) space/runtime.c space/sys_ctrl.c space/bitcopy.c space/backend_bitcopy.c -o $@ $(LDLIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(addprefix $(SPACE_SRC)/,runtime.c sys_ctrl.c bitcopy.c backend_bitcopy.c) -o $@ $(LDLIBS)
 $(L0): $(SOURCES) $(TOOLS)
 	$(call limit,$(BOOT_SECONDS)) $(PYTHON) -B tools/boot.py -o "$(L0)"
 check-programs:
-	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(VM2_ROOT)" -j1 checked-emulator)
+	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 checked)
 	$(call limit,$(PROGRAMS_SECONDS)) $(PYTHON) -B tools/check_programs.py $(if $(filter equal,$(STREAMS)),--streams-equal)
 # Replacing the word "space" (15.4, 3.5.1 on the small value): the guest builds the emulator from the text of the
-# definition (space/) through EXEC and runs the programs of check-programs on it.
+# definition (emulator/src) through EXEC and runs the programs of check-programs on it.
 check-space-replace: $(SPACE_BIN)
 	$(call limit,$(PROGRAMS_SECONDS)) $(PYTHON) -B tools/check_space_replace.py
 check-closure:
@@ -92,7 +91,7 @@ check-tests: $(L0)
 # Isolation of the kernel (14.10): probes of L0 (about 20 minutes), not part of check.
 check-isolation: $(L0)
 	$(call limit,$(KERNEL_SECONDS)) $(PYTHON) -B tests/test_isolation.py --l0 "$(L0)"
-# Check and proof (14.12): CHECK-TABLE, ACCURACY, PROVED? on checked-emulator and on L0 (about 3 minutes).
+# Check and proof (14.12): CHECK-TABLE, ACCURACY, PROVED? on the checked emulator and on L0 (about 3 minutes).
 check-proof: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_proof.py
 # Replacement and synonyms (14.13): REPLACE, synonyms, the price from the concept cell on the counters

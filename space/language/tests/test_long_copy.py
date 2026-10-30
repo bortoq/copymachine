@@ -1,4 +1,4 @@
-"""The long copy and the clock (15.2): the action LONG of the definition of the word "space" (space/,
+"""The long copy and the clock (15.2): the action LONG of the definition of the word "space" (emulator/src,
 proto.def) and the words long! long@ ( space pos lo hi -- ) of the language.
 
 The programs are compiled by the definition on the host pForth and run on the emulator built from the

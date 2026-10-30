@@ -12,6 +12,7 @@ unsigned char *space;
 size (*instructions)[4];
 size (*processor)[3];
 FILE *channel_in,*channel_out;
+const char **remote_paths; size_t nremote; /* -r path: remote spaces 2.. (15.2) */
 
 size space_get(size at,size n)
 {
@@ -39,7 +40,7 @@ void space_put(size n,size value,size at)
 }
 static void usage(void)
 {
-  fputs("usage: emulator [-s bits] [-p instructions] [-t ticks]\n",stderr);
+  fputs("usage: emulator [-s bits] [-p instructions] [-t ticks] [-r path]...\n",stderr);
   exit(EXIT_USAGE);
 }
 static uint64_t number(const char *s)
@@ -56,9 +57,15 @@ void parse_config(int argc,char **argv)
   for(int i=1;i<argc;i++) {
     const char *arg=argv[i],*v;
     uint64_t n;
-    if(arg[0]!='-'||(arg[1]!='s'&&arg[1]!='p'&&arg[1]!='t')) usage();
+    if(arg[0]!='-'||(arg[1]!='s'&&arg[1]!='p'&&arg[1]!='t'&&arg[1]!='r')) usage();
     v=arg+2;
     if(!*v) { if(++i==argc) usage(); v=argv[i]; }
+    if(arg[1]=='r') {   /* a host file, the remote space 2+k of the long copy */
+      const char **grown=realloc(remote_paths,(nremote+1)*sizeof *remote_paths);
+      if(!grown) { fputs("emulator: out of memory\n",stderr); exit(EXIT_MEMORY); }
+      remote_paths=grown; remote_paths[nremote++]=v;
+      continue;
+    }
     n=number(v);
     if(arg[1]=='t') tick_limit=n;
     else {
@@ -107,7 +114,8 @@ void init_space(void)
 void destroy_space(void)
 {
   backend_shutdown(); sys_shutdown();
-  free(space); free(instructions); free(processor);
+  free(space); free(instructions); free(processor); free(remote_paths);
+  remote_paths=NULL; nremote=0;
   space=NULL; instructions=NULL; processor=NULL;
 }
 int computation(void)
