@@ -1,0 +1,260 @@
+diff -ruN '--exclude=build' '--exclude=__pycache__' '--exclude=proto_gen.h' '--exclude=core.md' base/emulator/src/proto.def w1811/emulator/src/proto.def
+--- base/emulator/src/proto.def	2026-10-30 21:44:55.000000000 +0200
++++ w1811/emulator/src/proto.def	2026-10-30 21:50:54.822405717 +0200
+@@ -46,6 +46,20 @@
+  * gives zeros, a write past the end extends the file.
+  */
+ XOP(LONG,  6)
++/*
++ * HOST (18.11, experiment): call a definition of a word that the emulator
++ * itself holds (written in C), with direct access to the memory of the space.
++ * Request record: arg = the number of the word, off = the address (in the
++ * memory of the program, "Forth address") of its argument block (consecutive
++ * cells; the result is written to cell 0 over the first argument), chan = the
++ * bit address where that memory starts (address a is at chan + 64*(a>>2) +
++ * 8*(a&3); a cell is 32 bits numeric, the upper half of its 64 unused); flags unused. The
++ * memory is read and written at once, inside the tick of the request (like
++ * the EXEC command of the old SYS): the program reads the result from the
++ * next tick on. Answer: status 0, EINVAL (unknown word), EFAULT (an address
++ * outside the space).
++ */
++XOP(HOST,  7)
+ /* reserve: SPAWN, POLL, MMAP, ... */
+ 
+ XFIELD(req, op,    8)
+diff -ruN '--exclude=build' '--exclude=__pycache__' '--exclude=proto_gen.h' '--exclude=core.md' base/emulator/src/sys_ctrl.c w1811/emulator/src/sys_ctrl.c
+--- base/emulator/src/sys_ctrl.c	2026-10-30 21:44:55.000000000 +0200
++++ w1811/emulator/src/sys_ctrl.c	2026-10-30 21:50:54.822405717 +0200
+@@ -317,6 +317,104 @@
+   c->size = (size)st.st_size;
+ }
+ 
++
++/*
++ * HOST (18.11): definitions of words on the host with direct access to the
++ * memory of the space. The memory of the program ("Forth address" a) is the
++ * cell a>>2 at the bit origin + 64*(a>>2), 32 bits numeric, byte a&3 of it at
++ * +8*(a&3). Every bit read or written is checked to lie inside the space.
++ */
++static unsigned char rev8[256];
++static void rev8_init(void)
++{
++  unsigned i, k;
++  for(i = 0; i < 256; ++i)
++  {
++    unsigned r = 0;
++    for(k = 0; k < 8; ++k) r |= ((i >> k) & 1u) << (7 - k);
++    rev8[i] = (unsigned char)r;
++  }
++}
++static inline unsigned rd32(size at)      /* at is a multiple of 8 */
++{
++  const unsigned char *p = space + at / 8;
++  return (unsigned)rev8[p[0]] | (unsigned)rev8[p[1]] << 8 | (unsigned)rev8[p[2]] << 16 | (unsigned)rev8[p[3]] << 24;
++}
++static inline void wr32(size at, unsigned v)
++{
++  unsigned char *p = space + at / 8;
++  p[0] = rev8[v & 255]; p[1] = rev8[(v >> 8) & 255]; p[2] = rev8[(v >> 16) & 255]; p[3] = rev8[v >> 24];
++}
++#define HW_INSIDE(at, n) ((at) <= (size)space_nbits && (n) <= (size)space_nbits - (at))
++/* the bit address of the cell with the program address a (checked: 32 bits inside the space) */
++#define HW_CELL(org, a) ((org) + 16 * (size)((a) & ~3u))
++/* the cell i of the argument block at the program address blk */
++static int hw_arg(size org, size blk, unsigned i, unsigned *v)
++{
++  size at;
++  if(blk > 0x7fffffffu) return EFAULT;
++  at = HW_CELL(org, (unsigned)blk + 4 * i);
++  if(!HW_INSIDE(at, 32)) return EFAULT;
++  *v = rd32(at);
++  return 0;
++}
++static int hw_result(size org, size blk, unsigned v)
++{
++  size at = HW_CELL(org, (unsigned)blk);
++  if(!HW_INSIDE(at, 32)) return EFAULT;
++  wr32(at, v);
++  return 0;
++}
++/* word 0: cc-row-clash? ( row1 row2 size -- flag ): two rows of four cells (dl dh sl sh) clash if
++ * any of their two intervals each clash: both non-empty, overlapping, lower ends below size. */
++static int hw_row_clash(size org, size blk)
++{
++  unsigned a, b, size_, la[4], lb[4];
++  int j, i;
++  if(hw_arg(org, blk, 0, &a) || hw_arg(org, blk, 1, &b) || hw_arg(org, blk, 2, &size_)) return EFAULT;
++  if(a > 0x7fffffffu - 16 || b > 0x7fffffffu - 16) return EFAULT;
++  for(j = 0; j < 4; ++j)
++  {
++    size pa = HW_CELL(org, a + 4 * (unsigned)j), pb = HW_CELL(org, b + 4 * (unsigned)j);
++    if(!HW_INSIDE(pa, 32) || !HW_INSIDE(pb, 32)) return EFAULT;
++    la[j] = rd32(pa); lb[j] = rd32(pb);
++  }
++  for(j = 0; j < 2; ++j)
++    for(i = 0; i < 2; ++i)
++    {
++      unsigned l1 = la[2 * j], h1 = la[2 * j + 1], l2 = lb[2 * i], h2 = lb[2 * i + 1];
++      if(l1 < h1 && l2 < h2 && l1 < h2 && l2 < h1 && l1 < size_ && l2 < size_)
++        return hw_result(org, blk, 0xffffffffu);
++    }
++  return hw_result(org, blk, 0);
++}
++/* word 1: fill ( addr u c -- ): u bytes from the program address addr get the byte c. */
++static int hw_fill(size org, size blk)
++{
++  unsigned a, u, c, x;
++  unsigned char r;
++  size base;
++  if(hw_arg(org, blk, 0, &a) || hw_arg(org, blk, 1, &u) || hw_arg(org, blk, 2, &c)) return EFAULT;
++  if(!u) return 0;
++  if(a > 0x7fffffffu || u > 0x7fffffffu || (size)a + u > 0x80000000u) return EFAULT;
++  if(!HW_INSIDE(HW_CELL(org, a), 16 * (size)(u + 8))) return EFAULT;
++  r = rev8[c & 255u];
++  base = HW_CELL(org, a) / 8;
++  for(x = a & 3u; x < (a & 3u) + u; ++x)
++    space[base + 8 * (size)(x >> 2) + (x & 3u)] = r;
++  return 0;
++}
++static int host_word(size k, size org, size blk)
++{
++  if(org % 8) return EINVAL;
++  switch(k)
++  {
++    case 0: return hw_row_clash(org, blk);
++    case 1: return hw_fill(org, blk);
++    default: return EINVAL;
++  }
++}
++
+ /*
+  * serve one control request decoded into v (REQ_NFIELDS values). cidx is
+  * the SYS entry; the answer is stored there. CLOSE may close SYS itself.
+@@ -408,6 +506,10 @@
+       }
+       break;
+     }
++    case OP_HOST:
++      if(n < (size)req_bits) channels[cidx].status = (size)EINVAL;
++      else channels[cidx].status = (size)host_word(v[3], v[1], v[4]);
++      break;
+     case OP_IOCTL:
+       channels[cidx].status = (size)ENOTTY;
+       break;
+@@ -601,6 +703,7 @@
+ {
+   unsigned i;
+   sys_shutdown();
++  rev8_init();
+   layout(proto_req, REQ_NFIELDS, req_off, req_w);
+   layout(proto_rsp, RSP_NFIELDS, rsp_off, rsp_w);
+   {
+diff -ruN '--exclude=build' '--exclude=__pycache__' '--exclude=core.md' base/language/hostwords/infra.fth w1811/language/hostwords/infra.fth
+--- base/language/hostwords/infra.fth	1970-01-01 02:00:00.000000000 +0200
++++ w1811/language/hostwords/infra.fth	2026-10-30 21:52:18.264742292 +0200
+@@ -0,0 +1,18 @@
++\ 18.11 (experiment): words whose definition the emulator holds (op HOST, emulator/src/proto.def).
++\ A call: the arguments go to the cells of %HA, the request record of the word (constant, written once by
++\ %HINIT) is copied to the channel SYS, the emulator runs the C definition at once and writes the result to
++\ the cell 0 of %HA. Compiled before everything else, in the kernel; the host pForth does not see it.
++\ The memory of the kernel (its "Forth addresses") starts at the bit 1619001344 = 3 * 2^29 + 2^23.
++create %hq 64 allot
++create %ha 16 allot
++%hq 16 * 1619001344 + constant %hr0
++%hr0 256 + constant %hr1
++: %hcall0 ( -- ) 2147483648 2147483648 %hr0 %hr0 152 + %copy ;
++: %hcall1 ( -- ) 2147483648 2147483648 %hr1 %hr1 152 + %copy ;
++\ The record (152 bits, numeric, byte by byte): op 8, chan 32, flags 16, arg 32, off 64.
++: %hw1 ( at v -- at' ) over dup 8 + spacec! 8 + ;
++: %hn ( at v n -- at' ) 0 ?do dup 255 and >r 8 rshift swap r> %hw1 swap loop drop ;
++: %hrec ( k at -- ) swap >r 7 1 %hn 1619001344 4 %hn 0 2 %hn r> 4 %hn %ha 4 %hn 0 4 %hn drop ;
++: %hinit ( -- ) 0 %hr0 %hrec 1 %hr1 %hrec ;
++%hinit
++: fill ( addr u c -- ) %ha 8 + ! %ha 4 + ! %ha ! %hcall1 ;
+diff -ruN '--exclude=build' '--exclude=__pycache__' '--exclude=core.md' base/language/hostwords/rowclash.fth w1811/language/hostwords/rowclash.fth
+--- base/language/hostwords/rowclash.fth	1970-01-01 02:00:00.000000000 +0200
++++ w1811/language/hostwords/rowclash.fth	2026-10-30 21:52:18.264742292 +0200
+@@ -0,0 +1 @@
++: cc-row-clash? ( row1 row2 -- flag ) cc-size @ %ha 8 + ! %ha 4 + ! %ha ! %hcall0 %ha @ ;
+diff -ruN '--exclude=build' '--exclude=__pycache__' '--exclude=core.md' base/language/src/primitives.fth w1811/language/src/primitives.fth
+--- base/language/src/primitives.fth	2026-10-30 21:44:55.000000000 +0200
++++ w1811/language/src/primitives.fth	2026-10-30 21:52:18.324743988 +0200
+@@ -116,6 +116,8 @@
+ \ call the generators themselves, not the words of the dictionary, which the program may redefine.
+ : gen-call ( xt -- ) fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! execute ;
+ : gen-lit ( v -- ) fc-code fc-literal ;
++\ %COPY outside the program of the kernel only (18.11: the call of a word of the emulator).
++: gen-hcopy ( -- ) fc-guard @ if -13 throw then fc-copy-row ;
+ \ N PICK as a check needs it: the literal N, then the pick (also at the top level).
+ : gen-pick-n ( n -- ) gen-lit fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! 0 fc-pick-roll ;
+ \ ( lo hi -- lo hi ) for a store or a fetch of n bits: -9 THROW unless hi - lo = n (the interval of the
+@@ -299,6 +301,7 @@
+   s" long!" ['] gen-library 64 fc-generator  s" long@" ['] gen-library 64 fc-generator
+   s" host" ['] gen-host 243 fc-generator  s" time" ['] gen-library 243 fc-generator
+   s" platform" ['] gen-library 243 fc-generator  s" platform-of" ['] gen-library 243 fc-generator
++  s" %copy" ['] gen-hcopy 256 fc-generator
+   s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name
+   s" 4" 4 fc-literal-name  s" 5" 5 fc-literal-name  s" 6" 6 fc-literal-name  s" 7" 7 fc-literal-name
+   s" 8" 8 fc-literal-name  s" 9" 9 fc-literal-name ;
+diff -ruN '--exclude=build' '--exclude=__pycache__' '--exclude=core.md' base/language/tools/boot_host.py w1811/language/tools/boot_host.py
+--- base/language/tools/boot_host.py	1970-01-01 02:00:00.000000000 +0200
++++ w1811/language/tools/boot_host.py	2026-10-30 21:52:36.621262200 +0200
+@@ -0,0 +1,58 @@
++#!/usr/bin/env python3
++"""18.11 (experiment): boot of the variant of the language in which `fill` and `cc-row-clash?` are
++executed by the emulator (op HOST, hostwords/*.fth). The host pForth still loads the compiler natively
++with the ordinary definitions of all words (the library); only the text that the compiler compiles into
++L0 (the kernel) has the two definitions replaced. Usage: boot_host.py -o L0.host [--words fill,row]"""
++import argparse
++import hashlib
++import json
++import subprocess
++import sys
++import time
++
++import boot
++import host
++import paths
++
++HW = paths.ROOT / 'hostwords'
++FILL = (': fill ( addr u c -- )\n  over 3 and 3 pick 3 and or 0= if\n'
++        '    255 and 16843009 * fill-cell ! 2 rshift 0 ?do fill-cell @ over i cells + ! loop drop exit\n'
++        '  then swap 0 ?do 2dup swap i + c! loop 2drop ;\n')
++ROWCLASH = (': cc-row-clash? ( row1 row2 -- flag )\n  cc-rb ! cc-ra ! 0\n  2 0 do 2 0 do\n'
++            '    cc-ra @ j 2* cells + 2@ swap cc-rb @ i 2* cells + 2@ swap cc-clash? or\n  loop loop ;\n')
++
++
++def kernel_text(words):
++    text = paths.text(paths.KERNEL_FILES)
++    assert FILL in text and ROWCLASH in text
++    infra = (HW / 'infra.fth').read_text()
++    if 'fill' not in words:         # infra ends with the definition of fill: drop it
++        infra = infra[:infra.index(': fill')]
++    else:
++        text = text.replace(FILL, '')
++    if 'row' in words:
++        text = text.replace(ROWCLASH, (HW / 'rowclash.fth').read_text())
++    return infra + text
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('-o', '--output', required=True)
++    parser.add_argument('--words', default='fill,row')
++    args = parser.parse_args()
++    words = args.words.split(',')
++    lines = [boot.SIZES] + ['fc| ' + line for line in kernel_text(words).split('\n')] + ['fc-go', 'bye']
++    data = paths.source_bytes(paths.LIBRARY_FILES) + ('\n'.join(lines) + '\n').encode('latin-1')
++    executable = host.build()
++    start = time.monotonic()
++    result = subprocess.run([str(executable)], input=data, capture_output=True, timeout=3000, check=False)
++    seconds = time.monotonic() - start
++    if result.returncode or result.stderr or not result.stdout.endswith(b'\n'):
++        sys.exit(f'boot failed: code {result.returncode}, {result.stdout[-300:]!r}, {result.stderr[-300:]!r}')
++    stream = result.stdout[:-1]
++    open(args.output, 'wb').write(stream)
++    print(f'boot_host({args.words}): L0 {len(stream)} bytes in {seconds:.1f} s, sha256 {hashlib.sha256(stream).hexdigest()[:16]}')
++
++
++if __name__ == '__main__':
++    main()
