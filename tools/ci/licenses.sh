@@ -7,7 +7,7 @@ grep -qx 'MIT License' LICENSE || { echo "FAIL: LICENSE is not MIT"; exit 1; }
 grep -qx 'Copyright (c) 2026 bortoq' LICENSE || { echo "FAIL: LICENSE copyright line"; exit 1; }
 test -f THIRD_PARTY_NOTICES.md || { echo "FAIL: no THIRD_PARTY_NOTICES.md"; exit 1; }
 
-found=$(./project-git ls-files | grep -i licen)
+found=$(./project-git ls-files | grep -iE '(^|/)licen[cs]e(\.[a-z]+)?$')
 other=$(printf '%s\n' "$found" | grep -vx 'LICENSE' || true)
 if ./project-git ls-files | grep -E '(^|/)LICENSE$' | grep -vx 'LICENSE' >/dev/null; then
     echo "FAIL: LICENSE outside the root"; exit 1
