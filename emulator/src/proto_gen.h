@@ -1,4 +1,4 @@
-/* generated from space/proto.def by tools/proto_gen.py; do not edit */
+/* generated from src/proto.def by tools/proto_gen.py; do not edit */
 #ifndef PROTO_GEN_H_
 #define PROTO_GEN_H_
 
