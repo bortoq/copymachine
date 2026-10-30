@@ -1,0 +1,25 @@
+{
+ "commit": "b5a7f3b",
+ "date": "2026-10-30",
+ "command": "make check-full",
+ "exit": 0,
+ "machine": "Linux 6.2 x86_64, 12 cores, -j1",
+ "wall": "2:22:32",
+ "max_rss_kib": 97140,
+ "long_targets_seconds": {
+  "check-kernel": 1046.9,
+  "check-self": 5731.7,
+  "check-isolation": 1011.5,
+  "check-proof": 149.9,
+  "check-replace": 270.0,
+  "check-user-programs": 42.7
+ },
+ "L0": {
+  "bytes": 17559635,
+  "sha256": "159101c84737427469c7b3f67704a572da5c1785ac98699279d0891553a8fe9e"
+ },
+ "L1": {
+  "bytes": 17559635,
+  "sha256": "159101c84737427469c7b3f67704a572da5c1785ac98699279d0891553a8fe9e"
+ }
+}
