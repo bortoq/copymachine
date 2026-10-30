@@ -3,3 +3,4 @@
 . "$(dirname "$0")/common.sh"
 make lint
 make check-fast
+sh "$(dirname "$0")/licenses.sh"

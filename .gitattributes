@@ -1,0 +1,3 @@
+* text=auto eol=lf
+# Pinned by language/boot/PROVENANCE.json (sha256): bytes as upstream, no normalization.
+language/boot/** -text

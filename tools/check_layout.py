@@ -14,7 +14,7 @@ for name in ('space', 'vm2', 'copycode', 'rv32i', 'pforth'):
     assert not (ROOT/name).exists(), name
 allowed = {'emulator', 'language', 'tools', 'docs', 'build', 'README.md', 'Makefile', 'project-git',
            '.gitignore', '.git', '.project-git', '.agents', '.codex', '.aws', '.claude', '.ruff_cache', '.opencode',
-           'LICENSE', '.github', 'ROADMAP.md', 'pyproject.toml'}
+           'LICENSE', 'THIRD_PARTY_NOTICES.md', '.gitattributes', '.editorconfig', '.github', 'ROADMAP.md', 'pyproject.toml'}
 assert not {p.name for p in ROOT.iterdir()} - allowed, 'unexpected root entry'
 for top in ('emulator', 'language', 'tools'):
     for current, children, files in os.walk(ROOT/top, followlinks=False):
