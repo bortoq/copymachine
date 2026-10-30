@@ -21,7 +21,7 @@ LIBRARY_FILES = ['backend.fth', 'compute.fth', 'forthc.fth', 'primitives.fth']
 sys.path[:0] = [str(REFERENCE)]
 
 BUILD = ROOT / 'build'                                # language/build
-OUT = BUILD
+OUT = Path(os.environ.get('LANGUAGE_OUT') or BUILD)   # LANGUAGE_OUT: make coverage
 L0 = OUT / 'L0.boot'
 
 

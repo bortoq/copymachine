@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Real subprocess tests of the emulator contract."""
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -12,7 +13,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/"tools"))
 from output_paths import output_dir
 
-BINS = [output_dir(ROOT, 'build')/'bitcopy'/'emulator']
+BINS = [Path(os.environ.get('EMULATOR_BIN') or output_dir(ROOT, 'build')/'bitcopy'/'emulator')]
 S, P = 65520, 8
 A = S.bit_length()
 RSP_BITS = 97+A
@@ -99,6 +100,19 @@ for binary in BINS:
         result = subprocess.run([str(binary), *args], capture_output=True, check=False)
         assert result.returncode == 2, (binary, args, result.returncode)
         checks += 1
+# The keys of the usage line: -r (a host file, the remote space 2) and the joined form -sN.
+with tempfile.TemporaryDirectory(prefix='emulator-r-') as directory:
+    remote = Path(directory)/'remote'
+    remote.write_bytes(b'remote')
+    for args in [('-r', str(remote)), ('-r'+str(remote),), ('-s'+str(S), '-p'+str(P), '-t0')]:
+        result = subprocess.run([str(BINS[0]), *args, '-s', str(S), '-p', str(P)] if args[0][:2] == '-r' else [str(BINS[0]), *args],
+                                input=layer([], S, P), capture_output=True, check=True, timeout=60)
+        assert result.stdout == b'' and not result.stderr, (args, result)
+        checks += 1
+    assert remote.read_bytes() == b'remote'
+    result = subprocess.run([str(BINS[0]), '-r'], capture_output=True, check=False)
+    assert result.returncode == 2 and b'usage' in result.stderr
+    checks += 1
 # bitcopy-only sizes: wider addresses and more than 128 slots.
 for size, slots in [((1<<29)-16, 256), ((1<<31)-16, 256), (65520, 256), (65519, 8)]:
     run(BINS[0], layer([], size, slots), size=size, slots=slots)

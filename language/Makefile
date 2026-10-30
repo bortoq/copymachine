@@ -45,7 +45,7 @@ limit =
 endif
 SOURCES = $(wildcard src/*.fth)
 TOOLS = $(wildcard tools/*.py)
-.PHONY: all boot space check check-programs check-space-replace check-closure check-kernel check-self check-tests check-fast-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
+.PHONY: all boot space check check-programs check-space-replace check-closure check-kernel check-self check-tests check-fast-tests check-language-md check-isolation check-proof check-replace check-user-programs coverage-python clean
 all: boot
 boot: $(L0)
 space: $(SPACE_BIN)
@@ -83,6 +83,18 @@ check-fast-tests:
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_language_md.py
 	$(call limit,$(TEST_SECONDS),1536) $(PYTHON) -B tests/test_long_copy.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_platform.py
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_entry_points.py
+# coverage.py of tools/ under the goals of the root check-fast (17.9), except test_platform (it compares wall-clock times, tracing breaks it); needs `pip install coverage`.
+PYCOV = COVERAGE_FILE=$(abspath $(BUILD_DIR))/cov/.coverage $(PYTHON) -B -m coverage run --parallel-mode --source=tools
+coverage-python:
+	rm -rf "$(BUILD_DIR)/cov/.coverage"*
+	mkdir -p "$(BUILD_DIR)/cov"
+	$(MAKE) -C "$(EMULATOR_ROOT)" -j1 checked
+	$(PYCOV) tools/check_programs.py
+	$(PYCOV) tools/check_closure.py
+	$(PYCOV) tools/language_md.py --check
+	for t in provenance closure core language_md long_copy; do $(PYCOV) tests/test_$$t.py >/dev/null || exit 1; done
+	cd "$(BUILD_DIR)/cov" && COVERAGE_FILE=$(abspath $(BUILD_DIR))/cov/.coverage $(PYTHON) -B -m coverage combine && COVERAGE_FILE=$(abspath $(BUILD_DIR))/cov/.coverage $(PYTHON) -B -m coverage report --include='*/language/tools/*' --sort=cover
 check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_provenance.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_closure.py

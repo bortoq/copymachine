@@ -12,7 +12,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: sudo apt-get update && sudo apt-get install -y gcc-multilib clang
-      - run: pip install ruff
+      - run: pip install ruff coverage
       - run: tools/ci/fast.sh
       - run: tools/ci/clean.sh
   emulator:

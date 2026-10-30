@@ -14,7 +14,7 @@ HEADERS = src/space.h src/sys_ctrl.h src/proto_gen.h
 OUT = $(BUILD_DIR)/bitcopy
 BUILD_CONFIG = $(OUT)/build-config
 
-.PHONY: all emulator FORCE check check-runtime checked runtime-bitcopy clean help
+.PHONY: all emulator FORCE check check-runtime checked runtime-bitcopy coverage clean help
 all: emulator
 FORCE:
 
@@ -55,6 +55,21 @@ check-runtime: $(OUT)/emulator $(OUT)/test_runtime $(OUT)/test_sys $(BUILD_DIR)/
 
 checked: $(BUILD_DIR)/checked-emulator
 
+# Line coverage (17.9): every test binary and the emulator built with gcov, the CLI test on the
+# instrumented emulator; the lines of src/*.c executed by any of them are united.
+COV = $(BUILD_DIR)/cov
+COVFLAGS = -std=c11 -O0 -g --coverage
+coverage:
+	rm -rf "$(COV)"
+	mkdir -p "$(COV)/emulator" "$(COV)/test_runtime" "$(COV)/test_sys" "$(COV)/test_bitcopy"
+	cd "$(COV)/emulator" && $(CC) $(COVFLAGS) $(addprefix $(CURDIR)/,$(SRC_COMMON)) -o emulator
+	cd "$(COV)/test_runtime" && $(CC) $(COVFLAGS) -DVM1_NO_MAIN $(CURDIR)/tests/test_runtime.c $(addprefix $(CURDIR)/,$(SRC_COMMON)) -o t
+	cd "$(COV)/test_sys" && $(CC) $(COVFLAGS) -DVM1_NO_MAIN $(CURDIR)/tests/test_runtime_sys.c $(addprefix $(CURDIR)/,$(SRC_COMMON)) -o t
+	cd "$(COV)/test_bitcopy" && $(CC) $(COVFLAGS) $(CURDIR)/tests/test_runtime_bitcopy.c $(CURDIR)/src/bitcopy.c -o t
+	cd && $(CC) $(COVFLAGS) -DVM1_NO_MAIN -I $(CURDIR)/src $(CURDIR)/tests/checked_vm1.c $(addprefix $(CURDIR)/,$(SRC_COMMON)) -o t
+	for t in test_bitcopy test_runtime test_sys; do (cd "$(COV)/$$t" && ./t >/dev/null); done
+	EMULATOR_BIN="$(CURDIR)/$(COV)/emulator/emulator" python3 -B tests/test_runtime_cli.py
+	@python3 -B ../tools/gcov_summary.py "$(COV)" $(SRC_COMMON)
 clean:
 	rm -rf "$(BUILD_DIR)"
 	rm -f emulator emulator.tmp
