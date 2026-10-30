@@ -7,7 +7,9 @@ of the sources in language/src; the stream is built once and kept in the build
 directory under a name that carries the digest of the sources and of the model.
 Usage: k0_path.py [--rebuild]
 """
-import hashlib, sys, time
+import hashlib
+import sys
+import time
 
 import paths
 

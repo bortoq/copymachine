@@ -9,7 +9,9 @@ Entries use a stride wider than their width, so the patched index bits are
 the same in both endpoints. Registers are plain bit addresses supplied by
 the caller; numeric fields are least significant bit first.
 """
-from .backend import Seq as Run,copy,numeric
+from .backend import Seq as Run
+from .backend import copy, numeric
+
 
 class Seq(Run):
     """Layer runs with lookup, nibble-adder and multiway-branch patterns."""

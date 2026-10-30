@@ -1,7 +1,9 @@
 """PROVENANCE.json: every source in src/ is recorded, its digest is that of the file in the tree
 (a missing file is an error), and the order of compilation is the one the tools use; the same for
 boot/PROVENANCE.json: every file of boot/ is listed with its digest."""
-import hashlib, json, sys
+import hashlib
+import json
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))

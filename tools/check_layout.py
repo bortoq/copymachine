@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Verify the layout of main: root entries, no outputs in the index, no links in the active tree."""
-from pathlib import Path
 import argparse
 import os
 import subprocess
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)

@@ -11,7 +11,9 @@ then the trampoline, the thrower and the price of the helpers of * and / (if bui
 Usage: word_cost.py [FILE]     a program (default: the definition of the language, src/ in the
                                order of the kernel): a summary of the prices of its words.
 """
-import argparse, collections, sys
+import argparse
+import collections
+import sys
 
 import check_programs
 import host

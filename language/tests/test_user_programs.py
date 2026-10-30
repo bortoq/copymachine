@@ -24,11 +24,14 @@ definition of a generator replaced by hand (Language.replaced: no check of the p
 5. The language boots: the language of src/ gives L0 of the build, the one with the dear CELLS another.
    The tool on the command line (add, recompile, show). PRICE of the tool is the language word PRICE.
 """
-import subprocess, sys, tempfile
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-import check_programs, host, paths, user_programs
+import paths
+import user_programs
 from user_programs import Language, Store, compile_program, run_checked
 
 PROGRAMS = {

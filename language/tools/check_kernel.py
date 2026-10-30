@@ -8,7 +8,11 @@
 Option --rebuild (about an hour and a half): L0 runs the compiler, which compiles the definition
 from the rest of stdin; the stream must equal L0.
 """
-import argparse, json, subprocess, sys, tempfile, time
+import argparse
+import json
+import subprocess
+import tempfile
+import time
 
 import check_programs
 import host

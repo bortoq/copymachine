@@ -3,14 +3,18 @@
 .DEFAULT_GOAL := all
 .NOTPARALLEL:
 PYTHON ?= python3
+RUFF ?= ruff
 LIMIT = $(PYTHON) -B tools/limited_run.py --seconds 600 --memory-mib 768
 LONG = check-kernel check-self check-isolation check-proof check-replace check-user-programs
-.PHONY: all emulator language check-fast check check-full check-layout clean
+.PHONY: all emulator language check-fast check check-full check-layout lint clean
 all: emulator language
 emulator:
 	$(LIMIT) $(MAKE) -C emulator -j1
 language:
 	$(MAKE) -C language -j1 boot
+lint:
+	$(RUFF) check .
+
 check-layout:
 	$(PYTHON) -B tools/check_layout.py
 check-fast:

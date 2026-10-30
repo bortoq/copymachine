@@ -8,7 +8,12 @@ test_forthc.py pForth is the reference); of EXPECTED, the output given with the 
 STREAMS=equal (or --streams-equal) also requires the stream to equal, byte for byte, the stream
 of language/tests/reference/model.py (the model is only the reference of the test).
 """
-import argparse, json, os, subprocess, sys, time
+import argparse
+import json
+import os
+import subprocess
+import sys
+import time
 
 import host
 import paths

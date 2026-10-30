@@ -33,10 +33,10 @@ programs it compiles in the lower half with SPACE! and SPACEC! ( x lo hi -- ),
 which write 32 or 8 bits anywhere in the space, and starts them with EXECUTE;
 the entry of a program is therefore aligned as a word entry.
 """
-import re,sys
-from pathlib import Path
-from copycode.vm1.backend import Machine,Stream,Builder,copy,numeric
+import re
+
 from copycode.vm1 import compute
+from copycode.vm1.backend import Builder, Machine, Stream, copy, numeric
 from copycode.vm1.compute import Seq
 
 SIZE=1<<31;CELL=1024

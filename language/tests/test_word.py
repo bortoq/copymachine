@@ -21,11 +21,18 @@
 6. The words of the definition of the language get prices too (summary printed); the prices of the
    colon definitions of the core in doc/language.md are those the compiler gives them.
 """
-import subprocess, sys
+import subprocess
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-import check_kernel, check_programs, counters, host, language_md, paths, word_cost
+import check_kernel
+import check_programs
+import counters
+import host
+import language_md
+import paths
+import word_cost
 
 FIVE = '''variable v
 : w1 ( a b -- c ) + 2* ;

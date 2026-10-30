@@ -6,12 +6,19 @@ because the definition of the language is compiled with the sizes of main.fth (f
 and the host pForth of forth has a pool of 64 KiB.
 The executable is rebuilt when its compile command or any source changes.
 """
-import hashlib, json, os, re, shlex, subprocess, sys
+import hashlib
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
 from pathlib import Path
 
 import paths
+
 sys.path[:0] = [str(paths.BOOT)]
-from common import PORT, sources, flags  # noqa: E402  (boot/common.py)
+from common import PORT, flags, sources  # noqa: E402  (boot/common.py)
 
 POOL_BYTES = int(os.environ.get('LANGUAGE_POOL_BYTES', 16 * 1024 * 1024))
 

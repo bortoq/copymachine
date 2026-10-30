@@ -6,7 +6,8 @@ at the stated file:line in the stated kind, the rows follow the order of definit
 (the words of copying that generate a row and a layer) is marked, every word of the core has a use,
 a word listed as unused has none in the text, and the definition is closed (no external names).
 """
-import re, sys
+import re
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))

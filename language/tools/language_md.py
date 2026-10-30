@@ -30,7 +30,11 @@ Usage: language_md.py --check     compare the records with the core: the set and
        [--doc PATH]               default doc/language.md
 Exit code of --check: 0 if the document agrees with the core, else 1.
 """
-import argparse, collections, hashlib, re, sys
+import argparse
+import collections
+import hashlib
+import re
+import sys
 
 import check_closure
 import paths

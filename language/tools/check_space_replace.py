@@ -13,10 +13,16 @@ the word; it has the long copy):
 3. it reads out and exp by long@ (the remote spaces 2 and 3), compares them word by word and writes P (equal)
    or F (different, or a command failed). Python only prints and requires P for every program.
 """
-import os, re, subprocess, sys, tempfile, time
+import os
+import re
+import subprocess
+import tempfile
+import time
 from pathlib import Path
 
-import check_programs, host, paths
+import check_programs
+import host
+import paths
 
 ROOT = paths.ROOT
 SPACE_EMULATOR = paths.OUT / 'space/emulator'

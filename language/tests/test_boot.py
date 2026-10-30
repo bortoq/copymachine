@@ -1,10 +1,13 @@
 """Boot (14.1): L0 made by the host pForth equals K0 made by the model, byte for byte
 (before any change of the definition), and the boot is repeatable."""
-import hashlib, sys
+import hashlib
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-import boot, k0_path, paths
+import boot
+import k0_path
+import paths
 
 stream, seconds = boot.boot()
 assert stream == paths.L0.read_bytes(), 'the second boot differs from build L0.boot (run make boot)'

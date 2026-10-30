@@ -20,11 +20,16 @@ on checked-emulator; the expected output is computed here, not by the definition
    that does not equals the stream of the model; the definition of the language has none of them.
 6. The kernel L0 on the emulator compiles and runs the program of 1 and writes the same output.
 """
-import subprocess, sys
+import subprocess
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-import check_kernel, check_programs, host, paths, word_cost
+import check_kernel
+import check_programs
+import host
+import paths
+import word_cost
 
 PRINT = (': d. ( u -- ) dup 10 < if 48 + emit exit then dup 10 / recurse 10 mod 48 + emit ;\n'
          ': n. ( n -- ) dup 0 < if 45 emit 0 swap - then d. 32 emit ;\n')

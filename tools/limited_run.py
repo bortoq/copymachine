@@ -7,13 +7,13 @@ runs get distinct CPUs. Wall and CPU time are reported on stderr at the end.
 """
 import argparse
 import fcntl
-import tempfile
-import time
 import os
 import resource
 import signal
 import subprocess
 import sys
+import tempfile
+import time
 
 
 def main():

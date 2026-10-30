@@ -9,11 +9,15 @@ none of them, and which writes the character `\\` (the raw word after [CHAR]):
 2. the kernel L0 on the emulator compiles the same program (its dictionary has the generator \\)
    and writes the same output.
 """
-import subprocess, sys
+import subprocess
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-import check_kernel, check_programs, host, paths
+import check_kernel
+import check_programs
+import host
+import paths
 
 SOURCE = (
     '\\ a comment with * and / and mod and /mod and kernel-layout, and ( an open paren\n'

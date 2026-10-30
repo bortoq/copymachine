@@ -14,11 +14,15 @@ words of the language (synonyms of literals). Checked:
 4. the kernel L0 on the emulator compiles the same program (its numbers go through `literal`
    too) and reports the unknown word as `error -13 at WORD`.
 """
-import subprocess, sys
+import subprocess
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-import check_kernel, check_programs, host, paths
+import check_kernel
+import check_programs
+import host
+import paths
 
 PRINT = (': d. ( u -- ) dup 10 < if 48 + emit exit then dup 10 / recurse 10 mod 48 + emit ;\n'
          ': n. ( n -- ) dup 0 < if 45 emit 0 swap - then d. 32 emit ;\n')

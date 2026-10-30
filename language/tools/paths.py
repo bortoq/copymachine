@@ -1,5 +1,6 @@
 """Paths and imports shared by the tools of language (standard library only)."""
-import os, sys
+import os
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]            # language
@@ -34,7 +35,7 @@ def source_bytes(names):
 
 def programs():
     """PROGRAMS and EXPECTED of language/tests/reference/forthc_programs.py: {name: (source, expected or None)}."""
-    from forthc_programs import PROGRAMS, EXPECTED, wrapped
+    from forthc_programs import EXPECTED, PROGRAMS, wrapped
     cases = {name: (wrapped(source), None) for name, source in PROGRAMS.items()}
     cases.update({name: (wrapped(source), want) for name, (source, want) in EXPECTED.items()})
     return cases

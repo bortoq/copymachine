@@ -2,3 +2,13 @@
 name = "copymachine"
 version = "0"
 requires-python = ">=3.11"
+
+[tool.ruff]
+extend-exclude = ["build"]
+
+[tool.ruff.lint]
+select = ["F", "E9", "B", "PLW1510"]
+
+[tool.ruff.lint.per-file-ignores]
+# Pinned by language/boot/PROVENANCE.json (sha256): the file must not change.
+"language/boot/common.py" = ["F401"]

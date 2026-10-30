@@ -32,13 +32,17 @@ generate a row and a layer (FOUNDATION): the definition of an instruction is the
 Usage: check_closure.py [--max-external N] [--core PATH | --no-core]
        (default MAX_EXTERNAL from the environment, else 0; PATH: doc/core.md)
 """
-import argparse, collections, os, pathlib, re, sys
+import argparse
+import collections
+import os
+import pathlib
+import re
+import sys
 
 import paths
 
 sys.path.insert(0, str(paths.REFERENCE))
 import defgraph  # noqa: E402
-
 
 GENERATOR = re.compile(r'(?i)s" (\S+)" \[\'\] (\S+) \S+ fc-generator(?!\S)')
 LITERAL = re.compile(r'(?i)s" (\S+)" (\S+) fc-literal-name(?!\S)')

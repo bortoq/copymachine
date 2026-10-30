@@ -17,11 +17,17 @@ the space is numeric there: bit k of the value at position lo + k).
 4. The words of the long copy are in a program only when its source names them: the stream of another
    program equals the stream of the model; the definition of the language has none of them.
 """
-import os, subprocess, sys, tempfile, time
+import subprocess
+import sys
+import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-import check_programs, host, paths, word_cost
+import check_programs
+import host
+import paths
+import word_cost
 
 SPACE_EMULATOR = paths.OUT / 'space/emulator'
 S = paths.SIZE

@@ -22,7 +22,7 @@ import sys
 import paths
 
 sys.path.insert(0, str(paths.REFERENCE))
-from vm2_reference import get, put, payload, store_bytes  # noqa: E402
+from vm2_reference import get, payload, put, store_bytes  # noqa: E402
 
 
 class Memory:

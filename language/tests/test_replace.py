@@ -26,11 +26,16 @@ previous one onto the stack of definitions; else nothing changes and ok is the r
 4. The kernel L0 on the emulator compiles and runs the program of 1: the same output, the prices
    with the entry marks of the isolation (two per word: the concept cell and the entry).
 """
-import subprocess, sys
+import subprocess
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-import check_kernel, check_programs, counters, host, paths
+import check_kernel
+import check_programs
+import counters
+import host
+import paths
 
 PRINT = (': d. ( u -- ) dup 10 < if 48 + emit exit then dup 10 / recurse 10 mod 48 + emit ;\n'
          ': n. ( n -- ) dup 0 < if 45 emit 0 swap - then d. 32 emit ;\n'

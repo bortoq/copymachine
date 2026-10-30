@@ -1,5 +1,7 @@
 """Independent bitwise vm2 oracle. No generator, emulator or codec imports."""
-import errno,subprocess
+import errno
+import subprocess
+
 
 def get(data,at,width):
     return sum(((data[(at+j)//8]>>(7-(at+j)%8))&1)<<j for j in range(width))

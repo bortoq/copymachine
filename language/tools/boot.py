@@ -9,7 +9,12 @@ code. The first executor of the definition is the host; later executors are the 
 
 Usage: boot.py [-o L0.boot]
 """
-import argparse, hashlib, json, subprocess, sys, time
+import argparse
+import hashlib
+import json
+import subprocess
+import sys
+import time
 
 import host
 import paths

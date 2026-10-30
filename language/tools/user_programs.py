@@ -30,7 +30,13 @@ Usage: user_programs.py add STORE NAME FILE [--language DIR]
        user_programs.py recompile STORE [--language DIR] [--rule words|total] [--measure] [--boot L0]
        user_programs.py show STORE
 """
-import argparse, hashlib, json, re, shutil, subprocess, sys
+import argparse
+import hashlib
+import json
+import re
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import boot

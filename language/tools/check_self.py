@@ -2,7 +2,10 @@
 """check-self (14.15): L0 on the emulator compiles the definition of the language (step 4 of
 forth/tests/test_kernel.py): stdin is L0, the compiler sources, a zero byte and the sources of
 the language; the stream L1 written by L0 must equal L0 byte for byte. The time goes to doc/boot.md."""
-import argparse, hashlib, json, sys
+import argparse
+import hashlib
+import json
+import sys
 
 import check_kernel
 import paths

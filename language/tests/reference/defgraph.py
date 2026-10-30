@@ -12,7 +12,11 @@ final K namespace). A reference goes to the version visible at the point of
 use. Words not defined in the sources are externals (pForth/forthc primitives).
 Tokens: case folded, `\\` to end of line, `( ... )`, `s" ..."`, `[char] c`.
 """
-import json, os, re, sys, collections
+import collections
+import json
+import os
+import re
+import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FC = 'forth/scripts/forthc/'

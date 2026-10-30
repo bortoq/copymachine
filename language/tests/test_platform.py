@@ -14,11 +14,17 @@ definition of the word "space" (`make space`) in a temporary directory, with the
    word, one with `0 or` more in the guest (more copies): fewer copies replaces (-1), more does not (3).
 4. The words are only in a program that names them: the definition of the language has none.
 """
-import subprocess, sys, tempfile, time
+import subprocess
+import sys
+import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-import check_programs, host, paths, word_cost
+import check_programs
+import host
+import paths
+import word_cost
 
 SPACE_EMULATOR = paths.OUT / 'space/emulator'
 PRINT = (': u. ( u -- ) dup 10 < if 48 + emit exit then dup 10 / recurse 10 mod 48 + emit ;\n'

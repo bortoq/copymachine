@@ -6,7 +6,12 @@ definition without a change of its record, a shifted definition and a meaning le
 --skeleton each give a nonzero exit code; --update rewrites only the lines `код:` and makes a changed
 definition pass again; --skeleton restores a removed record with the meaning TODO.
 """
-import os, re, shutil, subprocess, sys, tempfile
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]                 # language

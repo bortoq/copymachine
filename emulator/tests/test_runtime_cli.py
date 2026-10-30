@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Real subprocess tests of the emulator contract."""
-import hashlib
-import os
-from pathlib import Path
 import subprocess
 import tempfile
-from runtime_codec import NOP, boot, copy, layer, program, put_field, validate
+from pathlib import Path
+
+from runtime_codec import copy, layer, program, put_field, validate
 
 ROOT = Path(__file__).resolve().parents[1]
 import sys
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/"tools"))
 from output_paths import output_dir
 

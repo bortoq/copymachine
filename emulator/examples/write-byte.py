@@ -2,6 +2,7 @@
 """Minimal finite emulator stdin program, not an image parser or application SDK."""
 import argparse
 import sys
+
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('-s',type=int,default=65520)
 parser.add_argument('-p',type=int,default=128)

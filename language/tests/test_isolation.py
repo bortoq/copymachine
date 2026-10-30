@@ -13,7 +13,9 @@ the constant 48 ([char] 0), which kn-.n adds to a digit.
 Options: --l0 PATH (default build L0), --only NAME, --report (print the outputs, do not compare).
 Exit code 0 if every output is the expected one.
 """
-import argparse, subprocess, sys
+import argparse
+import subprocess
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
