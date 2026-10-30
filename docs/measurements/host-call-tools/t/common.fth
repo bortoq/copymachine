@@ -1,0 +1,11 @@
+: %w1 ;
+: %t-empty 1000 0 do loop ;
+: %t-lit 1000 0 do cc-rows 32 cells 0 drop drop drop loop ;
+: %t-lit1 1000 0 do cc-new-row drop loop ;
+: %t-word 1000 0 do %w1 loop ;
+: %t-fill 1000 0 do cc-rows 32 cells 0 fill loop ;
+: %t-fill8 1000 0 do cc-rows 8 cells 0 fill loop ;
+: %t-fillu 1000 0 do cc-rows 1+ 32 cells 0 fill loop ;
+: %t-row 1000 0 do cc-new-row cc-new-row cc-row-clash? drop loop ;
+: %t-enc 1000 0 do cc-rows 4 cc-encode loop ;
+: %t-enc8 1000 0 do cc-rows 8 cc-encode loop ;

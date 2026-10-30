@@ -1,0 +1,2 @@
+emu-1811 L0.1811 pb.fth run 0 ticks 961628110 prog-hash 859346365c495fee out 0 wall 260.19 cpu(cum) 260.16
+emu-1811 L0.1811 pb.fth run 1 ticks 961628110 prog-hash 859346365c495fee out 0 wall 234.30 cpu(cum) 494.44

@@ -1,0 +1,3 @@
+emu-base L0.base arithmetic.fth run 0 ticks 30412533 prog-hash 099aa527112dbaf2 out 5 wall 7.59 cpu(cum) 7.53
+emu-base L0.base arithmetic.fth run 1 ticks 30412533 prog-hash 099aa527112dbaf2 out 5 wall 8.01 cpu(cum) 15.47
+emu-base L0.base arithmetic.fth run 2 ticks 30412533 prog-hash 099aa527112dbaf2 out 5 wall 7.05 cpu(cum) 22.45

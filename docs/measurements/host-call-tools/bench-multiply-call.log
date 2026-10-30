@@ -1,0 +1,3 @@
+emu-call L0.call multiply.fth run 0 ticks 94915302 prog-hash 9fd081334ec92a4b out 30 wall 25.15 cpu(cum) 25.14
+emu-call L0.call multiply.fth run 1 ticks 94915302 prog-hash 9fd081334ec92a4b out 30 wall 25.39 cpu(cum) 50.53
+emu-call L0.call multiply.fth run 2 ticks 94915302 prog-hash 9fd081334ec92a4b out 30 wall 24.52 cpu(cum) 75.04

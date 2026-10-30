@@ -1,0 +1,2 @@
+emu-base L0.base pb.fth run 0 ticks 1316457023 prog-hash 859346365c495fee out 0 wall 333.47 cpu(cum) 330.48
+emu-base L0.base pb.fth run 1 ticks 1316457023 prog-hash 859346365c495fee out 0 wall 279.54 cpu(cum) 608.43

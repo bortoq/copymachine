@@ -1,0 +1,3 @@
+emu-1811 L0.1811 arithmetic.fth run 0 ticks 21918021 prog-hash 099aa527112dbaf2 out 5 wall 5.78 cpu(cum) 5.77
+emu-1811 L0.1811 arithmetic.fth run 1 ticks 21918021 prog-hash 099aa527112dbaf2 out 5 wall 5.31 cpu(cum) 11.09
+emu-1811 L0.1811 arithmetic.fth run 2 ticks 21918021 prog-hash 099aa527112dbaf2 out 5 wall 5.35 cpu(cum) 16.43

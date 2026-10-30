@@ -1,0 +1,3 @@
+emu-1811 L0.1811 multiply.fth run 0 ticks 129069423 prog-hash 9fd081334ec92a4b out 30 wall 32.58 cpu(cum) 32.57
+emu-1811 L0.1811 multiply.fth run 1 ticks 129069423 prog-hash 9fd081334ec92a4b out 30 wall 32.32 cpu(cum) 64.88
+emu-1811 L0.1811 multiply.fth run 2 ticks 129069423 prog-hash 9fd081334ec92a4b out 30 wall 31.18 cpu(cum) 96.05
