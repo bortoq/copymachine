@@ -1,5 +1,5 @@
 #!/bin/sh
-# Markdown: relative links lead to existing files (ROADMAP.md and docs/design/ excluded);
+# Markdown: relative links lead to existing files (ROADMAP.md, docs/design/ and docs/journal/ excluded);
 # the Markdown volume is below that of the tag archive-2026-10-30.
 . "$(dirname "$0")/common.sh"
 python3 -I - <<'PY'
@@ -13,7 +13,7 @@ bad, total = [], 0
 for p in files:
     rel = p.relative_to(root).as_posix()
     total += p.stat().st_size
-    if rel == 'ROADMAP.md' or rel.startswith('docs/design/'):
+    if rel == 'ROADMAP.md' or rel.startswith(('docs/design/', 'docs/journal/')):
         continue
     text = re.sub(r'```.*?```', '', p.read_text(encoding='utf-8'), flags=re.S)
     text = re.sub(r'`[^`\n]*`', '', text)
