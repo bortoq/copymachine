@@ -46,7 +46,7 @@ emulator: $(OUT)/emulator FORCE
 
 runtime-bitcopy: $(OUT)/emulator
 
-# Optional (18.10): the emulator built with profile-guided optimization (gcc), about 30% faster per tick (18.10).
+# Optional (18.10): the emulator built with profile-guided optimization (gcc), about 30% faster per tick.
 # Training: L0 of language compiles a small program (the first PGO_TICKS ticks); the result is
 # $(BUILD_DIR)/pgo/emulator. Neither all, check nor CI depend on it.
 PGO = $(BUILD_DIR)/pgo
