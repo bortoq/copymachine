@@ -1,0 +1,1 @@
+../../../docs/copy-space/migration_new_space.md

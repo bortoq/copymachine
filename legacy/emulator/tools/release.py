@@ -1,0 +1,1 @@
+../../../emulator/tools/release.py

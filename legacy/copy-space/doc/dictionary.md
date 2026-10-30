@@ -1,0 +1,1 @@
+../../../docs/copy-space/dictionary.md

@@ -1,0 +1,1 @@
+../../../emulator/tools/proto_gen.py

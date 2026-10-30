@@ -1,0 +1,49 @@
+{
+  "format": "copyspace-libgcc-catalog-v1",
+  "groups": [
+    {
+      "source": "libgcc/libgcc2.c",
+      "defines": [],
+      "units": [
+        "muldi3", "udivdi3", "divdi3", "umoddi3", "moddi3", "clz",
+        "ashldi3", "lshrdi3", "ashrdi3", "cmpdi2", "ucmpdi2", "negdi2",
+        "clzsi2", "clzdi2", "ctzsi2", "ctzdi2", "clrsbsi2", "clrsbdi2",
+        "ffssi2", "ffsdi2", "popcountsi2", "popcountdi2", "paritysi2", "paritydi2", "bswapsi2", "bswapdi2",
+        "divmoddi4", "udivmoddi4", "fixunssfsi", "fixunsdfsi", "fixsfdi", "fixdfdi",
+        "floatdisf", "floatdidf", "floatundisf", "floatundidf", "fixunssfdi", "fixunsdfdi",
+        "mulsc3", "muldc3", "divsc3", "divdc3", "powisf2", "powidf2",
+        "addvsi3", "addvdi3", "subvsi3", "subvdi3", "mulvsi3", "mulvdi3",
+        "negvsi2", "negvdi2", "absvsi2", "absvdi2"
+      ]
+    },
+    {
+      "source": "libgcc/fp-bit.c",
+      "defines": ["FLOAT", "FINE_GRAINED_LIBRARIES"],
+      "units": [
+        "addsub_sf", "mul_sf", "div_sf", "eq_sf", "fpcmp_parts_sf", "pack_sf", "unpack_sf",
+        "thenan_sf", "make_sf", "negate_sf", "sf_to_si", "si_to_sf", "compare_sf", "ne_sf",
+        "gt_sf", "ge_sf", "lt_sf", "le_sf", "unord_sf", "usi_to_sf", "sf_to_df"
+      ]
+    },
+    {
+      "source": "libgcc/fp-bit.c",
+      "defines": ["FINE_GRAINED_LIBRARIES"],
+      "units": [
+        "addsub_df", "mul_df", "div_df", "eq_df", "fpcmp_parts_df", "pack_df", "unpack_df",
+        "thenan_df", "make_df", "negate_df", "df_to_si", "si_to_df", "compare_df", "ne_df",
+        "gt_df", "ge_df", "lt_df", "le_df", "unord_df", "usi_to_df", "df_to_sf"
+      ]
+    },
+    {"source": "libgcc/memcpy.c", "defines": [], "units": ["memcpy"]},
+    {"source": "libgcc/memmove.c", "defines": [], "options": ["-Wno-discarded-qualifiers"], "units": ["memmove"]},
+    {"source": "libgcc/memset.c", "defines": [], "units": ["memset"]},
+    {"source": "libgcc/memcmp.c", "defines": [], "units": ["memcmp"]},
+    {
+      "origin": "project",
+      "source": "runtime/gcc/target/sync_up.c",
+      "defines": [],
+      "units": ["sync_add4", "sync_sub4", "sync_or4", "sync_and4", "sync_xor4", "sync_nand4", "sync_cas4",
+                "sync_add8", "sync_sub8", "sync_or8", "sync_and8", "sync_xor8", "sync_nand8", "sync_cas8"]
+    }
+  ]
+}

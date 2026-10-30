@@ -1,0 +1,1 @@
+../../pforth/tests/test_pforth_legacy.py

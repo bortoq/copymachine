@@ -1,0 +1,1 @@
+../../../../../space/rv32i/tests/fixtures/rv32i/link.ld

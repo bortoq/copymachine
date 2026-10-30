@@ -1,0 +1,1 @@
+../../../../space/forth/scripts/pforth/prepare.py

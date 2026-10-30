@@ -1,0 +1,26 @@
+space
+*.o
+*.bin
+
+# keep the checked-in stub loader despite the *.bin rule
+!tests/stub/nop.bin
+
+# opencode agent session state (local only)
+.opencode/goals/
+
+# Python tools and differential-test output
+__pycache__/
+/tmp/
+
+# Build configuration fingerprints
+*.build-config
+*.build-config.tmp
+
+# Generated release archives
+/dist/
+
+# Guest copycode, audited fixtures and compilation cache
+/build/
+
+# Explicitly downloaded dependency source snapshots (CI/archive builds)
+/vendor/

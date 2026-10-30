@@ -1,0 +1,1 @@
+../../../rv32i/scripts/rv32i/legacy_run.py

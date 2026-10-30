@@ -1,0 +1,1 @@
+../../../pforth/scripts/pforth/legacy_build.py

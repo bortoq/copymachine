@@ -1,0 +1,1 @@
+../../../emulator/tests/bench_runtime_core.c
