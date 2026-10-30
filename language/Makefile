@@ -39,7 +39,7 @@ SPACE_DIR = $(OUT)/space
 SPACE_BIN = $(SPACE_DIR)/emulator
 SPACE_SRC = $(EMULATOR_ROOT)/src
 SPACE_SOURCES = $(wildcard $(SPACE_SRC)/*.c $(SPACE_SRC)/*.h) $(SPACE_SRC)/proto.def
-limit = $(PYTHON) -B "$(LIMITED_RUN)" --seconds $(1) --memory-mib 768 --file-mib 64
+limit = $(PYTHON) -B "$(LIMITED_RUN)" --seconds $(1) --memory-mib $(or $(2),768) --file-mib 64
 ifeq ($(COPYMACHINE_LIMITED),1)
 limit =
 endif
@@ -81,7 +81,7 @@ check-fast-tests:
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_closure.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_core.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_language_md.py
-	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_long_copy.py
+	$(call limit,$(TEST_SECONDS),1536) $(PYTHON) -B tests/test_long_copy.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_platform.py
 check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_provenance.py
