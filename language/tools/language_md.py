@@ -258,7 +258,7 @@ def check(lines):
     present = [key for key in keys if key in expected]
     order = [word['key'] for word in words if word['key'] in set(present)]
     if not errors and present != order:
-        wrong = next(a for a, b in zip(present, order) if a != b)
+        wrong = next(a for a, b in zip(present, order, strict=False) if a != b)
         errors.append(f'{show(wrong)}: записи не в порядке определения')
     for record in records:
         word = expected.get(record['key'])
@@ -352,7 +352,7 @@ def skeleton(lines):
         records = {record['key']: record for record in parse(lines)}
         if word['key'] in records:
             continue
-        same = lambda w: w['file'] == word['file'] and w['key'] in records
+        same = lambda w, word=word, records=records: w['file'] == word['file'] and w['key'] in records
         before = next((records[w['key']] for w in reversed(words[:index]) if same(w)), None)
         after = next((records[w['key']] for w in words[index + 1:] if same(w)), None)
         section = [i for i, line in enumerate(lines) if line.startswith('## ') and f'`{word["file"]}`' in line]

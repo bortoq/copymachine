@@ -36,7 +36,7 @@ def main():
     import model  # only the reference
     assert stream == model.compile_forth(SOURCE), 'the stream differs from the model'
     run = subprocess.run([str(paths.CHECKED), '-s', str(paths.SIZE), '-p', '8'], input=stream,
-                         capture_output=True, timeout=600)
+                         capture_output=True, timeout=600, check=False)
     assert run.returncode == 0 and run.stdout == WANT, (run.returncode, run.stdout)
     print('PASS host: comments with the words * / mod kernel-layout change nothing; the stream equals the model:',
           run.stdout)

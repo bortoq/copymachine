@@ -34,7 +34,7 @@ order = {name: i for i, name in enumerate(paths.KERNEL_FILES)}
 # 1. every row is a definition at its file:line, in the order of definition
 position = (-1, 0)
 definers = {'определение `:`': ': ', 'переменная': 'variable ', 'данные `create`': 'create ', 'константа': 'constant '}
-for number, name, kind, file, line, uses, note in rows:
+for _number, name, kind, file, line, uses, note in rows:
     name = name.replace('\\|', '|')
     where = (order[file.split('/')[1]], int(line))
     assert where >= position, ('order of definition', name, file, line)
@@ -62,7 +62,7 @@ print('PASS kinds:', header)
 # 3. the foundation: the words of copying that generate a row and a layer, "the definition of an instruction is it itself"
 by_name = {row[1]: row for row in rows if row[2] == 'основание'}
 assert set(by_name) == set(check_closure.FOUNDATION) >= {'cc-copy', 'cc-row', 'cc-layer'}, sorted(by_name)
-for name, row in by_name.items():
+for _name, row in by_name.items():
     assert row[3].endswith('backend.fth') and 'определение инструкции — она сама' in row[6], row
 section = document.split('## Основание')[1].split('## Слова ядра')[0]
 assert 'Определение инструкции — она сама' in section and all(f'`{name}`' in section for name in by_name)
@@ -77,7 +77,7 @@ dead = set(unused)
 for name in paths.KERNEL_FILES:
     current = None
     tokens = defgraph.tokenize('language/src/' + name)
-    for i, (token, line, raw) in enumerate(tokens):
+    for i, (token, line, _raw) in enumerate(tokens):
         if token == ':' :
             current = tokens[i + 1][0]
         elif token == ';':

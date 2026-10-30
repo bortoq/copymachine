@@ -38,7 +38,7 @@ def validate(rows, size):
         if not 0 <= lo < hi <= size:
             raise ValueError('out of bounds')
     intervals.sort()
-    if any(b > c for (_, b), (c, _) in zip(intervals, intervals[1:])):
+    if any(b > c for (_, b), (c, _) in zip(intervals, intervals[1:], strict=False)):
         raise ValueError('overlapping source/destination intervals')
 
 def layer(rows, size, slots):

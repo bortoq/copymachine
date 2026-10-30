@@ -36,7 +36,7 @@ def kernel_addresses():
     tail = b'fc-go\nbye\n'
     assert stream.endswith(tail)
     query = (b'fc-go\ns" ENTRY " type s" kn-.n" fc-lookup 3 cells + @ . 48 fc-lit-of drop . cr\nbye\n')
-    result = subprocess.run([str(host.build())], input=stream[:-len(tail)] + query, capture_output=True, timeout=600)
+    result = subprocess.run([str(host.build())], input=stream[:-len(tail)] + query, capture_output=True, timeout=600, check=False)
     assert result.returncode == 0 and not result.stderr, (result.returncode, result.stderr[-300:])
     entry, constant = result.stdout[result.stdout.rindex(b'ENTRY ') + 6:].split()[:2]
     return int(entry), int(constant)

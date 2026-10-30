@@ -423,7 +423,7 @@ class Compiler:
         rem,tr=self.ZERO,0;Q=self.scratch(32);tq=0
         for k in range(31,-1,-1):
             w=self.scratch(256,256);L=self.scratch(32)
-            def step(table,dst,i,carry_src,t,preset):
+            def step(table,dst,i,carry_src,t,preset,k=k,rem=rem,tr=tr):  # k, rem, tr: used in this iteration only
                 a=[(absa+k,absa+k,1,0,ta),(rem,rem,3,1,tr)] if i==0 else [(rem+4*i-1,rem+4*i-1,4,0,tr)]
                 segs=a+[(absb+4*i,absb+4*i,4,4,tb)]
                 if carry_src is not None:segs.append((carry_src,carry_src+1,1,8,t))
@@ -451,13 +451,13 @@ class Compiler:
         entry,exit_cell=self.helpers[name];cont=self.b.new_cell()
         rows=[copy(64,M.field(exit_cell,7,2),self.link(cont))]
         layer=self.s.rows(rows)
-        for dst,src in zip(args,regs):
+        for dst,src in zip(args,regs, strict=False):
             try:layer.add(copy(32,dst,src))
             except ValueError:layer=self.s.rows([copy(32,dst,src)])  # DUP: one register
         self.s.jump(entry);self.b.flush();self.s=Seq(self.b,cont)
         res=[]
-        for src in outs:r=self.reg();res.append(r);self.cache.append(r)
-        self.s.rows([copy(32,r,src) for r,src in zip(res,outs)])
+        for _src in outs:r=self.reg();res.append(r);self.cache.append(r)
+        self.s.rows([copy(32,r,src) for r,src in zip(res,outs, strict=False)])
     # --- primitives ---------------------------------------------------------
     def binary(self,name):
         self.need(2);b=self.cache.pop();a=self.cache.pop();s=self.s

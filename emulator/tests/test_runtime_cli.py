@@ -31,7 +31,7 @@ def run(binary, packet, *, size=S, slots=P, ticks=0, expected=b''):
 def record(values, widths):
     data = bytearray((sum(widths)+7)//8)
     at = 0
-    for v, width in zip(values, widths):
+    for v, width in zip(values, widths, strict=False):
         put_field(data, at, width, v)
         at += width
     return bytes(data)
@@ -96,7 +96,7 @@ for binary in BINS:
     for args in [('-s','0'), ('-p','0'), ('-t','-1'), ('-s','65535'),
                  ('--backend','bitcopy'), ('--core','x'), ('sorter.txt',),
                  ('-s','18446744073709551616'), ('-s','2'), ('-p','999999')]:
-        result = subprocess.run([str(binary), *args], capture_output=True)
+        result = subprocess.run([str(binary), *args], capture_output=True, check=False)
         assert result.returncode == 2, (binary, args, result.returncode)
         checks += 1
 # bitcopy-only sizes: wider addresses and more than 128 slots.

@@ -61,7 +61,7 @@ def host_compile(source, before=''):
 
 def run_checked(stream):
     run = subprocess.run([str(paths.CHECKED), '-s', str(paths.SIZE), '-p', '8'], input=stream,
-                         capture_output=True, timeout=600)
+                         capture_output=True, timeout=600, check=False)
     assert run.returncode == 0, (run.returncode, run.stderr[-300:])
     return run.stdout
 

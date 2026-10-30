@@ -20,7 +20,7 @@ import paths
 
 
 def run_host(executable, data, timeout=900):
-    result = subprocess.run([str(executable)], input=data, capture_output=True, timeout=timeout)
+    result = subprocess.run([str(executable)], input=data, capture_output=True, timeout=timeout, check=False)
     assert result.returncode == 0 and not result.stderr, (result.returncode, result.stdout[-300:], result.stderr[-300:])
     return result.stdout[:-1] if result.stdout.endswith(b'\n') else result.stdout
 
@@ -54,7 +54,7 @@ def main():
         if want is None:
             want = run_host(executable, (source + '\nmain bye\n').encode('latin-1'))
         run = subprocess.run([str(paths.EXECUTOR), '-s', str(paths.SIZE), '-p', '8'], input=stream,
-                             capture_output=True, timeout=600)
+                             capture_output=True, timeout=600, check=False)
         assert run.returncode == 0, (name, run.returncode, run.stderr[-300:])
         assert run.stdout == want, (name, run.stdout[-200:], want[-200:])
         results.append(dict(name=name, stream_bytes=len(stream), output_bytes=len(want), host_seconds=round(compiled, 2)))

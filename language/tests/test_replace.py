@@ -84,7 +84,7 @@ def compile_dump(source):
     for line in out[at + len(MARK):].decode('latin-1').split('\n'):
         parts = line.split()
         if parts and parts[0] == 'W':
-            records[parts[1]] = dict(zip(FIELDS, map(int, parts[2:])))
+            records[parts[1]] = dict(zip(FIELDS, map(int, parts[2:]), strict=False))
         elif parts and parts[0] == 'T':
             tramp = int(parts[1])
     return out[:at], records, tramp
@@ -92,7 +92,7 @@ def compile_dump(source):
 
 def run_checked(stream):
     run = subprocess.run([str(paths.CHECKED), '-s', str(paths.SIZE), '-p', '8'], input=stream,
-                         capture_output=True, timeout=600)
+                         capture_output=True, timeout=600, check=False)
     assert run.returncode == 0 and b'AUDIT' not in run.stderr.replace(b'VM1_AUDIT_TICKS', b''), \
         (run.returncode, run.stderr[-300:])
     return run.stdout

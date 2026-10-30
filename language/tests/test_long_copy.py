@@ -68,7 +68,7 @@ def compile_language(source):
 
 def run(stream, *options, stdin=b''):
     result = subprocess.run([str(SPACE_EMULATOR), '-s', str(S), '-p', '8', *options], input=stream + stdin,
-                            capture_output=True, timeout=600)
+                            capture_output=True, timeout=600, check=False)
     assert result.returncode == 0 and not result.stderr, (result.returncode, result.stderr[-300:])
     return result.stdout
 

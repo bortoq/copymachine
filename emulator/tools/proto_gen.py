@@ -59,7 +59,7 @@ def parse(path):
     if not devs:
         fail(path, 0, "", "no XDEV")
     seen = set()
-    for name, value in ops:
+    for name, _value in ops:
         if name in seen:
             fail(path, 0, name, "duplicate op")
         seen.add(name)

@@ -55,7 +55,7 @@ def run(stream, size=paths.SIZE, slots=8, limit=2_000_000):
     cursor, out, trace, cell = 0, bytearray(), [], None
     for _ in range(limit):
         rows = [tuple(get(memory, (i * 4 + k) * a, a) for k in range(4)) for i in range(slots)]
-        reads, writes, count, copies, bits, channel = [], [], 0, 0, 0, 0
+        reads, _writes, count, copies, bits, channel = [], [], 0, 0, 0, 0
         for dl, dh, sl, sh in rows:
             if dl == dh and dl >= size:                      # output channel
                 if sl < sh:

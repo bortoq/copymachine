@@ -25,7 +25,7 @@ def run(data, timeout):
         stdin.write(data); stdin.seek(0)
         start = time.monotonic()
         result = subprocess.run([str(paths.EMULATOR), '-s', str(paths.SIZE), '-p', '8'],
-                                stdin=stdin, stdout=stdout, stderr=stderr, timeout=timeout)
+                                stdin=stdin, stdout=stdout, stderr=stderr, timeout=timeout, check=False)
         seconds = time.monotonic() - start
         stdout.seek(0); stderr.seek(0); out = stdout.read(); err = stderr.read()
     assert result.returncode == 0 and not err, (result.returncode, err[-300:])

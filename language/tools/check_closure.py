@@ -131,7 +131,7 @@ def build_graph():
     for name, word, line in generators():       # the word of the language -> its generator
         node = graph.new_node(name, 'generator', 'language/src/primitives.fth', line, 'K')
         graph.add_edge(node, graph.lookup(word, 'K'), 'direct', line, sub='generator')
-    for name, value, line in literal_names():   # a digit: the name of a literal
+    for name, _value, line in literal_names():   # a digit: the name of a literal
         graph.new_node(name, 'literal', 'language/src/primitives.fth', line, 'K')
     for name, uses in graph.unresolved.items():  # the uses of the generators and the digits (resolved here)
         if name in graph.k and name not in SYNTAX:
@@ -285,7 +285,6 @@ def render_core():
             '`doc/literals.md`), основание. «Исп.» — число ссылок из других слов (цифры — и из чисел '
             'определения). Повторное определение имени — «вариант N» (старое имя остаётся у прежних ссылок).', '',
             '| № | Слово | Вид | Файл:строка | Исп. | Пояснение |', '|---|---|---|---|---|---|']
-    versions = {}
     for number, row in enumerate(rows, 1):
         node = row['node']
         note = ''
@@ -301,7 +300,6 @@ def render_core():
         if node['id'] in entries:
             note = (note + '; ' if note else '') + 'вход бута (хост)'
         out.append(f'| {number} | {cell(node["name"])} | {KINDS[row["kind"]]} | {where(node)} | {row["uses"]} | {note} |')
-    plain = [w for w in numbers if w not in {n['name'] for n in nodes.values()}]
     out += ['', '## Числа определения', '',
             'Число — слово: его строит генератор `literal` из цифр (`doc/literals.md`); в ядро входят '
             'сами цифры и `literal`. Различных чисел в определении: ' + str(len(count_numbers())) + '.', '',

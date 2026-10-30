@@ -96,7 +96,7 @@ def main():
         prepared = time.monotonic() - started
         rel = lambda p: os.path.relpath(p, ROOT)
         result = subprocess.run([str(SPACE_EMULATOR), '-s', str(paths.SIZE), '-p', '8', '-r', rel(work / 'out'),
-                                 '-r', rel(work / 'exp')], input=program, capture_output=True, cwd=ROOT, timeout=3000)
+                                 '-r', rel(work / 'exp')], input=program, capture_output=True, cwd=ROOT, timeout=3000, check=False)
         verdict = result.stdout.decode().strip()
         assert result.returncode == 0 and verdict == 'P' * len(cases), (result.returncode, verdict, result.stderr[-300:])
         assert newest.is_file()

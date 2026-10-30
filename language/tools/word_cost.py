@@ -63,7 +63,7 @@ def compile_with_records(source, before='', sizes='', libraries=None):
         if not parts:
             continue
         if parts[0] == 'W':
-            record = dict(zip(FIELDS, map(int, parts[2:])))
+            record = dict(zip(FIELDS, map(int, parts[2:]), strict=False))
             records.pop(parts[1], None)
             records[parts[1]] = record
             version = 1 + sum(1 for name, _ in info['versions'] if name == parts[1])
@@ -71,7 +71,7 @@ def compile_with_records(source, before='', sizes='', libraries=None):
         elif parts[0] == 'T':
             info['tramp'], info['thrower'] = int(parts[1]), int(parts[2])
         elif parts[0] == 'H':
-            info[parts[1]] = dict(zip(('bits', 'copies', 'layers', 'known'), map(int, parts[2:])))
+            info[parts[1]] = dict(zip(('bits', 'copies', 'layers', 'known'), map(int, parts[2:]), strict=False))
     return stream, records, info
 
 

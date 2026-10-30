@@ -36,7 +36,7 @@ def dictionary(target):
     text = (PORT / 'pfdicdat.h').read_text()
     for name, extra in (('MinDicNames', EXTRA_NAMES), ('MinDicCode', EXTRA_CODE)):
         text, count = re.subn(r'(static uint8_t %s\[)(\d+)(\])' % name,
-                              lambda m: m.group(1) + str(int(m.group(2)) + extra) + m.group(3), text)
+                              lambda m, extra=extra: m.group(1) + str(int(m.group(2)) + extra) + m.group(3), text)
         assert count == 1, name
     directory = target / 'dictionary'
     directory.mkdir(parents=True, exist_ok=True)
@@ -62,7 +62,7 @@ def build():
     if executable.is_file() and stamp.is_file() and stamp.read_text() == digest.hexdigest():
         return executable
     target.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
     if result.returncode:
         raise RuntimeError('32-bit host pForth build failed:\n' + result.stderr[-3000:])
     stamp.write_text(digest.hexdigest())

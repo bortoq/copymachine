@@ -149,7 +149,6 @@ def process(g, path, group):
     initid = None
     cur = None          # current word being compiled (node id) or None
     i, n = 0, len(toks)
-    ns_k = group != 'aux'
 
     def init_node(line):
         nonlocal initid
@@ -459,7 +458,6 @@ def write_md(path, d, byid, init_ids):
                                         ', '.join('`%s`' % x for x in c['nodes']),
                                         ', '.join(c.get('via', [])) or ''))
         w('')
-    nd = [c for c in cyc if c['scope'] == 'direct']
     w('Сильно связных компонент больше одного узла: %d (прямые), %d (все рёбра). Петель: %d (прямые), %d (все).\n' % (
         sum(1 for c in cyc if c['scope'] == 'direct' and c['type'] == 'scc'),
         sum(1 for c in cyc if c['scope'] == 'all' and c['type'] == 'scc'),
@@ -530,7 +528,6 @@ def write_md(path, d, byid, init_ids):
     w('## Итог\n')
     kinds = collections.Counter(x['kind'] for x in words)
     ver = [x for x in words if x['version'] > 1]
-    redefs = collections.Counter(x['name'] for x in words if x['group'] == 'K' and x['version'] > 1)
     maxn = max(dep.items(), key=lambda kv: kv[1]['transitive_all_edges'])
     zero = sum(1 for v in dep.values() if v['transitive_all_edges'] == 0)
     kdirect = sum(1 for e in edges if e['kind'] == 'direct')

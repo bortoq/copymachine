@@ -72,7 +72,7 @@ PRICE = ('size', 'bits', 'copies', 'layers', 'known')
 
 def run_checked(stream):
     run = subprocess.run([str(paths.CHECKED), '-s', str(paths.SIZE), '-p', '8'], input=stream,
-                         capture_output=True, timeout=600)
+                         capture_output=True, timeout=600, check=False)
     assert run.returncode == 0, (run.returncode, run.stderr[-300:])
     return run.stdout
 
@@ -100,7 +100,7 @@ def check_five():
     trace, tramp = run['trace'], info['tramp']
     entries = {r['entry'] for r in records.values()}
     ranges = sorted((r['entry'], r['entry'] + r['size'] * 1024) for r in records.values())
-    for (lo, hi), (next_lo, _) in zip(ranges, ranges[1:]):          # the size: no overlap, at most one cell between
+    for (lo, hi), (next_lo, _) in zip(ranges, ranges[1:], strict=False):          # the size: no overlap, at most one cell between
         assert next_lo - hi in (0, 1024), (lo, hi, next_lo)
     print(f'PASS sizes: the cells of the words follow each other ({len(ranges)} words); '
           f'{run["ticks"]} ticks, output {run["out"]!r}')
@@ -112,7 +112,6 @@ def check_five():
         first, last = counters.window(trace, r['entry'], entries, tramp, start)
         start = last + 1
         own = [t for t in range(first, last + 1) if r['entry'] <= (trace[t][0] or 0) < r['entry'] + r['size'] * 1024]
-        others = [lo for lo, hi in ranges if lo != r['entry']]
         for t in range(first, last + 1):
             cell = trace[t][0]
             assert cell is not None and (cell == tramp or r['entry'] <= cell < r['entry'] + r['size'] * 1024
@@ -120,7 +119,7 @@ def check_five():
         assert own and trace[first][0] == r['entry'] and len(own) <= r['layers'], (name, len(own))
         rows.append((name, counters.counters(trace, first, last), r))
     measured = {}
-    for name, got, r in rows:                                         # w2: the largest of its two runs
+    for name, got, _r in rows:                                         # w2: the largest of its two runs
         if name in measured:
             measured[name] = {k: max(v, measured[name][k]) for k, v in got.items()}
         else:

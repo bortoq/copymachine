@@ -107,7 +107,7 @@ class Language:
         import host
         lines = [boot.SIZES] + ['fc| ' + line for line in self.text().split('\n')] + ['fc-go', 'bye']
         data = self.libraries() + ('\n'.join(lines) + '\n').encode('latin-1')
-        result = subprocess.run([str(host.build())], input=data, capture_output=True, timeout=timeout)
+        result = subprocess.run([str(host.build())], input=data, capture_output=True, timeout=timeout, check=False)
         if result.returncode or result.stderr or not result.stdout.endswith(b'\n'):
             raise CompileError('boot failed: code %d, %r' % (result.returncode, result.stdout[-300:]))
         return result.stdout[:-1]
@@ -127,7 +127,7 @@ def program_words(source):
 def run_checked(stream, timeout=600):
     """The output of the stream on checked-emulator (the artifact of a program)."""
     run = subprocess.run([str(paths.CHECKED), '-s', str(paths.SIZE), '-p', '8'], input=stream,
-                         capture_output=True, timeout=timeout)
+                         capture_output=True, timeout=timeout, check=False)
     if run.returncode or b'AUDIT' in run.stderr.replace(b'VM1_AUDIT_TICKS', b''):
         raise CompileError('the code does not run: %d %r' % (run.returncode, run.stderr[-200:]))
     return run.stdout
@@ -139,7 +139,7 @@ def compile_program(language, source, measure=False, limit=2_000_000):
     try:
         stream, records, _ = word_cost.compile_with_records(source, libraries=language.libraries())
     except (AssertionError, ValueError) as error:
-        raise CompileError('the language does not compile the program: %s' % str(error)[:300])
+        raise CompileError('the language does not compile the program: %s' % str(error)[:300]) from error
     words = {}
     for name in program_words(source):
         if name not in records:

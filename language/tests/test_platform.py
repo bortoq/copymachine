@@ -45,7 +45,7 @@ def run(stream, folder):
         (folder / name).write_bytes(b'')
     start = time.monotonic()
     result = subprocess.run([str(SPACE_EMULATOR), '-s', str(paths.SIZE), '-p', '8', '-r', 'host.c', '-r', 'host.io'],
-                            input=stream, capture_output=True, cwd=folder, timeout=600)
+                            input=stream, capture_output=True, cwd=folder, timeout=600, check=False)
     assert result.returncode == 0 and not result.stderr, (result.returncode, result.stderr[-300:])
     return result.stdout.decode(), time.monotonic() - start
 
@@ -111,7 +111,7 @@ def check_replace(folder):
     out, seconds = run(stream, folder)
     checks, copies, times, oks, after, later = [list(map(int, line.split())) for line in out.split('\n')[:6]]
     assert checks == [TRUE] * 5, checks
-    t = dict(zip(['c', 'c-host', 'g', 'g-host', 'h1', 'h2', 'h3', 'h4'], zip(times[0::2], times[1::2])))
+    t = dict(zip(['c', 'c-host', 'g', 'g-host', 'h1', 'h2', 'h3', 'h4'], zip(times[0::2], times[1::2], strict=False), strict=False))
     assert oks == [3, TRUE, TRUE, TRUE, 3], (oks, t)
     assert after[:4] == [0, 1, 0, 1] and after[4:] == [guest_g(i) for i in range(16)], after
     (h1, e1), (h2, e2), (h3, e3), (h4, e4) = t['h1'], t['h2'], t['h3'], t['h4']
