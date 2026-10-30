@@ -4,5 +4,6 @@
 make lint
 make check-fast
 sh "$(dirname "$0")/licenses.sh"
+sh "$(dirname "$0")/docs.sh"
 echo "== coverage summary (gcov of the emulator, coverage.py of language/tools if installed) =="
 make coverage
