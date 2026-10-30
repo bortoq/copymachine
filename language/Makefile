@@ -75,14 +75,13 @@ check-kernel: $(L0)
 check-self: $(L0)
 	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy)
 	$(call limit,$(SELF_SECONDS)) $(PYTHON) -B tools/check_self.py --l0 "$(L0)"
-# The tests that need neither L0 nor the long runs (part of the root check-fast).
+# The tests that need neither L0 nor the long runs (part of the root check-fast). test_long_copy and
+# test_platform compile the whole definition on the host next to the model: they are in check-tests.
 check-fast-tests:
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_provenance.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_closure.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_core.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_language_md.py
-	$(call limit,$(TEST_SECONDS),1536) $(PYTHON) -B tests/test_long_copy.py
-	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_platform.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_entry_points.py
 # coverage.py of tools/ under the goals of the root check-fast (17.9), except test_platform (it compares wall-clock times, tracing breaks it); needs `pip install coverage`.
 PYCOV = COVERAGE_FILE=$(abspath $(BUILD_DIR))/cov/.coverage $(PYTHON) -B -m coverage run --parallel-mode --source=tools
@@ -105,6 +104,8 @@ check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_literals.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_language_md.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_word.py
+	$(call limit,$(TEST_SECONDS),1536) $(PYTHON) -B tests/test_long_copy.py
+	$(call limit,$(TEST_SECONDS),1536) $(PYTHON) -B tests/test_platform.py
 # Isolation of the kernel (14.10): probes of L0 (about 20 minutes), not part of check.
 check-isolation: $(L0)
 	$(call limit,$(KERNEL_SECONDS)) $(PYTHON) -B tests/test_isolation.py --l0 "$(L0)"
