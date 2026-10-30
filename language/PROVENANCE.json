@@ -1,5 +1,5 @@
 {
- "note": "Copies of the sources of kernel K (forth) for the language experiment (stage 14); the origin is not changed. The order of compilation is that of KERNEL in forth/tests/test_kernel.py. copy_sha256 is the digest at the time of copying; the copies may change later, the origins are checked by tests/test_provenance.py. A file with origin null is a new source of the language, not a copy (src/primitives.fth, 14.3).",
+ "note": "The sources of the language (src/). copy_sha256 is the digest of the file in the tree, checked by tests/test_provenance.py; the files they were copied from (kernel K) are in the tag archive-2026-10-30. A file with origin null is a new source of the language, not a copy (src/primitives.fth, 14.3).",
  "workspace_commit": "60a6f9af5e0d6366af59d35552bcf90088c47a7e",
  "branch": "language/experiment",
  "order": [
@@ -13,39 +13,33 @@
  ],
  "files": {
   "src/prelude.fth": {
-   "origin": "forth/scripts/forthc/prelude.fth",
-   "origin_sha256": "d3ee8771431c289d7a236734ea2a31125a919d190c3fdfccaf4223d9a346133b",
-   "copy_sha256": "d3ee8771431c289d7a236734ea2a31125a919d190c3fdfccaf4223d9a346133b"
+   "copy_sha256": "d3ee8771431c289d7a236734ea2a31125a919d190c3fdfccaf4223d9a346133b",
+   "origin_in_archive": "forth/scripts/forthc/prelude.fth"
   },
   "src/backend.fth": {
-   "origin": "copycode/forth/backend.fth",
-   "origin_sha256": "f2bbfcbb2c8e238e30b7c5737a6d299d4425b113f92b230ed5429cca75733d61",
-   "copy_sha256": "f2bbfcbb2c8e238e30b7c5737a6d299d4425b113f92b230ed5429cca75733d61"
+   "copy_sha256": "6a528349c424a895e5cae62f7e5d140b45bd85c9c070239e8c9f9fefc3ec8bd8",
+   "origin_in_archive": "copycode/forth/backend.fth"
   },
   "src/compute.fth": {
-   "origin": "copycode/forth/compute.fth",
-   "origin_sha256": "2b53b215f46533c39686acab40cb51abf2f2b8b5549dc7a1863488fed68dd286",
-   "copy_sha256": "2b53b215f46533c39686acab40cb51abf2f2b8b5549dc7a1863488fed68dd286"
+   "copy_sha256": "2b53b215f46533c39686acab40cb51abf2f2b8b5549dc7a1863488fed68dd286",
+   "origin_in_archive": "copycode/forth/compute.fth"
   },
   "src/forthc.fth": {
-   "origin": "forth/scripts/forthc/forthc.fth",
-   "origin_sha256": "e92154756df16fa0a748d7676d3f42e499e5be03b44da882070d1f83aa56966c",
-   "copy_sha256": "e92154756df16fa0a748d7676d3f42e499e5be03b44da882070d1f83aa56966c"
+   "copy_sha256": "45ee3d295faf80e89e77a799551cf01d91bcd215491d940b8cfa179c57ebc06c",
+   "origin_in_archive": "forth/scripts/forthc/forthc.fth"
   },
   "src/primitives.fth": {
-   "origin": null,
    "item": "14.3",
-   "note": "the generators of the primitives (arithmetic and logic), moved from the branches FC-IS? of src/forthc.fth"
+   "note": "the generators of the primitives (arithmetic and logic), moved from the branches FC-IS? of src/forthc.fth",
+   "sha256": "91efdd32ad8d982ecdc34bb7317653645ce331d7a9273b0282909f82f866ab78"
   },
   "src/main.fth": {
-   "origin": "forth/scripts/forthc/main.fth",
-   "origin_sha256": "dd1b96bf578c18e48a0ecafa518cf95acdf19b161da5e9d580b212ac6a2f7162",
-   "copy_sha256": "dd1b96bf578c18e48a0ecafa518cf95acdf19b161da5e9d580b212ac6a2f7162"
+   "copy_sha256": "dd1b96bf578c18e48a0ecafa518cf95acdf19b161da5e9d580b212ac6a2f7162",
+   "origin_in_archive": "forth/scripts/forthc/main.fth"
   },
   "src/kernel.fth": {
-   "origin": "forth/scripts/forthc/kernel.fth",
-   "origin_sha256": "b9214dad574a6a6c26af179700b5583efe3e0931e9f6a087bffd8584f3903f92",
-   "copy_sha256": "b9214dad574a6a6c26af179700b5583efe3e0931e9f6a087bffd8584f3903f92"
+   "copy_sha256": "c00c30dab72a7947792f363a135e5a7f10f3bc82211272af959af88d214339c3",
+   "origin_in_archive": "forth/scripts/forthc/kernel.fth"
   }
  }
 }

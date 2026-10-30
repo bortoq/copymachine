@@ -21,3 +21,4 @@
 .venv/
 .DS_Store
 **/.claude
+.ruff_cache

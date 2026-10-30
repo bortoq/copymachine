@@ -56,12 +56,8 @@ check-runtime: $(OUT)/emulator $(OUT)/test_runtime $(OUT)/test_sys $(BUILD_DIR)/
 checked: $(BUILD_DIR)/checked-emulator
 
 clean:
-ifneq ($(WORKSPACE_ROOT),)
-	python3 -B "$(WORKSPACE_ROOT)/tools/layout.py" --component "$(CURDIR)" --clean
-else
 	rm -rf "$(BUILD_DIR)"
 	rm -f emulator emulator.tmp
-endif
 
 help:
 	@echo "Targets: all (emulator), check, checked (audit build), clean"

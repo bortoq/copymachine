@@ -45,7 +45,7 @@ limit =
 endif
 SOURCES = $(wildcard src/*.fth)
 TOOLS = $(wildcard tools/*.py)
-.PHONY: all boot space check check-programs check-space-replace check-closure check-kernel check-self check-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
+.PHONY: all boot space check check-programs check-space-replace check-closure check-kernel check-self check-tests check-fast-tests check-language-md check-isolation check-proof check-replace check-user-programs clean
 all: boot
 boot: $(L0)
 space: $(SPACE_BIN)
@@ -75,6 +75,14 @@ check-kernel: $(L0)
 check-self: $(L0)
 	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy)
 	$(call limit,$(SELF_SECONDS)) $(PYTHON) -B tools/check_self.py --l0 "$(L0)"
+# The tests that need neither L0 nor the long runs (part of the root check-fast).
+check-fast-tests:
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_provenance.py
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_closure.py
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_core.py
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_language_md.py
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_long_copy.py
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_platform.py
 check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_provenance.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_closure.py
