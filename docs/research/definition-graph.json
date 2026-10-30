@@ -1,21 +1,21 @@
 {
  "order": {
   "K": [
-   "space/forth/scripts/forthc/prelude.fth",
-   "space/copycode/forth/backend.fth",
-   "space/copycode/forth/compute.fth",
-   "space/forth/scripts/forthc/forthc.fth",
-   "space/forth/scripts/forthc/main.fth",
-   "space/forth/scripts/forthc/kernel.fth"
+   "forth/scripts/forthc/prelude.fth",
+   "copycode/forth/backend.fth",
+   "copycode/forth/compute.fth",
+   "forth/scripts/forthc/forthc.fth",
+   "forth/scripts/forthc/main.fth",
+   "forth/scripts/forthc/kernel.fth"
   ],
   "aux": [
-   "space/copycode/forth/integers.fth",
-   "space/copycode/forth/bitfields.fth",
-   "space/copycode/forth/format.fth",
-   "space/copycode/forth/arena.fth",
-   "space/copycode/forth/instructions.fth",
-   "space/copycode/forth/operations.fth",
-   "space/copycode/forth/evaluate.fth"
+   "copycode/forth/integers.fth",
+   "copycode/forth/bitfields.fth",
+   "copycode/forth/format.fth",
+   "copycode/forth/arena.fth",
+   "copycode/forth/instructions.fth",
+   "copycode/forth/operations.fth",
+   "copycode/forth/evaluate.fth"
   ]
  },
  "nodes": [
@@ -24,7 +24,7 @@
    "name": "nip",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 6,
    "group": "K"
   },
@@ -33,7 +33,7 @@
    "name": "tuck",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 7,
    "group": "K"
   },
@@ -42,7 +42,7 @@
    "name": "-rot",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 8,
    "group": "K"
   },
@@ -51,7 +51,7 @@
    "name": "2dup",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 9,
    "group": "K"
   },
@@ -60,7 +60,7 @@
    "name": "2drop",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 10,
    "group": "K"
   },
@@ -69,7 +69,7 @@
    "name": "2swap",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 11,
    "group": "K"
   },
@@ -78,7 +78,7 @@
    "name": "2over",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 12,
    "group": "K"
   },
@@ -87,7 +87,7 @@
    "name": "?dup",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 13,
    "group": "K"
   },
@@ -96,7 +96,7 @@
    "name": "negate",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 14,
    "group": "K"
   },
@@ -105,7 +105,7 @@
    "name": "invert",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 15,
    "group": "K"
   },
@@ -114,7 +114,7 @@
    "name": ">",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 16,
    "group": "K"
   },
@@ -123,7 +123,7 @@
    "name": "u>",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 17,
    "group": "K"
   },
@@ -132,7 +132,7 @@
    "name": "<>",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 18,
    "group": "K"
   },
@@ -141,7 +141,7 @@
    "name": "0<",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 19,
    "group": "K"
   },
@@ -150,7 +150,7 @@
    "name": "0>",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 20,
    "group": "K"
   },
@@ -159,7 +159,7 @@
    "name": "0<>",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 21,
    "group": "K"
   },
@@ -168,7 +168,7 @@
    "name": "max",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 22,
    "group": "K"
   },
@@ -177,7 +177,7 @@
    "name": "min",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 23,
    "group": "K"
   },
@@ -186,7 +186,7 @@
    "name": "+!",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 24,
    "group": "K"
   },
@@ -195,7 +195,7 @@
    "name": "2@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 25,
    "group": "K"
   },
@@ -204,7 +204,7 @@
    "name": "2!",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 26,
    "group": "K"
   },
@@ -213,7 +213,7 @@
    "name": "fill-cell",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 28,
    "group": "K"
   },
@@ -222,7 +222,7 @@
    "name": "fill",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 29,
    "group": "K"
   },
@@ -231,7 +231,7 @@
    "name": "cmove",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 33,
    "group": "K"
   },
@@ -240,7 +240,7 @@
    "name": "cmove>",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 37,
    "group": "K"
   },
@@ -249,7 +249,7 @@
    "name": "/string",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 38,
    "group": "K"
   },
@@ -258,7 +258,7 @@
    "name": "type",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 39,
    "group": "K"
   },
@@ -267,7 +267,7 @@
    "name": "compare",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 40,
    "group": "K"
   },
@@ -276,7 +276,7 @@
    "name": "heap-ptr",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 44,
    "group": "K"
   },
@@ -285,7 +285,7 @@
    "name": "heap-last",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 44,
    "group": "K"
   },
@@ -294,7 +294,7 @@
    "name": "heap-end",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 44,
    "group": "K"
   },
@@ -303,7 +303,7 @@
    "name": "allocate",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 45,
    "group": "K"
   },
@@ -312,7 +312,7 @@
    "name": "free",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 48,
    "group": "K"
   },
@@ -321,7 +321,7 @@
    "name": "source",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 50,
    "group": "K"
   },
@@ -330,16 +330,16 @@
    "name": ">in",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/prelude.fth",
+   "file": "forth/scripts/forthc/prelude.fth",
    "line": 51,
    "group": "K"
   },
   {
-   "id": "space/copycode/forth/backend.fth::init",
-   "name": "space/copycode/forth/backend.fth::init",
+   "id": "copycode/forth/backend.fth::init",
+   "name": "copycode/forth/backend.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 13,
    "group": "K"
   },
@@ -348,7 +348,7 @@
    "name": "cc-size",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 14,
    "group": "K"
   },
@@ -357,7 +357,7 @@
    "name": "cc-a",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 14,
    "group": "K"
   },
@@ -366,7 +366,7 @@
    "name": "cc-slots",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 14,
    "group": "K"
   },
@@ -375,7 +375,7 @@
    "name": "cc-cell-bits",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 14,
    "group": "K"
   },
@@ -384,7 +384,7 @@
    "name": "cc-chunk",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 15,
    "group": "K"
   },
@@ -393,7 +393,7 @@
    "name": "cc-chunk-buf",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 15,
    "group": "K"
   },
@@ -402,7 +402,7 @@
    "name": "cc-lbuf",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 15,
    "group": "K"
   },
@@ -411,7 +411,7 @@
    "name": "cc-pool",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 15,
    "group": "K"
   },
@@ -420,7 +420,7 @@
    "name": "cc-ebuf",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 16,
    "group": "K"
   },
@@ -429,7 +429,7 @@
    "name": "cc-dest",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 16,
    "group": "K"
   },
@@ -438,7 +438,7 @@
    "name": "cc-sink",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 16,
    "group": "K"
   },
@@ -447,7 +447,7 @@
    "name": "cc-start-cell",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 16,
    "group": "K"
   },
@@ -456,7 +456,7 @@
    "name": "cc-rev",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 18,
    "group": "K"
   },
@@ -465,7 +465,7 @@
    "name": "cc-rev-init",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 19,
    "group": "K"
   },
@@ -474,7 +474,7 @@
    "name": "cc-inst",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 23,
    "group": "K"
   },
@@ -483,7 +483,7 @@
    "name": "cc-layer-bits",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 24,
    "group": "K"
   },
@@ -492,7 +492,7 @@
    "name": "cc-lbytes",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 25,
    "group": "K"
   },
@@ -501,7 +501,7 @@
    "name": "cc-stdin",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 26,
    "group": "K"
   },
@@ -510,7 +510,7 @@
    "name": "cc-stdout",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 27,
    "group": "K"
   },
@@ -519,7 +519,7 @@
    "name": "cc-bits",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 28,
    "group": "K"
   },
@@ -528,7 +528,7 @@
    "name": "cc-numeric",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 29,
    "group": "K"
   },
@@ -537,7 +537,7 @@
    "name": "cc-numeric4",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 35,
    "group": "K"
   },
@@ -546,7 +546,7 @@
    "name": "cc-field-check",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 38,
    "group": "K"
   },
@@ -555,7 +555,7 @@
    "name": "cc-encode",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 41,
    "group": "K"
   },
@@ -564,7 +564,7 @@
    "name": "cc-start",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 51,
    "group": "K"
   },
@@ -573,7 +573,7 @@
    "name": "cc-len",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 51,
    "group": "K"
   },
@@ -582,7 +582,7 @@
    "name": "cc-rows",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 52,
    "group": "K"
   },
@@ -591,7 +591,7 @@
    "name": "cc-row!",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 53,
    "group": "K"
   },
@@ -600,7 +600,7 @@
    "name": "cc-clear-rows",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 55,
    "group": "K"
   },
@@ -609,7 +609,7 @@
    "name": "cc-loader",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 56,
    "group": "K"
   },
@@ -618,7 +618,7 @@
    "name": "cc-stream-flush",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 63,
    "group": "K"
   },
@@ -627,7 +627,7 @@
    "name": "cc-begin-chunk",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 67,
    "group": "K"
   },
@@ -636,7 +636,7 @@
    "name": "cc-put",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 69,
    "group": "K"
   },
@@ -645,7 +645,7 @@
    "name": "cc-scratch",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 87,
    "group": "K"
   },
@@ -654,7 +654,7 @@
    "name": "cc-put-numeric",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 88,
    "group": "K"
   },
@@ -663,7 +663,7 @@
    "name": "cc-max-layers",
    "version": 1,
    "kind": "constant",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 93,
    "group": "K"
   },
@@ -672,7 +672,7 @@
    "name": "cc-record",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 94,
    "group": "K"
   },
@@ -681,7 +681,7 @@
    "name": "cc-pending",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 95,
    "group": "K"
   },
@@ -690,7 +690,7 @@
    "name": "cc-head",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 95,
    "group": "K"
   },
@@ -699,7 +699,7 @@
    "name": "cc-next-cell",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 95,
    "group": "K"
   },
@@ -708,7 +708,7 @@
    "name": "cc-seq#",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 96,
    "group": "K"
   },
@@ -717,7 +717,7 @@
    "name": "cc-seq-first",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 96,
    "group": "K"
   },
@@ -726,7 +726,7 @@
    "name": "cc-seq-entry",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 96,
    "group": "K"
   },
@@ -735,7 +735,7 @@
    "name": "cc-seq-last",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 96,
    "group": "K"
   },
@@ -744,7 +744,7 @@
    "name": "cc-foff",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 98,
    "group": "K"
   },
@@ -753,7 +753,7 @@
    "name": "cc-foff-init",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 99,
    "group": "K"
   },
@@ -762,7 +762,7 @@
    "name": "cc-machine",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 100,
    "group": "K"
   },
@@ -771,7 +771,7 @@
    "name": "cc-field",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 117,
    "group": "K"
   },
@@ -780,7 +780,7 @@
    "name": "cc-link-row",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 118,
    "group": "K"
   },
@@ -789,7 +789,7 @@
    "name": "cc-copy",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 119,
    "group": "K"
   },
@@ -798,7 +798,7 @@
    "name": "cc-out",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 120,
    "group": "K"
   },
@@ -807,7 +807,7 @@
    "name": "cc-builder",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 121,
    "group": "K"
   },
@@ -816,7 +816,7 @@
    "name": "cc-new-cell",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 122,
    "group": "K"
   },
@@ -825,7 +825,7 @@
    "name": "cc-branch-bit",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 125,
    "group": "K"
   },
@@ -834,7 +834,7 @@
    "name": "cc-branch-step",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 126,
    "group": "K"
   },
@@ -843,7 +843,7 @@
    "name": "cc-group",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 128,
    "group": "K"
   },
@@ -852,7 +852,7 @@
    "name": "cc-layer-cell",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 131,
    "group": "K"
   },
@@ -861,7 +861,7 @@
    "name": "cc-next!",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 132,
    "group": "K"
   },
@@ -870,7 +870,7 @@
    "name": "cc-count",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 133,
    "group": "K"
   },
@@ -879,7 +879,7 @@
    "name": "cc-row-addr",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 134,
    "group": "K"
   },
@@ -888,7 +888,7 @@
    "name": "cc-pending@",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 135,
    "group": "K"
   },
@@ -897,7 +897,7 @@
    "name": "cc-encode-layer",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 136,
    "group": "K"
   },
@@ -906,7 +906,7 @@
    "name": "cc-write",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 141,
    "group": "K"
   },
@@ -915,7 +915,7 @@
    "name": "cc-write-oldest",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 142,
    "group": "K"
   },
@@ -924,7 +924,7 @@
    "name": "cc-new-record",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 143,
    "group": "K"
   },
@@ -933,7 +933,7 @@
    "name": "cc-lone",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 147,
    "group": "K"
   },
@@ -942,7 +942,7 @@
    "name": "cc-seq",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 148,
    "group": "K"
   },
@@ -951,7 +951,7 @@
    "name": "cc-last",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 149,
    "group": "K"
   },
@@ -960,7 +960,7 @@
    "name": "cc-layer",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 150,
    "group": "K"
   },
@@ -969,7 +969,7 @@
    "name": "cc-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 155,
    "group": "K"
   },
@@ -978,7 +978,7 @@
    "name": "cc-jump",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 156,
    "group": "K"
   },
@@ -987,7 +987,7 @@
    "name": "cc-l1",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 157,
    "group": "K"
   },
@@ -996,7 +996,7 @@
    "name": "cc-h1",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 157,
    "group": "K"
   },
@@ -1005,7 +1005,7 @@
    "name": "cc-l2",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 157,
    "group": "K"
   },
@@ -1014,7 +1014,7 @@
    "name": "cc-h2",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 157,
    "group": "K"
   },
@@ -1023,7 +1023,7 @@
    "name": "cc-ra",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 158,
    "group": "K"
   },
@@ -1032,7 +1032,7 @@
    "name": "cc-rb",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 158,
    "group": "K"
   },
@@ -1041,7 +1041,7 @@
    "name": "cc-cur",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 158,
    "group": "K"
   },
@@ -1050,7 +1050,7 @@
    "name": "cc-clash?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 160,
    "group": "K"
   },
@@ -1059,7 +1059,7 @@
    "name": "cc-row-clash?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 165,
    "group": "K"
   },
@@ -1068,7 +1068,7 @@
    "name": "cc-new-row",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 170,
    "group": "K"
   },
@@ -1077,7 +1077,7 @@
    "name": "cc-row-set",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 171,
    "group": "K"
   },
@@ -1086,7 +1086,7 @@
    "name": "cc-full?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 173,
    "group": "K"
   },
@@ -1095,7 +1095,7 @@
    "name": "cc-clashes?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 174,
    "group": "K"
   },
@@ -1104,7 +1104,7 @@
    "name": "cc-fits?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 179,
    "group": "K"
   },
@@ -1113,7 +1113,7 @@
    "name": "cc-row",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 181,
    "group": "K"
   },
@@ -1122,7 +1122,7 @@
    "name": "cc-flush",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 185,
    "group": "K"
   },
@@ -1131,16 +1131,16 @@
    "name": "cc-finish",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 188,
    "group": "K"
   },
   {
-   "id": "space/copycode/forth/compute.fth::init",
-   "name": "space/copycode/forth/compute.fth::init",
+   "id": "copycode/forth/compute.fth::init",
+   "name": "copycode/forth/compute.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 9,
    "group": "K"
   },
@@ -1149,7 +1149,7 @@
    "name": "cc-t1",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 10,
    "group": "K"
   },
@@ -1158,7 +1158,7 @@
    "name": "cc-t2",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 10,
    "group": "K"
   },
@@ -1167,7 +1167,7 @@
    "name": "cc-t3",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 10,
    "group": "K"
   },
@@ -1176,7 +1176,7 @@
    "name": "cc-t4",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 10,
    "group": "K"
   },
@@ -1185,7 +1185,7 @@
    "name": "cc-t5",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 10,
    "group": "K"
   },
@@ -1194,7 +1194,7 @@
    "name": "cc-lo",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 11,
    "group": "K"
   },
@@ -1203,7 +1203,7 @@
    "name": "cc-hi",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 11,
    "group": "K"
   },
@@ -1212,7 +1212,7 @@
    "name": "cc-l0",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 12,
    "group": "K"
   },
@@ -1221,7 +1221,7 @@
    "name": "cc-l1",
    "version": 2,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 12,
    "group": "K"
   },
@@ -1230,7 +1230,7 @@
    "name": "cc-l2",
    "version": 2,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 12,
    "group": "K"
   },
@@ -1239,7 +1239,7 @@
    "name": "cc-l3",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 12,
    "group": "K"
   },
@@ -1248,7 +1248,7 @@
    "name": "cc-l4",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 12,
    "group": "K"
   },
@@ -1257,7 +1257,7 @@
    "name": "cc-l5",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 12,
    "group": "K"
   },
@@ -1266,7 +1266,7 @@
    "name": "cc-work",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 13,
    "group": "K"
   },
@@ -1275,7 +1275,7 @@
    "name": "cc-cell-bit",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 14,
    "group": "K"
   },
@@ -1284,7 +1284,7 @@
    "name": "cc-link-slot",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 15,
    "group": "K"
   },
@@ -1293,7 +1293,7 @@
    "name": "cc-item-cells",
    "version": 1,
    "kind": "constant",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 17,
    "group": "K"
   },
@@ -1302,7 +1302,7 @@
    "name": "cc-max-items",
    "version": 1,
    "kind": "constant",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 17,
    "group": "K"
   },
@@ -1311,7 +1311,7 @@
    "name": "cc-items",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 18,
    "group": "K"
   },
@@ -1320,7 +1320,7 @@
    "name": "cc-nitems",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 19,
    "group": "K"
   },
@@ -1329,7 +1329,7 @@
    "name": "cc-item@",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 20,
    "group": "K"
   },
@@ -1338,7 +1338,7 @@
    "name": "cc-lookups-begin",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 21,
    "group": "K"
   },
@@ -1347,7 +1347,7 @@
    "name": "cc-item",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 22,
    "group": "K"
   },
@@ -1356,7 +1356,7 @@
    "name": "cc-seg",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 27,
    "group": "K"
   },
@@ -1365,7 +1365,7 @@
    "name": "cc-sl",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 33,
    "group": "K"
   },
@@ -1374,7 +1374,7 @@
    "name": "cc-sh",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 33,
    "group": "K"
   },
@@ -1383,7 +1383,7 @@
    "name": "cc-read-layer",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 34,
    "group": "K"
   },
@@ -1392,7 +1392,7 @@
    "name": "cc-read-slot",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 34,
    "group": "K"
   },
@@ -1401,7 +1401,7 @@
    "name": "cc-used",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 35,
    "group": "K"
   },
@@ -1410,7 +1410,7 @@
    "name": "cc-nused",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 35,
    "group": "K"
   },
@@ -1419,7 +1419,7 @@
    "name": "cc-rl",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 35,
    "group": "K"
   },
@@ -1428,7 +1428,7 @@
    "name": "cc-pk",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 35,
    "group": "K"
   },
@@ -1437,7 +1437,7 @@
    "name": "cc-pkl",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 35,
    "group": "K"
   },
@@ -1446,7 +1446,7 @@
    "name": "cc-npatches",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 36,
    "group": "K"
   },
@@ -1455,7 +1455,7 @@
    "name": "cc-used?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 37,
    "group": "K"
   },
@@ -1464,7 +1464,7 @@
    "name": "cc-place-reads",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 39,
    "group": "K"
   },
@@ -1473,7 +1473,7 @@
    "name": "cc-patch",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 51,
    "group": "K"
   },
@@ -1482,7 +1482,7 @@
    "name": "cc-lookups",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 60,
    "group": "K"
   },
@@ -1491,7 +1491,7 @@
    "name": "cc-al",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 67,
    "group": "K"
   },
@@ -1500,7 +1500,7 @@
    "name": "cc-ar",
    "version": 1,
    "kind": "create",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 67,
    "group": "K"
   },
@@ -1509,7 +1509,7 @@
    "name": "cc-ax",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 68,
    "group": "K"
   },
@@ -1518,7 +1518,7 @@
    "name": "cc-aa",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 68,
    "group": "K"
   },
@@ -1527,7 +1527,7 @@
    "name": "cc-ab",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 68,
    "group": "K"
   },
@@ -1536,7 +1536,7 @@
    "name": "cc-atab",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 68,
    "group": "K"
   },
@@ -1545,7 +1545,7 @@
    "name": "cc-acarry",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 68,
    "group": "K"
   },
@@ -1554,7 +1554,7 @@
    "name": "cc-al@",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 69,
    "group": "K"
   },
@@ -1563,7 +1563,7 @@
    "name": "cc-rd",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 70,
    "group": "K"
   },
@@ -1572,7 +1572,7 @@
    "name": "cc-adder-patch",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 71,
    "group": "K"
   },
@@ -1581,7 +1581,7 @@
    "name": "cc-adder",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 76,
    "group": "K"
   },
@@ -1590,7 +1590,7 @@
    "name": "cc-dsrc",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 93,
    "group": "K"
   },
@@ -1599,7 +1599,7 @@
    "name": "cc-dk",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 93,
    "group": "K"
   },
@@ -1608,7 +1608,7 @@
    "name": "cc-dg",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 93,
    "group": "K"
   },
@@ -1617,7 +1617,7 @@
    "name": "cc-dp",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 93,
    "group": "K"
   },
@@ -1626,7 +1626,7 @@
    "name": "cc-dx",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 93,
    "group": "K"
   },
@@ -1635,7 +1635,7 @@
    "name": "cc-decide",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 94,
    "group": "K"
   },
@@ -1644,7 +1644,7 @@
    "name": "cc-table-at",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 102,
    "group": "K"
   },
@@ -1653,7 +1653,7 @@
    "name": "cc-table-limit",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 102,
    "group": "K"
   },
@@ -1662,7 +1662,7 @@
    "name": "cc-tbuf",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 102,
    "group": "K"
   },
@@ -1671,7 +1671,7 @@
    "name": "cc-tx",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 103,
    "group": "K"
   },
@@ -1680,7 +1680,7 @@
    "name": "cc-tbits",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 103,
    "group": "K"
   },
@@ -1689,7 +1689,7 @@
    "name": "cc-ts",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 103,
    "group": "K"
   },
@@ -1698,7 +1698,7 @@
    "name": "cc-tsize",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 103,
    "group": "K"
   },
@@ -1707,7 +1707,7 @@
    "name": "cc-tbase",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 103,
    "group": "K"
   },
@@ -1716,7 +1716,7 @@
    "name": "cc-tper",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 103,
    "group": "K"
   },
@@ -1725,7 +1725,7 @@
    "name": "cc-tables",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 104,
    "group": "K"
   },
@@ -1734,7 +1734,7 @@
    "name": "cc-table-area",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 105,
    "group": "K"
   },
@@ -1743,7 +1743,7 @@
    "name": "cc-table-done",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 113,
    "group": "K"
   },
@@ -1752,7 +1752,7 @@
    "name": "cc-table",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 116,
    "group": "K"
   },
@@ -1761,7 +1761,7 @@
    "name": "cc-table2",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 134,
    "group": "K"
   },
@@ -1770,7 +1770,7 @@
    "name": "cc-add-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 141,
    "group": "K"
   },
@@ -1779,7 +1779,7 @@
    "name": "cc-sub-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 143,
    "group": "K"
   },
@@ -1788,7 +1788,7 @@
    "name": "cc-xor-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 145,
    "group": "K"
   },
@@ -1797,7 +1797,7 @@
    "name": "cc-or-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 146,
    "group": "K"
   },
@@ -1806,7 +1806,7 @@
    "name": "cc-and-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 147,
    "group": "K"
   },
@@ -1815,7 +1815,7 @@
    "name": "cc-or8-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 148,
    "group": "K"
   },
@@ -1824,7 +1824,7 @@
    "name": "cc-fz",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 149,
    "group": "K"
   },
@@ -1833,7 +1833,7 @@
    "name": "cc-fu",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 149,
    "group": "K"
   },
@@ -1842,7 +1842,7 @@
    "name": "cc-fs",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 149,
    "group": "K"
   },
@@ -1851,7 +1851,7 @@
    "name": "cc-pair",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 150,
    "group": "K"
   },
@@ -1860,7 +1860,7 @@
    "name": "cc-flags-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 151,
    "group": "K"
   },
@@ -1869,7 +1869,7 @@
    "name": "cc-not5-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 158,
    "group": "K"
   },
@@ -1878,7 +1878,7 @@
    "name": "cc-sign-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 159,
    "group": "K"
   },
@@ -1887,7 +1887,7 @@
    "name": "cc-fill24-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 160,
    "group": "K"
   },
@@ -1896,7 +1896,7 @@
    "name": "cc-fill16-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 161,
    "group": "K"
   },
@@ -1905,7 +1905,7 @@
    "name": "cc-inc1-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 162,
    "group": "K"
   },
@@ -1914,7 +1914,7 @@
    "name": "cc-inc2-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 163,
    "group": "K"
   },
@@ -1923,7 +1923,7 @@
    "name": "cc-t-add",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 164,
    "group": "K"
   },
@@ -1932,7 +1932,7 @@
    "name": "cc-t-sub",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 164,
    "group": "K"
   },
@@ -1941,7 +1941,7 @@
    "name": "cc-t-xor",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 164,
    "group": "K"
   },
@@ -1950,7 +1950,7 @@
    "name": "cc-t-or",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 164,
    "group": "K"
   },
@@ -1959,7 +1959,7 @@
    "name": "cc-t-and",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 164,
    "group": "K"
   },
@@ -1968,7 +1968,7 @@
    "name": "cc-t-or8",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 165,
    "group": "K"
   },
@@ -1977,7 +1977,7 @@
    "name": "cc-t-flags",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 165,
    "group": "K"
   },
@@ -1986,7 +1986,7 @@
    "name": "cc-t-not5",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 165,
    "group": "K"
   },
@@ -1995,7 +1995,7 @@
    "name": "cc-t-sign32",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 165,
    "group": "K"
   },
@@ -2004,7 +2004,7 @@
    "name": "cc-t-fill24",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 166,
    "group": "K"
   },
@@ -2013,7 +2013,7 @@
    "name": "cc-t-fill16",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 166,
    "group": "K"
   },
@@ -2022,7 +2022,7 @@
    "name": "cc-t-inc1",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 166,
    "group": "K"
   },
@@ -2031,7 +2031,7 @@
    "name": "cc-t-inc2",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 166,
    "group": "K"
   },
@@ -2040,7 +2040,7 @@
    "name": "cc-standard-tables",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 167,
    "group": "K"
   },
@@ -2049,7 +2049,7 @@
    "name": "cc-oo",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 176,
    "group": "K"
   },
@@ -2058,7 +2058,7 @@
    "name": "cc-os",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 176,
    "group": "K"
   },
@@ -2067,7 +2067,7 @@
    "name": "cc-ol",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 176,
    "group": "K"
   },
@@ -2076,7 +2076,7 @@
    "name": "cc-oh",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 176,
    "group": "K"
   },
@@ -2085,7 +2085,7 @@
    "name": "cc-or-chunks",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 177,
    "group": "K"
   },
@@ -2094,7 +2094,7 @@
    "name": "cc-cr",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 183,
    "group": "K"
   },
@@ -2103,7 +2103,7 @@
    "name": "cc-ca",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 183,
    "group": "K"
   },
@@ -2112,7 +2112,7 @@
    "name": "cc-cb",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 183,
    "group": "K"
   },
@@ -2121,7 +2121,7 @@
    "name": "cc-cz",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 183,
    "group": "K"
   },
@@ -2130,7 +2130,7 @@
    "name": "cc-cf",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 183,
    "group": "K"
   },
@@ -2139,7 +2139,7 @@
    "name": "cc-compare",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 184,
    "group": "K"
   },
@@ -2148,7 +2148,7 @@
    "name": "cc-logic",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 190,
    "group": "K"
   },
@@ -2157,7 +2157,7 @@
    "name": "cc-sres",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 196,
    "group": "K"
   },
@@ -2166,7 +2166,7 @@
    "name": "cc-sa",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 196,
    "group": "K"
   },
@@ -2175,7 +2175,7 @@
    "name": "cc-samt",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 196,
    "group": "K"
   },
@@ -2184,7 +2184,7 @@
    "name": "cc-sw",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 196,
    "group": "K"
   },
@@ -2193,7 +2193,7 @@
    "name": "cc-szero",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 196,
    "group": "K"
   },
@@ -2202,7 +2202,7 @@
    "name": "cc-sarg",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 197,
    "group": "K"
   },
@@ -2211,7 +2211,7 @@
    "name": "cc-sign",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 197,
    "group": "K"
   },
@@ -2220,7 +2220,7 @@
    "name": "cc-shift-row",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 198,
    "group": "K"
   },
@@ -2229,7 +2229,7 @@
    "name": "cc-shift-patch",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 199,
    "group": "K"
   },
@@ -2238,7 +2238,7 @@
    "name": "cc-shift-right",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 201,
    "group": "K"
   },
@@ -2247,7 +2247,7 @@
    "name": "cc-shift-left",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 218,
    "group": "K"
   },
@@ -2256,7 +2256,7 @@
    "name": "cc-fc",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 231,
    "group": "K"
   },
@@ -2265,7 +2265,7 @@
    "name": "cc-ff",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 231,
    "group": "K"
   },
@@ -2274,7 +2274,7 @@
    "name": "cc-flag-exit",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 232,
    "group": "K"
   },
@@ -2283,7 +2283,7 @@
    "name": "cc-exit-layers",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 241,
    "group": "K"
   },
@@ -2292,7 +2292,7 @@
    "name": "cc-ce",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 246,
    "group": "K"
   },
@@ -2301,7 +2301,7 @@
    "name": "cc-cl",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 246,
    "group": "K"
   },
@@ -2310,7 +2310,7 @@
    "name": "cc-ch",
    "version": 1,
    "kind": "variable",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 246,
    "group": "K"
   },
@@ -2319,7 +2319,7 @@
    "name": "cc-call-rows",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 247,
    "group": "K"
   },
@@ -2328,7 +2328,7 @@
    "name": "cc-halt-begin",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 252,
    "group": "K"
   },
@@ -2337,7 +2337,7 @@
    "name": "cc-halt-region",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 253,
    "group": "K"
   },
@@ -2346,7 +2346,7 @@
    "name": "cc-halt-end",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 254,
    "group": "K"
   },
@@ -2355,7 +2355,7 @@
    "name": "cc-stub-on",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 255,
    "group": "K"
   },
@@ -2364,16 +2364,16 @@
    "name": "cc-stub",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 256,
    "group": "K"
   },
   {
-   "id": "space/forth/scripts/forthc/forthc.fth::init",
-   "name": "space/forth/scripts/forthc/forthc.fth::init",
+   "id": "forth/scripts/forthc/forthc.fth::init",
+   "name": "forth/scripts/forthc/forthc.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 10,
    "group": "K"
   },
@@ -2382,7 +2382,7 @@
    "name": "fc-size",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 11,
    "group": "K"
   },
@@ -2391,7 +2391,7 @@
    "name": "fc-cellb",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 11,
    "group": "K"
   },
@@ -2400,7 +2400,7 @@
    "name": "fc-l",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 11,
    "group": "K"
   },
@@ -2409,7 +2409,7 @@
    "name": "fc-a",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 11,
    "group": "K"
   },
@@ -2418,7 +2418,7 @@
    "name": "fc-d",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 15,
    "group": "K"
   },
@@ -2427,7 +2427,7 @@
    "name": "fc-first",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 15,
    "group": "K"
   },
@@ -2436,7 +2436,7 @@
    "name": "fc-kernel",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 15,
    "group": "K"
   },
@@ -2445,7 +2445,7 @@
    "name": "fc-layout",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 16,
    "group": "K"
   },
@@ -2454,7 +2454,7 @@
    "name": "fc-d+",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 18,
    "group": "K"
   },
@@ -2463,7 +2463,7 @@
    "name": "fc-sp",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 19,
    "group": "K"
   },
@@ -2472,7 +2472,7 @@
    "name": "fc-rp",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 19,
    "group": "K"
   },
@@ -2481,7 +2481,7 @@
    "name": "fc-handler",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 19,
    "group": "K"
   },
@@ -2490,7 +2490,7 @@
    "name": "fc-code",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 19,
    "group": "K"
   },
@@ -2499,7 +2499,7 @@
    "name": "fc-regs",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 20,
    "group": "K"
   },
@@ -2508,7 +2508,7 @@
    "name": "fc-nregs",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 20,
    "group": "K"
   },
@@ -2517,7 +2517,7 @@
    "name": "fc-tmp",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 21,
    "group": "K"
   },
@@ -2526,7 +2526,7 @@
    "name": "fc-xr",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 21,
    "group": "K"
   },
@@ -2535,7 +2535,7 @@
    "name": "fc-z",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 21,
    "group": "K"
   },
@@ -2544,7 +2544,7 @@
    "name": "fc-idx",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 21,
    "group": "K"
   },
@@ -2553,7 +2553,7 @@
    "name": "fc-flt",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 22,
    "group": "K"
   },
@@ -2562,7 +2562,7 @@
    "name": "fc-ma",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 23,
    "group": "K"
   },
@@ -2571,7 +2571,7 @@
    "name": "fc-mb",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 23,
    "group": "K"
   },
@@ -2580,7 +2580,7 @@
    "name": "fc-mp",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 23,
    "group": "K"
   },
@@ -2589,7 +2589,7 @@
    "name": "fc-mq",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 23,
    "group": "K"
   },
@@ -2598,7 +2598,7 @@
    "name": "fc-mr",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 23,
    "group": "K"
   },
@@ -2607,7 +2607,7 @@
    "name": "fc-zero",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 24,
    "group": "K"
   },
@@ -2616,7 +2616,7 @@
    "name": "fc-consts",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 24,
    "group": "K"
   },
@@ -2625,7 +2625,7 @@
    "name": "fc-sw",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 25,
    "group": "K"
   },
@@ -2634,7 +2634,7 @@
    "name": "fc-su",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 25,
    "group": "K"
   },
@@ -2643,7 +2643,7 @@
    "name": "fc-key",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 25,
    "group": "K"
   },
@@ -2652,7 +2652,7 @@
    "name": "fc-bp",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 25,
    "group": "K"
   },
@@ -2661,7 +2661,7 @@
    "name": "fc-tab",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 26,
    "group": "K"
   },
@@ -2670,7 +2670,7 @@
    "name": "fc-stk",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 26,
    "group": "K"
   },
@@ -2679,7 +2679,7 @@
    "name": "fc-rstk",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 27,
    "group": "K"
   },
@@ -2688,7 +2688,7 @@
    "name": "fc-scr0",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 27,
    "group": "K"
   },
@@ -2697,7 +2697,7 @@
    "name": "fc-links",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 28,
    "group": "K"
   },
@@ -2706,7 +2706,7 @@
    "name": "fc-max-links",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 28,
    "group": "K"
   },
@@ -2715,7 +2715,7 @@
    "name": "fc-link-chunk",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 28,
    "group": "K"
   },
@@ -2724,7 +2724,7 @@
    "name": "fc-mem",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 29,
    "group": "K"
   },
@@ -2733,7 +2733,7 @@
    "name": "fc-mw",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 29,
    "group": "K"
   },
@@ -2742,7 +2742,7 @@
    "name": "fc-htab",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 29,
    "group": "K"
   },
@@ -2751,7 +2751,7 @@
    "name": "fc-data-start",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 30,
    "group": "K"
   },
@@ -2760,7 +2760,7 @@
    "name": "fc-off",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 33,
    "group": "K"
   },
@@ -2769,7 +2769,7 @@
    "name": "fc-oc",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 33,
    "group": "K"
   },
@@ -2778,7 +2778,7 @@
    "name": "fc-t-rev8",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 34,
    "group": "K"
   },
@@ -2787,7 +2787,7 @@
    "name": "fc-t-zero32",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 34,
    "group": "K"
   },
@@ -2796,7 +2796,7 @@
    "name": "fc-t-nz2",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 34,
    "group": "K"
   },
@@ -2805,7 +2805,7 @@
    "name": "fc-t-lt32",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 34,
    "group": "K"
   },
@@ -2814,7 +2814,7 @@
    "name": "fc-t-or8b",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 35,
    "group": "K"
   },
@@ -2823,7 +2823,7 @@
    "name": "fc-t-fault",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 35,
    "group": "K"
   },
@@ -2832,7 +2832,7 @@
    "name": "fc-t-xr2",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 35,
    "group": "K"
   },
@@ -2841,7 +2841,7 @@
    "name": "fc-t-ult32",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 35,
    "group": "K"
   },
@@ -2850,7 +2850,7 @@
    "name": "fc-t-bytepos",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 35,
    "group": "K"
   },
@@ -2859,7 +2859,7 @@
    "name": "fc-off@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 36,
    "group": "K"
   },
@@ -2868,7 +2868,7 @@
    "name": "fc-off-table",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 38,
    "group": "K"
   },
@@ -2877,7 +2877,7 @@
    "name": "fc-rev-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 41,
    "group": "K"
   },
@@ -2886,7 +2886,7 @@
    "name": "fc-zero-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 42,
    "group": "K"
   },
@@ -2895,7 +2895,7 @@
    "name": "fc-nz-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 43,
    "group": "K"
   },
@@ -2904,7 +2904,7 @@
    "name": "fc-lt-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 44,
    "group": "K"
   },
@@ -2913,7 +2913,7 @@
    "name": "fc-fault-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 47,
    "group": "K"
   },
@@ -2922,7 +2922,7 @@
    "name": "fc-xr2-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 50,
    "group": "K"
   },
@@ -2931,7 +2931,7 @@
    "name": "fc-ult-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 51,
    "group": "K"
   },
@@ -2940,7 +2940,7 @@
    "name": "fc-bytepos-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 53,
    "group": "K"
   },
@@ -2949,7 +2949,7 @@
    "name": "fc-tables",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 54,
    "group": "K"
   },
@@ -2958,7 +2958,7 @@
    "name": "fc-mul4-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 67,
    "group": "K"
   },
@@ -2967,7 +2967,7 @@
    "name": "fc-qsel-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 70,
    "group": "K"
   },
@@ -2976,7 +2976,7 @@
    "name": "fc-max-consts",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 75,
    "group": "K"
   },
@@ -2985,7 +2985,7 @@
    "name": "fc-ck",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 75,
    "group": "K"
   },
@@ -2994,7 +2994,7 @@
    "name": "fc-nconsts",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 75,
    "group": "K"
   },
@@ -3003,7 +3003,7 @@
    "name": "fc-nbuckets",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 76,
    "group": "K"
   },
@@ -3012,7 +3012,7 @@
    "name": "fc-cbk",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 76,
    "group": "K"
   },
@@ -3021,7 +3021,7 @@
    "name": "fc-ck@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 77,
    "group": "K"
   },
@@ -3030,7 +3030,7 @@
    "name": "fc-chash",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 78,
    "group": "K"
   },
@@ -3039,7 +3039,7 @@
    "name": "fc-cb",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 79,
    "group": "K"
   },
@@ -3048,7 +3048,7 @@
    "name": "fc-const2",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 80,
    "group": "K"
   },
@@ -3057,7 +3057,7 @@
    "name": "fc-const",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 90,
    "group": "K"
   },
@@ -3066,7 +3066,7 @@
    "name": "fc-nlinks",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 93,
    "group": "K"
   },
@@ -3075,7 +3075,7 @@
    "name": "fc-link-buf",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 93,
    "group": "K"
   },
@@ -3084,7 +3084,7 @@
    "name": "fc-nbuf",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 93,
    "group": "K"
   },
@@ -3093,7 +3093,7 @@
    "name": "fc-put-links",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 94,
    "group": "K"
   },
@@ -3102,7 +3102,7 @@
    "name": "fc-link-const",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 98,
    "group": "K"
   },
@@ -3111,7 +3111,7 @@
    "name": "fc-eight",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 103,
    "group": "K"
   },
@@ -3120,7 +3120,7 @@
    "name": "fc-zeros",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 103,
    "group": "K"
   },
@@ -3129,7 +3129,7 @@
    "name": "fc-put-consts",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 104,
    "group": "K"
   },
@@ -3138,7 +3138,7 @@
    "name": "fc-cache",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 112,
    "group": "K"
   },
@@ -3147,7 +3147,7 @@
    "name": "fc-n",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 112,
    "group": "K"
   },
@@ -3156,7 +3156,7 @@
    "name": "fc-pin",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 113,
    "group": "K"
   },
@@ -3165,7 +3165,7 @@
    "name": "fc-npin",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 113,
    "group": "K"
   },
@@ -3174,7 +3174,7 @@
    "name": "fc-c@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 114,
    "group": "K"
   },
@@ -3183,7 +3183,7 @@
    "name": "fc-push",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 115,
    "group": "K"
   },
@@ -3192,7 +3192,7 @@
    "name": "fc-pop1",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 116,
    "group": "K"
   },
@@ -3201,7 +3201,7 @@
    "name": "fc-in?",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 117,
    "group": "K"
   },
@@ -3210,7 +3210,7 @@
    "name": "fc-reg",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 118,
    "group": "K"
   },
@@ -3219,7 +3219,7 @@
    "name": "fc-reg-for-pop",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 123,
    "group": "K"
   },
@@ -3228,7 +3228,7 @@
    "name": "fc-scr",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 124,
    "group": "K"
   },
@@ -3237,7 +3237,7 @@
    "name": "fc-scratch",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 125,
    "group": "K"
   },
@@ -3246,7 +3246,7 @@
    "name": "fc-offs",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 129,
    "group": "K"
   },
@@ -3255,7 +3255,7 @@
    "name": "fc-noff",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 129,
    "group": "K"
   },
@@ -3264,7 +3264,7 @@
    "name": "fc-ptr",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 129,
    "group": "K"
   },
@@ -3273,7 +3273,7 @@
    "name": "fc-adjust",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 131,
    "group": "K"
   },
@@ -3282,7 +3282,7 @@
    "name": "fc-prow",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 137,
    "group": "K"
   },
@@ -3291,7 +3291,7 @@
    "name": "fc-nrow",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 137,
    "group": "K"
   },
@@ -3300,7 +3300,7 @@
    "name": "fc-pl",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 138,
    "group": "K"
   },
@@ -3309,7 +3309,7 @@
    "name": "fc-pslot",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 138,
    "group": "K"
   },
@@ -3318,7 +3318,7 @@
    "name": "fc-rl",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 139,
    "group": "K"
   },
@@ -3327,7 +3327,7 @@
    "name": "fc-f0",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 139,
    "group": "K"
   },
@@ -3336,7 +3336,7 @@
    "name": "fc-f1",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 139,
    "group": "K"
   },
@@ -3345,7 +3345,7 @@
    "name": "fc-psh",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 139,
    "group": "K"
   },
@@ -3354,7 +3354,7 @@
    "name": "fc-row+",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 140,
    "group": "K"
   },
@@ -3363,7 +3363,7 @@
    "name": "fc-4@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 142,
    "group": "K"
   },
@@ -3372,7 +3372,7 @@
    "name": "fc-patched",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 144,
    "group": "K"
   },
@@ -3381,7 +3381,7 @@
    "name": "fc-popped",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 156,
    "group": "K"
   },
@@ -3390,7 +3390,7 @@
    "name": "fc-srcs",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 156,
    "group": "K"
   },
@@ -3399,7 +3399,7 @@
    "name": "fc-nsrc",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 156,
    "group": "K"
   },
@@ -3408,7 +3408,7 @@
    "name": "fc-mbase",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 157,
    "group": "K"
   },
@@ -3417,7 +3417,7 @@
    "name": "fc-mptr",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 157,
    "group": "K"
   },
@@ -3426,7 +3426,7 @@
    "name": "fc-mn",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 157,
    "group": "K"
   },
@@ -3435,7 +3435,7 @@
    "name": "fc-mw2",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 157,
    "group": "K"
   },
@@ -3444,7 +3444,7 @@
    "name": "fc-popped@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 158,
    "group": "K"
   },
@@ -3453,7 +3453,7 @@
    "name": "fc-shift",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 159,
    "group": "K"
   },
@@ -3462,7 +3462,7 @@
    "name": "fc-mem-pop",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 160,
    "group": "K"
   },
@@ -3471,7 +3471,7 @@
    "name": "fc-push-group",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 168,
    "group": "K"
   },
@@ -3480,7 +3480,7 @@
    "name": "fc-dup-at",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 176,
    "group": "K"
   },
@@ -3489,7 +3489,7 @@
    "name": "fc-rest",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 178,
    "group": "K"
   },
@@ -3498,7 +3498,7 @@
    "name": "fc-nrest",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 178,
    "group": "K"
   },
@@ -3507,7 +3507,7 @@
    "name": "fc-mem-push",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 179,
    "group": "K"
   },
@@ -3516,7 +3516,7 @@
    "name": "fc-src1",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 185,
    "group": "K"
   },
@@ -3525,7 +3525,7 @@
    "name": "fc-need",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 187,
    "group": "K"
   },
@@ -3534,7 +3534,7 @@
    "name": "fc-spill",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 194,
    "group": "K"
   },
@@ -3543,7 +3543,7 @@
    "name": "fc-pop",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 200,
    "group": "K"
   },
@@ -3552,7 +3552,7 @@
    "name": "fc-live",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 203,
    "group": "K"
   },
@@ -3561,7 +3561,7 @@
    "name": "fc-tramp",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 203,
    "group": "K"
   },
@@ -3570,7 +3570,7 @@
    "name": "fc-ex",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 203,
    "group": "K"
   },
@@ -3579,7 +3579,7 @@
    "name": "fc-thrower",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 203,
    "group": "K"
   },
@@ -3588,7 +3588,7 @@
    "name": "fc-jump",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 204,
    "group": "K"
   },
@@ -3597,7 +3597,7 @@
    "name": "fc-end",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 205,
    "group": "K"
   },
@@ -3606,7 +3606,7 @@
    "name": "fc-begin-block",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 207,
    "group": "K"
   },
@@ -3615,7 +3615,7 @@
    "name": "fc-rows1",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 211,
    "group": "K"
   },
@@ -3624,7 +3624,7 @@
    "name": "fc-nonzero",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 212,
    "group": "K"
   },
@@ -3633,7 +3633,7 @@
    "name": "fc-branch",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 215,
    "group": "K"
   },
@@ -3642,7 +3642,7 @@
    "name": "fc-call",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 216,
    "group": "K"
   },
@@ -3651,7 +3651,7 @@
    "name": "fc-v0",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 219,
    "group": "K"
   },
@@ -3660,7 +3660,7 @@
    "name": "fc-v1",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 219,
    "group": "K"
   },
@@ -3669,7 +3669,7 @@
    "name": "fc-call-indirect",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 220,
    "group": "K"
   },
@@ -3678,7 +3678,7 @@
    "name": "fc-push-frame",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 227,
    "group": "K"
   },
@@ -3687,7 +3687,7 @@
    "name": "fc-restore",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 230,
    "group": "K"
   },
@@ -3696,7 +3696,7 @@
    "name": "fc-build-thrower",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 232,
    "group": "K"
   },
@@ -3705,7 +3705,7 @@
    "name": "fc-throw",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 238,
    "group": "K"
   },
@@ -3714,7 +3714,7 @@
    "name": "fc-catch",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 241,
    "group": "K"
   },
@@ -3723,7 +3723,7 @@
    "name": "fc-ret-p",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 250,
    "group": "K"
   },
@@ -3732,7 +3732,7 @@
    "name": "fc-ret-l",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 250,
    "group": "K"
   },
@@ -3741,7 +3741,7 @@
    "name": "fc-ret",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 251,
    "group": "K"
   },
@@ -3750,7 +3750,7 @@
    "name": "fc-ca",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 259,
    "group": "K"
   },
@@ -3759,7 +3759,7 @@
    "name": "fc-cl0",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 259,
    "group": "K"
   },
@@ -3768,7 +3768,7 @@
    "name": "fc-cl1",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 259,
    "group": "K"
   },
@@ -3777,7 +3777,7 @@
    "name": "fc-cr",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 259,
    "group": "K"
   },
@@ -3786,7 +3786,7 @@
    "name": "fc-cg",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 259,
    "group": "K"
   },
@@ -3795,7 +3795,7 @@
    "name": "fc-cx",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 259,
    "group": "K"
   },
@@ -3804,7 +3804,7 @@
    "name": "fc-cv",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 260,
    "group": "K"
   },
@@ -3813,7 +3813,7 @@
    "name": "fc-cres",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 260,
    "group": "K"
   },
@@ -3822,7 +3822,7 @@
    "name": "fc-cslot",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 260,
    "group": "K"
   },
@@ -3831,7 +3831,7 @@
    "name": "fc-csh",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 260,
    "group": "K"
   },
@@ -3840,7 +3840,7 @@
    "name": "fc-chk-read",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 262,
    "group": "K"
   },
@@ -3849,7 +3849,7 @@
    "name": "fc-chk-seg",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 265,
    "group": "K"
   },
@@ -3858,7 +3858,7 @@
    "name": "fc-cmode",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 271,
    "group": "K"
   },
@@ -3867,7 +3867,7 @@
    "name": "fc-ar",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 271,
    "group": "K"
   },
@@ -3876,7 +3876,7 @@
    "name": "fc-as",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 271,
    "group": "K"
   },
@@ -3885,7 +3885,7 @@
    "name": "fc-af",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 271,
    "group": "K"
   },
@@ -3894,7 +3894,7 @@
    "name": "fc-al0",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 271,
    "group": "K"
   },
@@ -3903,7 +3903,7 @@
    "name": "fc-al1",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 271,
    "group": "K"
   },
@@ -3912,7 +3912,7 @@
    "name": "fc-apl",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 272,
    "group": "K"
   },
@@ -3921,7 +3921,7 @@
    "name": "fc-afld",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 272,
    "group": "K"
   },
@@ -3930,7 +3930,7 @@
    "name": "fc-access-patch",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 273,
    "group": "K"
   },
@@ -3939,7 +3939,7 @@
    "name": "fc-access",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 278,
    "group": "K"
   },
@@ -3948,7 +3948,7 @@
    "name": "fc-width",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 280,
    "group": "K"
   },
@@ -3957,7 +3957,7 @@
    "name": "fc-r1l0",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 281,
    "group": "K"
   },
@@ -3966,7 +3966,7 @@
    "name": "fc-r1l1",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 281,
    "group": "K"
   },
@@ -3975,7 +3975,7 @@
    "name": "fc-r1r",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 281,
    "group": "K"
   },
@@ -3984,7 +3984,7 @@
    "name": "fc-check",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 284,
    "group": "K"
   },
@@ -3993,7 +3993,7 @@
    "name": "fc-ring",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 310,
    "group": "K"
   },
@@ -4002,7 +4002,7 @@
    "name": "fc-window",
    "version": 1,
    "kind": "constant",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 310,
    "group": "K"
   },
@@ -4011,7 +4011,7 @@
    "name": "fc-sl",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 311,
    "group": "K"
   },
@@ -4020,7 +4020,7 @@
    "name": "fc-stabs",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 311,
    "group": "K"
   },
@@ -4029,7 +4029,7 @@
    "name": "fc-slen",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 312,
    "group": "K"
   },
@@ -4038,7 +4038,7 @@
    "name": "fc-slow",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 312,
    "group": "K"
   },
@@ -4047,7 +4047,7 @@
    "name": "fc-sinit",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 313,
    "group": "K"
   },
@@ -4056,7 +4056,7 @@
    "name": "fc-sbegin",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 314,
    "group": "K"
   },
@@ -4065,7 +4065,7 @@
    "name": "fc-tabs",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 315,
    "group": "K"
   },
@@ -4074,7 +4074,7 @@
    "name": "fc-at",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 316,
    "group": "K"
   },
@@ -4083,7 +4083,7 @@
    "name": "fc-has?",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 321,
    "group": "K"
   },
@@ -4092,7 +4092,7 @@
    "name": "fc-tab+",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 322,
    "group": "K"
   },
@@ -4101,7 +4101,7 @@
    "name": "fc-prw",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 323,
    "group": "K"
   },
@@ -4110,7 +4110,7 @@
    "name": "fc-ptab",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 323,
    "group": "K"
   },
@@ -4119,7 +4119,7 @@
    "name": "fc-place",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 324,
    "group": "K"
   },
@@ -4128,7 +4128,7 @@
    "name": "fc-scopy",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 334,
    "group": "K"
   },
@@ -4137,7 +4137,7 @@
    "name": "fc-segs",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 336,
    "group": "K"
   },
@@ -4146,7 +4146,7 @@
    "name": "fc-nseg",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 336,
    "group": "K"
   },
@@ -4155,7 +4155,7 @@
    "name": "fc-pp",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 337,
    "group": "K"
   },
@@ -4164,7 +4164,7 @@
    "name": "fc-npp",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 337,
    "group": "K"
   },
@@ -4173,7 +4173,7 @@
    "name": "fc-latest",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 337,
    "group": "K"
   },
@@ -4182,7 +4182,7 @@
    "name": "fc-sga",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 337,
    "group": "K"
   },
@@ -4191,7 +4191,7 @@
    "name": "fc-ltab",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 338,
    "group": "K"
   },
@@ -4200,7 +4200,7 @@
    "name": "fc-ls",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 338,
    "group": "K"
   },
@@ -4209,7 +4209,7 @@
    "name": "fc-lw",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 338,
    "group": "K"
   },
@@ -4218,7 +4218,7 @@
    "name": "fc-ldst",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 338,
    "group": "K"
   },
@@ -4227,7 +4227,7 @@
    "name": "fc-seg+",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 339,
    "group": "K"
   },
@@ -4236,7 +4236,7 @@
    "name": "fc-pp+",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 342,
    "group": "K"
   },
@@ -4245,7 +4245,7 @@
    "name": "fc-slookup",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 343,
    "group": "K"
   },
@@ -4254,7 +4254,7 @@
    "name": "fc-nx",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 362,
    "group": "K"
   },
@@ -4263,7 +4263,7 @@
    "name": "fc-nv",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 362,
    "group": "K"
   },
@@ -4272,7 +4272,7 @@
    "name": "fc-nt",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 362,
    "group": "K"
   },
@@ -4281,7 +4281,7 @@
    "name": "fc-negate-chain",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 363,
    "group": "K"
   },
@@ -4290,7 +4290,7 @@
    "name": "fc-gw",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 370,
    "group": "K"
   },
@@ -4299,7 +4299,7 @@
    "name": "fc-gs",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 370,
    "group": "K"
   },
@@ -4308,7 +4308,7 @@
    "name": "fc-gs2",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 370,
    "group": "K"
   },
@@ -4317,7 +4317,7 @@
    "name": "fc-gts",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 370,
    "group": "K"
   },
@@ -4326,7 +4326,7 @@
    "name": "fc-gdst",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 370,
    "group": "K"
   },
@@ -4335,7 +4335,7 @@
    "name": "fc-negate-select",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 371,
    "group": "K"
   },
@@ -4344,7 +4344,7 @@
    "name": "fc-sfinish",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 376,
    "group": "K"
   },
@@ -4353,7 +4353,7 @@
    "name": "fc-pr",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 379,
    "group": "K"
   },
@@ -4362,7 +4362,7 @@
    "name": "fc-xs",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 379,
    "group": "K"
   },
@@ -4371,7 +4371,7 @@
    "name": "fc-m4",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 380,
    "group": "K"
   },
@@ -4380,7 +4380,7 @@
    "name": "fc-mj",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 380,
    "group": "K"
   },
@@ -4389,7 +4389,7 @@
    "name": "fc-mk",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 380,
    "group": "K"
   },
@@ -4398,7 +4398,7 @@
    "name": "fc-p@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 381,
    "group": "K"
   },
@@ -4407,7 +4407,7 @@
    "name": "fc-p!",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 382,
    "group": "K"
   },
@@ -4416,7 +4416,7 @@
    "name": "fc-x@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 383,
    "group": "K"
   },
@@ -4425,7 +4425,7 @@
    "name": "fc-x!",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 384,
    "group": "K"
   },
@@ -4434,7 +4434,7 @@
    "name": "fc-build-mul",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 385,
    "group": "K"
   },
@@ -4443,7 +4443,7 @@
    "name": "fc-sub",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 403,
    "group": "K"
   },
@@ -4452,7 +4452,7 @@
    "name": "fc-qsel",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 403,
    "group": "K"
   },
@@ -4461,7 +4461,7 @@
    "name": "fc-absa",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 404,
    "group": "K"
   },
@@ -4470,7 +4470,7 @@
    "name": "fc-absb",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 404,
    "group": "K"
   },
@@ -4479,7 +4479,7 @@
    "name": "fc-ta",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 404,
    "group": "K"
   },
@@ -4488,7 +4488,7 @@
    "name": "fc-tb",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 404,
    "group": "K"
   },
@@ -4497,7 +4497,7 @@
    "name": "fc-rem",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 405,
    "group": "K"
   },
@@ -4506,7 +4506,7 @@
    "name": "fc-tr",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 405,
    "group": "K"
   },
@@ -4515,7 +4515,7 @@
    "name": "fc-q",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 405,
    "group": "K"
   },
@@ -4524,7 +4524,7 @@
    "name": "fc-tq",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 405,
    "group": "K"
   },
@@ -4533,7 +4533,7 @@
    "name": "fc-k",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 405,
    "group": "K"
   },
@@ -4542,7 +4542,7 @@
    "name": "fc-w",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 406,
    "group": "K"
   },
@@ -4551,7 +4551,7 @@
    "name": "fc-lo",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 406,
    "group": "K"
   },
@@ -4560,7 +4560,7 @@
    "name": "fc-tlo",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 406,
    "group": "K"
   },
@@ -4569,7 +4569,7 @@
    "name": "fc-t0",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 406,
    "group": "K"
   },
@@ -4578,7 +4578,7 @@
    "name": "fc-t1",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 406,
    "group": "K"
   },
@@ -4587,7 +4587,7 @@
    "name": "fc-qr",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 406,
    "group": "K"
   },
@@ -4596,7 +4596,7 @@
    "name": "fc-tqk",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 406,
    "group": "K"
   },
@@ -4605,7 +4605,7 @@
    "name": "fc-sub@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 407,
    "group": "K"
   },
@@ -4614,7 +4614,7 @@
    "name": "fc-step",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 409,
    "group": "K"
   },
@@ -4623,7 +4623,7 @@
    "name": "fc-div-step",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 416,
    "group": "K"
   },
@@ -4632,7 +4632,7 @@
    "name": "fc-build-div",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 433,
    "group": "K"
   },
@@ -4641,7 +4641,7 @@
    "name": "fc-mul-entry",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 449,
    "group": "K"
   },
@@ -4650,7 +4650,7 @@
    "name": "fc-mul-exit",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 449,
    "group": "K"
   },
@@ -4659,7 +4659,7 @@
    "name": "fc-div-entry",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 449,
    "group": "K"
   },
@@ -4668,7 +4668,7 @@
    "name": "fc-div-exit",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 449,
    "group": "K"
   },
@@ -4677,7 +4677,7 @@
    "name": "fc-hl",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 450,
    "group": "K"
   },
@@ -4686,7 +4686,7 @@
    "name": "fc-hcont",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 450,
    "group": "K"
   },
@@ -4695,7 +4695,7 @@
    "name": "fc-row-or-new",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 451,
    "group": "K"
   },
@@ -4704,7 +4704,7 @@
    "name": "fc-call-helper",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 454,
    "group": "K"
   },
@@ -4713,7 +4713,7 @@
    "name": "fc-result1",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 459,
    "group": "K"
   },
@@ -4722,7 +4722,7 @@
    "name": "fc-s1",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 460,
    "group": "K"
   },
@@ -4731,7 +4731,7 @@
    "name": "fc-s2",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 460,
    "group": "K"
   },
@@ -4740,7 +4740,7 @@
    "name": "fc-r1",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 460,
    "group": "K"
   },
@@ -4749,7 +4749,7 @@
    "name": "fc-result2",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 461,
    "group": "K"
   },
@@ -4758,7 +4758,7 @@
    "name": "fc-ll",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 467,
    "group": "K"
   },
@@ -4767,7 +4767,7 @@
    "name": "fc-llr",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 467,
    "group": "K"
   },
@@ -4776,7 +4776,7 @@
    "name": "fc-llv",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 467,
    "group": "K"
   },
@@ -4785,7 +4785,7 @@
    "name": "fc-plit",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 467,
    "group": "K"
   },
@@ -4794,7 +4794,7 @@
    "name": "fc-plr",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 467,
    "group": "K"
   },
@@ -4803,7 +4803,7 @@
    "name": "fc-plv",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 467,
    "group": "K"
   },
@@ -4812,7 +4812,7 @@
    "name": "fc-literal",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 468,
    "group": "K"
   },
@@ -4821,7 +4821,7 @@
    "name": "fc-or-zero",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 470,
    "group": "K"
   },
@@ -4830,7 +4830,7 @@
    "name": "fc-ba",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 473,
    "group": "K"
   },
@@ -4839,7 +4839,7 @@
    "name": "fc-bb",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 473,
    "group": "K"
   },
@@ -4848,7 +4848,7 @@
    "name": "fc-br",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 473,
    "group": "K"
   },
@@ -4857,7 +4857,7 @@
    "name": "fc-binary",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 475,
    "group": "K"
   },
@@ -4866,7 +4866,7 @@
    "name": "fc-r-at",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 499,
    "group": "K"
   },
@@ -4875,7 +4875,7 @@
    "name": "fc-pop-pinned",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 502,
    "group": "K"
   },
@@ -4884,7 +4884,7 @@
    "name": "fc-sk",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 504,
    "group": "K"
   },
@@ -4893,7 +4893,7 @@
    "name": "fc-shift-copy",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 505,
    "group": "K"
   },
@@ -4902,7 +4902,7 @@
    "name": "fc-inc",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 510,
    "group": "K"
   },
@@ -4911,7 +4911,7 @@
    "name": "fc-read-key",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 513,
    "group": "K"
   },
@@ -4920,7 +4920,7 @@
    "name": "fc-text",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 519,
    "group": "K"
   },
@@ -4929,7 +4929,7 @@
    "name": "fc-tlen",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 519,
    "group": "K"
   },
@@ -4938,7 +4938,7 @@
    "name": "fc-pos",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 519,
    "group": "K"
   },
@@ -4947,7 +4947,7 @@
    "name": "fc-text-size",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 519,
    "group": "K"
   },
@@ -4956,7 +4956,7 @@
    "name": "fc-tok",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 520,
    "group": "K"
   },
@@ -4965,7 +4965,7 @@
    "name": "fc-tl",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 520,
    "group": "K"
   },
@@ -4974,7 +4974,7 @@
    "name": "fc-reset",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 521,
    "group": "K"
   },
@@ -4983,7 +4983,7 @@
    "name": "fc-append",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 522,
    "group": "K"
   },
@@ -4992,7 +4992,7 @@
    "name": "fc|",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 526,
    "group": "K"
   },
@@ -5001,7 +5001,7 @@
    "name": "fc-ch",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 527,
    "group": "K"
   },
@@ -5010,7 +5010,7 @@
    "name": "fc-more?",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 528,
    "group": "K"
   },
@@ -5019,7 +5019,7 @@
    "name": "fc-word-raw",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 531,
    "group": "K"
   },
@@ -5028,7 +5028,7 @@
    "name": "fc-next",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 539,
    "group": "K"
   },
@@ -5037,7 +5037,7 @@
    "name": "fc-next!",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 544,
    "group": "K"
   },
@@ -5046,7 +5046,7 @@
    "name": "fc-is?",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 545,
    "group": "K"
   },
@@ -5055,7 +5055,7 @@
    "name": "fc-squote?",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 548,
    "group": "K"
   },
@@ -5064,7 +5064,7 @@
    "name": "fc-raw",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 551,
    "group": "K"
   },
@@ -5073,7 +5073,7 @@
    "name": "fc-string-token",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 553,
    "group": "K"
   },
@@ -5082,7 +5082,7 @@
    "name": "fc-number",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 559,
    "group": "K"
   },
@@ -5091,7 +5091,7 @@
    "name": "fc-names-size",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 565,
    "group": "K"
   },
@@ -5100,7 +5100,7 @@
    "name": "fc-max-words",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 565,
    "group": "K"
   },
@@ -5109,7 +5109,7 @@
    "name": "fc-names",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 566,
    "group": "K"
   },
@@ -5118,7 +5118,7 @@
    "name": "fc-names-used",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 566,
    "group": "K"
   },
@@ -5127,7 +5127,7 @@
    "name": "fc-wt",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 567,
    "group": "K"
   },
@@ -5136,7 +5136,7 @@
    "name": "fc-nwords",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 567,
    "group": "K"
   },
@@ -5145,7 +5145,7 @@
    "name": "fc-wbk",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 567,
    "group": "K"
   },
@@ -5154,7 +5154,7 @@
    "name": "fc-wt@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 568,
    "group": "K"
   },
@@ -5163,7 +5163,7 @@
    "name": "fc-whash",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 569,
    "group": "K"
   },
@@ -5172,7 +5172,7 @@
    "name": "fc-define",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 571,
    "group": "K"
   },
@@ -5181,7 +5181,7 @@
    "name": "fc-find",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 576,
    "group": "K"
   },
@@ -5190,7 +5190,7 @@
    "name": "fc-here",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 582,
    "group": "K"
   },
@@ -5199,7 +5199,7 @@
    "name": "fc-word",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 582,
    "group": "K"
   },
@@ -5208,7 +5208,7 @@
    "name": "fc-uses",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 582,
    "group": "K"
   },
@@ -5217,7 +5217,7 @@
    "name": "fc-ctl",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 585,
    "group": "K"
   },
@@ -5226,7 +5226,7 @@
    "name": "fc-nctl",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 585,
    "group": "K"
   },
@@ -5235,7 +5235,7 @@
    "name": "fc-cleave",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 585,
    "group": "K"
   },
@@ -5244,7 +5244,7 @@
    "name": "fc-ctl@",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 586,
    "group": "K"
   },
@@ -5253,7 +5253,7 @@
    "name": "fc-ctl+",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 587,
    "group": "K"
   },
@@ -5262,7 +5262,7 @@
    "name": "fc-ctl-",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 589,
    "group": "K"
   },
@@ -5271,7 +5271,7 @@
    "name": "fc-do-entry",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 591,
    "group": "K"
   },
@@ -5280,7 +5280,7 @@
    "name": "fc-align",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 594,
    "group": "K"
   },
@@ -5289,7 +5289,7 @@
    "name": "fc-check-here",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 595,
    "group": "K"
   },
@@ -5298,7 +5298,7 @@
    "name": "fc-define-data",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 596,
    "group": "K"
   },
@@ -5307,7 +5307,7 @@
    "name": "fc-sat",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 597,
    "group": "K"
   },
@@ -5316,7 +5316,7 @@
    "name": "fc-store-string",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 598,
    "group": "K"
   },
@@ -5325,7 +5325,7 @@
    "name": "fc-ct",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 604,
    "group": "K"
   },
@@ -5334,7 +5334,7 @@
    "name": "fc-nct",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 604,
    "group": "K"
   },
@@ -5343,7 +5343,7 @@
    "name": "fc-ct+",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 605,
    "group": "K"
   },
@@ -5352,7 +5352,7 @@
    "name": "fc-ct-",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 606,
    "group": "K"
   },
@@ -5361,7 +5361,7 @@
    "name": "fc-ct2",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 607,
    "group": "K"
   },
@@ -5370,7 +5370,7 @@
    "name": "fc-ct-op",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 608,
    "group": "K"
   },
@@ -5379,7 +5379,7 @@
    "name": "fc-inits",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 622,
    "group": "K"
   },
@@ -5388,7 +5388,7 @@
    "name": "fc-ninit",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 622,
    "group": "K"
   },
@@ -5397,7 +5397,7 @@
    "name": "fc-init-open",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 622,
    "group": "K"
   },
@@ -5406,7 +5406,7 @@
    "name": "fc-init",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 623,
    "group": "K"
   },
@@ -5415,7 +5415,7 @@
    "name": "fc-scan-uses",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 638,
    "group": "K"
   },
@@ -5424,7 +5424,7 @@
    "name": "fc-primitive",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 644,
    "group": "K"
   },
@@ -5433,7 +5433,7 @@
    "name": "fc-lv",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 680,
    "group": "K"
   },
@@ -5442,7 +5442,7 @@
    "name": "fc-loop",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 681,
    "group": "K"
   },
@@ -5451,7 +5451,7 @@
    "name": "fc-di",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 690,
    "group": "K"
   },
@@ -5460,7 +5460,7 @@
    "name": "fc-dl",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 690,
    "group": "K"
   },
@@ -5469,7 +5469,7 @@
    "name": "fc-qdo",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 692,
    "group": "K"
   },
@@ -5478,7 +5478,7 @@
    "name": "fc-leave",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 698,
    "group": "K"
   },
@@ -5487,7 +5487,7 @@
    "name": "fc-const-shift",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 702,
    "group": "K"
   },
@@ -5496,7 +5496,7 @@
    "name": "fc-shift-lit?",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 713,
    "group": "K"
   },
@@ -5505,7 +5505,7 @@
    "name": "fc-pick-roll",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 720,
    "group": "K"
   },
@@ -5514,7 +5514,7 @@
    "name": "fc-stx",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 728,
    "group": "K"
   },
@@ -5523,7 +5523,7 @@
    "name": "fc-stlo",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 728,
    "group": "K"
   },
@@ -5532,7 +5532,7 @@
    "name": "fc-sthi",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 728,
    "group": "K"
   },
@@ -5541,7 +5541,7 @@
    "name": "fc-stp",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 728,
    "group": "K"
   },
@@ -5550,7 +5550,7 @@
    "name": "fc-strow",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 728,
    "group": "K"
   },
@@ -5559,7 +5559,7 @@
    "name": "fc-space-store",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 729,
    "group": "K"
   },
@@ -5568,7 +5568,7 @@
    "name": "fc-control-token",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 739,
    "group": "K"
   },
@@ -5577,7 +5577,7 @@
    "name": "fc-word-token",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 766,
    "group": "K"
   },
@@ -5586,7 +5586,7 @@
    "name": "fc-close-init",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 777,
    "group": "K"
   },
@@ -5595,7 +5595,7 @@
    "name": "fc-open-init",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 780,
    "group": "K"
   },
@@ -5604,7 +5604,7 @@
    "name": "fc-top-token",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 788,
    "group": "K"
   },
@@ -5613,7 +5613,7 @@
    "name": "fc-compile",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 801,
    "group": "K"
   },
@@ -5622,7 +5622,7 @@
    "name": "fc-go",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/forthc.fth",
+   "file": "forth/scripts/forthc/forthc.fth",
    "line": 818,
    "group": "K"
   },
@@ -5631,16 +5631,16 @@
    "name": "heap-start",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/main.fth",
+   "file": "forth/scripts/forthc/main.fth",
    "line": 4,
    "group": "K"
   },
   {
-   "id": "space/forth/scripts/forthc/main.fth::init",
-   "name": "space/forth/scripts/forthc/main.fth::init",
+   "id": "forth/scripts/forthc/main.fth::init",
+   "name": "forth/scripts/forthc/main.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/forth/scripts/forthc/main.fth",
+   "file": "forth/scripts/forthc/main.fth",
    "line": 5,
    "group": "K"
   },
@@ -5649,7 +5649,7 @@
    "name": "fc-read",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/main.fth",
+   "file": "forth/scripts/forthc/main.fth",
    "line": 7,
    "group": "K"
   },
@@ -5658,7 +5658,7 @@
    "name": "fc-sizes",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/main.fth",
+   "file": "forth/scripts/forthc/main.fth",
    "line": 12,
    "group": "K"
   },
@@ -5667,16 +5667,16 @@
    "name": "main",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/main.fth",
+   "file": "forth/scripts/forthc/main.fth",
    "line": 15,
    "group": "K"
   },
   {
-   "id": "space/forth/scripts/forthc/kernel.fth::init",
-   "name": "space/forth/scripts/forthc/kernel.fth::init",
+   "id": "forth/scripts/forthc/kernel.fth::init",
+   "name": "forth/scripts/forthc/kernel.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/forth/scripts/forthc/kernel.fth",
+   "file": "forth/scripts/forthc/kernel.fth",
    "line": 8,
    "group": "K"
   },
@@ -5685,7 +5685,7 @@
    "name": "kn-at",
    "version": 1,
    "kind": "variable",
-   "file": "space/forth/scripts/forthc/kernel.fth",
+   "file": "forth/scripts/forthc/kernel.fth",
    "line": 12,
    "group": "K"
   },
@@ -5694,7 +5694,7 @@
    "name": "kn-put",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/kernel.fth",
+   "file": "forth/scripts/forthc/kernel.fth",
    "line": 13,
    "group": "K"
   },
@@ -5703,7 +5703,7 @@
    "name": "kn-order",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/kernel.fth",
+   "file": "forth/scripts/forthc/kernel.fth",
    "line": 23,
    "group": "K"
   },
@@ -5712,7 +5712,7 @@
    "name": "kn-compile",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/kernel.fth",
+   "file": "forth/scripts/forthc/kernel.fth",
    "line": 24,
    "group": "K"
   },
@@ -5721,7 +5721,7 @@
    "name": "kn-.n",
    "version": 1,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/kernel.fth",
+   "file": "forth/scripts/forthc/kernel.fth",
    "line": 25,
    "group": "K"
   },
@@ -5730,7 +5730,7 @@
    "name": "main",
    "version": 2,
    "kind": "colon",
-   "file": "space/forth/scripts/forthc/kernel.fth",
+   "file": "forth/scripts/forthc/kernel.fth",
    "line": 29,
    "group": "K"
   },
@@ -5739,16 +5739,16 @@
    "name": "kn-heap-start",
    "version": 1,
    "kind": "create",
-   "file": "space/forth/scripts/forthc/kernel.fth",
+   "file": "forth/scripts/forthc/kernel.fth",
    "line": 34,
    "group": "K"
   },
   {
-   "id": "space/copycode/forth/integers.fth::init",
-   "name": "space/copycode/forth/integers.fth::init",
+   "id": "copycode/forth/integers.fth::init",
+   "name": "copycode/forth/integers.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/copycode/forth/integers.fth",
+   "file": "copycode/forth/integers.fth",
    "line": 4,
    "group": "aux"
   },
@@ -5757,7 +5757,7 @@
    "name": "cc-within",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/integers.fth",
+   "file": "copycode/forth/integers.fth",
    "line": 5,
    "group": "aux"
   },
@@ -5766,7 +5766,7 @@
    "name": "within",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/integers.fth",
+   "file": "copycode/forth/integers.fth",
    "line": 6,
    "group": "aux"
   },
@@ -5775,7 +5775,7 @@
    "name": "cc-du<",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/integers.fth",
+   "file": "copycode/forth/integers.fth",
    "line": 7,
    "group": "aux"
   },
@@ -5784,7 +5784,7 @@
    "name": "cc-du=",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/integers.fth",
+   "file": "copycode/forth/integers.fth",
    "line": 9,
    "group": "aux"
   },
@@ -5793,7 +5793,7 @@
    "name": "cc-du+?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/integers.fth",
+   "file": "copycode/forth/integers.fth",
    "line": 11,
    "group": "aux"
   },
@@ -5802,7 +5802,7 @@
    "name": "cc-d-",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/integers.fth",
+   "file": "copycode/forth/integers.fth",
    "line": 13,
    "group": "aux"
   },
@@ -5811,7 +5811,7 @@
    "name": "cc-udigit",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/integers.fth",
+   "file": "copycode/forth/integers.fth",
    "line": 15,
    "group": "aux"
   },
@@ -5820,7 +5820,7 @@
    "name": "cc-udigits",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/integers.fth",
+   "file": "copycode/forth/integers.fth",
    "line": 16,
    "group": "aux"
   },
@@ -5829,16 +5829,16 @@
    "name": "u.",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/integers.fth",
+   "file": "copycode/forth/integers.fth",
    "line": 18,
    "group": "aux"
   },
   {
-   "id": "space/copycode/forth/bitfields.fth::init",
-   "name": "space/copycode/forth/bitfields.fth::init",
+   "id": "copycode/forth/bitfields.fth::init",
+   "name": "copycode/forth/bitfields.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 9,
    "group": "aux"
   },
@@ -5847,7 +5847,7 @@
    "name": "cc-bit@",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 10,
    "group": "aux"
   },
@@ -5856,7 +5856,7 @@
    "name": "cc-bit!",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 12,
    "group": "aux"
   },
@@ -5865,7 +5865,7 @@
    "name": "cc-range",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 15,
    "group": "aux"
   },
@@ -5874,7 +5874,7 @@
    "name": "cc-read-step",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 21,
    "group": "aux"
   },
@@ -5883,7 +5883,7 @@
    "name": "cc-read32",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 23,
    "group": "aux"
   },
@@ -5892,7 +5892,7 @@
    "name": "cc-read64",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 25,
    "group": "aux"
   },
@@ -5901,7 +5901,7 @@
    "name": "cc-field@",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 29,
    "group": "aux"
   },
@@ -5910,7 +5910,7 @@
    "name": "cc-fits?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 31,
    "group": "aux"
   },
@@ -5919,7 +5919,7 @@
    "name": "cc-write-step",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 36,
    "group": "aux"
   },
@@ -5928,7 +5928,7 @@
    "name": "cc-write32",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 38,
    "group": "aux"
   },
@@ -5937,7 +5937,7 @@
    "name": "cc-write64",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 40,
    "group": "aux"
   },
@@ -5946,16 +5946,16 @@
    "name": "cc-field!",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/bitfields.fth",
+   "file": "copycode/forth/bitfields.fth",
    "line": 43,
    "group": "aux"
   },
   {
-   "id": "space/copycode/forth/format.fth::init",
-   "name": "space/copycode/forth/format.fth::init",
+   "id": "copycode/forth/format.fth::init",
+   "name": "copycode/forth/format.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/copycode/forth/format.fth",
+   "file": "copycode/forth/format.fth",
    "line": 5,
    "group": "aux"
   },
@@ -5964,7 +5964,7 @@
    "name": "cc-d@",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/format.fth",
+   "file": "copycode/forth/format.fth",
    "line": 6,
    "group": "aux"
   },
@@ -5973,7 +5973,7 @@
    "name": "cc-d!",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/format.fth",
+   "file": "copycode/forth/format.fth",
    "line": 7,
    "group": "aux"
   },
@@ -5982,7 +5982,7 @@
    "name": "cc-ubits",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/format.fth",
+   "file": "copycode/forth/format.fth",
    "line": 8,
    "group": "aux"
   },
@@ -5991,7 +5991,7 @@
    "name": "cc-dbits",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/format.fth",
+   "file": "copycode/forth/format.fth",
    "line": 10,
    "group": "aux"
   },
@@ -6000,7 +6000,7 @@
    "name": "cc-format-values",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/format.fth",
+   "file": "copycode/forth/format.fth",
    "line": 12,
    "group": "aux"
   },
@@ -6009,7 +6009,7 @@
    "name": "cc-format-init",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/format.fth",
+   "file": "copycode/forth/format.fth",
    "line": 20,
    "group": "aux"
   },
@@ -6018,7 +6018,7 @@
    "name": "cc-format-check",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/format.fth",
+   "file": "copycode/forth/format.fth",
    "line": 22,
    "group": "aux"
   },
@@ -6027,7 +6027,7 @@
    "name": "cc-format-a",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/format.fth",
+   "file": "copycode/forth/format.fth",
    "line": 24,
    "group": "aux"
   },
@@ -6036,16 +6036,16 @@
    "name": "cc-layer-bits",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/format.fth",
+   "file": "copycode/forth/format.fth",
    "line": 25,
    "group": "aux"
   },
   {
-   "id": "space/copycode/forth/arena.fth::init",
-   "name": "space/copycode/forth/arena.fth::init",
+   "id": "copycode/forth/arena.fth::init",
+   "name": "copycode/forth/arena.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/copycode/forth/arena.fth",
+   "file": "copycode/forth/arena.fth",
    "line": 6,
    "group": "aux"
   },
@@ -6054,7 +6054,7 @@
    "name": "cc-arena-init",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/arena.fth",
+   "file": "copycode/forth/arena.fth",
    "line": 7,
    "group": "aux"
   },
@@ -6063,7 +6063,7 @@
    "name": "cc-arena-mark",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/arena.fth",
+   "file": "copycode/forth/arena.fth",
    "line": 10,
    "group": "aux"
   },
@@ -6072,7 +6072,7 @@
    "name": "cc-arena-used",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/arena.fth",
+   "file": "copycode/forth/arena.fth",
    "line": 11,
    "group": "aux"
   },
@@ -6081,7 +6081,7 @@
    "name": "cc-arena-restore",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/arena.fth",
+   "file": "copycode/forth/arena.fth",
    "line": 12,
    "group": "aux"
   },
@@ -6090,7 +6090,7 @@
    "name": "cc-arena-reset",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/arena.fth",
+   "file": "copycode/forth/arena.fth",
    "line": 15,
    "group": "aux"
   },
@@ -6099,16 +6099,16 @@
    "name": "cc-arena-alloc",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/arena.fth",
+   "file": "copycode/forth/arena.fth",
    "line": 16,
    "group": "aux"
   },
   {
-   "id": "space/copycode/forth/instructions.fth::init",
-   "name": "space/copycode/forth/instructions.fth::init",
+   "id": "copycode/forth/instructions.fth::init",
+   "name": "copycode/forth/instructions.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/copycode/forth/instructions.fth",
+   "file": "copycode/forth/instructions.fth",
    "line": 8,
    "group": "aux"
   },
@@ -6117,7 +6117,7 @@
    "name": "cc-instruction-range",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/instructions.fth",
+   "file": "copycode/forth/instructions.fth",
    "line": 9,
    "group": "aux"
   },
@@ -6126,7 +6126,7 @@
    "name": "cc-buffers-overlap?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/instructions.fth",
+   "file": "copycode/forth/instructions.fth",
    "line": 13,
    "group": "aux"
   },
@@ -6135,7 +6135,7 @@
    "name": "cc-endpoint@",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/instructions.fth",
+   "file": "copycode/forth/instructions.fth",
    "line": 16,
    "group": "aux"
   },
@@ -6144,7 +6144,7 @@
    "name": "cc-instruction-buffers",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/instructions.fth",
+   "file": "copycode/forth/instructions.fth",
    "line": 18,
    "group": "aux"
   },
@@ -6153,7 +6153,7 @@
    "name": "cc-instruction!",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/instructions.fth",
+   "file": "copycode/forth/instructions.fth",
    "line": 22,
    "group": "aux"
   },
@@ -6162,16 +6162,16 @@
    "name": "cc-instruction@",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/instructions.fth",
+   "file": "copycode/forth/instructions.fth",
    "line": 32,
    "group": "aux"
   },
   {
-   "id": "space/copycode/forth/operations.fth::init",
-   "name": "space/copycode/forth/operations.fth::init",
+   "id": "copycode/forth/operations.fth::init",
+   "name": "copycode/forth/operations.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 7,
    "group": "aux"
   },
@@ -6180,7 +6180,7 @@
    "name": "cc-op-index",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 8,
    "group": "aux"
   },
@@ -6189,7 +6189,7 @@
    "name": "cc-op-size",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 9,
    "group": "aux"
   },
@@ -6198,7 +6198,7 @@
    "name": "cc-op-a",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 10,
    "group": "aux"
   },
@@ -6207,7 +6207,7 @@
    "name": "cc-op-span",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 11,
    "group": "aux"
   },
@@ -6216,7 +6216,7 @@
    "name": "cc-span!",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 12,
    "group": "aux"
   },
@@ -6225,7 +6225,7 @@
    "name": "cc-op-empty?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 14,
    "group": "aux"
   },
@@ -6234,7 +6234,7 @@
    "name": "cc-op-channel?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 17,
    "group": "aux"
   },
@@ -6243,7 +6243,7 @@
    "name": "cc-op-add-span",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 20,
    "group": "aux"
   },
@@ -6252,7 +6252,7 @@
    "name": "cc-op-interval",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 26,
    "group": "aux"
   },
@@ -6261,7 +6261,7 @@
    "name": "cc-span-width",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 29,
    "group": "aux"
   },
@@ -6270,7 +6270,7 @@
    "name": "cc-spans-overlap?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 31,
    "group": "aux"
   },
@@ -6279,7 +6279,7 @@
    "name": "cc-op-memory",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 34,
    "group": "aux"
   },
@@ -6288,7 +6288,7 @@
    "name": "cc-op-device-span",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 40,
    "group": "aux"
   },
@@ -6297,7 +6297,7 @@
    "name": "cc-op-device",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 53,
    "group": "aux"
   },
@@ -6306,7 +6306,7 @@
    "name": "cc-op-check",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 57,
    "group": "aux"
   },
@@ -6315,7 +6315,7 @@
    "name": "cc-op-devices-conflict?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 68,
    "group": "aux"
   },
@@ -6324,7 +6324,7 @@
    "name": "cc-op-spans-conflict?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 74,
    "group": "aux"
   },
@@ -6333,16 +6333,16 @@
    "name": "cc-ops-conflict?",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/operations.fth",
+   "file": "copycode/forth/operations.fth",
    "line": 81,
    "group": "aux"
   },
   {
-   "id": "space/copycode/forth/evaluate.fth::init",
-   "name": "space/copycode/forth/evaluate.fth::init",
+   "id": "copycode/forth/evaluate.fth::init",
+   "name": "copycode/forth/evaluate.fth::init",
    "version": 1,
    "kind": "init",
-   "file": "space/copycode/forth/evaluate.fth",
+   "file": "copycode/forth/evaluate.fth",
    "line": 5,
    "group": "aux"
   },
@@ -6351,7 +6351,7 @@
    "name": "evaluate",
    "version": 1,
    "kind": "colon",
-   "file": "space/copycode/forth/evaluate.fth",
+   "file": "copycode/forth/evaluate.fth",
    "line": 6,
    "group": "aux"
   }
@@ -6512,14 +6512,14 @@
    "line": 48
   },
   {
-   "from": "space/copycode/forth/backend.fth::init",
+   "from": "copycode/forth/backend.fth::init",
    "to": "cc-pool",
    "kind": "direct",
    "count": 1,
    "line": 17
   },
   {
-   "from": "space/copycode/forth/backend.fth::init",
+   "from": "copycode/forth/backend.fth::init",
    "to": "cc-sink",
    "kind": "direct",
    "count": 1,
@@ -6533,7 +6533,7 @@
    "line": 20
   },
   {
-   "from": "space/copycode/forth/backend.fth::init",
+   "from": "copycode/forth/backend.fth::init",
    "to": "cc-rev-init",
    "kind": "direct",
    "count": 1,
@@ -10713,14 +10713,14 @@
    "line": 66
   },
   {
-   "from": "space/forth/scripts/forthc/forthc.fth::init",
+   "from": "forth/scripts/forthc/forthc.fth::init",
    "to": "fc-max-consts",
    "kind": "direct",
    "count": 1,
    "line": 75
   },
   {
-   "from": "space/forth/scripts/forthc/forthc.fth::init",
+   "from": "forth/scripts/forthc/forthc.fth::init",
    "to": "fc-nbuckets",
    "kind": "direct",
    "count": 1,
@@ -10923,14 +10923,14 @@
    "line": 102
   },
   {
-   "from": "space/forth/scripts/forthc/forthc.fth::init",
+   "from": "forth/scripts/forthc/forthc.fth::init",
    "to": "fc-zeros",
    "kind": "direct",
    "count": 1,
    "line": 103
   },
   {
-   "from": "space/forth/scripts/forthc/forthc.fth::init",
+   "from": "forth/scripts/forthc/forthc.fth::init",
    "to": "fill",
    "kind": "direct",
    "count": 1,
@@ -15514,7 +15514,7 @@
    "line": 516
   },
   {
-   "from": "space/forth/scripts/forthc/forthc.fth::init",
+   "from": "forth/scripts/forthc/forthc.fth::init",
    "to": "fc-text-size",
    "kind": "direct",
    "count": 1,
@@ -15941,14 +15941,14 @@
    "line": 562
   },
   {
-   "from": "space/forth/scripts/forthc/forthc.fth::init",
+   "from": "forth/scripts/forthc/forthc.fth::init",
    "to": "fc-names-size",
    "kind": "direct",
    "count": 1,
    "line": 565
   },
   {
-   "from": "space/forth/scripts/forthc/forthc.fth::init",
+   "from": "forth/scripts/forthc/forthc.fth::init",
    "to": "fc-max-words",
    "kind": "direct",
    "count": 1,
@@ -18944,14 +18944,14 @@
    "line": 818
   },
   {
-   "from": "space/forth/scripts/forthc/main.fth::init",
+   "from": "forth/scripts/forthc/main.fth::init",
    "to": "heap-start",
    "kind": "direct",
    "count": 1,
    "line": 5
   },
   {
-   "from": "space/forth/scripts/forthc/main.fth::init",
+   "from": "forth/scripts/forthc/main.fth::init",
    "to": "heap-ptr",
    "kind": "direct",
    "count": 1,
@@ -19231,14 +19231,14 @@
    "sub": "execute-vector"
   },
   {
-   "from": "space/forth/scripts/forthc/kernel.fth::init",
+   "from": "forth/scripts/forthc/kernel.fth::init",
    "to": "kn-heap-start",
    "kind": "direct",
    "count": 1,
    "line": 35
   },
   {
-   "from": "space/forth/scripts/forthc/kernel.fth::init",
+   "from": "forth/scripts/forthc/kernel.fth::init",
    "to": "heap-ptr",
    "kind": "direct",
    "count": 1,
@@ -23785,7 +23785,7 @@
     {
      "in": "cc-put",
      "line": 70,
-     "file": "space/copycode/forth/backend.fth"
+     "file": "copycode/forth/backend.fth"
     }
    ]
   },
@@ -23801,7 +23801,7 @@
     {
      "in": "main~2",
      "line": 32,
-     "file": "space/forth/scripts/forthc/kernel.fth"
+     "file": "forth/scripts/forthc/kernel.fth"
     }
    ]
   },
@@ -23822,17 +23822,17 @@
     {
      "in": "cc-table",
      "line": 120,
-     "file": "space/copycode/forth/compute.fth"
+     "file": "copycode/forth/compute.fth"
     },
     {
      "in": "cc-table",
      "line": 124,
-     "file": "space/copycode/forth/compute.fth"
+     "file": "copycode/forth/compute.fth"
     },
     {
      "in": "cc-table2",
      "line": 138,
-     "file": "space/copycode/forth/compute.fth"
+     "file": "copycode/forth/compute.fth"
     }
    ]
   }
@@ -23840,31 +23840,31 @@
  "execute_sites": [
   {
    "in": "cc-put",
-   "file": "space/copycode/forth/backend.fth",
+   "file": "copycode/forth/backend.fth",
    "line": 70,
    "vector": "cc-sink"
   },
   {
    "in": "cc-table",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 120,
    "vector": "cc-tx"
   },
   {
    "in": "cc-table",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 124,
    "vector": "cc-tx"
   },
   {
    "in": "cc-table2",
-   "file": "space/copycode/forth/compute.fth",
+   "file": "copycode/forth/compute.fth",
    "line": 138,
    "vector": "cc-tx"
   },
   {
    "in": "main~2",
-   "file": "space/forth/scripts/forthc/kernel.fth",
+   "file": "forth/scripts/forthc/kernel.fth",
    "line": 32,
    "vector": "cc-start-cell"
   }

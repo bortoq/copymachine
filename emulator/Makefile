@@ -1,4 +1,3 @@
--include ../tools/workspace.mk
 BUILD_DIR ?= build
 TMPDIR ?= $(CURDIR)/tmp
 .DELETE_ON_ERROR:

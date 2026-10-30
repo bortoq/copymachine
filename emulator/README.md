@@ -13,7 +13,7 @@ channels and valid-program obligations.
 
 Each four-index record is a **pseudo-instruction** describing a channel for
 bit-signal transfer between memory intervals. Logical **copycode** uses triples
-`[n,dst,src]`; [vm2c](../space/vm2/doc/direct.md) compiles these to stored emulator
+`[n,dst,src]`; vm2c (тег archive-2026-10-30) compiles these to stored emulator
 pseudo-instructions. Stream/SYS device channels have their own protocol.
 
 ```

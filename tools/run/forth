@@ -1,5 +1,0 @@
-#!/bin/sh
-set -eu
-workspace=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
-python3 -B "$workspace/tools/layout.py" --component "$workspace/space/forth"
-exec python3 -B "$workspace/space/vm2/tools/limited_run.py" --seconds "${FORTH_SECONDS:-600}" --memory-mib "${FORTH_MEMORY_MIB:-768}" "$workspace/space/forth/pforth" run "$workspace/build/space/forth/build/pforth" "$@"

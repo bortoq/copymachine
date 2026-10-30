@@ -1,8 +1,8 @@
 # Граф определений ядра K
 
-Сгенерировано `tools/research/defgraph.py`; данные в `docs/research/definition-graph.json`.
+Сгенерировано `language/tests/reference/defgraph.py`; данные в `docs/research/definition-graph.json`.
 
-Порядок компиляции K (из `space/forth/tests/test_kernel.py`): `prelude.fth`, `backend.fth`, `compute.fth`, `forthc.fth`, `main.fth`, `kernel.fth`. Прочие файлы `space/copycode/forth/` (группа aux) разобраны отдельно, в конце, со своим пространством имён; они не входят в K.
+Порядок компиляции K (из `forth/tests/test_kernel.py`): `prelude.fth`, `backend.fth`, `compute.fth`, `forthc.fth`, `main.fth`, `kernel.fth`. Прочие файлы `copycode/forth/` (группа aux) разобраны отдельно, в конце, со своим пространством имён; они не входят в K.
 
 Правило видимости как в `forthc.fth`: имя видимо с момента `:`; ссылка идёт к последней определённой на этот момент версии. Слова без определения в исходниках (примитивы) — внешние, рёбер не создают.
 
