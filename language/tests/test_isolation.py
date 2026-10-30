@@ -36,9 +36,9 @@ def kernel_addresses():
     tail = b'fc-go\nbye\n'
     assert stream.endswith(tail)
     query = (b'fc-go\ns" ENTRY " type s" kn-.n" fc-lookup 3 cells + @ . 48 fc-lit-of drop . cr\nbye\n')
-    result = subprocess.run([str(host.build())], input=stream[:-len(tail)] + query, capture_output=True, timeout=600, check=False)
-    assert result.returncode == 0 and not result.stderr, (result.returncode, result.stderr[-300:])
-    entry, constant = result.stdout[result.stdout.rindex(b'ENTRY ') + 6:].split()[:2]
+    code, out, err = host.run(host.build(), stream[:-len(tail)] + query, 600)
+    assert code == 0 and not err, (code, err[-300:])
+    entry, constant = out[out.rindex(b'ENTRY ') + 6:].split()[:2]
     return int(entry), int(constant)
 
 
@@ -112,7 +112,17 @@ def execute_probe():
     return (program, 'AB' + '9' + 'A0' + '9' * 5 + 'A0B0', None)
 
 
+def probe(case):
+    source = case[1][0]
+    try:
+        out, seconds = check_kernel.run(L0 + source.encode('latin-1') + b'\0', PROBE_SECONDS)
+        return out.decode('latin-1'), seconds
+    except subprocess.TimeoutExpired:
+        return f'<no end in {PROBE_SECONDS} s>', PROBE_SECONDS
+
+
 def main():
+    global L0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--l0', default=str(paths.L0))
     parser.add_argument('--only', action='append')
@@ -120,21 +130,16 @@ def main():
     parser.add_argument('--addresses', nargs=2, type=int, metavar=('ENTRY', 'CONSTANT'),
                         help='the addresses of the kernel of --l0 if its sources are not the current ones')
     args = parser.parse_args()
-    l0 = open(args.l0, 'rb').read()
+    L0 = open(args.l0, 'rb').read()
     entry, constant = args.addresses or kernel_addresses()
     print(f'kernel: entry of kn-.n {entry}, record of the constant 48 at {constant}', flush=True)
     table = probes(entry, constant)
     table.update(range_probes())
     table['execute-program'] = execute_probe()
     failed = []
-    for name, (source, after, before) in table.items():
-        if args.only and name not in args.only:
-            continue
-        try:
-            out, seconds = check_kernel.run(l0 + source.encode('latin-1') + b'\0', PROBE_SECONDS)
-            got = out.decode('latin-1')
-        except subprocess.TimeoutExpired:
-            got, seconds = f'<no end in {PROBE_SECONDS} s>', PROBE_SECONDS
+    cases = [(name, case) for name, case in table.items() if not args.only or name in args.only]
+
+    for (name, (_, after, before)), (got, seconds) in zip(cases, check_kernel.parallel(probe, cases), strict=True):
         ok = got == after
         print(f'{"PASS" if ok else "FAIL"} {name}: output {got!r}' + ('' if ok else f', expected {after!r}')
               + (f' (before the fix: {before!r})' if before is not None else '') + f' ({seconds:.1f} s)', flush=True)

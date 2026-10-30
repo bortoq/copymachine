@@ -42,7 +42,9 @@ SPACE_SOURCES = $(wildcard $(SPACE_SRC)/*.c $(SPACE_SRC)/*.h) $(SPACE_SRC)/proto
 # Address-space limit of each run (MiB); CI sets more (tools/ci/common.sh): the runners need more than 768 for the boot.
 MEMORY_MIB ?= 768
 BIG_MEMORY_MIB ?= 1536
-limit = $(PYTHON) -B "$(LIMITED_RUN)" --seconds $(1) --memory-mib $(or $(2),$(MEMORY_MIB)) --file-mib 64
+# Parallel runs (check-kernel, check-isolation) take $(3) CPUs: the CPU of the tree and COPYMACHINE_JOBS follow it.
+CPUS ?= $(shell nproc)
+limit = $(PYTHON) -B "$(LIMITED_RUN)" --seconds $(1) --memory-mib $(or $(2),$(MEMORY_MIB)) --file-mib 64 --cpus $(or $(3),1)
 ifeq ($(COPYMACHINE_LIMITED),1)
 limit =
 endif
@@ -72,7 +74,7 @@ check-language-md:
 	$(PYTHON) -B tools/language_md.py --check
 check-kernel: $(L0)
 	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy)
-	$(call limit,$(KERNEL_SECONDS)) $(PYTHON) -B tools/check_kernel.py --l0 "$(L0)"
+	$(call limit,$(KERNEL_SECONDS),,$(CPUS)) $(PYTHON) -B tools/check_kernel.py --l0 "$(L0)"
 # Self-compilation (14.15): L0 on the emulator compiles the definition of the language, L1 = L0
 # (hours; run with --file-mib 64, L0 is larger than 16 MiB).
 check-self: $(L0)
@@ -111,7 +113,7 @@ check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS),$(BIG_MEMORY_MIB)) $(PYTHON) -B tests/test_platform.py
 # Isolation of the kernel (14.10): probes of L0 (about 20 minutes), not part of check.
 check-isolation: $(L0)
-	$(call limit,$(KERNEL_SECONDS)) $(PYTHON) -B tests/test_isolation.py --l0 "$(L0)"
+	$(call limit,$(KERNEL_SECONDS),,$(CPUS)) $(PYTHON) -B tests/test_isolation.py --l0 "$(L0)"
 # Check and proof (14.12): CHECK-TABLE, ACCURACY, PROVED? on the checked emulator and on L0 (about 3 minutes).
 check-proof: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_proof.py

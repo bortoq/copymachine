@@ -13,6 +13,7 @@ import re
 import shlex
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import paths
@@ -71,3 +72,13 @@ def build():
 
 if __name__ == '__main__':
     print(build())
+
+
+def run(executable, data, timeout):
+    """(returncode, stdout, stderr) of the pForth fed with data. The stdout goes through a file: pForth writes it
+    a byte at a time, and a pipe read on another CPU (parallel checks) gets single bytes, gigabytes of chunks."""
+    with tempfile.TemporaryFile() as out:
+        result = subprocess.run([str(executable)], input=data, stdout=out, stderr=subprocess.PIPE, timeout=timeout,
+                                check=False)
+        out.seek(0)
+        return result.returncode, out.read(), result.stderr

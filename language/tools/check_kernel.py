@@ -10,9 +10,12 @@ from the rest of stdin; the stream must equal L0.
 """
 import argparse
 import json
+import os
 import subprocess
 import tempfile
 import time
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor
 
 import check_programs
 import host
@@ -32,23 +35,38 @@ def run(data, timeout):
     return out, seconds
 
 
+def parallel(function, items):
+    """function(item) for every item in processes at once (COPYMACHINE_JOBS, default the CPUs of this process),
+    the results in the order of items as they are ready. The processes are forks: they see the globals of the
+    caller. (Threads do not fit the address-space limit: each takes an arena of 64 MiB.)"""
+    jobs = int(os.environ.get('COPYMACHINE_JOBS') or len(os.sched_getaffinity(0)))
+    with ProcessPoolExecutor(jobs, mp_context=multiprocessing.get_context('fork')) as pool:
+        yield from pool.map(function, items)
+
+
+def check(case):
+    name, source = case
+    want, _ = run(check_programs.compile_on_host(EXECUTABLE, LIBRARIES, source), 600)
+    got, seconds = run(L0 + source.encode('latin-1') + b'\0', 1800)
+    assert got == want, (name, got[-200:], want[-200:])
+    return name, len(got), seconds
+
+
 def main():
+    global L0, EXECUTABLE, LIBRARIES
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--rebuild', action='store_true')
     parser.add_argument('--only', action='append')
     parser.add_argument('--l0', default=str(paths.L0))
     args = parser.parse_args()
-    l0 = open(args.l0, 'rb').read()
-    executable = host.build()
-    libraries = paths.source_bytes(paths.LIBRARY_FILES)
+    l0 = L0 = open(args.l0, 'rb').read()
+    EXECUTABLE = host.build()
+    LIBRARIES = paths.source_bytes(paths.LIBRARY_FILES)
     results = dict(stream_bytes=len(l0), programs=[])
-    for name, (source, _) in paths.programs().items():
-        if args.only and name not in args.only:
-            continue
-        want, _ = run(check_programs.compile_on_host(executable, libraries, source), 600)
-        got, seconds = run(l0 + source.encode('latin-1') + b'\0', 1800)
-        assert got == want, (name, got[-200:], want[-200:])
-        results['programs'].append(dict(name=name, output_bytes=len(got), seconds=round(seconds, 1)))
+    cases = [(name, source) for name, (source, _) in paths.programs().items() if not args.only or name in args.only]
+
+    for name, output_bytes, seconds in parallel(check, cases):
+        results['programs'].append(dict(name=name, output_bytes=output_bytes, seconds=round(seconds, 1)))
         print(f'PASS kernel {name}: compiled and run in the space, output as its stream ({seconds:.1f} s)', flush=True)
     echo = ': main begin key dup while 1+ emit repeat drop ;\n'
     got, _ = run(l0 + echo.encode() + b'\0' + b'HAL', 600)

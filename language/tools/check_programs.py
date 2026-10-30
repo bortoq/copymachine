@@ -20,9 +20,9 @@ import paths
 
 
 def run_host(executable, data, timeout=900):
-    result = subprocess.run([str(executable)], input=data, capture_output=True, timeout=timeout, check=False)
-    assert result.returncode == 0 and not result.stderr, (result.returncode, result.stdout[-300:], result.stderr[-300:])
-    return result.stdout[:-1] if result.stdout.endswith(b'\n') else result.stdout
+    code, out, err = host.run(executable, data, timeout)
+    assert code == 0 and not err, (code, out[-300:], err[-300:])
+    return out[:-1] if out.endswith(b'\n') else out
 
 
 def compile_on_host(executable, libraries, source):
