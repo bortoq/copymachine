@@ -1,20 +1,16 @@
 # emulator — four-index positional space emulator
 
-В монорепозитории бинарники и результаты проверок находятся в
-`../build/emulator/`; Makefile выбирает пути автоматически. Каталога legacy/
-для сборки, установки, обычных проверок и выпуска не требуется. Локальные
-build/dist в примерах относятся к самостоятельному исходному выпуску.
-
-
 emulator executes simultaneous copies between bit half-intervals. Its processor is
 part of the same bit space and can replace its own instructions. The
 [public contract](doc/emulator-contract.md) defines encoding, tick boundaries,
 channels and valid-program obligations.
 
 Each four-index record is a **pseudo-instruction** describing a channel for
-bit-signal transfer between memory intervals. Logical **copycode** uses triples
-`[n,dst,src]`; vm2c (тег archive-2026-10-30) compiles these to stored emulator
-pseudo-instructions. Stream/SYS device channels have their own protocol.
+bit-signal transfer between memory intervals. Stream/SYS device channels have
+their own protocol.
+
+Input: a boot image on stdin (the first processor). Output: stdout/stderr and the
+requested channels.
 
 ```
 [dst_low, dst_high, src_low, src_high]
@@ -51,12 +47,14 @@ python3 examples/write-byte.py --write A > /tmp/emulator-a.boot
 
 Runtime sizes and slot counts are limited only by representation and available
 memory; 64/256 MiB image budgets are tested. Besides SYS there is the long copy LONG
-(`-r path` gives host files as remote spaces 2, 3, ...; see `src/proto.def`).
+(remote spaces: `-r path` gives host files as spaces 2, 3, ...; see `src/proto.def`).
+
+**Security.** The SYS request EXEC runs a host command through `system()`. Run
+images from others only in a container or VM.
 
 Verification (Python 3.11+ standard library and POSIX shell for full checks):
 
 ```sh
-make check                     # whole-memory oracle (709 cases), SYS, CLI
-make checked                   # the mode of checking disjointness (audit after each tick)
-make clean
+make -C emulator check         # whole-memory oracle (709 cases), SYS, CLI
+make -C emulator checked       # the mode of checking disjointness (audit after each tick)
 ```
