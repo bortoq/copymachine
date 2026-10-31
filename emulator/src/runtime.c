@@ -12,6 +12,9 @@ unsigned char *space;
 size (*instructions)[4];
 size (*processor)[3];
 FILE *channel_in,*channel_out;
+static unsigned char *shadow;
+static size_t record_bytes;
+static int shadow_valid;
 const char **remote_paths; size_t nremote; /* -r path: remote spaces 2.. (15.2) */
 
 /* Bit-reversed byte: stream bytes are MSB-first, numeric fields LSB-first. */
@@ -143,28 +146,67 @@ void init_space(void)
 void destroy_space(void)
 {
   backend_shutdown(); sys_shutdown();
-  free(space); free(instructions); free(processor); free(remote_paths);
+  free(space); free(instructions); free(processor); free(remote_paths); free(shadow); shadow=NULL; shadow_valid=0;
   remote_paths=NULL; nremote=0;
   space=NULL; instructions=NULL; processor=NULL;
 }
+/* The records of the processors are decoded only when their bits changed since the last tick: most of the
+ * records of a layer (the idle ones) are rewritten with the same bits, and decoding is the dearest part of a
+ * tick that does not depend on the work. shadow holds the bits as they were decoded. */
+/* A 32-bit field at a byte, as space_get(at,32). */
+static inline size get32(const unsigned char *p)
+{
+  return (size)reverse8[p[0]]|(size)reverse8[p[1]]<<8|(size)reverse8[p[2]]<<16|(size)reverse8[p[3]]<<24;
+}
+static inline void decode_record(size_t i)
+{
+  size *q=instructions[i],*op=processor[i];
+  if(address_bits==32 && instruction_size%8==0) {
+    const unsigned char *p=space+i*record_bytes;
+    q[0]=get32(p); q[1]=get32(p+4); q[2]=get32(p+8); q[3]=get32(p+12);
+  } else for(size k=0;k<4;k++) q[k]=space_get((i*4+k)*address_bits,address_bits);
+  op[0]=0; op[1]=q[0]; op[2]=q[2];
+  if(q[0]==q[1] && q[0]>=space_nbits) {
+    if(q[2]<q[3] && q[3]<=space_nbits) op[0]=q[3]-q[2];
+  } else if(q[2]==q[3] && q[2]>=space_nbits) {
+    if(q[0]<q[1] && q[1]<=space_nbits) op[0]=q[1]-q[0];
+  } else if(q[2]<q[3]) op[0]=q[3]-q[2];
+}
+static inline int record_changed(const unsigned char *a,const unsigned char *b)
+{
+  if(record_bytes==16) {
+    uint64_t x[2],y[2];
+    memcpy(x,a,16); memcpy(y,b,16);
+    return ((x[0]^y[0])|(x[1]^y[1]))!=0;
+  }
+  return memcmp(a,b,record_bytes)!=0;
+}
 int computation(void)
 {
-  int active=0;
-  for(size_t i=0;i<proc_n;i++) {
-    size *q=instructions[i],*op=processor[i];
-    for(size k=0;k<4;k++) q[k]=space_get((i*4+k)*address_bits,address_bits);
-    op[0]=0; op[1]=q[0]; op[2]=q[2];
-    if(q[0]==q[1] && q[0]>=space_nbits) {
-      if(q[2]<q[3] && q[3]<=space_nbits) op[0]=q[3]-q[2];
-    } else if(q[2]==q[3] && q[2]>=space_nbits) {
-      if(q[0]<q[1] && q[1]<=space_nbits) op[0]=q[1]-q[0];
-    } else if(q[2]<q[3]) op[0]=q[3]-q[2];
-    if(op[0]) active=1;
+  int active=0,channel_op=0;
+  size_t n=proc_n;
+  if(!shadow) {  /* decode every record at the first tick, and when the records are not whole bytes */
+    if(instruction_size%8==0) {
+      record_bytes=instruction_size/8;
+      shadow=malloc(n*record_bytes);
+      if(!shadow) { fputs("emulator: out of memory\n",stderr); exit(EXIT_MEMORY); }
+    }
+    shadow_valid=0;
   }
+  for(size_t i=0;i<n;i++) {
+    if(shadow) {
+      const unsigned char *now=space+i*record_bytes; unsigned char *was=shadow+i*record_bytes;
+      if(!shadow_valid || record_changed(now,was)) { decode_record(i); if(record_bytes==16) memcpy(was,now,16); else memcpy(was,now,record_bytes); }
+    } else decode_record(i);
+    size *op=processor[i];
+    if(op[0]) { active=1; if(op[1]>=space_nbits||op[2]>=space_nbits) channel_op=1; }
+  }
+  shadow_valid=shadow!=NULL;
   if(!active) return 0;
   /* Valid channel buffers and ordinary ranges are disjoint. Neither this
-   * host ordering nor sequential bitcpy gives same-tick readiness to guests. */
-  sys_tick();
+   * host ordering nor sequential bitcpy gives same-tick readiness to guests.
+   * Only an operation with a channel position as an end is served by SYS. */
+  if(channel_op) sys_tick();
   backend_tick();
   return 1;
 }
