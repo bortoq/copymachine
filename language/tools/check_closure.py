@@ -155,12 +155,12 @@ def external_names():
 # interval) and a layer (a cell of rows); their definition is not reduced to other words, the definition of an
 # instruction is the instruction itself. name -> what it generates (all are defined by `:` in backend.fth).
 FOUNDATION = collections.OrderedDict([
-    ('cc-copy', 'строка: копирование n бит из источника в приёмник'),
-    ('cc-link-row', 'строка: копирование ссылки на следующий слой'),
-    ('cc-row', 'строка: добавляет строку в слой'),
-    ('cc-new-record', 'слой: новый слой в ячейке'),
-    ('cc-lone', 'слой: отдельный слой в новой ячейке'),
-    ('cc-layer', 'слой: следующий слой последовательности'),
+    ('lay-copy', 'строка: копирование n бит из источника в приёмник'),
+    ('lay-link-row', 'строка: копирование ссылки на следующий слой'),
+    ('lay-row', 'строка: добавляет строку в слой'),
+    ('lay-new-record', 'слой: новый слой в ячейке'),
+    ('lay-lone', 'слой: отдельный слой в новой ячейке'),
+    ('lay-layer', 'слой: следующий слой последовательности'),
 ])
 
 # References by name: the compiler finds the word by the string in its dictionary (the graph sees no

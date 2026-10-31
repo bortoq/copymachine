@@ -7,250 +7,250 @@
 \ order as the host model, so the streams are identical. Words keep their
 \ state in variables and are not reentrant. THROW -8: capacity.
 decimal
-variable cc-t1 variable cc-t2 variable cc-t3 variable cc-t4 variable cc-t5
-variable cc-lo variable cc-hi
-variable cc-l0 variable cc-l1 variable cc-l2 variable cc-l3 variable cc-l4 variable cc-l5
-: cc-work ( -- n ) cc-slots @ 1- ;
-: cc-cell-bit ( -- n ) cc-cell-bits @ cc-bits 1- ;
-: cc-link-slot ( -- n ) cc-slots @ 1- ;
+variable lay-t1 variable lay-t2 variable lay-t3 variable lay-t4 variable lay-t5
+variable lay-lo variable lay-hi
+variable lay-l0 variable lay-l1 variable lay-l2 variable lay-l3 variable lay-l4 variable lay-l5
+: lay-work ( -- n ) lay-slots @ 1- ;
+: lay-cell-bit ( -- n ) lay-cell-bits @ lay-bits 1- ;
+: lay-link-slot ( -- n ) lay-slots @ 1- ;
 \ Lookup items: table s width out preset nseg, then 4 segments (src n off).
-18 constant cc-item-cells 16 constant cc-max-items
-create cc-items cc-max-items cc-item-cells * cells allot
-variable cc-nitems
-: cc-item@ ( i -- addr ) dup 4 lshift swap 2* + cells cc-items + ;   \ 18 cells each
-: cc-lookups-begin ( -- ) 0 cc-nitems ! ;
-: cc-item ( table s width out preset -- )
-  cc-nitems @ cc-max-items < 0= if -8 throw then
-  cc-nitems @ cc-item@ cc-t1 !
-  cc-t1 @ 4 cells + ! cc-t1 @ 3 cells + ! cc-t1 @ 2 cells + ! cc-t1 @ cell+ ! cc-t1 @ !
-  0 cc-t1 @ 5 cells + ! 1 cc-nitems +! ;
-: cc-seg ( src n off -- )
-  cc-nitems @ 1- cc-item@ cc-t1 !
-  cc-t1 @ 5 cells + @ 4 < 0= if -8 throw then
-  cc-t1 @ 5 cells + @ dup 2* + 6 + cells cc-t1 @ + cc-t2 !
-  cc-t2 @ 2 cells + ! cc-t2 @ cell+ ! cc-t2 @ !
-  1 cc-t1 @ 5 cells + +! ;
-create cc-sl 16 cells allot create cc-sh 16 cells allot
-create cc-read-layer 16 cells allot create cc-read-slot 16 cells allot
-create cc-used 8 cells allot variable cc-nused variable cc-rl variable cc-pk variable cc-pkl
-: cc-npatches ( -- n ) 0 cc-nitems @ 0 ?do i cc-item@ 5 cells + @ + loop ;
-: cc-used? ( table -- flag )
-  0 cc-nused @ 0 ?do over cc-used i cells + @ = or loop nip ;
-: cc-place-reads ( -- )
-  0 cc-rl ! 0 cc-nused !
-  cc-nitems @ 0 ?do
-    i cc-item@ cc-t1 !
-    cc-rl @ 0= if -1 else cc-rl @ cc-count cc-work = cc-t1 @ @ cc-used? or then
-    if cc-layer cc-rl ! 0 cc-nused ! then
-    cc-t1 @ @ cc-used cc-nused @ cells + ! 1 cc-nused +!
-    cc-t1 @ @ cc-t1 @ 4 cells + @ cc-t1 @ cell+ @ lshift + cc-t2 !
-    cc-t1 @ 3 cells + @ dup cc-t1 @ 2 cells + @ +
-    cc-t2 @ dup cc-t1 @ 2 cells + @ +
-    cc-rl @ cc-row i cells cc-read-slot + ! cc-rl @ i cells cc-read-layer + !
+18 constant lay-item-cells 16 constant lay-max-items
+create lay-items lay-max-items lay-item-cells * cells allot
+variable lay-nitems
+: lay-item@ ( i -- addr ) dup 4 lshift swap 2* + cells lay-items + ;   \ 18 cells each
+: lay-lookups-begin ( -- ) 0 lay-nitems ! ;
+: lay-item ( table s width out preset -- )
+  lay-nitems @ lay-max-items < 0= if -8 throw then
+  lay-nitems @ lay-item@ lay-t1 !
+  lay-t1 @ 4 cells + ! lay-t1 @ 3 cells + ! lay-t1 @ 2 cells + ! lay-t1 @ cell+ ! lay-t1 @ !
+  0 lay-t1 @ 5 cells + ! 1 lay-nitems +! ;
+: lay-seg ( src n off -- )
+  lay-nitems @ 1- lay-item@ lay-t1 !
+  lay-t1 @ 5 cells + @ 4 < 0= if -8 throw then
+  lay-t1 @ 5 cells + @ dup 2* + 6 + cells lay-t1 @ + lay-t2 !
+  lay-t2 @ 2 cells + ! lay-t2 @ cell+ ! lay-t2 @ !
+  1 lay-t1 @ 5 cells + +! ;
+create lay-sl 16 cells allot create lay-sh 16 cells allot
+create lay-read-layer 16 cells allot create lay-read-slot 16 cells allot
+create lay-used 8 cells allot variable lay-nused variable lay-rl variable lay-pk variable lay-pkl
+: lay-npatches ( -- n ) 0 lay-nitems @ 0 ?do i lay-item@ 5 cells + @ + loop ;
+: lay-used? ( table -- flag )
+  0 lay-nused @ 0 ?do over lay-used i cells + @ = or loop nip ;
+: lay-place-reads ( -- )
+  0 lay-rl ! 0 lay-nused !
+  lay-nitems @ 0 ?do
+    i lay-item@ lay-t1 !
+    lay-rl @ 0= if -1 else lay-rl @ lay-count lay-work = lay-t1 @ @ lay-used? or then
+    if lay-layer lay-rl ! 0 lay-nused ! then
+    lay-t1 @ @ lay-used lay-nused @ cells + ! 1 lay-nused +!
+    lay-t1 @ @ lay-t1 @ 4 cells + @ lay-t1 @ cell+ @ lshift + lay-t2 !
+    lay-t1 @ 3 cells + @ dup lay-t1 @ 2 cells + @ +
+    lay-t2 @ dup lay-t1 @ 2 cells + @ +
+    lay-rl @ lay-row i cells lay-read-slot + ! lay-rl @ i cells lay-read-layer + !
   loop ;
-: cc-patch ( item seg -- )
-  cc-t4 ! cc-t3 !
-  cc-t3 @ cc-item@ cc-t1 ! cc-t1 @ cc-t4 @ dup 2* + 6 + cells + cc-t2 !
-  cc-t3 @ cells cc-read-layer + @ cc-layer-cell cc-t3 @ cells cc-read-slot + @
-  2dup 2 cc-field cc-t1 @ cell+ @ + cc-t2 @ 2 cells + @ + cc-lo !
-  3 cc-field cc-t1 @ cell+ @ + cc-t2 @ 2 cells + @ + cc-hi !
-  cc-t2 @ cell+ @ cc-lo @ cc-t2 @ @ cc-copy cc-pkl @ cells cc-sl + @ cc-row drop
-  cc-t2 @ cell+ @ cc-hi @ cc-t2 @ @ cc-copy cc-pkl @ cells cc-sh + @ cc-row drop
-  1 cc-pk +! cc-pk @ cc-work = if 0 cc-pk ! 1 cc-pkl +! then ;
-: cc-lookups ( -- )
-  0 cc-npatches begin dup 0> while cc-work - swap 1+ swap repeat drop cc-t5 !
-  cc-t5 @ 0 ?do cc-layer i cells cc-sl + ! loop
-  cc-t5 @ 0 ?do cc-layer i cells cc-sh + ! loop
-  cc-layer drop cc-place-reads 0 cc-pk ! 0 cc-pkl !
-  cc-nitems @ 0 ?do i cc-item@ 5 cells + @ 0 ?do j i cc-patch loop loop ;
+: lay-patch ( item seg -- )
+  lay-t4 ! lay-t3 !
+  lay-t3 @ lay-item@ lay-t1 ! lay-t1 @ lay-t4 @ dup 2* + 6 + cells + lay-t2 !
+  lay-t3 @ cells lay-read-layer + @ lay-layer-cell lay-t3 @ cells lay-read-slot + @
+  2dup 2 lay-field lay-t1 @ cell+ @ + lay-t2 @ 2 cells + @ + lay-lo !
+  3 lay-field lay-t1 @ cell+ @ + lay-t2 @ 2 cells + @ + lay-hi !
+  lay-t2 @ cell+ @ lay-lo @ lay-t2 @ @ lay-copy lay-pkl @ cells lay-sl + @ lay-row drop
+  lay-t2 @ cell+ @ lay-hi @ lay-t2 @ @ lay-copy lay-pkl @ cells lay-sh + @ lay-row drop
+  1 lay-pk +! lay-pk @ lay-work = if 0 lay-pk ! 1 lay-pkl +! then ;
+: lay-lookups ( -- )
+  0 lay-npatches begin dup 0> while lay-work - swap 1+ swap repeat drop lay-t5 !
+  lay-t5 @ 0 ?do lay-layer i cells lay-sl + ! loop
+  lay-t5 @ 0 ?do lay-layer i cells lay-sh + ! loop
+  lay-layer drop lay-place-reads 0 lay-pk ! 0 lay-pkl !
+  lay-nitems @ 0 ?do i lay-item@ 5 cells + @ 0 ?do j i lay-patch loop loop ;
 \ Nibble adder: x = a + b, or a + ~b + 1 with the sub table and carry 1.
-create cc-al 25 cells allot create cc-ar 8 cells allot
-variable cc-ax variable cc-aa variable cc-ab variable cc-atab variable cc-acarry
-: cc-al@ ( i -- layer ) cells cc-al + @ ;
-: cc-rd ( i -- cell slot ) dup dup 2* + 3 + cc-al@ cc-layer-cell swap cells cc-ar + @ ;
-: cc-adder-patch ( i f layer -- )
-  cc-t3 ! cc-t4 !
-  dup cc-rd cc-t4 @ cc-field cc-lo !
-  4 cc-lo @ 3 + 2 pick 2 lshift cc-aa @ + cc-copy cc-t3 @ cc-row drop
-  4 cc-lo @ 7 + rot 2 lshift cc-ab @ + cc-copy cc-t3 @ cc-row drop ;
-: cc-adder ( table x a b carry -- )
-  cc-acarry ! cc-ab ! cc-aa ! cc-ax ! cc-atab !
-  25 0 do cc-layer i cells cc-al + ! loop
+create lay-al 25 cells allot create lay-ar 8 cells allot
+variable lay-ax variable lay-aa variable lay-ab variable lay-atab variable lay-acarry
+: lay-al@ ( i -- layer ) cells lay-al + @ ;
+: lay-rd ( i -- cell slot ) dup dup 2* + 3 + lay-al@ lay-layer-cell swap cells lay-ar + @ ;
+: lay-adder-patch ( i f layer -- )
+  lay-t3 ! lay-t4 !
+  dup lay-rd lay-t4 @ lay-field lay-lo !
+  4 lay-lo @ 3 + 2 pick 2 lshift lay-aa @ + lay-copy lay-t3 @ lay-row drop
+  4 lay-lo @ 7 + rot 2 lshift lay-ab @ + lay-copy lay-t3 @ lay-row drop ;
+: lay-adder ( table x a b carry -- )
+  lay-acarry ! lay-ab ! lay-aa ! lay-ax ! lay-atab !
+  25 0 do lay-layer i cells lay-al + ! loop
   8 0 do
-    cc-atab @ i 0= if cc-acarry @ 11 lshift + then
-    cc-ax @ i 4 * + dup 6 + rot dup 6 +
-    i dup 2* + 3 + cc-al@ cc-row i cells cc-ar + !
+    lay-atab @ i 0= if lay-acarry @ 11 lshift + then
+    lay-ax @ i 4 * + dup 6 + rot dup 6 +
+    i dup 2* + 3 + lay-al@ lay-row i cells lay-ar + !
   loop
   8 0 do
-    i 3 < if i 2 0 cc-al@ cc-adder-patch i 3 1 cc-al@ cc-adder-patch
-    else i 2 i dup 2* + 1- cc-al@ cc-adder-patch i 3 i dup 2* + cc-al@ cc-adder-patch then
+    i 3 < if i 2 0 lay-al@ lay-adder-patch i 3 1 lay-al@ lay-adder-patch
+    else i 2 i dup 2* + 1- lay-al@ lay-adder-patch i 3 i dup 2* + lay-al@ lay-adder-patch then
     i if
-      1 i cc-rd 2 cc-field 11 + cc-ax @ i 4 * + cc-copy i dup 2* + 1+ cc-al@ cc-row drop
-      1 i cc-rd 3 cc-field 11 + cc-ax @ i 4 * + 1+ cc-copy i dup 2* + 1+ cc-al@ cc-row drop
+      1 i lay-rd 2 lay-field 11 + lay-ax @ i 4 * + lay-copy i dup 2* + 1+ lay-al@ lay-row drop
+      1 i lay-rd 3 lay-field 11 + lay-ax @ i 4 * + 1+ lay-copy i dup 2* + 1+ lay-al@ lay-row drop
     then
   loop ;
 \ Continue at group target value(src[0:k]); src[k:2k] holds a copy.
-variable cc-dsrc variable cc-dk variable cc-dg variable cc-dp variable cc-dx
-: cc-decide ( src k -- group )
-  cc-dk ! cc-dsrc ! cc-dk @ cc-group cc-dg !
-  cc-layer cc-dp ! cc-layer drop cc-layer cc-dx !
-  cc-dg @ cc-dx @ cc-next!
-  cc-dk @ cc-dx @ cc-layer-cell cc-link-slot 2 cc-field cc-branch-bit + cc-dsrc @ cc-copy cc-dp @ cc-row drop
-  cc-dk @ cc-dx @ cc-layer-cell cc-link-slot 3 cc-field cc-branch-bit + cc-dsrc @ cc-dk @ + cc-copy
-  cc-dp @ cc-row drop cc-dg @ ;
+variable lay-dsrc variable lay-dk variable lay-dg variable lay-dp variable lay-dx
+: lay-decide ( src k -- group )
+  lay-dk ! lay-dsrc ! lay-dk @ lay-group lay-dg !
+  lay-layer lay-dp ! lay-layer drop lay-layer lay-dx !
+  lay-dg @ lay-dx @ lay-next!
+  lay-dk @ lay-dx @ lay-layer-cell lay-link-slot 2 lay-field lay-branch-bit + lay-dsrc @ lay-copy lay-dp @ lay-row drop
+  lay-dk @ lay-dx @ lay-layer-cell lay-link-slot 3 lay-field lay-branch-bit + lay-dsrc @ lay-dk @ + lay-copy
+  lay-dp @ lay-row drop lay-dg @ ;
 \ Tables are placed in [at, limit), each aligned to its size.
-variable cc-table-at variable cc-table-limit variable cc-tbuf
-variable cc-tx variable cc-tbits variable cc-ts variable cc-tsize variable cc-tbase variable cc-tper
-: cc-tables ( at limit -- ) cc-table-limit ! cc-table-at ! ;
-: cc-table-area ( bits s -- buf )
-  cc-ts ! cc-tbits !
-  1 cc-ts @ cc-tbits @ + lshift cc-tsize !
-  cc-table-at @ cc-tsize @ 1- + cc-tsize @ negate and cc-tbase !
-  cc-tbase @ cc-tsize @ + cc-table-at !
-  cc-table-at @ cc-table-limit @ u> if -8 throw then
-  cc-tsize @ 3 rshift allocate throw cc-tbuf ! cc-tbuf @ cc-tsize @ 3 rshift 0 fill
-  1 cc-ts @ lshift 3 rshift cc-tper ! cc-tbuf @ ;
-: cc-table-done ( -- base )
-  cc-tbase @ cc-tbuf @ cc-tsize @ 3 rshift cc-put cc-tbuf @ free throw cc-tbase @ ;
-\ Or fill the buffer of cc-table-area directly (entry i at i * 2^s / 8 bytes).
-: cc-table ( xt bits s -- base )
-  rot cc-tx ! cc-table-area drop
-  cc-ts @ 3 < 0= if
-    1 cc-tbits @ lshift 0 ?do
-      i cc-tx @ execute cc-tper @ cc-tbuf @ i cc-tper @ * + cc-numeric
+variable lay-table-at variable lay-table-limit variable lay-tbuf
+variable lay-tx variable lay-tbits variable lay-ts variable lay-tsize variable lay-tbase variable lay-tper
+: lay-tables ( at limit -- ) lay-table-limit ! lay-table-at ! ;
+: lay-table-area ( bits s -- buf )
+  lay-ts ! lay-tbits !
+  1 lay-ts @ lay-tbits @ + lshift lay-tsize !
+  lay-table-at @ lay-tsize @ 1- + lay-tsize @ negate and lay-tbase !
+  lay-tbase @ lay-tsize @ + lay-table-at !
+  lay-table-at @ lay-table-limit @ u> if -8 throw then
+  lay-tsize @ 3 rshift allocate throw lay-tbuf ! lay-tbuf @ lay-tsize @ 3 rshift 0 fill
+  1 lay-ts @ lshift 3 rshift lay-tper ! lay-tbuf @ ;
+: lay-table-done ( -- base )
+  lay-tbase @ lay-tbuf @ lay-tsize @ 3 rshift lay-put lay-tbuf @ free throw lay-tbase @ ;
+\ Or fill the buffer of lay-table-area directly (entry i at i * 2^s / 8 bytes).
+: lay-table ( xt bits s -- base )
+  rot lay-tx ! lay-table-area drop
+  lay-ts @ 3 < 0= if
+    1 lay-tbits @ lshift 0 ?do
+      i lay-tx @ execute lay-tper @ lay-tbuf @ i lay-tper @ * + lay-numeric
     loop
   else
-    1 cc-tbits @ lshift 0 ?do
-      i cc-tx @ execute
-      1 cc-ts @ lshift 0 ?do
+    1 lay-tbits @ lshift 0 ?do
+      i lay-tx @ execute
+      1 lay-ts @ lshift 0 ?do
         dup i rshift 1 and if
-          j cc-ts @ lshift i + cc-t5 !
-          cc-t5 @ 3 rshift cc-tbuf @ + dup c@ 1 cc-t5 @ 7 and lshift cc-rev + c@ or swap c!
+          j lay-ts @ lshift i + lay-t5 !
+          lay-t5 @ 3 rshift lay-tbuf @ + dup c@ 1 lay-t5 @ 7 and lshift lay-rev + c@ or swap c!
         then
       loop drop
     loop
-  then cc-table-done ;
+  then lay-table-done ;
 \ Entries of two cells, low 32 bits first: xt ( i -- lo hi ), s >= 6.
-: cc-table2 ( xt bits s -- base )
+: lay-table2 ( xt bits s -- base )
   dup 6 < if -24 throw then
-  rot cc-tx ! cc-table-area drop
-  1 cc-tbits @ lshift 0 ?do
-    i cc-tx @ execute cc-tbuf @ i cc-tper @ * + >r
-    4 r@ 4 + cc-numeric 4 r> cc-numeric
-  loop cc-table-done ;
-: cc-add-entry ( i -- v ) dup 15 and over 4 rshift 15 and + swap 8 rshift +
+  rot lay-tx ! lay-table-area drop
+  1 lay-tbits @ lshift 0 ?do
+    i lay-tx @ execute lay-tbuf @ i lay-tper @ * + >r
+    4 r@ 4 + lay-numeric 4 r> lay-numeric
+  loop lay-table-done ;
+: lay-add-entry ( i -- v ) dup 15 and over 4 rshift 15 and + swap 8 rshift +
   dup 4 rshift 5 lshift or ;
-: cc-sub-entry ( i -- v ) dup 15 and over 4 rshift invert 15 and + swap 8 rshift +
+: lay-sub-entry ( i -- v ) dup 15 and over 4 rshift invert 15 and + swap 8 rshift +
   dup 4 rshift 5 lshift or ;
-: cc-xor-entry ( i -- v ) dup 15 and swap 4 rshift xor ;
-: cc-or-entry ( i -- v ) dup 15 and swap 4 rshift or ;
-: cc-and-entry ( i -- v ) dup 15 and swap 4 rshift and ;
-: cc-or8-entry ( i -- v ) 0<> 1 and ;
-variable cc-fz variable cc-fu variable cc-fs
-: cc-pair ( flag shift -- v ) swap if 3 swap lshift else drop 0 then ;
-: cc-flags-entry ( i -- v )
-  dup 15 and 0= cc-fz ! dup 4 rshift 1 and 0= cc-fu !
+: lay-xor-entry ( i -- v ) dup 15 and swap 4 rshift xor ;
+: lay-or-entry ( i -- v ) dup 15 and swap 4 rshift or ;
+: lay-and-entry ( i -- v ) dup 15 and swap 4 rshift and ;
+: lay-or8-entry ( i -- v ) 0<> 1 and ;
+variable lay-fz variable lay-fu variable lay-fs
+: lay-pair ( flag shift -- v ) swap if 3 swap lshift else drop 0 then ;
+: lay-flags-entry ( i -- v )
+  dup 15 and 0= lay-fz ! dup 4 rshift 1 and 0= lay-fu !
   dup 5 rshift 1 and swap 6 rshift 1 and
-  2dup <> if drop 0<> else 2drop cc-fu @ then cc-fs !
-  cc-fz @ 0 cc-pair cc-fz @ 0= 2 cc-pair or
-  cc-fs @ 4 cc-pair or cc-fs @ 0= 6 cc-pair or
-  cc-fu @ 8 cc-pair or cc-fu @ 0= 10 cc-pair or ;
-: cc-not5-entry ( i -- v ) 31 swap - dup 5 lshift or ;
-: cc-sign-entry ( i -- v ) if -1 else 0 then ;
-: cc-fill24-entry ( i -- v ) if 16777215 else 0 then ;
-: cc-fill16-entry ( i -- v ) if 65535 else 0 then ;
-: cc-inc1-entry ( i -- v ) 1+ ;
-: cc-inc2-entry ( i -- v ) 2 + ;
-variable cc-t-add variable cc-t-sub variable cc-t-xor variable cc-t-or variable cc-t-and
-variable cc-t-or8 variable cc-t-flags variable cc-t-not5 variable cc-t-sign32
-variable cc-t-fill24 variable cc-t-fill16 variable cc-t-inc1 variable cc-t-inc2
-: cc-standard-tables ( -- )
-  ['] cc-add-entry 9 3 cc-table cc-t-add ! ['] cc-sub-entry 9 3 cc-table cc-t-sub !
-  ['] cc-xor-entry 8 3 cc-table cc-t-xor ! ['] cc-or-entry 8 3 cc-table cc-t-or !
-  ['] cc-and-entry 8 3 cc-table cc-t-and ! ['] cc-or8-entry 8 1 cc-table cc-t-or8 !
-  ['] cc-flags-entry 7 4 cc-table cc-t-flags ! ['] cc-not5-entry 5 4 cc-table cc-t-not5 !
-  ['] cc-sign-entry 1 6 cc-table cc-t-sign32 ! ['] cc-fill24-entry 1 5 cc-table cc-t-fill24 !
-  ['] cc-fill16-entry 1 5 cc-table cc-t-fill16 ! ['] cc-inc1-entry 2 2 cc-table cc-t-inc1 !
-  ['] cc-inc2-entry 2 2 cc-table cc-t-inc2 ! ;
+  2dup <> if drop 0<> else 2drop lay-fu @ then lay-fs !
+  lay-fz @ 0 lay-pair lay-fz @ 0= 2 lay-pair or
+  lay-fs @ 4 lay-pair or lay-fs @ 0= 6 lay-pair or
+  lay-fu @ 8 lay-pair or lay-fu @ 0= 10 lay-pair or ;
+: lay-not5-entry ( i -- v ) 31 swap - dup 5 lshift or ;
+: lay-sign-entry ( i -- v ) if -1 else 0 then ;
+: lay-fill24-entry ( i -- v ) if 16777215 else 0 then ;
+: lay-fill16-entry ( i -- v ) if 65535 else 0 then ;
+: lay-inc1-entry ( i -- v ) 1+ ;
+: lay-inc2-entry ( i -- v ) 2 + ;
+variable lay-t-add variable lay-t-sub variable lay-t-xor variable lay-t-or variable lay-t-and
+variable lay-t-or8 variable lay-t-flags variable lay-t-not5 variable lay-t-sign32
+variable lay-t-fill24 variable lay-t-fill16 variable lay-t-inc1 variable lay-t-inc2
+: lay-standard-tables ( -- )
+  ['] lay-add-entry 9 3 lay-table lay-t-add ! ['] lay-sub-entry 9 3 lay-table lay-t-sub !
+  ['] lay-xor-entry 8 3 lay-table lay-t-xor ! ['] lay-or-entry 8 3 lay-table lay-t-or !
+  ['] lay-and-entry 8 3 lay-table lay-t-and ! ['] lay-or8-entry 8 1 lay-table lay-t-or8 !
+  ['] lay-flags-entry 7 4 lay-table lay-t-flags ! ['] lay-not5-entry 5 4 lay-table lay-t-not5 !
+  ['] lay-sign-entry 1 6 lay-table lay-t-sign32 ! ['] lay-fill24-entry 1 5 lay-table lay-t-fill24 !
+  ['] lay-fill16-entry 1 5 lay-table lay-t-fill16 ! ['] lay-inc1-entry 2 2 lay-table lay-t-inc1 !
+  ['] lay-inc2-entry 2 2 lay-table lay-t-inc2 ! ;
 \ Building blocks over registers given as bit addresses.
-variable cc-oo variable cc-os variable cc-ol variable cc-oh
-: cc-or-chunks ( out src lo hi -- )
-  cc-oh ! cc-ol ! cc-os ! cc-oo !
-  cc-oh @ cc-ol @ - 7 + 3 rshift 0 ?do
-    cc-t-or8 @ 1 1 cc-oo @ i + 0 cc-item
-    cc-os @ cc-ol @ + i 3 lshift + cc-oh @ cc-ol @ - i 3 lshift - 8 min 0 cc-seg
+variable lay-oo variable lay-os variable lay-ol variable lay-oh
+: lay-or-chunks ( out src lo hi -- )
+  lay-oh ! lay-ol ! lay-os ! lay-oo !
+  lay-oh @ lay-ol @ - 7 + 3 rshift 0 ?do
+    lay-t-or8 @ 1 1 lay-oo @ i + 0 lay-item
+    lay-os @ lay-ol @ + i 3 lshift + lay-oh @ lay-ol @ - i 3 lshift - 8 min 0 lay-seg
   loop ;
-variable cc-cr variable cc-ca variable cc-cb variable cc-cz variable cc-cf
-: cc-compare ( res a b z flags -- )
-  cc-cf ! cc-cz ! cc-cb ! cc-ca ! cc-cr !
-  cc-lookups-begin cc-cz @ cc-cr @ 0 32 cc-or-chunks cc-lookups
-  cc-lookups-begin cc-t-flags @ 4 12 cc-cf @ 0 cc-item
-  cc-cz @ 4 0 cc-seg cc-cr @ 32 + 1 4 cc-seg cc-ca @ 31 + 1 5 cc-seg cc-cb @ 31 + 1 6 cc-seg
-  cc-lookups ;
-: cc-logic ( table res a b -- )
-  cc-cb ! cc-ca ! cc-cr ! cc-t5 ! cc-lookups-begin
+variable lay-cr variable lay-ca variable lay-cb variable lay-cz variable lay-cf
+: lay-compare ( res a b z flags -- )
+  lay-cf ! lay-cz ! lay-cb ! lay-ca ! lay-cr !
+  lay-lookups-begin lay-cz @ lay-cr @ 0 32 lay-or-chunks lay-lookups
+  lay-lookups-begin lay-t-flags @ 4 12 lay-cf @ 0 lay-item
+  lay-cz @ 4 0 lay-seg lay-cr @ 32 + 1 4 lay-seg lay-ca @ 31 + 1 5 lay-seg lay-cb @ 31 + 1 6 lay-seg
+  lay-lookups ;
+: lay-logic ( table res a b -- )
+  lay-cb ! lay-ca ! lay-cr ! lay-t5 ! lay-lookups-begin
   8 0 do
-    cc-t5 @ 3 4 cc-cr @ i 2 lshift + 0 cc-item
-    cc-ca @ i 2 lshift + 4 0 cc-seg cc-cb @ i 2 lshift + 4 4 cc-seg
-  loop cc-lookups ;
-variable cc-sres variable cc-sa variable cc-samt variable cc-sw variable cc-szero
-variable cc-sarg variable cc-sign
-: cc-shift-row ( layer -- ) >r cc-sres @ dup 32 + cc-sw @ dup 32 + r> cc-row drop ;
-: cc-shift-patch ( n src shift-layer f off dst-layer -- )
-  >r >r >r cc-layer-cell 0 r> cc-field r> + swap cc-copy r> cc-row drop ;
-: cc-shift-right ( res a amount w zero arithmetic -- )
-  cc-sarg ! cc-szero ! cc-sw ! cc-samt ! cc-sa ! cc-sres !
-  cc-sarg @ 0= if
-    cc-layer cc-l0 ! 32 cc-sw @ cc-sa @ cc-copy cc-l0 @ cc-row drop
-    32 cc-sw @ 32 + cc-szero @ cc-copy cc-l0 @ cc-row drop
-    cc-layer cc-l1 ! cc-layer drop cc-layer dup cc-l3 ! cc-shift-row
-    5 cc-samt @ cc-l3 @ 2 0 cc-l0 @ cc-shift-patch
-    5 cc-samt @ cc-l3 @ 3 0 cc-l1 @ cc-shift-patch exit
+    lay-t5 @ 3 4 lay-cr @ i 2 lshift + 0 lay-item
+    lay-ca @ i 2 lshift + 4 0 lay-seg lay-cb @ i 2 lshift + 4 4 lay-seg
+  loop lay-lookups ;
+variable lay-sres variable lay-sa variable lay-samt variable lay-sw variable lay-szero
+variable lay-sarg variable lay-sign
+: lay-shift-row ( layer -- ) >r lay-sres @ dup 32 + lay-sw @ dup 32 + r> lay-row drop ;
+: lay-shift-patch ( n src shift-layer f off dst-layer -- )
+  >r >r >r lay-layer-cell 0 r> lay-field r> + swap lay-copy r> lay-row drop ;
+: lay-shift-right ( res a amount w zero arithmetic -- )
+  lay-sarg ! lay-szero ! lay-sw ! lay-samt ! lay-sa ! lay-sres !
+  lay-sarg @ 0= if
+    lay-layer lay-l0 ! 32 lay-sw @ lay-sa @ lay-copy lay-l0 @ lay-row drop
+    32 lay-sw @ 32 + lay-szero @ lay-copy lay-l0 @ lay-row drop
+    lay-layer lay-l1 ! lay-layer drop lay-layer dup lay-l3 ! lay-shift-row
+    5 lay-samt @ lay-l3 @ 2 0 lay-l0 @ lay-shift-patch
+    5 lay-samt @ lay-l3 @ 3 0 lay-l1 @ lay-shift-patch exit
   then
-  cc-layer cc-l0 ! 32 cc-sw @ cc-sa @ cc-copy cc-l0 @ cc-row drop
-  cc-layer cc-l1 ! cc-layer cc-l2 ! cc-layer drop
-  cc-layer cc-l4 ! cc-layer dup cc-l5 ! cc-shift-row
-  cc-sw @ 32 + dup 32 + cc-t-sign32 @ dup 32 + cc-l4 @ cc-row cc-sign !
-  5 cc-samt @ cc-l5 @ 2 0 cc-l0 @ cc-shift-patch
-  5 cc-samt @ cc-l5 @ 3 0 cc-l1 @ cc-shift-patch
-  1 cc-l4 @ cc-layer-cell cc-sign @ 2 cc-field 6 + cc-sa @ 31 + cc-copy cc-l1 @ cc-row drop
-  1 cc-l4 @ cc-layer-cell cc-sign @ 3 cc-field 6 + cc-sa @ 31 + cc-copy cc-l2 @ cc-row drop ;
-: cc-shift-left ( res a amount w zero u -- )
-  cc-sarg ! cc-szero ! cc-sw ! cc-samt ! cc-sa ! cc-sres !
-  cc-layer cc-l0 ! 31 cc-sw @ cc-szero @ cc-copy cc-l0 @ cc-row drop
-  32 cc-sw @ 31 + cc-sa @ cc-copy cc-l0 @ cc-row drop
-  cc-layer cc-l1 ! cc-layer drop
-  cc-layer cc-l3 ! cc-sarg @ dup 10 + cc-t-not5 @ dup 10 + cc-l3 @ cc-row cc-sign !
-  5 cc-l3 @ cc-layer-cell cc-sign @ 2 cc-field 4 + cc-samt @ cc-copy cc-l0 @ cc-row drop
-  5 cc-l3 @ cc-layer-cell cc-sign @ 3 cc-field 4 + cc-samt @ cc-copy cc-l1 @ cc-row drop
-  cc-layer cc-l4 ! cc-layer drop cc-layer dup cc-l5 ! cc-shift-row
-  5 cc-sarg @ cc-l5 @ 2 0 cc-l4 @ cc-shift-patch
-  5 cc-sarg @ 5 + cc-l5 @ 3 0 cc-l4 @ cc-shift-patch ;
+  lay-layer lay-l0 ! 32 lay-sw @ lay-sa @ lay-copy lay-l0 @ lay-row drop
+  lay-layer lay-l1 ! lay-layer lay-l2 ! lay-layer drop
+  lay-layer lay-l4 ! lay-layer dup lay-l5 ! lay-shift-row
+  lay-sw @ 32 + dup 32 + lay-t-sign32 @ dup 32 + lay-l4 @ lay-row lay-sign !
+  5 lay-samt @ lay-l5 @ 2 0 lay-l0 @ lay-shift-patch
+  5 lay-samt @ lay-l5 @ 3 0 lay-l1 @ lay-shift-patch
+  1 lay-l4 @ lay-layer-cell lay-sign @ 2 lay-field 6 + lay-sa @ 31 + lay-copy lay-l1 @ lay-row drop
+  1 lay-l4 @ lay-layer-cell lay-sign @ 3 lay-field 6 + lay-sa @ 31 + lay-copy lay-l2 @ lay-row drop ;
+: lay-shift-left ( res a amount w zero u -- )
+  lay-sarg ! lay-szero ! lay-sw ! lay-samt ! lay-sa ! lay-sres !
+  lay-layer lay-l0 ! 31 lay-sw @ lay-szero @ lay-copy lay-l0 @ lay-row drop
+  32 lay-sw @ 31 + lay-sa @ lay-copy lay-l0 @ lay-row drop
+  lay-layer lay-l1 ! lay-layer drop
+  lay-layer lay-l3 ! lay-sarg @ dup 10 + lay-t-not5 @ dup 10 + lay-l3 @ lay-row lay-sign !
+  5 lay-l3 @ lay-layer-cell lay-sign @ 2 lay-field 4 + lay-samt @ lay-copy lay-l0 @ lay-row drop
+  5 lay-l3 @ lay-layer-cell lay-sign @ 3 lay-field 4 + lay-samt @ lay-copy lay-l1 @ lay-row drop
+  lay-layer lay-l4 ! lay-layer drop lay-layer dup lay-l5 ! lay-shift-row
+  5 lay-sarg @ lay-l5 @ 2 0 lay-l4 @ lay-shift-patch
+  5 lay-sarg @ 5 + lay-l5 @ 3 0 lay-l4 @ lay-shift-patch ;
 \ Exit select: flag pair (source patched by the caller) becomes the cell bit
-\ of the exit link, so a call returns to ret or ret + cc-branch-step.
-variable cc-fc variable cc-ff
-: cc-flag-exit ( c2 flags -- row exit )
-  cc-ff ! cc-fc !
-  cc-layer cc-l0 ! 2 cc-fc @ cc-ff @ cc-copy cc-l0 @ cc-row drop
-  cc-layer cc-l1 ! cc-layer drop
-  cc-lone cc-l2 ! cc-cell-bits @ cc-l2 @ cc-next! cc-l2 @ cc-layer-cell cc-jump
-  1 cc-l2 @ cc-layer-cell cc-link-slot 2 cc-field cc-branch-bit + cc-fc @ cc-copy cc-l1 @ cc-row drop
-  1 cc-l2 @ cc-layer-cell cc-link-slot 3 cc-field cc-branch-bit + cc-fc @ 1+ cc-copy cc-l1 @ cc-row drop
-  cc-l0 @ cc-layer-cell 0 0 cc-field cc-l2 @ cc-layer-cell ;
+\ of the exit link, so a call returns to ret or ret + lay-branch-step.
+variable lay-fc variable lay-ff
+: lay-flag-exit ( c2 flags -- row exit )
+  lay-ff ! lay-fc !
+  lay-layer lay-l0 ! 2 lay-fc @ lay-ff @ lay-copy lay-l0 @ lay-row drop
+  lay-layer lay-l1 ! lay-layer drop
+  lay-lone lay-l2 ! lay-cell-bits @ lay-l2 @ lay-next! lay-l2 @ lay-layer-cell lay-jump
+  1 lay-l2 @ lay-layer-cell lay-link-slot 2 lay-field lay-branch-bit + lay-fc @ lay-copy lay-l1 @ lay-row drop
+  1 lay-l2 @ lay-layer-cell lay-link-slot 3 lay-field lay-branch-bit + lay-fc @ 1+ lay-copy lay-l1 @ lay-row drop
+  lay-l0 @ lay-layer-cell 0 0 lay-field lay-l2 @ lay-layer-cell ;
 \ Shared returns: write res to a patched destination, or plain return.
-: cc-exit-layers ( res discard width -- xw x )
-  cc-lone cc-l0 ! swap rot cc-copy cc-l0 @ cc-row drop cc-cell-bits @ cc-l0 @ cc-next!
-  cc-lone cc-l1 ! cc-cell-bits @ cc-l1 @ cc-next!
-  cc-l0 @ cc-layer-cell cc-l1 @ cc-layer-cell ;
+: lay-exit-layers ( res discard width -- xw x )
+  lay-lone lay-l0 ! swap rot lay-copy lay-l0 @ lay-row drop lay-cell-bits @ lay-l0 @ lay-next!
+  lay-lone lay-l1 ! lay-cell-bits @ lay-l1 @ lay-next!
+  lay-l0 @ lay-layer-cell lay-l1 @ lay-layer-cell ;
 \ Call site rows: patch the exit link with ret and ret+layer stored at lo/hi.
-variable cc-ce variable cc-cl variable cc-ch
-: cc-call-rows ( exit lo-src hi-src layer -- )
-  cc-l0 ! cc-ch ! cc-cl ! cc-ce !
-  cc-a @ cc-ce @ cc-link-slot 2 cc-field cc-cl @ cc-copy cc-l0 @ cc-row drop
-  cc-a @ cc-ce @ cc-link-slot 3 cc-field cc-ch @ cc-copy cc-l0 @ cc-row drop ;
+variable lay-ce variable lay-cl variable lay-ch
+: lay-call-rows ( exit lo-src hi-src layer -- )
+  lay-l0 ! lay-ch ! lay-cl ! lay-ce !
+  lay-a @ lay-ce @ lay-link-slot 2 lay-field lay-cl @ lay-copy lay-l0 @ lay-row drop
+  lay-a @ lay-ce @ lay-link-slot 3 lay-field lay-ch @ lay-copy lay-l0 @ lay-row drop ;
 \ Halt: one stdout region per layer, then the zero cell 1.
-: cc-halt-begin ( -- ) -1 cc-seq ;
-: cc-halt-region ( n src -- ) cc-layer >r cc-out r> cc-row drop ;
-: cc-halt-end ( -- cell ) cc-cell-bits @ cc-jump cc-entry ;
-: cc-stub-on ( status constant halt layer -- ) dup >r cc-next! 32 -rot cc-copy r> cc-row drop ;
-: cc-stub ( status constant halt -- ) cc-layer cc-stub-on ;
+: lay-halt-begin ( -- ) -1 lay-seq ;
+: lay-halt-region ( n src -- ) lay-layer >r lay-out r> lay-row drop ;
+: lay-halt-end ( -- cell ) lay-cell-bits @ lay-jump lay-entry ;
+: lay-stub-on ( status constant halt layer -- ) dup >r lay-next! 32 -rot lay-copy r> lay-row drop ;
+: lay-stub ( status constant halt -- ) lay-layer lay-stub-on ;

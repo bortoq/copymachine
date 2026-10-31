@@ -3,194 +3,194 @@
 \ Address fields are byte-sized (a multiple of 8), slots >= 8. Cells are
 \ power-of-two bit ranges holding one layer; cell 0 is the entry layer.
 \ A layer has slots-1 work rows and a link row; rows are dl dh sl sh.
-\ Pending layers are encoded at cc-flush; a sequence ends at cc-flush.
+\ Pending layers are encoded at lay-flush; a sequence ends at lay-flush.
 \ THROW -24: invalid machine/field/unlinked; -9: overlap or put outside;
 \ -8: capacity. Output goes to stdout with TYPE as it is produced, or to a
-\ sink: an xt ( bit-address src n -- ) in cc-sink takes every put, and
-\ cc-finish only keeps the entry in cc-start-cell. A kernel installs code in
-\ its own space so; cc-rev (the stream's bit order of a byte) is then the
+\ sink: an xt ( bit-address src n -- ) in lay-sink takes every put, and
+\ lay-finish only keeps the entry in lay-start-cell. A kernel installs code in
+\ its own space so; lay-rev (the stream's bit order of a byte) is then the
 \ identity, the bytes are numeric.
 decimal
-variable cc-size variable cc-a variable cc-slots variable cc-cell-bits
-variable cc-chunk variable cc-chunk-buf variable cc-lbuf variable cc-pool
-variable cc-ebuf variable cc-dest variable cc-sink variable cc-start-cell
-0 cc-pool ! 0 cc-sink !
-create cc-rev 256 allot
-: cc-rev-init 256 0 do
-    0 8 0 do 2* j i rshift 1 and or loop cc-rev i + c!
+variable lay-size variable lay-a variable lay-slots variable lay-cell-bits
+variable lay-chunk variable lay-chunk-buf variable lay-lbuf variable lay-pool
+variable lay-ebuf variable lay-dest variable lay-sink variable lay-start-cell
+0 lay-pool ! 0 lay-sink !
+create lay-rev 256 allot
+: lay-rev-init 256 0 do
+    0 8 0 do 2* j i rshift 1 and or loop lay-rev i + c!
   loop ;
-cc-rev-init
-: cc-inst ( -- n ) cc-a @ 4 * ;
-: cc-layer-bits ( -- n ) cc-slots @ cc-inst * ;
-: cc-lbytes ( -- n ) cc-layer-bits 3 rshift ;
-: cc-stdin ( -- c ) cc-size @ 1+ ;
-: cc-stdout ( -- c ) cc-size @ 2 + ;
-: cc-bits ( u -- n ) 0 swap begin dup while 1 rshift swap 1+ swap repeat drop ;
-: cc-numeric ( value nbytes addr -- )
+lay-rev-init
+: lay-inst ( -- n ) lay-a @ 4 * ;
+: lay-layer-bits ( -- n ) lay-slots @ lay-inst * ;
+: lay-lbytes ( -- n ) lay-layer-bits 3 rshift ;
+: lay-stdin ( -- c ) lay-size @ 1+ ;
+: lay-stdout ( -- c ) lay-size @ 2 + ;
+: lay-bits ( u -- n ) 0 swap begin dup while 1 rshift swap 1+ swap repeat drop ;
+: lay-numeric ( value nbytes addr -- )
   swap 0 ?do
-    over i 4 < if i 3 lshift rshift 255 and cc-rev + c@ else drop 0 then
+    over i 4 < if i 3 lshift rshift 255 and lay-rev + c@ else drop 0 then
     over i + c!
   loop 2drop ;
 \ The same for four bytes, unrolled: the 32-bit address fields of rows.
-: cc-numeric4 ( value addr -- )
-  over 255 and cc-rev + c@ over c!  over 8 rshift 255 and cc-rev + c@ over 1+ c!
-  over 16 rshift 255 and cc-rev + c@ over 2 + c!  swap 24 rshift 255 and cc-rev + c@ swap 3 + c! ;
-: cc-field-check ( value -- value )
-  cc-a @ 32 < if dup cc-a @ rshift if -24 throw then then ;
-\ Encode count rows (4 cells each) padded with zero rows into cc-dest.
-: cc-encode ( rows count -- )
-  cc-dest @ cc-lbytes 0 fill
+: lay-numeric4 ( value addr -- )
+  over 255 and lay-rev + c@ over c!  over 8 rshift 255 and lay-rev + c@ over 1+ c!
+  over 16 rshift 255 and lay-rev + c@ over 2 + c!  swap 24 rshift 255 and lay-rev + c@ swap 3 + c! ;
+: lay-field-check ( value -- value )
+  lay-a @ 32 < if dup lay-a @ rshift if -24 throw then then ;
+\ Encode count rows (4 cells each) padded with zero rows into lay-dest.
+: lay-encode ( rows count -- )
+  lay-dest @ lay-lbytes 0 fill
   0 ?do
     4 0 do
-      dup j 2 lshift i + cells + @ cc-field-check
-      cc-a @ 32 = if cc-dest @ j 4 lshift + i 2 lshift + cc-numeric4
-      else cc-a @ 3 rshift cc-dest @ j 2 lshift i + cc-a @ 3 rshift * + cc-numeric then
+      dup j 2 lshift i + cells + @ lay-field-check
+      lay-a @ 32 = if lay-dest @ j 4 lshift + i 2 lshift + lay-numeric4
+      else lay-a @ 3 rshift lay-dest @ j 2 lshift i + lay-a @ 3 rshift * + lay-numeric then
     loop
   loop drop ;
 \ Stream state: chunk start byte (-1: none) and length.
-variable cc-start variable cc-len
-create cc-rows 32 cells allot
-: cc-row! ( dl dh sl sh i -- ) 2 lshift cells cc-rows + >r
+variable lay-start variable lay-len
+create lay-rows 32 cells allot
+: lay-row! ( dl dh sl sh i -- ) 2 lshift cells lay-rows + >r
   r@ 3 cells + ! r@ 2 cells + ! r@ cell+ ! r> ! ;
-: cc-clear-rows ( -- ) cc-rows 32 cells 0 fill ;
-: cc-loader ( -- )
-  cc-clear-rows cc-start @ 3 lshift dup cc-len @ 3 lshift + cc-stdin dup 0 cc-row!
-  0 3 cc-inst * 4 cc-inst * 7 cc-inst * 1 cc-row!
-  3 cc-inst * cc-a @ + 3 cc-inst * cc-a @ 2 * + 7 cc-inst * dup cc-a @ + 2 cc-row!
-  0 0 cc-stdin dup 3 cc-row!
-  cc-layer-bits 0 0 0 cc-slots @ 1- cc-row!
-  cc-lbuf @ cc-dest ! cc-rows cc-slots @ cc-encode ;
-: cc-stream-flush ( -- )
-  cc-start @ -1 = if exit then
-  cc-loader cc-lbuf @ cc-lbytes type
-  cc-chunk-buf @ cc-len @ type -1 cc-start ! ;
-: cc-begin-chunk ( byte src n -- )
-  dup cc-len ! cc-chunk-buf @ swap cmove cc-start ! ;
-: cc-put ( bit-address src n -- )
-  cc-sink @ ?dup if execute exit then
-  rot dup 7 and over cc-cell-bits @ u< or if -9 throw then
-  dup 2 pick 3 lshift + cc-size @ u> if -9 throw then
+: lay-clear-rows ( -- ) lay-rows 32 cells 0 fill ;
+: lay-loader ( -- )
+  lay-clear-rows lay-start @ 3 lshift dup lay-len @ 3 lshift + lay-stdin dup 0 lay-row!
+  0 3 lay-inst * 4 lay-inst * 7 lay-inst * 1 lay-row!
+  3 lay-inst * lay-a @ + 3 lay-inst * lay-a @ 2 * + 7 lay-inst * dup lay-a @ + 2 lay-row!
+  0 0 lay-stdin dup 3 lay-row!
+  lay-layer-bits 0 0 0 lay-slots @ 1- lay-row!
+  lay-lbuf @ lay-dest ! lay-rows lay-slots @ lay-encode ;
+: lay-stream-flush ( -- )
+  lay-start @ -1 = if exit then
+  lay-loader lay-lbuf @ lay-lbytes type
+  lay-chunk-buf @ lay-len @ type -1 lay-start ! ;
+: lay-begin-chunk ( byte src n -- )
+  dup lay-len ! lay-chunk-buf @ swap cmove lay-start ! ;
+: lay-put ( bit-address src n -- )
+  lay-sink @ ?dup if execute exit then
+  rot dup 7 and over lay-cell-bits @ u< or if -9 throw then
+  dup 2 pick 3 lshift + lay-size @ u> if -9 throw then
   3 rshift -rot
-  cc-start @ -1 <> if
-    2 pick cc-start @ cc-len @ + -               ( byte src n gap )
+  lay-start @ -1 <> if
+    2 pick lay-start @ lay-len @ + -               ( byte src n gap )
     dup 0< 0= over 33 < and
-    4 pick cc-start @ - 3 pick + cc-chunk @ 1+ < and if
-      cc-chunk-buf @ cc-len @ + over 0 fill
-      cc-len @ + cc-len !
-      cc-chunk-buf @ cc-len @ + swap dup cc-len +! cmove drop exit
-    then drop cc-stream-flush
+    4 pick lay-start @ - 3 pick + lay-chunk @ 1+ < and if
+      lay-chunk-buf @ lay-len @ + over 0 fill
+      lay-len @ + lay-len !
+      lay-chunk-buf @ lay-len @ + swap dup lay-len +! cmove drop exit
+    then drop lay-stream-flush
   then
-  begin dup cc-chunk @ > while
-    2 pick 2 pick cc-chunk @ cc-begin-chunk cc-stream-flush
-    rot cc-chunk @ + rot cc-chunk @ + rot cc-chunk @ -
-  repeat cc-begin-chunk ;
-create cc-scratch 8 allot
-: cc-put-numeric ( value nbytes bit-address -- )
-  >r dup >r cc-scratch cc-numeric r> r> cc-scratch rot cc-put ;
+  begin dup lay-chunk @ > while
+    2 pick 2 pick lay-chunk @ lay-begin-chunk lay-stream-flush
+    rot lay-chunk @ + rot lay-chunk @ + rot lay-chunk @ -
+  repeat lay-begin-chunk ;
+create lay-scratch 8 allot
+: lay-put-numeric ( value nbytes bit-address -- )
+  >r dup >r lay-scratch lay-numeric r> r> lay-scratch rot lay-put ;
 \ Layer records: cell, next (-1 unlinked), count, rows. Pending records are
-\ a ring: a new record beyond cc-max-layers first writes the oldest pending
+\ a ring: a new record beyond lay-max-layers first writes the oldest pending
 \ one (it must be linked), as the host Builder with that capacity.
-128 constant cc-max-layers
-: cc-record ( -- n ) cc-slots @ 1- 4 * 3 + cells ;
-variable cc-pending variable cc-head variable cc-next-cell
-variable cc-seq# variable cc-seq-first variable cc-seq-entry variable cc-seq-last
-\ Offsets of the fields of each slot, computed by cc-machine.
-create cc-foff 32 cells allot
-: cc-foff-init ( -- ) 8 0 do 4 0 do j cc-inst * i cc-a @ * + j 2 lshift i + cells cc-foff + ! loop loop ;
-: cc-machine ( size slots cell-bits chunk-bytes -- )
-  >r >r >r dup cc-bits r> r> r>
+128 constant lay-max-layers
+: lay-record ( -- n ) lay-slots @ 1- 4 * 3 + cells ;
+variable lay-pending variable lay-head variable lay-next-cell
+variable lay-seq# variable lay-seq-first variable lay-seq-entry variable lay-seq-last
+\ Offsets of the fields of each slot, computed by lay-machine.
+create lay-foff 32 cells allot
+: lay-foff-init ( -- ) 8 0 do 4 0 do j lay-inst * i lay-a @ * + j 2 lshift i + cells lay-foff + ! loop loop ;
+: lay-machine ( size slots cell-bits chunk-bytes -- )
+  >r >r >r dup lay-bits r> r> r>
   ( size a slots cell chunk )
   2 pick 8 < 4 pick 7 and or 5 pick 7 and or if -24 throw then
   over dup 1- and if -24 throw then
   dup 1 < if -24 throw then
-  cc-chunk ! cc-cell-bits ! cc-slots ! cc-a ! cc-size !
-  cc-size @ 5 + cc-a @ 32 < if cc-a @ rshift if -24 throw then else drop then
-  cc-cell-bits @ cc-layer-bits < if -24 throw then
-  cc-slots @ 8 > if -24 throw then
-  cc-pool @ if
-    cc-chunk-buf @ free throw cc-lbuf @ free throw cc-ebuf @ free throw cc-pool @ free throw
+  lay-chunk ! lay-cell-bits ! lay-slots ! lay-a ! lay-size !
+  lay-size @ 5 + lay-a @ 32 < if lay-a @ rshift if -24 throw then else drop then
+  lay-cell-bits @ lay-layer-bits < if -24 throw then
+  lay-slots @ 8 > if -24 throw then
+  lay-pool @ if
+    lay-chunk-buf @ free throw lay-lbuf @ free throw lay-ebuf @ free throw lay-pool @ free throw
   then
-  cc-chunk @ allocate throw cc-chunk-buf ! cc-lbytes allocate throw cc-lbuf !
-  cc-lbytes allocate throw cc-ebuf !
-  cc-record cc-max-layers * allocate throw cc-pool !
-  -1 cc-start ! 0 cc-len ! 0 cc-pending ! 0 cc-head ! 2 cc-next-cell ! 0 cc-seq# ! cc-foff-init ;
-: cc-field ( cell slot f -- addr ) swap 2 lshift + cells cc-foff + @ + ;
-: cc-link-row ( target -- dl dh sl sh ) >r 0 cc-layer-bits r@ dup cc-layer-bits + r> drop ;
-: cc-copy ( n dst src -- dl dh sl sh ) rot >r over r@ + swap dup r> + ;
-: cc-out ( n src -- dl dh sl sh ) cc-stdout dup 2swap tuck + ;
-: cc-builder ( first-cell -- ) cc-next-cell ! 0 cc-pending ! 0 cc-head ! 0 cc-seq# ! ;
-: cc-new-cell ( -- addr ) cc-next-cell @ dup 1+ cc-next-cell ! cc-cell-bits @ * ;
+  lay-chunk @ allocate throw lay-chunk-buf ! lay-lbytes allocate throw lay-lbuf !
+  lay-lbytes allocate throw lay-ebuf !
+  lay-record lay-max-layers * allocate throw lay-pool !
+  -1 lay-start ! 0 lay-len ! 0 lay-pending ! 0 lay-head ! 2 lay-next-cell ! 0 lay-seq# ! lay-foff-init ;
+: lay-field ( cell slot f -- addr ) swap 2 lshift + cells lay-foff + @ + ;
+: lay-link-row ( target -- dl dh sl sh ) >r 0 lay-layer-bits r@ dup lay-layer-bits + r> drop ;
+: lay-copy ( n dst src -- dl dh sl sh ) rot >r over r@ + swap dup r> + ;
+: lay-out ( n src -- dl dh sl sh ) lay-stdout dup 2swap tuck + ;
+: lay-builder ( first-cell -- ) lay-next-cell ! 0 lay-pending ! 0 lay-head ! 0 lay-seq# ! ;
+: lay-new-cell ( -- addr ) lay-next-cell @ dup 1+ lay-next-cell ! lay-cell-bits @ * ;
 \ The link bit selecting a branch target: both endpoints (target, target+layer)
 \ share it, so with a layer filling the cell targets are two cells apart.
-: cc-branch-bit ( -- n ) cc-cell-bits @ cc-bits 1- cc-layer-bits cc-cell-bits @ < 0= - ;
-: cc-branch-step ( -- n ) 1 cc-branch-bit lshift ;
-\ 2^k branch targets cc-branch-step apart, aligned to the block.
-: cc-group ( k -- base )
-  1 swap lshift cc-branch-step cc-cell-bits @ / * dup 1- cc-next-cell @ + over / over *
-  dup rot + cc-next-cell ! cc-cell-bits @ * ;
-: cc-layer-cell ( layer -- cell ) @ ;
-: cc-next! ( target layer -- ) cell+ ! ;
-: cc-count ( layer -- n ) 2 cells + @ ;
-: cc-row-addr ( layer i -- addr ) 2 lshift 3 + cells + ;
-: cc-pending@ ( i -- layer ) cc-head @ + cc-max-layers 1- and cc-record * cc-pool @ + ;
-: cc-encode-layer ( layer -- )
+: lay-branch-bit ( -- n ) lay-cell-bits @ lay-bits 1- lay-layer-bits lay-cell-bits @ < 0= - ;
+: lay-branch-step ( -- n ) 1 lay-branch-bit lshift ;
+\ 2^k branch targets lay-branch-step apart, aligned to the block.
+: lay-group ( k -- base )
+  1 swap lshift lay-branch-step lay-cell-bits @ / * dup 1- lay-next-cell @ + over / over *
+  dup rot + lay-next-cell ! lay-cell-bits @ * ;
+: lay-layer-cell ( layer -- cell ) @ ;
+: lay-next! ( target layer -- ) cell+ ! ;
+: lay-count ( layer -- n ) 2 cells + @ ;
+: lay-row-addr ( layer i -- addr ) 2 lshift 3 + cells + ;
+: lay-pending@ ( i -- layer ) lay-head @ + lay-max-layers 1- and lay-record * lay-pool @ + ;
+: lay-encode-layer ( layer -- )
   dup cell+ @ -1 = if -24 throw then
-  cc-clear-rows dup 3 cells + cc-rows 2 pick cc-count 2 lshift cells cmove
-  cell+ @ cc-link-row cc-slots @ 1- cc-row!
-  cc-ebuf @ cc-dest ! cc-rows cc-slots @ cc-encode ;
-\ An xt ( layer -- ) in cc-on-write sees every layer as it is written (0: none); the price of
+  lay-clear-rows dup 3 cells + lay-rows 2 pick lay-count 2 lshift cells cmove
+  cell+ @ lay-link-row lay-slots @ 1- lay-row!
+  lay-ebuf @ lay-dest ! lay-rows lay-slots @ lay-encode ;
+\ An xt ( layer -- ) in lay-on-write sees every layer as it is written (0: none); the price of
 \ a word (14.11) is counted from them. The stream does not change.
-variable cc-on-write 0 cc-on-write !
-: cc-write ( layer -- )
-  cc-on-write @ ?dup if over swap execute then
-  dup cc-encode-layer cc-layer-cell cc-ebuf @ cc-lbytes cc-put ;
-: cc-write-oldest ( -- ) 0 cc-pending@ cc-write cc-head @ 1+ cc-max-layers 1- and cc-head ! -1 cc-pending +! ;
-: cc-new-record ( cell -- layer )
-  cc-pending @ cc-max-layers = if cc-write-oldest then
-  cc-pending @ cc-pending@ tuck !
-  -1 over cc-next! 0 over 2 cells + ! 1 cc-pending +! ;
-: cc-lone ( -- layer ) cc-new-cell cc-new-record ;
-: cc-seq ( first|-1 -- ) cc-seq-first ! 0 cc-seq# ! ;
-: cc-last ( -- layer ) cc-seq-last @ ;
-: cc-layer ( -- layer )
-  cc-seq# @ 0= cc-seq-first @ -1 <> and if cc-seq-first @ else cc-new-cell then
-  cc-new-record
-  cc-seq# @ if dup cc-layer-cell cc-last cc-next! else dup cc-layer-cell cc-seq-entry ! then
-  dup cc-seq-last ! 1 cc-seq# +! ;
-: cc-entry ( -- cell ) cc-seq-entry @ ;
-: cc-jump ( target -- ) cc-last cc-next! ;
-variable cc-l1 variable cc-h1 variable cc-l2 variable cc-h2
-variable cc-ra variable cc-rb variable cc-cur
+variable lay-on-write 0 lay-on-write !
+: lay-write ( layer -- )
+  lay-on-write @ ?dup if over swap execute then
+  dup lay-encode-layer lay-layer-cell lay-ebuf @ lay-lbytes lay-put ;
+: lay-write-oldest ( -- ) 0 lay-pending@ lay-write lay-head @ 1+ lay-max-layers 1- and lay-head ! -1 lay-pending +! ;
+: lay-new-record ( cell -- layer )
+  lay-pending @ lay-max-layers = if lay-write-oldest then
+  lay-pending @ lay-pending@ tuck !
+  -1 over lay-next! 0 over 2 cells + ! 1 lay-pending +! ;
+: lay-lone ( -- layer ) lay-new-cell lay-new-record ;
+: lay-seq ( first|-1 -- ) lay-seq-first ! 0 lay-seq# ! ;
+: lay-last ( -- layer ) lay-seq-last @ ;
+: lay-layer ( -- layer )
+  lay-seq# @ 0= lay-seq-first @ -1 <> and if lay-seq-first @ else lay-new-cell then
+  lay-new-record
+  lay-seq# @ if dup lay-layer-cell lay-last lay-next! else dup lay-layer-cell lay-seq-entry ! then
+  dup lay-seq-last ! 1 lay-seq# +! ;
+: lay-entry ( -- cell ) lay-seq-entry @ ;
+: lay-jump ( target -- ) lay-last lay-next! ;
+variable lay-l1 variable lay-h1 variable lay-l2 variable lay-h2
+variable lay-ra variable lay-rb variable lay-cur
 \ Two half-open intervals clash if both are memory, non-empty and overlap.
-: cc-clash? ( lo1 hi1 lo2 hi2 -- flag )
-  cc-h2 ! cc-l2 ! cc-h1 ! cc-l1 !
-  cc-l1 @ cc-h1 @ u< cc-l2 @ cc-h2 @ u< and
-  cc-l1 @ cc-h2 @ u< and cc-l2 @ cc-h1 @ u< and
-  cc-l1 @ cc-size @ u< and cc-l2 @ cc-size @ u< and ;
-: cc-row-clash? ( row1 row2 -- flag )
-  cc-rb ! cc-ra ! 0
+: lay-clash? ( lo1 hi1 lo2 hi2 -- flag )
+  lay-h2 ! lay-l2 ! lay-h1 ! lay-l1 !
+  lay-l1 @ lay-h1 @ u< lay-l2 @ lay-h2 @ u< and
+  lay-l1 @ lay-h2 @ u< and lay-l2 @ lay-h1 @ u< and
+  lay-l1 @ lay-size @ u< and lay-l2 @ lay-size @ u< and ;
+: lay-row-clash? ( row1 row2 -- flag )
+  lay-rb ! lay-ra ! 0
   2 0 do 2 0 do
-    cc-ra @ j 2* cells + 2@ swap cc-rb @ i 2* cells + 2@ swap cc-clash? or
+    lay-ra @ j 2* cells + 2@ swap lay-rb @ i 2* cells + 2@ swap lay-clash? or
   loop loop ;
-create cc-new-row 4 cells allot
-: cc-row-set ( dl dh sl sh layer -- )
-  cc-cur ! cc-new-row 3 cells + ! cc-new-row 2 cells + ! cc-new-row cell+ ! cc-new-row ! ;
-: cc-full? ( -- flag ) cc-cur @ cc-count cc-slots @ 1- < 0= ;
-: cc-clashes? ( -- flag )
-  0 cc-cur @ cc-count 0 ?do
-    cc-new-row cc-cur @ i cc-row-addr cc-row-clash? if drop -1 leave then
+create lay-new-row 4 cells allot
+: lay-row-set ( dl dh sl sh layer -- )
+  lay-cur ! lay-new-row 3 cells + ! lay-new-row 2 cells + ! lay-new-row cell+ ! lay-new-row ! ;
+: lay-full? ( -- flag ) lay-cur @ lay-count lay-slots @ 1- < 0= ;
+: lay-clashes? ( -- flag )
+  0 lay-cur @ lay-count 0 ?do
+    lay-new-row lay-cur @ i lay-row-addr lay-row-clash? if drop -1 leave then
   loop ;
 \ Would the row fit the layer (a free slot, no overlap)? Nothing is added.
-: cc-fits? ( dl dh sl sh layer -- flag )
-  cc-row-set cc-full? if 0 exit then cc-clashes? 0= ;
-: cc-row ( dl dh sl sh layer -- slot )
-  cc-row-set cc-full? if -8 throw then cc-clashes? if -9 throw then
-  cc-new-row cc-cur @ dup cc-count cc-row-addr 4 cells cmove
-  cc-cur @ cc-count 1 cc-cur @ 2 cells + +! ;
-: cc-flush ( -- )
-  cc-pending @ 0 ?do i cc-pending@ cell+ @ -1 = if -24 throw then loop
-  cc-pending @ 0 ?do i cc-pending@ cc-write loop 0 cc-pending ! 0 cc-head ! 0 cc-seq# ! ;
-: cc-finish ( entry -- )
-  cc-sink @ if cc-start-cell ! exit then
-  cc-stream-flush cc-clear-rows cc-link-row cc-slots @ 1- cc-row!
-  cc-lbuf @ cc-dest ! cc-rows cc-slots @ cc-encode cc-lbuf @ cc-lbytes type ;
+: lay-fits? ( dl dh sl sh layer -- flag )
+  lay-row-set lay-full? if 0 exit then lay-clashes? 0= ;
+: lay-row ( dl dh sl sh layer -- slot )
+  lay-row-set lay-full? if -8 throw then lay-clashes? if -9 throw then
+  lay-new-row lay-cur @ dup lay-count lay-row-addr 4 cells cmove
+  lay-cur @ lay-count 1 lay-cur @ 2 cells + +! ;
+: lay-flush ( -- )
+  lay-pending @ 0 ?do i lay-pending@ cell+ @ -1 = if -24 throw then loop
+  lay-pending @ 0 ?do i lay-pending@ lay-write loop 0 lay-pending ! 0 lay-head ! 0 lay-seq# ! ;
+: lay-finish ( entry -- )
+  lay-sink @ if lay-start-cell ! exit then
+  lay-stream-flush lay-clear-rows lay-link-row lay-slots @ 1- lay-row!
+  lay-lbuf @ lay-dest ! lay-rows lay-slots @ lay-encode lay-lbuf @ lay-lbytes type ;

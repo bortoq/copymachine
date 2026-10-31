@@ -21,9 +21,9 @@
 : gen-0= ( -- ) fc-code fc-pop fc-reg tuck swap fc-or-zero fc-push ;
 : gen-cells ( -- ) 1 fc-fold? if fc-ct- 4 * fc-ct+ exit then 2 fc-shift-copy ;
 : gen-2* ( -- ) 1 fc-fold? if fc-ct- 2 * fc-ct+ exit then 1 fc-shift-copy ;
-: gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then cc-t-add @ 1 0 fc-inc ;
-: gen-1- ( -- ) 1 fc-fold? if fc-ct- 1- fc-ct+ exit then cc-t-sub @ 1 1 fc-inc ;
-: gen-cell+ ( -- ) 1 fc-fold? if fc-ct- 4 + fc-ct+ exit then cc-t-add @ 4 0 fc-inc ;
+: gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then lay-t-add @ 1 0 fc-inc ;
+: gen-1- ( -- ) 1 fc-fold? if fc-ct- 1- fc-ct+ exit then lay-t-sub @ 1 1 fc-inc ;
+: gen-cell+ ( -- ) 1 fc-fold? if fc-ct- 4 + fc-ct+ exit then lay-t-add @ 4 0 fc-inc ;
 \ * / MOD /MOD call the helpers built before the code (FC-SCAN-USES).
 : gen* ( -- )
   2 fc-fold? if fc-ct2 * fc-ct+ exit then fc-mul-lit? if exit then
@@ -52,22 +52,22 @@
   fc-code fc-pop dup fc-pin ! 1 fc-npin ! fc-reg fc-cres ! 0 fc-npin ! 2 fc-check fc-cres @ fc-push ;
 : gen-c! ( -- ) fc-code 2 fc-need fc-pop1 fc-pop1 fc-cv ! 3 fc-check ;
 : gen-emit ( -- )
-  fc-code fc-pop cc-lookups-begin fc-t-rev8 @ 4 8 fc-xr 0 cc-item 8 0 cc-seg cc-lookups
-  cc-stdout dup fc-xr dup 8 + fc-rows1 ;
+  fc-code fc-pop lay-lookups-begin fc-t-rev8 @ 4 8 fc-xr 0 lay-item 8 0 lay-seg lay-lookups
+  lay-stdout dup fc-xr dup 8 + fc-rows1 ;
 : gen-key ( -- ) fc-code fc-read-key ;
 \ Control (14.5): the branches of FC-CONTROL-TOKEN and FC-WORD-TOKEN. An open
 \ structure is an entry of the control stack (FC-CTL+ FC-CTL-): kind (1 if,
 \ 2 else, 3 begin, 4 while, 5 do), its cell and, for a loop, its leave cell.
 : gen-if ( -- ) fc-code fc-pop fc-spill fc-branch swap 1 swap fc-ctl+ fc-begin-block drop ;
 : gen-else ( -- )
-  fc-code fc-ctl- nip fc-spill cc-new-cell dup fc-jump fc-end 2 swap fc-ctl+ fc-begin-block drop ;
+  fc-code fc-ctl- nip fc-spill lay-new-cell dup fc-jump fc-end 2 swap fc-ctl+ fc-begin-block drop ;
 : gen-then ( -- )
   fc-code fc-ctl- fc-spill swap 1 = if
-    cc-new-cell dup fc-jump cc-flush swap cc-new-record over swap cc-next! fc-end fc-begin-block drop
+    lay-new-cell dup fc-jump lay-flush swap lay-new-record over swap lay-next! fc-end fc-begin-block drop
   else fc-begin-block drop then ;
 : gen-begin ( -- ) fc-code fc-by-execution fc-spill 3 -1 fc-begin-block fc-ctl+ ;
 : gen-until ( -- )
-  fc-code fc-pop fc-spill fc-branch swap cc-new-record fc-ctl- nip swap cc-next! cc-flush fc-begin-block drop ;
+  fc-code fc-pop fc-spill fc-branch swap lay-new-record fc-ctl- nip swap lay-next! lay-flush fc-begin-block drop ;
 : gen-while ( -- ) fc-code fc-pop fc-spill fc-branch swap 4 swap fc-ctl+ fc-begin-block drop ;
 : gen-repeat ( -- ) fc-code fc-ctl- nip fc-ctl- nip fc-spill fc-jump fc-end fc-begin-block drop ;
 : gen-again ( -- ) fc-code fc-ctl- nip fc-spill fc-jump fc-end -1 fc-begin-block drop ;
@@ -79,8 +79,8 @@
 variable fc-di variable fc-dl
 : gen-?do ( -- )
   fc-code fc-by-execution 2 fc-need fc-pop1 fc-di ! fc-pop1 fc-dl ! fc-spill
-  cc-t-xor @ fc-xr fc-di @ fc-dl @ cc-logic fc-xr fc-branch
-  cc-new-cell dup >r rot cc-new-record cc-next! cc-flush fc-begin-block drop
+  lay-t-xor @ fc-xr fc-di @ fc-dl @ lay-logic fc-xr fc-branch
+  lay-new-cell dup >r rot lay-new-record lay-next! lay-flush fc-begin-block drop
   fc-dl @ fc-srcs ! fc-di @ fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
   5 -1 fc-begin-block fc-ctl+ r> fc-ctl-leave! ;
 \ LOOP: index + 1, back to the start unless it equals the limit; then the leave cell.
@@ -88,12 +88,12 @@ variable fc-lv
 : gen-loop ( -- )
   fc-code fc-ctl- nip fc-ctl-leave fc-lv ! fc-spill fc-rstk fc-rp 2 32 fc-mem-pop 0 fc-npin !
   fc-regs fc-nregs 1- 64 * + >r
-  cc-t-add @ fc-tmp 1 fc-popped@ 1 fc-const 0 cc-adder 32 r@ fc-tmp cc-copy fc-rows1
-  cc-t-xor @ fc-xr r@ 0 fc-popped@ cc-logic
-  fc-xr fc-branch ( start zero more ) cc-seq cc-layer drop
+  lay-t-add @ fc-tmp 1 fc-popped@ 1 fc-const 0 lay-adder 32 r@ fc-tmp lay-copy fc-rows1
+  lay-t-xor @ fc-xr r@ 0 fc-popped@ lay-logic
+  fc-xr fc-branch ( start zero more ) lay-seq lay-layer drop
   0 fc-popped@ fc-srcs ! r> fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
-  swap cc-jump fc-end
-  fc-lv @ ?dup if swap cc-new-record over swap cc-next! cc-flush then fc-begin-block drop ;
+  swap lay-jump fc-end
+  fc-lv @ ?dup if swap lay-new-record over swap lay-next! lay-flush then fc-begin-block drop ;
 : gen-leave ( -- )
   fc-code fc-do-entry fc-spill 0 fc-noff ! fc-rp -2 fc-adjust
   fc-loop-leave fc-jump fc-end -1 fc-begin-block drop ;
@@ -130,7 +130,7 @@ variable fc-lv
 \ The entry of a word (a colon definition of the program of the kernel) holds, in the first row of
 \ its first layer, the copy of 32 zero bits to FC-MARK: the field dl of that row, at the start of
 \ the cell, is the mark.
-: fc-mark-entry ( -- ) 32 fc-mark fc-zero cc-copy cc-last cc-row drop ;
+: fc-mark-entry ( -- ) 32 fc-mark fc-zero lay-copy lay-last lay-row drop ;
 : gen-space! ( -- ) fc-code fc-guard @ if 32 gen-check-range then 32 fc-space-store ;
 : gen-spacec! ( -- ) fc-code fc-guard @ if 8 gen-check-range then 8 fc-space-store ;
 : gen-space@ ( -- ) fc-code fc-guard @ if 32 gen-check-range then 32 fc-space-fetch ;
@@ -139,7 +139,7 @@ variable fc-lv
 \ are zero) and the 32 bits at the start of its cell are the mark. The read is of the aligned 32 bits
 \ of the code ((xt and 2^29 - 32), 32 bits), so it never leaves the code of the program.
 : gen-check-entry ( -- )
-  0 0 0 cc-field if -24 throw then
+  0 0 0 lay-field if -24 throw then
   ['] gen-dup gen-call 29 gen-lit ['] gen-rshift gen-call ['] gen-over gen-call
   1 29 lshift 32 - gen-lit ['] gen-and gen-call ['] gen-dup gen-call 32 gen-lit ['] gen+ gen-call
   32 fc-space-fetch fc-mark gen-lit ['] gen-xor gen-call ['] gen-or gen-call
@@ -155,13 +155,13 @@ variable fc-lv
 \ entry mark in the program of the kernel); a call and the xt of the word go to it. The log starts
 \ with it: the price of the word is that of its path from the concept cell.
 : fc-concept ( cell -- )
-  fc-log-begin dup fc-word @ 3 cells + ! cc-seq cc-layer drop fc-guard @ if fc-mark-entry then
-  fc-word @ 6 cells + @ cc-jump cc-flush ;
+  fc-log-begin dup fc-word @ 3 cells + ! lay-seq lay-layer drop fc-guard @ if fc-mark-entry then
+  fc-word @ 6 cells + @ lay-jump lay-flush ;
 \ : A B ; with B a word is the synonym A of B, no code (14.13). In a program of the replacement the
 \ concept cell of the word (FC-CONCEPT) is the group before its entry.
 : gen-colon ( -- ) \ : NAME starts the word NAME (visible at once: RECURSE)
   fc-top-only fc-close-init fc-next! fc-synonym? ?dup if fc-synonym-of exit then
-  fc-rt @ if 0 cc-group else 0 then 0 cc-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
+  fc-rt @ if 0 lay-group else 0 then 0 lay-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
   swap ?dup if fc-concept then
   0 fc-live ! 0 fc-n ! fc-begin-block drop fc-guard @ if fc-mark-entry then fc-rt @ 0= if fc-log-begin then ;
 : gen-semicolon ( -- ) \ ; returns and ends the definition, its price is counted (14.11)
@@ -215,7 +215,7 @@ variable fc-lv
 \ K+1 goes to the cell 8 of the record (the host definition).
 variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 256 allot
 : fc-hb ( -- at ) fc-nhost @ 22 lshift 1610612736 + ;
-: fc-c, ( addr u -- ) >r >r fc-cpos @ r> r@ cc-put r> 8 * fc-cpos +! ;   \ the C text goes on
+: fc-c, ( addr u -- ) >r >r fc-cpos @ r> r@ lay-put r> 8 * fc-cpos +! ;   \ the C text goes on
 : fc-c1 ( c -- ) fc-eight c! fc-eight 1 fc-c, ;
 : fc-c-gen ( record -- ) \ a generator of the record as C; a comment skipped
   dup 3 cells + @ ['] gen-paren = if drop gen-paren exit then
@@ -244,7 +244,7 @@ variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 256 allot
   s" S(r+b));if(!f||fread(b,1,4,f)!=4)return 1;s[8]=r8(b[0])|r8(b[1])<<8|r8(b[2])<<16|r8(b[3])<<24;" fc-c,
   10 fc-c1 fc-c-body 10 fc-c1 s" t=s[p];for(p=0;p<4;p++)b[p]=r8(t>>8*p&255);fseek(f,4,SEEK_SET);" fc-c,
   s" fwrite(b,1,4,f);fclose(f);return 0;}" fc-c, 10 fc-c1
-  fc-cpos @ fc-hb - 32 - dup 4194272 u> if -8 throw then 4 fc-hb cc-put-numeric
+  fc-cpos @ fc-hb - 32 - dup 4194272 u> if -8 throw then 4 fc-hb lay-put-numeric
   fc-nhost @ dup 1+ fc-word @ 8 cells + ! fc-literal
   s" %host" dup fc-tl ! fc-tok swap cmove fc-word-token 1 fc-nhost +! ;
 \ The name of two bytes c1 c2 (S": a quote cannot be written in a string).

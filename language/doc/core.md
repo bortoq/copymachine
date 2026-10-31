@@ -12,12 +12,12 @@
 
 | Слово | Что порождает | Файл:строка |
 |---|---|---|
-| `cc-copy` | строка: копирование n бит из источника в приёмник | src/backend.fth:119 |
-| `cc-link-row` | строка: копирование ссылки на следующий слой | src/backend.fth:118 |
-| `cc-row` | строка: добавляет строку в слой | src/backend.fth:186 |
-| `cc-new-record` | слой: новый слой в ячейке | src/backend.fth:148 |
-| `cc-lone` | слой: отдельный слой в новой ячейке | src/backend.fth:152 |
-| `cc-layer` | слой: следующий слой последовательности | src/backend.fth:155 |
+| `lay-copy` | строка: копирование n бит из источника в приёмник | src/backend.fth:119 |
+| `lay-link-row` | строка: копирование ссылки на следующий слой | src/backend.fth:118 |
+| `lay-row` | строка: добавляет строку в слой | src/backend.fth:186 |
+| `lay-new-record` | слой: новый слой в ячейке | src/backend.fth:148 |
+| `lay-lone` | слой: отдельный слой в новой ячейке | src/backend.fth:152 |
+| `lay-layer` | слой: следующий слой последовательности | src/backend.fth:155 |
 
 ## Слова ядра
 
@@ -60,214 +60,214 @@
 | 33 | `free` | определение `:` | src/prelude.fth:48 | 5 |  |
 | 34 | `source` | определение `:` | src/prelude.fth:50 | 2 |  |
 | 35 | `>in` | переменная | src/prelude.fth:51 | 2 |  |
-| 36 | `cc-size` | переменная | src/backend.fth:14 | 9 |  |
-| 37 | `cc-a` | переменная | src/backend.fth:14 | 15 |  |
-| 38 | `cc-slots` | переменная | src/backend.fth:14 | 14 |  |
-| 39 | `cc-cell-bits` | переменная | src/backend.fth:14 | 13 |  |
-| 40 | `cc-chunk` | переменная | src/backend.fth:15 | 8 |  |
-| 41 | `cc-chunk-buf` | переменная | src/backend.fth:15 | 6 |  |
-| 42 | `cc-lbuf` | переменная | src/backend.fth:15 | 6 |  |
-| 43 | `cc-pool` | переменная | src/backend.fth:15 | 5 |  |
-| 44 | `cc-ebuf` | переменная | src/backend.fth:16 | 4 |  |
-| 45 | `cc-dest` | переменная | src/backend.fth:16 | 6 |  |
-| 46 | `cc-sink` | переменная | src/backend.fth:16 | 5 |  |
-| 47 | `cc-start-cell` | переменная | src/backend.fth:16 | 3 |  |
-| 48 | `cc-rev` | данные `create` | src/backend.fth:18 | 10 |  |
-| 49 | `cc-rev-init` | определение `:` | src/backend.fth:19 | 1 |  |
-| 50 | `cc-inst` | определение `:` | src/backend.fth:23 | 8 |  |
-| 51 | `cc-layer-bits` | определение `:` | src/backend.fth:24 | 9 |  |
-| 52 | `cc-lbytes` | определение `:` | src/backend.fth:25 | 6 |  |
-| 53 | `cc-stdin` | определение `:` | src/backend.fth:26 | 3 |  |
-| 54 | `cc-stdout` | определение `:` | src/backend.fth:27 | 2 |  |
-| 55 | `cc-bits` | определение `:` | src/backend.fth:28 | 3 |  |
-| 56 | `cc-numeric` | определение `:` | src/backend.fth:29 | 9 |  |
-| 57 | `cc-numeric4` | определение `:` | src/backend.fth:35 | 1 |  |
-| 58 | `cc-field-check` | определение `:` | src/backend.fth:38 | 1 |  |
-| 59 | `cc-encode` | определение `:` | src/backend.fth:41 | 3 |  |
-| 60 | `cc-start` | переменная | src/backend.fth:51 | 8 |  |
-| 61 | `cc-len` | переменная | src/backend.fth:51 | 10 |  |
-| 62 | `cc-rows` | данные `create` | src/backend.fth:52 | 6 |  |
-| 63 | `cc-row!` | определение `:` | src/backend.fth:53 | 7 |  |
-| 64 | `cc-clear-rows` | определение `:` | src/backend.fth:55 | 3 |  |
-| 65 | `cc-loader` | определение `:` | src/backend.fth:56 | 1 |  |
-| 66 | `cc-stream-flush` | определение `:` | src/backend.fth:63 | 3 |  |
-| 67 | `cc-begin-chunk` | определение `:` | src/backend.fth:67 | 2 |  |
-| 68 | `cc-put` | определение `:` | src/backend.fth:69 | 14 |  |
-| 69 | `cc-scratch` | данные `create` | src/backend.fth:87 | 2 |  |
-| 70 | `cc-put-numeric` | определение `:` | src/backend.fth:88 | 3 |  |
-| 71 | `cc-max-layers` | константа | src/backend.fth:93 | 4 |  |
-| 72 | `cc-record` | определение `:` | src/backend.fth:94 | 2 |  |
-| 73 | `cc-pending` | переменная | src/backend.fth:95 | 10 |  |
-| 74 | `cc-head` | переменная | src/backend.fth:95 | 6 |  |
-| 75 | `cc-next-cell` | переменная | src/backend.fth:95 | 7 |  |
-| 76 | `cc-seq#` | переменная | src/backend.fth:96 | 8 |  |
-| 77 | `cc-seq-first` | переменная | src/backend.fth:96 | 3 |  |
-| 78 | `cc-seq-entry` | переменная | src/backend.fth:96 | 2 |  |
-| 79 | `cc-seq-last` | переменная | src/backend.fth:96 | 2 |  |
-| 80 | `cc-foff` | данные `create` | src/backend.fth:98 | 2 |  |
-| 81 | `cc-foff-init` | определение `:` | src/backend.fth:99 | 1 |  |
-| 82 | `cc-machine` | определение `:` | src/backend.fth:100 | 1 |  |
-| 83 | `cc-field` | определение `:` | src/backend.fth:117 | 38 |  |
-| 84 | `cc-link-row` | основание | src/backend.fth:118 | 2 | основание: строка: копирование ссылки на следующий слой; определение инструкции — она сама |
-| 85 | `cc-copy` | основание | src/backend.fth:119 | 74 | основание: строка: копирование n бит из источника в приёмник; определение инструкции — она сама |
-| 86 | `cc-builder` | определение `:` | src/backend.fth:121 | 1 |  |
-| 87 | `cc-new-cell` | определение `:` | src/backend.fth:122 | 13 |  |
-| 88 | `cc-branch-bit` | определение `:` | src/backend.fth:125 | 14 |  |
-| 89 | `cc-branch-step` | определение `:` | src/backend.fth:126 | 4 |  |
-| 90 | `cc-group` | определение `:` | src/backend.fth:128 | 6 |  |
-| 91 | `cc-layer-cell` | определение `:` | src/backend.fth:131 | 39 |  |
-| 92 | `cc-next!` | определение `:` | src/backend.fth:132 | 20 |  |
-| 93 | `cc-count` | определение `:` | src/backend.fth:133 | 7 |  |
-| 94 | `cc-row-addr` | определение `:` | src/backend.fth:134 | 4 |  |
-| 95 | `cc-pending@` | определение `:` | src/backend.fth:135 | 5 |  |
-| 96 | `cc-encode-layer` | определение `:` | src/backend.fth:136 | 1 |  |
-| 97 | `cc-on-write` | переменная | src/backend.fth:143 | 6 |  |
-| 98 | `cc-write` | определение `:` | src/backend.fth:144 | 2 |  |
-| 99 | `cc-write-oldest` | определение `:` | src/backend.fth:147 | 1 |  |
-| 100 | `cc-new-record` | основание | src/backend.fth:148 | 10 | основание: слой: новый слой в ячейке; определение инструкции — она сама |
-| 101 | `cc-lone` | основание | src/backend.fth:152 | 5 | основание: слой: отдельный слой в новой ячейке; определение инструкции — она сама |
-| 102 | `cc-seq` | определение `:` | src/backend.fth:153 | 9 |  |
-| 103 | `cc-last` | определение `:` | src/backend.fth:154 | 5 |  |
-| 104 | `cc-layer` | основание | src/backend.fth:155 | 79 | основание: слой: следующий слой последовательности; определение инструкции — она сама |
-| 105 | `cc-entry` | определение `:` | src/backend.fth:160 | 4 |  |
-| 106 | `cc-jump` | определение `:` | src/backend.fth:161 | 12 |  |
-| 107 | `cc-l1` | переменная | src/backend.fth:162 | 4 |  |
-| 108 | `cc-h1` | переменная | src/backend.fth:162 | 3 |  |
-| 109 | `cc-l2` | переменная | src/backend.fth:162 | 4 |  |
-| 110 | `cc-h2` | переменная | src/backend.fth:162 | 3 |  |
-| 111 | `cc-ra` | переменная | src/backend.fth:163 | 2 |  |
-| 112 | `cc-rb` | переменная | src/backend.fth:163 | 2 |  |
-| 113 | `cc-cur` | переменная | src/backend.fth:163 | 7 |  |
-| 114 | `cc-clash?` | определение `:` | src/backend.fth:165 | 1 |  |
-| 115 | `cc-row-clash?` | определение `:` | src/backend.fth:170 | 1 |  |
-| 116 | `cc-new-row` | данные `create` | src/backend.fth:175 | 6 |  |
-| 117 | `cc-row-set` | определение `:` | src/backend.fth:176 | 2 |  |
-| 118 | `cc-full?` | определение `:` | src/backend.fth:178 | 2 |  |
-| 119 | `cc-clashes?` | определение `:` | src/backend.fth:179 | 2 |  |
-| 120 | `cc-fits?` | определение `:` | src/backend.fth:184 | 2 |  |
-| 121 | `cc-row` | основание | src/backend.fth:186 | 74 | основание: строка: добавляет строку в слой; определение инструкции — она сама |
-| 122 | `cc-flush` | определение `:` | src/backend.fth:190 | 13 |  |
-| 123 | `cc-finish` | определение `:` | src/backend.fth:193 | 1 |  |
-| 124 | `cc-t1` | переменная | src/compute.fth:10 | 25 |  |
-| 125 | `cc-t2` | переменная | src/compute.fth:10 | 13 |  |
-| 126 | `cc-t3` | переменная | src/compute.fth:10 | 7 |  |
-| 127 | `cc-t4` | переменная | src/compute.fth:10 | 4 |  |
-| 128 | `cc-t5` | переменная | src/compute.fth:10 | 8 |  |
-| 129 | `cc-lo` | переменная | src/compute.fth:11 | 5 |  |
-| 130 | `cc-hi` | переменная | src/compute.fth:11 | 2 |  |
-| 131 | `cc-l0` | переменная | src/compute.fth:12 | 21 |  |
-| 132 | `cc-l1` | переменная | src/compute.fth:12 | 13 | вариант 2 |
-| 133 | `cc-l2` | переменная | src/compute.fth:12 | 8 | вариант 2 |
-| 134 | `cc-l3` | переменная | src/compute.fth:12 | 7 |  |
-| 135 | `cc-l4` | переменная | src/compute.fth:12 | 7 |  |
-| 136 | `cc-l5` | переменная | src/compute.fth:12 | 6 |  |
-| 137 | `cc-work` | определение `:` | src/compute.fth:13 | 3 |  |
-| 138 | `cc-cell-bit` | определение `:` | src/compute.fth:14 | 1 |  |
-| 139 | `cc-link-slot` | определение `:` | src/compute.fth:15 | 6 |  |
-| 140 | `cc-item-cells` | константа | src/compute.fth:17 | 1 |  |
-| 141 | `cc-max-items` | константа | src/compute.fth:17 | 2 |  |
-| 142 | `cc-items` | данные `create` | src/compute.fth:18 | 1 |  |
-| 143 | `cc-nitems` | переменная | src/compute.fth:19 | 8 |  |
-| 144 | `cc-item@` | определение `:` | src/compute.fth:20 | 6 |  |
-| 145 | `cc-lookups-begin` | определение `:` | src/compute.fth:21 | 14 |  |
-| 146 | `cc-item` | определение `:` | src/compute.fth:22 | 12 |  |
-| 147 | `cc-seg` | определение `:` | src/compute.fth:27 | 18 |  |
-| 148 | `cc-sl` | данные `create` | src/compute.fth:33 | 2 |  |
-| 149 | `cc-sh` | данные `create` | src/compute.fth:33 | 2 |  |
-| 150 | `cc-read-layer` | данные `create` | src/compute.fth:34 | 2 |  |
-| 151 | `cc-read-slot` | данные `create` | src/compute.fth:34 | 2 |  |
-| 152 | `cc-used` | данные `create` | src/compute.fth:35 | 2 |  |
-| 153 | `cc-nused` | переменная | src/compute.fth:35 | 5 |  |
-| 154 | `cc-rl` | переменная | src/compute.fth:35 | 6 |  |
-| 155 | `cc-pk` | переменная | src/compute.fth:35 | 4 |  |
-| 156 | `cc-pkl` | переменная | src/compute.fth:35 | 4 |  |
-| 157 | `cc-npatches` | определение `:` | src/compute.fth:36 | 1 |  |
-| 158 | `cc-used?` | определение `:` | src/compute.fth:37 | 1 |  |
-| 159 | `cc-place-reads` | определение `:` | src/compute.fth:39 | 1 |  |
-| 160 | `cc-patch` | определение `:` | src/compute.fth:51 | 1 |  |
-| 161 | `cc-lookups` | определение `:` | src/compute.fth:60 | 14 |  |
-| 162 | `cc-al` | данные `create` | src/compute.fth:67 | 2 |  |
-| 163 | `cc-ar` | данные `create` | src/compute.fth:67 | 2 |  |
-| 164 | `cc-ax` | переменная | src/compute.fth:68 | 4 |  |
-| 165 | `cc-aa` | переменная | src/compute.fth:68 | 2 |  |
-| 166 | `cc-ab` | переменная | src/compute.fth:68 | 2 |  |
-| 167 | `cc-atab` | переменная | src/compute.fth:68 | 2 |  |
-| 168 | `cc-acarry` | переменная | src/compute.fth:68 | 2 |  |
-| 169 | `cc-al@` | определение `:` | src/compute.fth:69 | 8 |  |
-| 170 | `cc-rd` | определение `:` | src/compute.fth:70 | 3 |  |
-| 171 | `cc-adder-patch` | определение `:` | src/compute.fth:71 | 4 |  |
-| 172 | `cc-adder` | определение `:` | src/compute.fth:76 | 5 |  |
-| 173 | `cc-dsrc` | переменная | src/compute.fth:93 | 3 |  |
-| 174 | `cc-dk` | переменная | src/compute.fth:93 | 5 |  |
-| 175 | `cc-dg` | переменная | src/compute.fth:93 | 3 |  |
-| 176 | `cc-dp` | переменная | src/compute.fth:93 | 3 |  |
-| 177 | `cc-dx` | переменная | src/compute.fth:93 | 4 |  |
-| 178 | `cc-decide` | определение `:` | src/compute.fth:94 | 2 |  |
-| 179 | `cc-table-at` | переменная | src/compute.fth:102 | 4 |  |
-| 180 | `cc-table-limit` | переменная | src/compute.fth:102 | 2 |  |
-| 181 | `cc-tbuf` | переменная | src/compute.fth:102 | 8 |  |
-| 182 | `cc-tx` | переменная | src/compute.fth:103 | 8 |  |
-| 183 | `cc-tbits` | переменная | src/compute.fth:103 | 5 |  |
-| 184 | `cc-ts` | переменная | src/compute.fth:103 | 6 |  |
-| 185 | `cc-tsize` | переменная | src/compute.fth:103 | 7 |  |
-| 186 | `cc-tbase` | переменная | src/compute.fth:103 | 4 |  |
-| 187 | `cc-tper` | переменная | src/compute.fth:103 | 4 |  |
-| 188 | `cc-tables` | определение `:` | src/compute.fth:104 | 2 |  |
-| 189 | `cc-table-area` | определение `:` | src/compute.fth:105 | 3 |  |
-| 190 | `cc-table-done` | определение `:` | src/compute.fth:113 | 3 |  |
-| 191 | `cc-table` | определение `:` | src/compute.fth:116 | 24 |  |
-| 192 | `cc-table2` | определение `:` | src/compute.fth:134 | 1 |  |
-| 193 | `cc-add-entry` | определение `:` | src/compute.fth:141 | 1 |  |
-| 194 | `cc-sub-entry` | определение `:` | src/compute.fth:143 | 2 |  |
-| 195 | `cc-xor-entry` | определение `:` | src/compute.fth:145 | 1 |  |
-| 196 | `cc-or-entry` | определение `:` | src/compute.fth:146 | 1 |  |
-| 197 | `cc-and-entry` | определение `:` | src/compute.fth:147 | 1 |  |
-| 198 | `cc-or8-entry` | определение `:` | src/compute.fth:148 | 2 |  |
-| 199 | `cc-fz` | переменная | src/compute.fth:149 | 3 |  |
-| 200 | `cc-fu` | переменная | src/compute.fth:149 | 4 |  |
-| 201 | `cc-fs` | переменная | src/compute.fth:149 | 3 |  |
-| 202 | `cc-pair` | определение `:` | src/compute.fth:150 | 6 |  |
-| 203 | `cc-flags-entry` | определение `:` | src/compute.fth:151 | 1 |  |
-| 204 | `cc-not5-entry` | определение `:` | src/compute.fth:158 | 1 |  |
-| 205 | `cc-sign-entry` | определение `:` | src/compute.fth:159 | 1 |  |
-| 206 | `cc-fill24-entry` | определение `:` | src/compute.fth:160 | 1 |  |
-| 207 | `cc-fill16-entry` | определение `:` | src/compute.fth:161 | 1 |  |
-| 208 | `cc-inc1-entry` | определение `:` | src/compute.fth:162 | 1 |  |
-| 209 | `cc-inc2-entry` | определение `:` | src/compute.fth:163 | 1 |  |
-| 210 | `cc-t-add` | переменная | src/compute.fth:164 | 6 |  |
-| 211 | `cc-t-sub` | переменная | src/compute.fth:164 | 5 |  |
-| 212 | `cc-t-xor` | переменная | src/compute.fth:164 | 5 |  |
-| 213 | `cc-t-or` | переменная | src/compute.fth:164 | 2 |  |
-| 214 | `cc-t-and` | переменная | src/compute.fth:164 | 2 |  |
-| 215 | `cc-t-or8` | переменная | src/compute.fth:165 | 3 |  |
-| 216 | `cc-t-flags` | переменная | src/compute.fth:165 | 2 |  |
-| 217 | `cc-t-not5` | переменная | src/compute.fth:165 | 2 |  |
-| 218 | `cc-t-sign32` | переменная | src/compute.fth:165 | 2 |  |
-| 219 | `cc-t-fill24` | переменная | src/compute.fth:166 | 1 |  |
-| 220 | `cc-t-fill16` | переменная | src/compute.fth:166 | 1 |  |
-| 221 | `cc-t-inc1` | переменная | src/compute.fth:166 | 1 |  |
-| 222 | `cc-t-inc2` | переменная | src/compute.fth:166 | 1 |  |
-| 223 | `cc-standard-tables` | определение `:` | src/compute.fth:167 | 1 |  |
-| 224 | `cc-oo` | переменная | src/compute.fth:176 | 2 |  |
-| 225 | `cc-os` | переменная | src/compute.fth:176 | 2 |  |
-| 226 | `cc-ol` | переменная | src/compute.fth:176 | 4 |  |
-| 227 | `cc-oh` | переменная | src/compute.fth:176 | 3 |  |
-| 228 | `cc-or-chunks` | определение `:` | src/compute.fth:177 | 3 |  |
-| 229 | `cc-cr` | переменная | src/compute.fth:183 | 5 |  |
-| 230 | `cc-ca` | переменная | src/compute.fth:183 | 4 |  |
-| 231 | `cc-cb` | переменная | src/compute.fth:183 | 4 |  |
-| 232 | `cc-logic` | определение `:` | src/compute.fth:190 | 4 |  |
-| 233 | `cc-sres` | переменная | src/compute.fth:196 | 3 |  |
-| 234 | `cc-sa` | переменная | src/compute.fth:196 | 7 |  |
-| 235 | `cc-samt` | переменная | src/compute.fth:196 | 8 |  |
-| 236 | `cc-sw` | переменная | src/compute.fth:196 | 9 |  |
-| 237 | `cc-szero` | переменная | src/compute.fth:196 | 4 |  |
-| 238 | `cc-sarg` | переменная | src/compute.fth:197 | 6 |  |
-| 239 | `cc-sign` | переменная | src/compute.fth:197 | 6 |  |
-| 240 | `cc-shift-row` | определение `:` | src/compute.fth:198 | 3 |  |
-| 241 | `cc-shift-patch` | определение `:` | src/compute.fth:199 | 6 |  |
-| 242 | `cc-shift-right` | определение `:` | src/compute.fth:201 | 1 |  |
-| 243 | `cc-shift-left` | определение `:` | src/compute.fth:218 | 1 |  |
+| 36 | `lay-size` | переменная | src/backend.fth:14 | 9 |  |
+| 37 | `lay-a` | переменная | src/backend.fth:14 | 15 |  |
+| 38 | `lay-slots` | переменная | src/backend.fth:14 | 14 |  |
+| 39 | `lay-cell-bits` | переменная | src/backend.fth:14 | 13 |  |
+| 40 | `lay-chunk` | переменная | src/backend.fth:15 | 8 |  |
+| 41 | `lay-chunk-buf` | переменная | src/backend.fth:15 | 6 |  |
+| 42 | `lay-lbuf` | переменная | src/backend.fth:15 | 6 |  |
+| 43 | `lay-pool` | переменная | src/backend.fth:15 | 5 |  |
+| 44 | `lay-ebuf` | переменная | src/backend.fth:16 | 4 |  |
+| 45 | `lay-dest` | переменная | src/backend.fth:16 | 6 |  |
+| 46 | `lay-sink` | переменная | src/backend.fth:16 | 5 |  |
+| 47 | `lay-start-cell` | переменная | src/backend.fth:16 | 3 |  |
+| 48 | `lay-rev` | данные `create` | src/backend.fth:18 | 10 |  |
+| 49 | `lay-rev-init` | определение `:` | src/backend.fth:19 | 1 |  |
+| 50 | `lay-inst` | определение `:` | src/backend.fth:23 | 8 |  |
+| 51 | `lay-layer-bits` | определение `:` | src/backend.fth:24 | 9 |  |
+| 52 | `lay-lbytes` | определение `:` | src/backend.fth:25 | 6 |  |
+| 53 | `lay-stdin` | определение `:` | src/backend.fth:26 | 3 |  |
+| 54 | `lay-stdout` | определение `:` | src/backend.fth:27 | 2 |  |
+| 55 | `lay-bits` | определение `:` | src/backend.fth:28 | 3 |  |
+| 56 | `lay-numeric` | определение `:` | src/backend.fth:29 | 9 |  |
+| 57 | `lay-numeric4` | определение `:` | src/backend.fth:35 | 1 |  |
+| 58 | `lay-field-check` | определение `:` | src/backend.fth:38 | 1 |  |
+| 59 | `lay-encode` | определение `:` | src/backend.fth:41 | 3 |  |
+| 60 | `lay-start` | переменная | src/backend.fth:51 | 8 |  |
+| 61 | `lay-len` | переменная | src/backend.fth:51 | 10 |  |
+| 62 | `lay-rows` | данные `create` | src/backend.fth:52 | 6 |  |
+| 63 | `lay-row!` | определение `:` | src/backend.fth:53 | 7 |  |
+| 64 | `lay-clear-rows` | определение `:` | src/backend.fth:55 | 3 |  |
+| 65 | `lay-loader` | определение `:` | src/backend.fth:56 | 1 |  |
+| 66 | `lay-stream-flush` | определение `:` | src/backend.fth:63 | 3 |  |
+| 67 | `lay-begin-chunk` | определение `:` | src/backend.fth:67 | 2 |  |
+| 68 | `lay-put` | определение `:` | src/backend.fth:69 | 14 |  |
+| 69 | `lay-scratch` | данные `create` | src/backend.fth:87 | 2 |  |
+| 70 | `lay-put-numeric` | определение `:` | src/backend.fth:88 | 3 |  |
+| 71 | `lay-max-layers` | константа | src/backend.fth:93 | 4 |  |
+| 72 | `lay-record` | определение `:` | src/backend.fth:94 | 2 |  |
+| 73 | `lay-pending` | переменная | src/backend.fth:95 | 10 |  |
+| 74 | `lay-head` | переменная | src/backend.fth:95 | 6 |  |
+| 75 | `lay-next-cell` | переменная | src/backend.fth:95 | 7 |  |
+| 76 | `lay-seq#` | переменная | src/backend.fth:96 | 8 |  |
+| 77 | `lay-seq-first` | переменная | src/backend.fth:96 | 3 |  |
+| 78 | `lay-seq-entry` | переменная | src/backend.fth:96 | 2 |  |
+| 79 | `lay-seq-last` | переменная | src/backend.fth:96 | 2 |  |
+| 80 | `lay-foff` | данные `create` | src/backend.fth:98 | 2 |  |
+| 81 | `lay-foff-init` | определение `:` | src/backend.fth:99 | 1 |  |
+| 82 | `lay-machine` | определение `:` | src/backend.fth:100 | 1 |  |
+| 83 | `lay-field` | определение `:` | src/backend.fth:117 | 38 |  |
+| 84 | `lay-link-row` | основание | src/backend.fth:118 | 2 | основание: строка: копирование ссылки на следующий слой; определение инструкции — она сама |
+| 85 | `lay-copy` | основание | src/backend.fth:119 | 74 | основание: строка: копирование n бит из источника в приёмник; определение инструкции — она сама |
+| 86 | `lay-builder` | определение `:` | src/backend.fth:121 | 1 |  |
+| 87 | `lay-new-cell` | определение `:` | src/backend.fth:122 | 13 |  |
+| 88 | `lay-branch-bit` | определение `:` | src/backend.fth:125 | 14 |  |
+| 89 | `lay-branch-step` | определение `:` | src/backend.fth:126 | 4 |  |
+| 90 | `lay-group` | определение `:` | src/backend.fth:128 | 6 |  |
+| 91 | `lay-layer-cell` | определение `:` | src/backend.fth:131 | 39 |  |
+| 92 | `lay-next!` | определение `:` | src/backend.fth:132 | 20 |  |
+| 93 | `lay-count` | определение `:` | src/backend.fth:133 | 7 |  |
+| 94 | `lay-row-addr` | определение `:` | src/backend.fth:134 | 4 |  |
+| 95 | `lay-pending@` | определение `:` | src/backend.fth:135 | 5 |  |
+| 96 | `lay-encode-layer` | определение `:` | src/backend.fth:136 | 1 |  |
+| 97 | `lay-on-write` | переменная | src/backend.fth:143 | 6 |  |
+| 98 | `lay-write` | определение `:` | src/backend.fth:144 | 2 |  |
+| 99 | `lay-write-oldest` | определение `:` | src/backend.fth:147 | 1 |  |
+| 100 | `lay-new-record` | основание | src/backend.fth:148 | 10 | основание: слой: новый слой в ячейке; определение инструкции — она сама |
+| 101 | `lay-lone` | основание | src/backend.fth:152 | 5 | основание: слой: отдельный слой в новой ячейке; определение инструкции — она сама |
+| 102 | `lay-seq` | определение `:` | src/backend.fth:153 | 9 |  |
+| 103 | `lay-last` | определение `:` | src/backend.fth:154 | 5 |  |
+| 104 | `lay-layer` | основание | src/backend.fth:155 | 79 | основание: слой: следующий слой последовательности; определение инструкции — она сама |
+| 105 | `lay-entry` | определение `:` | src/backend.fth:160 | 4 |  |
+| 106 | `lay-jump` | определение `:` | src/backend.fth:161 | 12 |  |
+| 107 | `lay-l1` | переменная | src/backend.fth:162 | 4 |  |
+| 108 | `lay-h1` | переменная | src/backend.fth:162 | 3 |  |
+| 109 | `lay-l2` | переменная | src/backend.fth:162 | 4 |  |
+| 110 | `lay-h2` | переменная | src/backend.fth:162 | 3 |  |
+| 111 | `lay-ra` | переменная | src/backend.fth:163 | 2 |  |
+| 112 | `lay-rb` | переменная | src/backend.fth:163 | 2 |  |
+| 113 | `lay-cur` | переменная | src/backend.fth:163 | 7 |  |
+| 114 | `lay-clash?` | определение `:` | src/backend.fth:165 | 1 |  |
+| 115 | `lay-row-clash?` | определение `:` | src/backend.fth:170 | 1 |  |
+| 116 | `lay-new-row` | данные `create` | src/backend.fth:175 | 6 |  |
+| 117 | `lay-row-set` | определение `:` | src/backend.fth:176 | 2 |  |
+| 118 | `lay-full?` | определение `:` | src/backend.fth:178 | 2 |  |
+| 119 | `lay-clashes?` | определение `:` | src/backend.fth:179 | 2 |  |
+| 120 | `lay-fits?` | определение `:` | src/backend.fth:184 | 2 |  |
+| 121 | `lay-row` | основание | src/backend.fth:186 | 74 | основание: строка: добавляет строку в слой; определение инструкции — она сама |
+| 122 | `lay-flush` | определение `:` | src/backend.fth:190 | 13 |  |
+| 123 | `lay-finish` | определение `:` | src/backend.fth:193 | 1 |  |
+| 124 | `lay-t1` | переменная | src/compute.fth:10 | 25 |  |
+| 125 | `lay-t2` | переменная | src/compute.fth:10 | 13 |  |
+| 126 | `lay-t3` | переменная | src/compute.fth:10 | 7 |  |
+| 127 | `lay-t4` | переменная | src/compute.fth:10 | 4 |  |
+| 128 | `lay-t5` | переменная | src/compute.fth:10 | 8 |  |
+| 129 | `lay-lo` | переменная | src/compute.fth:11 | 5 |  |
+| 130 | `lay-hi` | переменная | src/compute.fth:11 | 2 |  |
+| 131 | `lay-l0` | переменная | src/compute.fth:12 | 21 |  |
+| 132 | `lay-l1` | переменная | src/compute.fth:12 | 13 | вариант 2 |
+| 133 | `lay-l2` | переменная | src/compute.fth:12 | 8 | вариант 2 |
+| 134 | `lay-l3` | переменная | src/compute.fth:12 | 7 |  |
+| 135 | `lay-l4` | переменная | src/compute.fth:12 | 7 |  |
+| 136 | `lay-l5` | переменная | src/compute.fth:12 | 6 |  |
+| 137 | `lay-work` | определение `:` | src/compute.fth:13 | 3 |  |
+| 138 | `lay-cell-bit` | определение `:` | src/compute.fth:14 | 1 |  |
+| 139 | `lay-link-slot` | определение `:` | src/compute.fth:15 | 6 |  |
+| 140 | `lay-item-cells` | константа | src/compute.fth:17 | 1 |  |
+| 141 | `lay-max-items` | константа | src/compute.fth:17 | 2 |  |
+| 142 | `lay-items` | данные `create` | src/compute.fth:18 | 1 |  |
+| 143 | `lay-nitems` | переменная | src/compute.fth:19 | 8 |  |
+| 144 | `lay-item@` | определение `:` | src/compute.fth:20 | 6 |  |
+| 145 | `lay-lookups-begin` | определение `:` | src/compute.fth:21 | 14 |  |
+| 146 | `lay-item` | определение `:` | src/compute.fth:22 | 12 |  |
+| 147 | `lay-seg` | определение `:` | src/compute.fth:27 | 18 |  |
+| 148 | `lay-sl` | данные `create` | src/compute.fth:33 | 2 |  |
+| 149 | `lay-sh` | данные `create` | src/compute.fth:33 | 2 |  |
+| 150 | `lay-read-layer` | данные `create` | src/compute.fth:34 | 2 |  |
+| 151 | `lay-read-slot` | данные `create` | src/compute.fth:34 | 2 |  |
+| 152 | `lay-used` | данные `create` | src/compute.fth:35 | 2 |  |
+| 153 | `lay-nused` | переменная | src/compute.fth:35 | 5 |  |
+| 154 | `lay-rl` | переменная | src/compute.fth:35 | 6 |  |
+| 155 | `lay-pk` | переменная | src/compute.fth:35 | 4 |  |
+| 156 | `lay-pkl` | переменная | src/compute.fth:35 | 4 |  |
+| 157 | `lay-npatches` | определение `:` | src/compute.fth:36 | 1 |  |
+| 158 | `lay-used?` | определение `:` | src/compute.fth:37 | 1 |  |
+| 159 | `lay-place-reads` | определение `:` | src/compute.fth:39 | 1 |  |
+| 160 | `lay-patch` | определение `:` | src/compute.fth:51 | 1 |  |
+| 161 | `lay-lookups` | определение `:` | src/compute.fth:60 | 14 |  |
+| 162 | `lay-al` | данные `create` | src/compute.fth:67 | 2 |  |
+| 163 | `lay-ar` | данные `create` | src/compute.fth:67 | 2 |  |
+| 164 | `lay-ax` | переменная | src/compute.fth:68 | 4 |  |
+| 165 | `lay-aa` | переменная | src/compute.fth:68 | 2 |  |
+| 166 | `lay-ab` | переменная | src/compute.fth:68 | 2 |  |
+| 167 | `lay-atab` | переменная | src/compute.fth:68 | 2 |  |
+| 168 | `lay-acarry` | переменная | src/compute.fth:68 | 2 |  |
+| 169 | `lay-al@` | определение `:` | src/compute.fth:69 | 8 |  |
+| 170 | `lay-rd` | определение `:` | src/compute.fth:70 | 3 |  |
+| 171 | `lay-adder-patch` | определение `:` | src/compute.fth:71 | 4 |  |
+| 172 | `lay-adder` | определение `:` | src/compute.fth:76 | 5 |  |
+| 173 | `lay-dsrc` | переменная | src/compute.fth:93 | 3 |  |
+| 174 | `lay-dk` | переменная | src/compute.fth:93 | 5 |  |
+| 175 | `lay-dg` | переменная | src/compute.fth:93 | 3 |  |
+| 176 | `lay-dp` | переменная | src/compute.fth:93 | 3 |  |
+| 177 | `lay-dx` | переменная | src/compute.fth:93 | 4 |  |
+| 178 | `lay-decide` | определение `:` | src/compute.fth:94 | 2 |  |
+| 179 | `lay-table-at` | переменная | src/compute.fth:102 | 4 |  |
+| 180 | `lay-table-limit` | переменная | src/compute.fth:102 | 2 |  |
+| 181 | `lay-tbuf` | переменная | src/compute.fth:102 | 8 |  |
+| 182 | `lay-tx` | переменная | src/compute.fth:103 | 8 |  |
+| 183 | `lay-tbits` | переменная | src/compute.fth:103 | 5 |  |
+| 184 | `lay-ts` | переменная | src/compute.fth:103 | 6 |  |
+| 185 | `lay-tsize` | переменная | src/compute.fth:103 | 7 |  |
+| 186 | `lay-tbase` | переменная | src/compute.fth:103 | 4 |  |
+| 187 | `lay-tper` | переменная | src/compute.fth:103 | 4 |  |
+| 188 | `lay-tables` | определение `:` | src/compute.fth:104 | 2 |  |
+| 189 | `lay-table-area` | определение `:` | src/compute.fth:105 | 3 |  |
+| 190 | `lay-table-done` | определение `:` | src/compute.fth:113 | 3 |  |
+| 191 | `lay-table` | определение `:` | src/compute.fth:116 | 24 |  |
+| 192 | `lay-table2` | определение `:` | src/compute.fth:134 | 1 |  |
+| 193 | `lay-add-entry` | определение `:` | src/compute.fth:141 | 1 |  |
+| 194 | `lay-sub-entry` | определение `:` | src/compute.fth:143 | 2 |  |
+| 195 | `lay-xor-entry` | определение `:` | src/compute.fth:145 | 1 |  |
+| 196 | `lay-or-entry` | определение `:` | src/compute.fth:146 | 1 |  |
+| 197 | `lay-and-entry` | определение `:` | src/compute.fth:147 | 1 |  |
+| 198 | `lay-or8-entry` | определение `:` | src/compute.fth:148 | 2 |  |
+| 199 | `lay-fz` | переменная | src/compute.fth:149 | 3 |  |
+| 200 | `lay-fu` | переменная | src/compute.fth:149 | 4 |  |
+| 201 | `lay-fs` | переменная | src/compute.fth:149 | 3 |  |
+| 202 | `lay-pair` | определение `:` | src/compute.fth:150 | 6 |  |
+| 203 | `lay-flags-entry` | определение `:` | src/compute.fth:151 | 1 |  |
+| 204 | `lay-not5-entry` | определение `:` | src/compute.fth:158 | 1 |  |
+| 205 | `lay-sign-entry` | определение `:` | src/compute.fth:159 | 1 |  |
+| 206 | `lay-fill24-entry` | определение `:` | src/compute.fth:160 | 1 |  |
+| 207 | `lay-fill16-entry` | определение `:` | src/compute.fth:161 | 1 |  |
+| 208 | `lay-inc1-entry` | определение `:` | src/compute.fth:162 | 1 |  |
+| 209 | `lay-inc2-entry` | определение `:` | src/compute.fth:163 | 1 |  |
+| 210 | `lay-t-add` | переменная | src/compute.fth:164 | 6 |  |
+| 211 | `lay-t-sub` | переменная | src/compute.fth:164 | 5 |  |
+| 212 | `lay-t-xor` | переменная | src/compute.fth:164 | 5 |  |
+| 213 | `lay-t-or` | переменная | src/compute.fth:164 | 2 |  |
+| 214 | `lay-t-and` | переменная | src/compute.fth:164 | 2 |  |
+| 215 | `lay-t-or8` | переменная | src/compute.fth:165 | 3 |  |
+| 216 | `lay-t-flags` | переменная | src/compute.fth:165 | 2 |  |
+| 217 | `lay-t-not5` | переменная | src/compute.fth:165 | 2 |  |
+| 218 | `lay-t-sign32` | переменная | src/compute.fth:165 | 2 |  |
+| 219 | `lay-t-fill24` | переменная | src/compute.fth:166 | 1 |  |
+| 220 | `lay-t-fill16` | переменная | src/compute.fth:166 | 1 |  |
+| 221 | `lay-t-inc1` | переменная | src/compute.fth:166 | 1 |  |
+| 222 | `lay-t-inc2` | переменная | src/compute.fth:166 | 1 |  |
+| 223 | `lay-standard-tables` | определение `:` | src/compute.fth:167 | 1 |  |
+| 224 | `lay-oo` | переменная | src/compute.fth:176 | 2 |  |
+| 225 | `lay-os` | переменная | src/compute.fth:176 | 2 |  |
+| 226 | `lay-ol` | переменная | src/compute.fth:176 | 4 |  |
+| 227 | `lay-oh` | переменная | src/compute.fth:176 | 3 |  |
+| 228 | `lay-or-chunks` | определение `:` | src/compute.fth:177 | 3 |  |
+| 229 | `lay-cr` | переменная | src/compute.fth:183 | 5 |  |
+| 230 | `lay-ca` | переменная | src/compute.fth:183 | 4 |  |
+| 231 | `lay-cb` | переменная | src/compute.fth:183 | 4 |  |
+| 232 | `lay-logic` | определение `:` | src/compute.fth:190 | 4 |  |
+| 233 | `lay-sres` | переменная | src/compute.fth:196 | 3 |  |
+| 234 | `lay-sa` | переменная | src/compute.fth:196 | 7 |  |
+| 235 | `lay-samt` | переменная | src/compute.fth:196 | 8 |  |
+| 236 | `lay-sw` | переменная | src/compute.fth:196 | 9 |  |
+| 237 | `lay-szero` | переменная | src/compute.fth:196 | 4 |  |
+| 238 | `lay-sarg` | переменная | src/compute.fth:197 | 6 |  |
+| 239 | `lay-sign` | переменная | src/compute.fth:197 | 6 |  |
+| 240 | `lay-shift-row` | определение `:` | src/compute.fth:198 | 3 |  |
+| 241 | `lay-shift-patch` | определение `:` | src/compute.fth:199 | 6 |  |
+| 242 | `lay-shift-right` | определение `:` | src/compute.fth:201 | 1 |  |
+| 243 | `lay-shift-left` | определение `:` | src/compute.fth:218 | 1 |  |
 | 244 | `fc-size` | константа | src/forthc.fth:11 | 2 |  |
 | 245 | `fc-cellb` | константа | src/forthc.fth:11 | 7 |  |
 | 246 | `fc-l` | константа | src/forthc.fth:11 | 1 |  |
@@ -918,23 +918,23 @@
 
 | Слово | Вид | Файл:строка |
 |---|---|---|
-| `cc-out` | определение `:` | src/backend.fth:120 |
-| `cc-cz` | переменная | src/compute.fth:183 |
-| `cc-cf` | переменная | src/compute.fth:183 |
-| `cc-compare` | определение `:` | src/compute.fth:184 |
-| `cc-fc` | переменная | src/compute.fth:231 |
-| `cc-ff` | переменная | src/compute.fth:231 |
-| `cc-flag-exit` | определение `:` | src/compute.fth:232 |
-| `cc-exit-layers` | определение `:` | src/compute.fth:241 |
-| `cc-ce` | переменная | src/compute.fth:246 |
-| `cc-cl` | переменная | src/compute.fth:246 |
-| `cc-ch` | переменная | src/compute.fth:246 |
-| `cc-call-rows` | определение `:` | src/compute.fth:247 |
-| `cc-halt-begin` | определение `:` | src/compute.fth:252 |
-| `cc-halt-region` | определение `:` | src/compute.fth:253 |
-| `cc-halt-end` | определение `:` | src/compute.fth:254 |
-| `cc-stub-on` | определение `:` | src/compute.fth:255 |
-| `cc-stub` | определение `:` | src/compute.fth:256 |
+| `lay-out` | определение `:` | src/backend.fth:120 |
+| `lay-cz` | переменная | src/compute.fth:183 |
+| `lay-cf` | переменная | src/compute.fth:183 |
+| `lay-compare` | определение `:` | src/compute.fth:184 |
+| `lay-fc` | переменная | src/compute.fth:231 |
+| `lay-ff` | переменная | src/compute.fth:231 |
+| `lay-flag-exit` | определение `:` | src/compute.fth:232 |
+| `lay-exit-layers` | определение `:` | src/compute.fth:241 |
+| `lay-ce` | переменная | src/compute.fth:246 |
+| `lay-cl` | переменная | src/compute.fth:246 |
+| `lay-ch` | переменная | src/compute.fth:246 |
+| `lay-call-rows` | определение `:` | src/compute.fth:247 |
+| `lay-halt-begin` | определение `:` | src/compute.fth:252 |
+| `lay-halt-region` | определение `:` | src/compute.fth:253 |
+| `lay-halt-end` | определение `:` | src/compute.fth:254 |
+| `lay-stub-on` | определение `:` | src/compute.fth:255 |
+| `lay-stub` | определение `:` | src/compute.fth:256 |
 | `fc-depth` | определение `:` | src/forthc.fth:904 |
 | `fc-ctl-depth` | определение `:` | src/forthc.fth:905 |
 | `/mod` | генератор | src/primitives.fth:259 |

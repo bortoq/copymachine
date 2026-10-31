@@ -54,12 +54,12 @@ pForth (`primitives.fth` загружается в него вместе с `bac
 |---|---|
 | Кэш стека | `fc-pop ( -- r )` снять регистр (с подкачкой из памяти), `fc-push ( r -- )` положить регистр, `fc-depth ( -- n )` глубина кэша, `fc-need ( n -- )` обеспечить n элементов в кэше, `fc-pop1 ( -- r )` снять без подкачки, `fc-reg ( -- r )` свободный регистр, `fc-pop-pinned ( -- a r )` снять a и взять регистр r ≠ a, `fc-lit? ( -- f )` вершина кэша — только что скомпилированный литерал (значение в `fc-plv`) |
 | Стек управления | `fc-ctl+ ( kind cell -- )` открыть структуру (вид: 1 if, 2 else, 3 begin, 4 while, 5 do), `fc-ctl- ( -- kind cell )` закрыть, `fc-ctl-depth ( -- n )`; ячейка выхода цикла (14.5): `fc-ctl-leave ( -- cell )` у записи, снятой `fc-ctl-` (0 — нет), `fc-ctl-leave! ( cell -- )` у верхней записи, `fc-do-entry ( -- entry )` запись внутреннего цикла (иначе -22), `fc-loop-leave ( entry -- cell )` её ячейка выхода (новая, если не было) |
-| Текущий слой | `cc-layer ( -- layer )` новый слой текущей последовательности, `cc-last ( -- layer )` последний слой, `cc-row ( dl dh sl sh layer -- slot )`, `fc-rows1 ( dl dh sl sh -- )` строка в новом слое |
+| Текущий слой | `lay-layer ( -- layer )` новый слой текущей последовательности, `lay-last ( -- layer )` последний слой, `lay-row ( dl dh sl sh layer -- slot )`, `fc-rows1 ( dl dh sl sh -- )` строка в новом слое |
 | Литералы (14.7) | `fc-lit ( v n -- lo hi )` литерал — полуинтервал младших n бит константы v, `fc-bit0`, `fc-bit1 ( -- lo hi )` литералы длины 1, `fc-lit-of ( v -- lo hi )` литерал значения (его длина в битах), `fc-load ( lo hi r -- )` литерал в регистр (одна копия), `fc-literal ( v -- )` литерал на стек; словарь: `fc-lookup ( addr u -- entry\|0 )`, `fc-hash`, `fc-literal-name ( addr u v -- )`, `fc-not-found` |
 | Константы | `fc-const ( v -- addr )` адрес 32-битной константы; известные при компиляции значения верхнего уровня: `fc-known ( -- n )`, `fc-ct- ( -- v )`, `fc-ct2 ( -- a b )`, `fc-ct+ ( v -- )` |
 | Режим | `fc-fold? ( n -- f )` — истина, если известны n значений (генератор сворачивает их: `fc-ct2 + fc-ct+`); иначе `fc-code` и ложь. `fc-code ( -- )` — на верхнем уровне открывает часть кода до `MAIN` (известные значения становятся литералами), в определении ничего не делает. Генератор, который не сворачивает, начинает с `fc-code`. 14.6: `fc-defining? ( -- f )` — истина внутри определения (ложь на верхнем уровне, в том числе в открытой части кода), `fc-top-only ( -- )` — слово только верхнего уровня (иначе `-13`) |
 | Канал и словарь (14.6) | `fc-next! ( -- )` следующее слово в `fc-tok fc-tl` (иначе `-16`), `fc-is? ( addr u -- f )` прочитанное слово равно имени, `fc-next ( -- f )` следующее слово канала (с 14.8 без особого случая `\`: комментарий — генератор `gen-backslash`), `fc-raw ( -- c )` его первый байт как написан, `fc-string-token ( -- addr u )` текст до `"`, `fc-define ( kind value -- )` запись с именем `fc-tok`, `fc-define-data ( size -- )` данные в `here`, `fc-store-string ( addr u -- at )`, `fc-here`, `fc-check-here`, `fc-word` (запись определяемого слова), `fc-close-init`, `fc-ret` |
-| Таблицы | переменные с адресами таблиц: `cc-t-add`, `cc-t-sub`, `cc-t-and`, `cc-t-or`, `cc-t-xor` (`compute.fth`), `fc-t-zero32`, `fc-t-lt32`, `fc-t-ult32`, `fc-t-nz2`, `fc-t-rev8` … (`fc-tables`) |
+| Таблицы | переменные с адресами таблиц: `lay-t-add`, `lay-t-sub`, `lay-t-and`, `lay-t-or`, `lay-t-xor` (`compute.fth`), `fc-t-zero32`, `fc-t-lt32`, `fc-t-ult32`, `fc-t-nz2`, `fc-t-rev8` … (`fc-tables`) |
 | Построители | `fc-binary ( op -- )`, `fc-shift-copy ( k -- )`, `fc-inc ( table k carry -- )`, `fc-or-zero ( out r -- )`, `fc-call-helper ( entry exit -- )` с `fc-result1`/`fc-result2`, `fc-shift-lit? ( right? -- f )`, `fc-mul-lit? ( -- f )` |
 
 Новые слова 14.3: `fc-gens`, `fc-generator`, `fc-words`, `fc-depth`,
@@ -126,7 +126,7 @@ fc-word-token`.
 
 Используются: кэш стека (`fc-pop fc-pop1 fc-need fc-spill`), стек управления
 (таблица выше), блоки и ячейки (`fc-begin-block fc-branch fc-jump fc-end
-cc-new-cell cc-new-record cc-next! cc-flush cc-seq`), стек возвратов
+lay-new-cell lay-new-record lay-next! lay-flush lay-seq`), стек возвратов
 (`fc-srcs fc-nsrc fc-rstk fc-rp fc-mem-push fc-mem-pop fc-popped@ fc-adjust
 fc-noff`), вызовы (`fc-ret fc-call fc-call-indirect fc-word`), словарь и
 канал (`fc-next! fc-find fc-literal`). Новые слова состояния 14.5:

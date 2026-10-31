@@ -61,7 +61,7 @@ print('PASS kinds:', header)
 
 # 3. the foundation: the words of copying that generate a row and a layer, "the definition of an instruction is it itself"
 by_name = {row[1]: row for row in rows if row[2] == 'основание'}
-assert set(by_name) == set(check_closure.FOUNDATION) >= {'cc-copy', 'cc-row', 'cc-layer'}, sorted(by_name)
+assert set(by_name) == set(check_closure.FOUNDATION) >= {'lay-copy', 'lay-row', 'lay-layer'}, sorted(by_name)
 for _name, row in by_name.items():
     assert row[3].endswith('backend.fth') and 'определение инструкции — она сама' in row[6], row
 section = document.split('## Основание')[1].split('## Слова ядра')[0]

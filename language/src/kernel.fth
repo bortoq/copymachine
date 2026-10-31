@@ -6,7 +6,7 @@
 \ as if loaded from that stream. Compiled after main.fth; this MAIN replaces
 \ that one.
 kernel-layout
-\ The sink of cc-put: numeric bytes written into the space, a cell (32 bits)
+\ The sink of lay-put: numeric bytes written into the space, a cell (32 bits)
 \ at a time where the source is aligned. Only the program's half is written:
 \ [0, 2^29) and [2^30, 2^30 + 2^29), else THROW -9.
 variable kn-at
@@ -20,8 +20,8 @@ variable kn-at
     dup -4 and rot + swap 3 and
   then
   0 ?do dup i + c@ kn-at @ dup 8 + spacec! 8 kn-at +! loop drop ;
-: kn-order ( -- ) 256 0 do i cc-rev i + c! loop ;
-: kn-compile ( -- ) fc-sizes kn-order 1 fc-guard ! ['] kn-put cc-sink ! fc-read fc-go ;
+: kn-order ( -- ) 256 0 do i lay-rev i + c! loop ;
+: kn-compile ( -- ) fc-sizes kn-order 1 fc-guard ! ['] kn-put lay-sink ! fc-read fc-go ;
 : kn-.n ( n -- ) \ decimal
   dup 0< if [char] - emit negate then
   dup 10 / ?dup if recurse then 10 mod [char] 0 + emit ;
@@ -29,7 +29,7 @@ variable kn-at
 : main ( -- )
   ['] kn-compile catch ?dup if
     s" error " type kn-.n s"  at " type fc-tok fc-tl @ type 10 emit exit
-  then cc-start-cell @ execute ;
+  then lay-start-cell @ execute ;
 \ The heap starts after the strings above.
 create kn-heap-start
 kn-heap-start heap-ptr !

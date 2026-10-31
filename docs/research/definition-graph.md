@@ -11,9 +11,9 @@
 | Охват рёбер | Тип | Узлы | Через |
 |---|---|---|---|
 | прямые | петля | `kn-.n` | recurse |
-| прямые | петля | `aux:cc-udigits` | recurse |
+| прямые | петля | `aux:lay-udigits` | recurse |
 | прямые+косвенные | петля | `kn-.n` | recurse |
-| прямые+косвенные | петля | `aux:cc-udigits` | recurse |
+| прямые+косвенные | петля | `aux:lay-udigits` | recurse |
 
 Сильно связных компонент больше одного узла: 0 (прямые), 0 (все рёбра). Петель: 2 (прямые), 2 (все).
 
@@ -29,39 +29,39 @@
 
 | Вектор | Записывают (слово → цель) | Исполняют |
 |---|---|---|
-| `cc-sink` | `kn-compile` → `kn-put` | `cc-put` |
-| `cc-start-cell` | `cc-finish` → xt из стека | `main~2` |
-| `cc-tx` | `cc-table` → xt из стека; `cc-table2` → xt из стека | `cc-table2`; `cc-table` |
+| `lay-sink` | `kn-compile` → `kn-put` | `lay-put` |
+| `lay-start-cell` | `lay-finish` → xt из стека | `main~2` |
+| `lay-tx` | `lay-table` → xt из стека; `lay-table2` → xt из стека | `lay-table2`; `lay-table` |
 
 ### xt-аргументы (`['] слово` передаётся принимающему слову, а не записывается в вектор)
 
 | Слово | Передаваемый xt | Получатель (receiver) | Файл:строка |
 |---|---|---|---|
-| `cc-standard-tables` | `cc-add-entry` | `cc-table` | copycode/forth/compute.fth:168 |
-| `cc-standard-tables` | `cc-sub-entry` | `cc-table` | copycode/forth/compute.fth:168 |
-| `cc-standard-tables` | `cc-xor-entry` | `cc-table` | copycode/forth/compute.fth:169 |
-| `cc-standard-tables` | `cc-or-entry` | `cc-table` | copycode/forth/compute.fth:169 |
-| `cc-standard-tables` | `cc-and-entry` | `cc-table` | copycode/forth/compute.fth:170 |
-| `cc-standard-tables` | `cc-or8-entry` | `cc-table` | copycode/forth/compute.fth:170 |
-| `cc-standard-tables` | `cc-flags-entry` | `cc-table` | copycode/forth/compute.fth:171 |
-| `cc-standard-tables` | `cc-not5-entry` | `cc-table` | copycode/forth/compute.fth:171 |
-| `cc-standard-tables` | `cc-sign-entry` | `cc-table` | copycode/forth/compute.fth:172 |
-| `cc-standard-tables` | `cc-fill24-entry` | `cc-table` | copycode/forth/compute.fth:172 |
-| `cc-standard-tables` | `cc-fill16-entry` | `cc-table` | copycode/forth/compute.fth:173 |
-| `cc-standard-tables` | `cc-inc1-entry` | `cc-table` | copycode/forth/compute.fth:173 |
-| `cc-standard-tables` | `cc-inc2-entry` | `cc-table` | copycode/forth/compute.fth:174 |
-| `fc-tables` | `fc-rev-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:57 |
-| `fc-tables` | `fc-zero-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:58 |
-| `fc-tables` | `fc-nz-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:59 |
-| `fc-tables` | `fc-lt-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:60 |
-| `fc-tables` | `cc-or8-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:61 |
-| `fc-tables` | `fc-fault-entry` | `cc-table2` | forth/scripts/forthc/forthc.fth:62 |
-| `fc-tables` | `fc-xr2-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:63 |
-| `fc-tables` | `fc-ult-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:64 |
-| `fc-tables` | `fc-bytepos-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:65 |
-| `fc-build-mul` | `fc-mul4-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:386 |
-| `fc-build-div` | `cc-sub-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:437 |
-| `fc-build-div` | `fc-qsel-entry` | `cc-table` | forth/scripts/forthc/forthc.fth:438 |
+| `lay-standard-tables` | `lay-add-entry` | `lay-table` | copycode/forth/compute.fth:168 |
+| `lay-standard-tables` | `lay-sub-entry` | `lay-table` | copycode/forth/compute.fth:168 |
+| `lay-standard-tables` | `lay-xor-entry` | `lay-table` | copycode/forth/compute.fth:169 |
+| `lay-standard-tables` | `lay-or-entry` | `lay-table` | copycode/forth/compute.fth:169 |
+| `lay-standard-tables` | `lay-and-entry` | `lay-table` | copycode/forth/compute.fth:170 |
+| `lay-standard-tables` | `lay-or8-entry` | `lay-table` | copycode/forth/compute.fth:170 |
+| `lay-standard-tables` | `lay-flags-entry` | `lay-table` | copycode/forth/compute.fth:171 |
+| `lay-standard-tables` | `lay-not5-entry` | `lay-table` | copycode/forth/compute.fth:171 |
+| `lay-standard-tables` | `lay-sign-entry` | `lay-table` | copycode/forth/compute.fth:172 |
+| `lay-standard-tables` | `lay-fill24-entry` | `lay-table` | copycode/forth/compute.fth:172 |
+| `lay-standard-tables` | `lay-fill16-entry` | `lay-table` | copycode/forth/compute.fth:173 |
+| `lay-standard-tables` | `lay-inc1-entry` | `lay-table` | copycode/forth/compute.fth:173 |
+| `lay-standard-tables` | `lay-inc2-entry` | `lay-table` | copycode/forth/compute.fth:174 |
+| `fc-tables` | `fc-rev-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:57 |
+| `fc-tables` | `fc-zero-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:58 |
+| `fc-tables` | `fc-nz-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:59 |
+| `fc-tables` | `fc-lt-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:60 |
+| `fc-tables` | `lay-or8-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:61 |
+| `fc-tables` | `fc-fault-entry` | `lay-table2` | forth/scripts/forthc/forthc.fth:62 |
+| `fc-tables` | `fc-xr2-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:63 |
+| `fc-tables` | `fc-ult-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:64 |
+| `fc-tables` | `fc-bytepos-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:65 |
+| `fc-build-mul` | `fc-mul4-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:386 |
+| `fc-build-div` | `lay-sub-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:437 |
+| `fc-build-div` | `fc-qsel-entry` | `lay-table` | forth/scripts/forthc/forthc.fth:438 |
 | `main~2` | `kn-compile` | `catch` | forth/scripts/forthc/kernel.fth:30 |
 
 ### Прочие ссылки через `'`/`[']` (без записи в вектор)
@@ -83,32 +83,32 @@
 | 2 | `2dup` | colon | forth/scripts/forthc/prelude.fth:9 | 22 | 142 | 141 |
 | 3 | `+!` | colon | forth/scripts/forthc/prelude.fth:24 | 36 | 134 | 133 |
 | 4 | `u>` | colon | forth/scripts/forthc/prelude.fth:17 | 9 | 124 | 123 |
-| 5 | `cc-slots` | variable | copycode/forth/backend.fth:14 | 9 | 123 | 122 |
+| 5 | `lay-slots` | variable | copycode/forth/backend.fth:14 | 9 | 123 | 122 |
 | 6 | `>` | colon | forth/scripts/forthc/prelude.fth:16 | 13 | 116 | 115 |
-| 7 | `cc-size` | variable | copycode/forth/backend.fth:14 | 5 | 116 | 115 |
+| 7 | `lay-size` | variable | copycode/forth/backend.fth:14 | 5 | 116 | 115 |
 | 8 | `cmove` | colon | forth/scripts/forthc/prelude.fth:33 | 10 | 111 | 110 |
-| 9 | `cc-a` | variable | copycode/forth/backend.fth:14 | 7 | 110 | 109 |
+| 9 | `lay-a` | variable | copycode/forth/backend.fth:14 | 7 | 110 | 109 |
 | 10 | `0<` | colon | forth/scripts/forthc/prelude.fth:19 | 5 | 108 | 108 |
-| 11 | `cc-inst` | colon | copycode/forth/backend.fth:23 | 3 | 107 | 106 |
-| 12 | `cc-layer-bits` | colon | copycode/forth/backend.fth:24 | 5 | 105 | 104 |
+| 11 | `lay-inst` | colon | copycode/forth/backend.fth:23 | 3 | 107 | 106 |
+| 12 | `lay-layer-bits` | colon | copycode/forth/backend.fth:24 | 5 | 105 | 104 |
 | 13 | `<>` | colon | forth/scripts/forthc/prelude.fth:18 | 10 | 103 | 102 |
 | 14 | `?dup` | colon | forth/scripts/forthc/prelude.fth:13 | 11 | 103 | 103 |
-| 15 | `cc-rev` | create | copycode/forth/backend.fth:18 | 7 | 103 | 102 |
+| 15 | `lay-rev` | create | copycode/forth/backend.fth:18 | 7 | 103 | 102 |
 | 16 | `fill-cell` | variable | forth/scripts/forthc/prelude.fth:28 | 1 | 102 | 101 |
-| 17 | `cc-cell-bits` | variable | copycode/forth/backend.fth:14 | 9 | 101 | 100 |
+| 17 | `lay-cell-bits` | variable | copycode/forth/backend.fth:14 | 9 | 101 | 100 |
 | 18 | `fill` | colon | forth/scripts/forthc/prelude.fth:29 | 6 | 101 | 100 |
-| 19 | `cc-lbytes` | colon | copycode/forth/backend.fth:25 | 5 | 100 | 99 |
-| 20 | `cc-rows` | create | copycode/forth/backend.fth:52 | 5 | 100 | 99 |
+| 19 | `lay-lbytes` | colon | copycode/forth/backend.fth:25 | 5 | 100 | 99 |
+| 20 | `lay-rows` | create | copycode/forth/backend.fth:52 | 5 | 100 | 99 |
 | 21 | `-rot` | colon | forth/scripts/forthc/prelude.fth:8 | 4 | 99 | 98 |
-| 22 | `cc-dest` | variable | copycode/forth/backend.fth:16 | 4 | 99 | 98 |
-| 23 | `cc-field-check` | colon | copycode/forth/backend.fth:38 | 1 | 99 | 98 |
-| 24 | `cc-len` | variable | copycode/forth/backend.fth:51 | 5 | 99 | 98 |
-| 25 | `cc-numeric` | colon | copycode/forth/backend.fth:29 | 6 | 99 | 98 |
-| 26 | `cc-numeric4` | colon | copycode/forth/backend.fth:35 | 1 | 99 | 98 |
-| 27 | `cc-start` | variable | copycode/forth/backend.fth:51 | 5 | 99 | 98 |
-| 28 | `cc-chunk-buf` | variable | copycode/forth/backend.fth:15 | 4 | 98 | 97 |
-| 29 | `cc-clear-rows` | colon | copycode/forth/backend.fth:55 | 3 | 98 | 97 |
-| 30 | `cc-encode` | colon | copycode/forth/backend.fth:41 | 3 | 98 | 97 |
+| 22 | `lay-dest` | variable | copycode/forth/backend.fth:16 | 4 | 99 | 98 |
+| 23 | `lay-field-check` | colon | copycode/forth/backend.fth:38 | 1 | 99 | 98 |
+| 24 | `lay-len` | variable | copycode/forth/backend.fth:51 | 5 | 99 | 98 |
+| 25 | `lay-numeric` | colon | copycode/forth/backend.fth:29 | 6 | 99 | 98 |
+| 26 | `lay-numeric4` | colon | copycode/forth/backend.fth:35 | 1 | 99 | 98 |
+| 27 | `lay-start` | variable | copycode/forth/backend.fth:51 | 5 | 99 | 98 |
+| 28 | `lay-chunk-buf` | variable | copycode/forth/backend.fth:15 | 4 | 98 | 97 |
+| 29 | `lay-clear-rows` | colon | copycode/forth/backend.fth:55 | 3 | 98 | 97 |
+| 30 | `lay-encode` | colon | copycode/forth/backend.fth:41 | 3 | 98 | 97 |
 
 ## Итог
 
@@ -118,7 +118,7 @@
 | В K | 631 (по файлам: prelude.fth 35, backend.fth 88, compute.fth 136, forthc.fth 361, main.fth 4, kernel.fth 7) |
 | Виды | colon 377, constant 15, create 38, variable 262 |
 | Повторно определённых имён (версия > 1) | 3 узлов |
-| Они | `cc-l1~2`, `cc-l2~2`, `main~2` |
+| Они | `lay-l1~2`, `lay-l2~2`, `main~2` |
 | Рёбер (прямых / косвенных) | 1947 / 31 |
 | Циклы (прямые рёбра): компонент > 1 / петель | 0 / 2 |
 | Циклы (все рёбра): компонент > 1 / петель | 0 / 2 |

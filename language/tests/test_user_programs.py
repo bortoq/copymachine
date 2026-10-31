@@ -50,7 +50,7 @@ PROGRAMS = {
 OUTPUT = {'cells': b'?\n', 'plain': b'9\n', 'mix': b'7\n'}
 DEAR_CELLS = ': gen-cells ( -- ) 1 fc-fold? if fc-ct- 4 * fc-ct+ exit then 1 fc-shift-copy 1 fc-shift-copy ;'
 DEAR_ONE = ': gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then 1 fc-literal gen+ ;'
-BAD_ONE = ': gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then cc-t-sub @ 1 1 fc-inc ;'
+BAD_ONE = ': gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then lay-t-sub @ 1 1 fc-inc ;'
 FAILING = ': gen-cells ( -- ) -13 throw ;'
 COMMENT = ': gen-decimal ( -- ) ;   \\ numbers are decimal only (the language is edited)'
 
