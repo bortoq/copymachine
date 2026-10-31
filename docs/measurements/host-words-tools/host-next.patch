@@ -1,0 +1,1276 @@
+diff -ruN -x measurements a/emulator/Makefile b/emulator/Makefile
+--- a/emulator/Makefile	2026-10-31 14:57:13.367782694 +0200
++++ b/emulator/Makefile	2026-10-31 12:37:24.000000000 +0200
+@@ -63,7 +63,7 @@
+ 	cd "$(PGO)" && $(CC) $(PGO_FLAGS) -fprofile-use -fprofile-partial-training -Wno-missing-profile
+ 
+ check: check-runtime
+-check-runtime: $(OUT)/emulator $(OUT)/test_runtime $(OUT)/test_sys $(BUILD_DIR)/test_bitcopy
++check-runtime: $(OUT)/emulator $(OUT)/test_runtime $(OUT)/test_sys $(BUILD_DIR)/test_bitcopy $(BUILD_DIR)/checked-emulator
+ 	$(BUILD_DIR)/test_bitcopy
+ 	$(OUT)/test_runtime
+ 	$(OUT)/test_sys
+diff -ruN -x measurements a/emulator/src/proto.def b/emulator/src/proto.def
+--- a/emulator/src/proto.def	2026-10-31 14:57:13.371782838 +0200
++++ b/emulator/src/proto.def	2026-10-31 14:42:47.000000000 +0200
+@@ -46,6 +46,36 @@
+  * gives zeros, a write past the end extends the file.
+  */
+ XOP(LONG,  6)
++/*
++ * HOST (18.13, experiment): call a definition that the emulator holds (written
++ * in C) over its own space of variables, not over the space of the program.
++ * One copy to SYS carries the request: the record (arg = the number of the
++ * definition) and right after it, in the same copy, the argument bits (the
++ * payload, as the data of EXEC). The emulator puts the payload at the start
++ * of its own space (the place the definition is set to read: values, or an
++ * image of cells), runs the definition and returns its results by copying:
++ * the image of the result (as many bits as the definition makes) to the
++ * position off[31:0] of the program space, and the 32-bit return value (numeric)
++ * to the position off[63:32]. The positions are given by the call; the emulator
++ * knows nothing of the layout of the data of the caller. The results are in
++ * the program space from the next tick (the same rule as for the answer of
++ * SYS). Answer: status 0, EINVAL (unknown definition, short payload, a result
++ * that does not fit), EFAULT (a result position outside the space). chan, flags: unused.
++ * 18.15: a definition may also give a displacement (bits) that is added to off[31:0]: a
++ * position inside a slot of 64 bits that it knows from the payload (fill of an unaligned
++ * address). The definitions: 0 clashes of a row with the rows of a layer, 1 fill, 2 encode
++ * of a layer, 3..10 the binary words + - and or xor = < u< (the value is the return
++ * value). The calls are allowed to any program.
++ * 18.16: 11 put (the n <= 128 bytes of the memory of the source, from the slot of its address, as a contiguous
++ * image at a bit address: the sink of the kernel), 12 cmove (the same bytes as an image at the slot of the
++ * destination, displacement 8 * (dst mod 4)), 13 numeric (the bytes of a 32-bit value, numeric, nb <= 8, laid as
++ * cmove). Diagnostics (development, 7.2.21): a call of HOST or of LONG that ends with a status other than 0
++ * (EINVAL, EFAULT, EBADF, EIO) writes "emulator: HOST <definition> failed: status <n> (<text>) at tick <t>"
++ * (LONG: "LONG space <s>") to stderr and stops the emulator with the exit code 3. The intervals the emulator
++ * writes as the result of a call (the image and the 32-bit value) are given by sys_host_results() to the audit of
++ * the checked emulator, which sees them as ranges of the tick.
++ */
++XOP(HOST,  7)
+ /* reserve: SPAWN, POLL, MMAP, ... */
+ 
+ XFIELD(req, op,    8)
+diff -ruN -x measurements a/emulator/src/proto_gen.h b/emulator/src/proto_gen.h
+--- a/emulator/src/proto_gen.h	2026-10-31 14:57:13.371782838 +0200
++++ b/emulator/src/proto_gen.h	2026-10-31 14:42:47.000000000 +0200
+@@ -10,6 +10,7 @@
+   OP_IOCTL = 4,
+   OP_EXEC = 5,
+   OP_LONG = 6,
++  OP_HOST = 7,
+ };
+ 
+ typedef enum { PK_LIT, PK_ADDR, PK_NF } proto_width_kind;
+diff -ruN -x measurements a/emulator/src/runtime.c b/emulator/src/runtime.c
+--- a/emulator/src/runtime.c	2026-10-31 14:57:13.367782694 +0200
++++ b/emulator/src/runtime.c	2026-10-31 12:35:58.000000000 +0200
+@@ -6,12 +6,15 @@
+ #include <signal.h>
+ 
+ size_t space_nbits=SPACE_BITS_DFLT, proc_n=PROC_N_DFLT;
+-uint64_t tick_limit;
++uint64_t tick_limit, emu_ticks;
+ size address_bits,nfield_bits,instruction_size;
+ unsigned char *space;
+ size (*instructions)[4];
+ size (*processor)[3];
+ FILE *channel_in,*channel_out;
++static unsigned char *shadow;
++static size_t record_bytes;
++static int shadow_valid;
+ const char **remote_paths; size_t nremote; /* -r path: remote spaces 2.. (15.2) */
+ 
+ /* Bit-reversed byte: stream bytes are MSB-first, numeric fields LSB-first. */
+@@ -143,29 +146,69 @@
+ void destroy_space(void)
+ {
+   backend_shutdown(); sys_shutdown();
+-  free(space); free(instructions); free(processor); free(remote_paths);
++  free(space); free(instructions); free(processor); free(remote_paths); free(shadow); shadow=NULL; shadow_valid=0;
+   remote_paths=NULL; nremote=0;
+   space=NULL; instructions=NULL; processor=NULL;
+ }
++/* The records of the processors are decoded only when their bits changed since the last tick: most of the
++ * records of a layer (the idle ones) are rewritten with the same bits, and decoding is the dearest part of a
++ * tick that does not depend on the work. shadow holds the bits as they were decoded. */
++/* A 32-bit field at a byte, as space_get(at,32). */
++static inline size get32(const unsigned char *p)
++{
++  return (size)reverse8[p[0]]|(size)reverse8[p[1]]<<8|(size)reverse8[p[2]]<<16|(size)reverse8[p[3]]<<24;
++}
++static inline void decode_record(size_t i)
++{
++  size *q=instructions[i],*op=processor[i];
++  if(address_bits==32 && instruction_size%8==0) {
++    const unsigned char *p=space+i*record_bytes;
++    q[0]=get32(p); q[1]=get32(p+4); q[2]=get32(p+8); q[3]=get32(p+12);
++  } else for(size k=0;k<4;k++) q[k]=space_get((i*4+k)*address_bits,address_bits);
++  op[0]=0; op[1]=q[0]; op[2]=q[2];
++  if(q[0]==q[1] && q[0]>=space_nbits) {
++    if(q[2]<q[3] && q[3]<=space_nbits) op[0]=q[3]-q[2];
++  } else if(q[2]==q[3] && q[2]>=space_nbits) {
++    if(q[0]<q[1] && q[1]<=space_nbits) op[0]=q[1]-q[0];
++  } else if(q[2]<q[3]) op[0]=q[3]-q[2];
++}
++static inline int record_changed(const unsigned char *a,const unsigned char *b)
++{
++  if(record_bytes==16) {
++    uint64_t x[2],y[2];
++    memcpy(x,a,16); memcpy(y,b,16);
++    return ((x[0]^y[0])|(x[1]^y[1]))!=0;
++  }
++  return memcmp(a,b,record_bytes)!=0;
++}
+ int computation(void)
+ {
+-  int active=0;
+-  for(size_t i=0;i<proc_n;i++) {
+-    size *q=instructions[i],*op=processor[i];
+-    for(size k=0;k<4;k++) q[k]=space_get((i*4+k)*address_bits,address_bits);
+-    op[0]=0; op[1]=q[0]; op[2]=q[2];
+-    if(q[0]==q[1] && q[0]>=space_nbits) {
+-      if(q[2]<q[3] && q[3]<=space_nbits) op[0]=q[3]-q[2];
+-    } else if(q[2]==q[3] && q[2]>=space_nbits) {
+-      if(q[0]<q[1] && q[1]<=space_nbits) op[0]=q[1]-q[0];
+-    } else if(q[2]<q[3]) op[0]=q[3]-q[2];
+-    if(op[0]) active=1;
++  int active=0,channel_op=0;
++  size_t n=proc_n;
++  if(!shadow) {  /* decode every record at the first tick, and when the records are not whole bytes */
++    if(instruction_size%8==0) {
++      record_bytes=instruction_size/8;
++      shadow=malloc(n*record_bytes);
++      if(!shadow) { fputs("emulator: out of memory\n",stderr); exit(EXIT_MEMORY); }
++    }
++    shadow_valid=0;
++  }
++  for(size_t i=0;i<n;i++) {
++    if(shadow) {
++      const unsigned char *now=space+i*record_bytes; unsigned char *was=shadow+i*record_bytes;
++      if(!shadow_valid || record_changed(now,was)) { decode_record(i); if(record_bytes==16) memcpy(was,now,16); else memcpy(was,now,record_bytes); }
++    } else decode_record(i);
++    size *op=processor[i];
++    if(op[0]) { active=1; if(op[1]>=space_nbits||op[2]>=space_nbits) channel_op=1; }
+   }
++  shadow_valid=shadow!=NULL;
+   if(!active) return 0;
+   /* Valid channel buffers and ordinary ranges are disjoint. Neither this
+-   * host ordering nor sequential bitcpy gives same-tick readiness to guests. */
+-  sys_tick();
++   * host ordering nor sequential bitcpy gives same-tick readiness to guests.
++   * Only an operation with a channel position as an end is served by SYS. */
++  if(channel_op) sys_tick();
+   backend_tick();
++  emu_ticks++;
+   return 1;
+ }
+ #ifndef VM1_NO_MAIN
+diff -ruN -x measurements a/emulator/src/space.h b/emulator/src/space.h
+--- a/emulator/src/space.h	2026-10-31 14:57:13.371782838 +0200
++++ b/emulator/src/space.h	2026-10-31 12:35:58.000000000 +0200
+@@ -12,9 +12,10 @@
+ #include <string.h>
+ typedef uint64_t size;
+ enum { SPACE_BITS_DFLT=65520, PROC_N_DFLT=128,
+-       EXIT_MEMORY=1, EXIT_USAGE=2, ERR_IO=1 };
++       EXIT_MEMORY=1, EXIT_USAGE=2, EXIT_CALL=3, ERR_IO=1 };
+ extern size_t space_nbits, proc_n;
+ extern uint64_t tick_limit;
++extern uint64_t emu_ticks; /* ticks done: the number of the tick in progress (diagnostics) */
+ extern size address_bits, nfield_bits, instruction_size;
+ extern unsigned char *space;
+ /* Decoded four-field processor snapshot; never fetched again during a tick. */
+diff -ruN -x measurements a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
+--- a/emulator/src/sys_ctrl.c	2026-10-31 14:57:13.375782982 +0200
++++ b/emulator/src/sys_ctrl.c	2026-10-31 15:09:06.000000000 +0200
+@@ -318,6 +318,265 @@
+ }
+ 
+ /*
++ * HOST (18.13, 18.15): definitions on the host over the own space of the emulator.
++ * The space of the definitions is the array hv (bits, the same order as the
++ * program space: numeric fields least significant bit first): the input at
++ * the bit 0 (the payload of the request, copied there by one bitcpy), the
++ * output image at HV_OUT. A definition reads its input at the places it is
++ * set to, makes the output image (out bits), a 32-bit return value and, if it
++ * needs, a displacement of the position of the image (disp bits, added to the
++ * position given by the request: the position inside a slot of 64 bits that
++ * the definition knows from the payload, not from the program). The copying of
++ * the results into the program space (to the positions given by the request)
++ * is done here, by the same bitcpy; the definitions never touch the program
++ * space and do not know where the data of the caller are.
++ * The format the definitions are set to: a cell of the program memory is 32
++ * bits (numeric) at the start of a slot of 64 bits, a byte of the memory is 8
++ * bits at 64 * (a / 4) + 8 * (a % 4) bits over the start of the memory.
++ */
++#define HV_IN_BITS  8192u
++#define HV_OUT_BITS (1u << 23)
++#define HV_OUT      HV_IN_BITS
++static unsigned char hv[(HV_IN_BITS + HV_OUT_BITS) / 8];
++static unsigned char hv_rev[256];   /* the byte with its bits reversed: the bytes of numeric fields */
++static void hv_init(void)
++{
++  unsigned b, k;
++  for(b = 0; b < 256; ++b)
++  {
++    unsigned r = 0;
++    for(k = 0; k < 8; ++k) r |= ((b >> k) & 1u) << (7 - k);
++    hv_rev[b] = (unsigned char)r;
++  }
++}
++/* the 32-bit numeric field at the bit at (a multiple of 8) of hv */
++static unsigned hv_get32(size at)
++{
++  const unsigned char *p = hv + at / 8;
++  return (unsigned)hv_rev[p[0]] | (unsigned)hv_rev[p[1]] << 8 | (unsigned)hv_rev[p[2]] << 16 | (unsigned)hv_rev[p[3]] << 24;
++}
++typedef int (*host_def)(size in, size *out, size *ret, size *disp);
++/* 0: clashes ( size, new row, layer record ): the payload: size at 0; the cells (numeric 32 bits, one in each 64
++ * bits) of the new row (dl dh sl sh) from 168; the cells of a record of a layer from 424: the cell, the next, the
++ * count n (cell 2), and from the cell 3 the rows (four cells each) of the layer. The return value is -1 or 0: some
++ * interval of the new row and some interval of one of the n rows are both non-empty, overlap and have their lower
++ * ends below size. */
++static int hd_clashes(size in, size *out, size *ret, size *disp)
++{
++  unsigned size_, a[4], n, i, j, k;
++  (void)disp;
++  if(in < 424 + 3 * 64 + 32) return EINVAL;
++  n = hv_get32(424 + 2 * 64);
++  if(n > 7 || in < 424 + 64 * (3 + 4 * (size)n)) return EINVAL;
++  size_ = hv_get32(0);
++  for(j = 0; j < 4; ++j) a[j] = hv_get32(168 + 64 * (size)j);
++  *out = 0; *ret = 0;
++  for(k = 0; k < n; ++k)
++  {
++    unsigned b[4];
++    for(i = 0; i < 4; ++i) b[i] = hv_get32(424 + 64 * (3 + 4 * (size)k + i));
++    for(j = 0; j < 2; ++j)
++      for(i = 0; i < 2; ++i)
++      {
++        unsigned l1 = a[2 * j], h1 = a[2 * j + 1], l2 = b[2 * i], h2 = b[2 * i + 1];
++        if(l1 < h1 && l2 < h2 && l1 < h2 && l2 < h1 && l1 < size_ && l2 < size_) { *ret = 0xffffffffu; return 0; }
++      }
++  }
++  return 0;
++}
++/* 1: fill ( u, c, alo ): the payload u at 0, c at 32, the two low bits r of the address at 64. The output image
++ * is the u bytes of the memory from the byte at the address, as they lie in the memory (a byte c, the 32 padding
++ * bits of each slot zero), the displacement 8 r (the position of the call is the start of the slot of the
++ * address); the return value is 0. */
++static int hd_fill(size in, size *out, size *ret, size *disp)
++{
++  size u, r, k;
++  unsigned char rc;
++  unsigned char *img = hv + HV_OUT / 8;
++  if(in < 96) return EINVAL;
++  u = hv_get32(0); rc = hv_rev[hv_get32(32) & 255u]; r = hv_get32(64) & 3u;
++  *out = 0; *ret = 0; *disp = 8 * r;
++  if(!u) return 0;
++  if(64 * ((r + u - 1) / 4) + 8 * ((r + u - 1) % 4) + 8 - 8 * r > HV_OUT_BITS) return EINVAL;
++  *out = 64 * ((r + u - 1) / 4) + 8 * ((r + u - 1) % 4) + 8 - 8 * r;
++  memset(img, 0, (size_t)((*out + 7) / 8));
++  k = 0;
++  while(k < u && (r + k) % 4) { img[8 * ((r + k) / 4) + (r + k) % 4 - r] = rc; ++k; }
++  for(; k + 4 <= u; k += 4)
++  {
++    unsigned char *p = img + 8 * ((r + k) / 4) - r;
++    p[0] = p[1] = p[2] = p[3] = rc;
++  }
++  for(; k < u; ++k) img[8 * ((r + k) / 4) + (r + k) % 4 - r] = rc;
++  return 0;
++}
++/* 2: encode ( a, slots, count, rows ): payload a at 0, slots at 32, count at 64, the cells of the rows (4 cells
++ * each) from 168. The output image: the layer of slots rows of four a-bit fields (numeric bytes), the rows after
++ * count zero, in the cells of memory (4 bytes in each 64 bits). The return value is 0, or -24 if a field does not
++ * fit in a bits (a < 32). */
++static int hd_encode(size in, size *out, size *ret, size *disp)
++{
++  size a, slots, count, nbytes, lbytes, j, i, b;
++  unsigned char *img = hv + HV_OUT / 8;
++  (void)disp;
++  if(in < 168 + 64 * 31 + 32) return EINVAL;
++  a = hv_get32(0); slots = hv_get32(32); count = hv_get32(64);
++  if(a % 8 || !a || a > 64 || !slots || slots > 8 || count > slots) return EINVAL;
++  nbytes = a / 8;
++  lbytes = slots * 4 * nbytes;
++  if(lbytes % 4 || 16 * lbytes > HV_OUT_BITS) return EINVAL;
++  memset(img, 0, (size_t)(16 * lbytes / 8));
++  *out = 16 * lbytes; *ret = 0;
++  for(j = 0; j < count; ++j)
++    for(i = 0; i < 4; ++i)
++    {
++      size v = hv_get32(168 + 64 * (4 * j + i));
++      if(a < 32 && (v >> a)) { *out = 0; *ret = 0xffffffe8u; return 0; }
++      if(a == 32) { memcpy(img + 8 * (4 * j + i), hv + (168 + 64 * (4 * j + i)) / 8, 4); continue; }  /* the same bytes: numeric both */
++      for(b = 0; b < nbytes; ++b)
++      {
++        size at = (4 * j + i) * nbytes + b;      /* the byte of the buffer */
++        img[(64 * (at / 4) + 8 * (at % 4)) / 8] = hv_rev[b < 4 ? (v >> (8 * b)) & 255u : 0];
++      }
++    }
++  return 0;
++}
++/* 3..10: the binary operations of the words + - and or xor = < u< ( a b -- r ): the payload a at 0, b at 32 (32 bits,
++ * numeric); no image; the return value is the result (the flags are -1 and 0, as in the words). */
++#define HD_BIN(name, expr) \
++  static int name(size in, size *out, size *ret, size *disp) \
++  { \
++    unsigned a, b; \
++    (void)disp; \
++    if(in < 64) return EINVAL; \
++    a = hv_get32(0); b = hv_get32(32); \
++    *out = 0; *ret = (unsigned)(expr); \
++    return 0; \
++  }
++HD_BIN(hd_add, a + b)
++HD_BIN(hd_sub, a - b)
++HD_BIN(hd_and, a & b)
++HD_BIN(hd_or, a | b)
++HD_BIN(hd_xor, a ^ b)
++HD_BIN(hd_eq, a == b ? 0xffffffffu : 0u)
++HD_BIN(hd_lt, (int)a < (int)b ? 0xffffffffu : 0u)
++HD_BIN(hd_ult, a < b ? 0xffffffffu : 0u)
++/* 11, 12, 13 (18.16): the bytes of the memory of the program (4 bytes in the first 32 bits of each slot of 64 bits).
++ * The payload of 11 (put) and 12 (cmove): the length n at 0, the two low bits rs of the address of the source at
++ * 32, rd of the destination at 64, and from 96 the HV_SLOTS slots of the source from the slot of its address (the
++ * bytes rs .. rs + n - 1 of them, n <= 128). Put: the image is the n bytes themselves (bit for bit), contiguous: the
++ * position of the call is any bit address (the sink of the kernel). Cmove: the image is the n bytes as they lie in
++ * the memory from the byte rd of the slot of the destination (the padding bits zero), displacement 8 rd (as fill).
++ * The payload of 13 (numeric): the value at 0, the number of bytes nb <= 8 at 32, rd at 64: the image is the bytes
++ * of the value (numeric, the byte c of the memory is the bits of c, the least significant first), nb bytes, the
++ * higher than the fourth are zero, laid as cmove. */
++#define HV_SLOTS 33u
++#define HV_SRC   96u
++#define HV_COPY_MAX 128u
++static size span_bits(size r, size n)   /* from the first of n bytes to the end of the last, the first at byte r of a slot */
++{
++  return n ? 64 * ((r + n - 1) / 4) + 8 * ((r + n - 1) % 4) + 8 - 8 * r : 0;
++}
++static unsigned char src_byte(size rs, size k)
++{
++  return hv[HV_SRC / 8 + 8 * ((rs + k) / 4) + (rs + k) % 4];
++}
++static int hd_put(size in, size *out, size *ret, size *disp)
++{
++  size n, rs, k;
++  unsigned char *img = hv + HV_OUT / 8;
++  (void)disp;
++  if(in < HV_SRC + 64 * HV_SLOTS) return EINVAL;
++  n = hv_get32(0); rs = hv_get32(32) & 3u;
++  if(n > HV_COPY_MAX) return EINVAL;
++  for(k = 0; k < n; ++k) img[k] = src_byte(rs, k);
++  *out = 8 * n; *ret = 0;
++  return 0;
++}
++static int hd_cmove(size in, size *out, size *ret, size *disp)
++{
++  size n, rs, rd, k;
++  unsigned char *img = hv + HV_OUT / 8;
++  if(in < HV_SRC + 64 * HV_SLOTS) return EINVAL;
++  n = hv_get32(0); rs = hv_get32(32) & 3u; rd = hv_get32(64) & 3u;
++  if(n > HV_COPY_MAX) return EINVAL;
++  *out = span_bits(rd, n); *ret = 0; *disp = 8 * rd;
++  memset(img, 0, (size_t)((*out + 7) / 8));
++  for(k = 0; k < n; ++k) img[8 * ((rd + k) / 4) + (rd + k) % 4 - rd] = src_byte(rs, k);
++  return 0;
++}
++static int hd_numeric(size in, size *out, size *ret, size *disp)
++{
++  size nb, rd, k;
++  unsigned v;
++  unsigned char *img = hv + HV_OUT / 8;
++  if(in < 96) return EINVAL;
++  v = hv_get32(0); nb = hv_get32(32); rd = hv_get32(64) & 3u;
++  if(nb > 8) return EINVAL;
++  *out = span_bits(rd, nb); *ret = 0; *disp = 8 * rd;
++  memset(img, 0, (size_t)((*out + 7) / 8));
++  for(k = 0; k < nb; ++k) img[8 * ((rd + k) / 4) + (rd + k) % 4 - rd] = hv_rev[k < 4 ? (v >> (8 * k)) & 255u : 0u];
++  return 0;
++}
++static const host_def host_defs[] = { hd_clashes, hd_fill, hd_encode, hd_add, hd_sub, hd_and, hd_or, hd_xor, hd_eq, hd_lt, hd_ult,
++                                      hd_put, hd_cmove, hd_numeric };
++#define HOST_NDEFS (sizeof host_defs / sizeof host_defs[0])
++#define HW_FITS(at, n) ((n) <= (size)space_nbits && (at) <= (size)space_nbits - (n))
++/* The intervals [lo, hi) written by the HOST calls of the last tick: the image and the 32-bit return value
++ * (sys_host_results; the audit of the checked emulator sees them as the ranges of the tick). */
++static size (*host_res)[2] = NULL;
++static size host_nres = 0;
++static void host_note(size lo, size hi)
++{
++  if(host_res != NULL && host_nres < 2 * (size)proc_n) { host_res[host_nres][0] = lo; host_res[host_nres][1] = hi; ++host_nres; }
++}
++void sys_host_results_clear(void)
++{
++  host_nres = 0;
++}
++size sys_host_results(size (**spans)[2])
++{
++  *spans = host_res;
++  return host_nres;
++}
++/* A failed call of HOST or of LONG is an error of the development (not of the run): the message and the stop. */
++static void call_failed(const char *what, size id, int rc)
++{
++  fflush(channel_out);
++  fprintf(stderr, "emulator: %s %lu failed: status %d (%s) at tick %llu\n", what, (unsigned long)id, rc, strerror(rc),
++          (unsigned long long)emu_ticks);
++  exit(EXIT_CALL);
++}
++/* the request at bit address base (n bits written to SYS): returns the status */
++static int host_call1(size base, size n, const size *v);
++static unsigned long host_calls[16], host_errors;
++static size host_maxin[16];
++static int host_call(size base, size n, const size *v)
++{
++  int rc;
++  if(v[3] < 16) { host_calls[v[3]]++; if(n > req_bits && n - req_bits > host_maxin[v[3]]) host_maxin[v[3]] = n - req_bits; }
++  rc = host_call1(base, n, v);
++  if(rc) { host_errors++; call_failed("HOST", v[3], rc); }
++  return rc;
++}
++static int host_call1(size base, size n, const size *v)
++{
++  size in, out = 0, ret = 0, disp = 0, lo = v[4] & 0xffffffffu, hi = v[4] >> 32;
++  if(n < req_bits || v[3] >= HOST_NDEFS) return EINVAL;
++  in = n - req_bits;
++  if(in > HV_IN_BITS) return EINVAL;
++  bitcpy((size_t)in, space, (size_t)(base + req_bits), hv, 0);
++  if(host_defs[v[3]](in, &out, &ret, &disp)) return EINVAL;
++  lo += disp;
++  if(out && !HW_FITS(lo, out)) return EFAULT;
++  if(!HW_FITS(hi, 32)) return EFAULT;
++  if(out) { bitcpy((size_t)out, hv, HV_OUT, space, (size_t)lo); host_note(lo, lo + out); }
++  space_put(32, ret, hi);
++  host_note(hi, hi + 32);
++  return 0;
++}
++
++/*
+  * serve one control request decoded into v (REQ_NFIELDS values). cidx is
+  * the SYS entry; the answer is stored there. CLOSE may close SYS itself.
+  */
+@@ -408,6 +667,9 @@
+       }
+       break;
+     }
++    case OP_HOST:
++      channels[cidx].status = (size)host_call(base, n, v);
++      break;
+     case OP_IOCTL:
+       channels[cidx].status = (size)ENOTTY;
+       break;
+@@ -437,30 +699,36 @@
+ }
+ 
+ /* the bytes [b0, b0+nb) of remote file k into t (zeros past its end) */
+-static void file_read(int fd, unsigned char *t, size b0, size nb)
++static int file_read(int fd, unsigned char *t, size b0, size nb)
+ {
+   size got = 0;
+   while(fd >= 0 && got < nb)
+   {
+     ssize_t r = pread(fd, t + got, (size_t)(nb - got), (off_t)(b0 + got));
+-    if(r <= 0) break;
++    if(r < 0) return -1;
++    if(r == 0) break;
+     got = (size)(got + (size)r);
+   }
++  return 0;
+ }
+ 
+ /*
+  * serve a LONG request at bit address base (n bits written to SYS). From a
+  * remote space: its bits [pos, pos+len) go to long_data for the answer
+  * reads. To it: the len bits after the record; space 0 serves them as an
+- * old request at its position 0. Errors are not reported (unknown space,
+- * short request, host IO): the copy does nothing, a read gives zeros.
++ * old request at its position 0. Returns the status: 0, EINVAL (unknown
++ * space, short request, a write to the clock, a bad position or length for
++ * space 0), EBADF (a host file that did not open), EIO (a failed read or
++ * write of a host file). A failure stops the emulator (call_failed): the
++ * long copy is to work (18.16).
+  */
+-static void long_copy(size base, size n, const size *v)
++static int long_copy(size base, size n, const size *v)
+ {
+   size sp = v[1], from = v[2] & 1u, len = v[3], pos = v[4];
+   size data = (size)(base + req_bits);
+   if(from)
+   {
++    int rc = 0;
+     free(long_data);
+     long_data = calloc((size_t)(len / CHAR_BIT + 1), 1);
+     if(long_data == NULL)
+@@ -489,53 +757,71 @@
+       buf_put(t, 0, 64, (size)ts.tv_sec * 1000000000u + (size)ts.tv_nsec);
+       long_take(t, 64, pos, len);
+     }
+-    else if(sp - 2 < (size)nremote && len)
++    else if(sp - 2 < (size)nremote)
+     {
+-      size nb = (size)((pos % CHAR_BIT + len + CHAR_BIT - 1) / CHAR_BIT);
+-      unsigned char *t = calloc((size_t)nb, 1);
+-      if(t == NULL)
++      if(len && remote_fd[sp - 2] < 0)
++        rc = EBADF;
++      else if(len)
+       {
+-        fprintf(stderr, "emulator: out of memory\n");
+-        exit(EXIT_MEMORY);
++        size nb = (size)((pos % CHAR_BIT + len + CHAR_BIT - 1) / CHAR_BIT);
++        unsigned char *t = calloc((size_t)nb, 1);
++        if(t == NULL)
++        {
++          fprintf(stderr, "emulator: out of memory\n");
++          exit(EXIT_MEMORY);
++        }
++        if(file_read(remote_fd[sp - 2], t, pos / CHAR_BIT, nb) < 0)
++          rc = EIO;
++        bitcpy((size_t)len, t, (size_t)(pos % CHAR_BIT), long_data, 0);
++        free(t);
+       }
+-      file_read(remote_fd[sp - 2], t, pos / CHAR_BIT, nb);
+-      bitcpy((size_t)len, t, (size_t)(pos % CHAR_BIT), long_data, 0);
+-      free(t);
+     }
+-    return;
++    else
++      rc = EINVAL;
++    return rc;
+   }
+   long_pending = 0;
+   if(n < (size)(req_bits + len))
+-    return;
++    return EINVAL;
+   if(sp == 0)                         /* the old request at position 0 */
+   {
+     size w[REQ_NFIELDS];
+     if(pos != 0 || len < req_bits)
+-      return;
++      return EINVAL;
+     decode_req(data, w);
+     if(w[0] != (size)OP_LONG)
+       service(0, data, len, w);
+   }
+-  else if(sp >= 2 && sp - 2 < (size)nremote && len && remote_fd[sp - 2] >= 0)
++  else if(sp >= 2 && sp - 2 < (size)nremote)
+   {
+-    int fd = remote_fd[sp - 2];
++    int fd = remote_fd[sp - 2], rc = 0;
+     size b0 = pos / CHAR_BIT, nb = (size)((pos % CHAR_BIT + len + CHAR_BIT - 1) / CHAR_BIT), put = 0;
+-    unsigned char *t = calloc((size_t)nb, 1);
++    unsigned char *t;
++    if(!len)
++      return 0;
++    if(fd < 0)
++      return EBADF;
++    t = calloc((size_t)nb, 1);
+     if(t == NULL)
+     {
+       fprintf(stderr, "emulator: out of memory\n");
+       exit(EXIT_MEMORY);
+     }
+-    file_read(fd, t, b0, nb);         /* the bits around the copy stay */
++    if(file_read(fd, t, b0, nb) < 0)    /* the bits around the copy stay */
++      rc = EIO;
+     bitcpy((size_t)len, space, (size_t)data, t, (size_t)(pos % CHAR_BIT));
+-    while(put < nb)
++    while(put < nb && !rc)
+     {
+       ssize_t w = pwrite(fd, t + put, (size_t)(nb - put), (off_t)(b0 + put));
+-      if(w <= 0) break;
++      if(w <= 0) { rc = EIO; break; }
+       put = (size)(put + (size)w);
+     }
+     free(t);
++    return rc;
+   }
++  else
++    return EINVAL;                    /* the clock cannot be written, or an unknown space */
++  return 0;
+ }
+ 
+ /* bytes moved by a data copy of n bits (whole bytes; program aligns) */
+@@ -548,6 +834,7 @@
+ void sys_tick(void)
+ {
+   size i;
++  host_nres = 0;
+   if(nchan == 0)
+     return;
+   /* Read the response committed before this tick. A concurrent request
+@@ -574,7 +861,18 @@
+       size v[REQ_NFIELDS];
+       decode_req(processor[i][2], v);
+       if(v[0] == (size)OP_LONG)
+-        long_copy(processor[i][2], processor[i][0], v);
++      {
++        int rc = long_copy(processor[i][2], processor[i][0], v);
++        if(rc) call_failed("LONG space", v[1], rc);
++      }
++      else if(v[0] == (size)OP_HOST)
++      {
++        /* A call of HOST (a + in the program) is no request that has an answer: it neither takes back the bits of a
++         * long copy that wait for their read nor replaces the answer record of SYS (a failed call stops the emulator,
++         * so there is no status to keep). 18.16: without it a long@ or the read of the answer of the space 0 failed
++         * when the code between the request and the read made a call of the host. */
++        host_call(processor[i][2], processor[i][0], v);
++      }
+       else
+       {
+         long_pending = 0;
+@@ -612,6 +910,15 @@
+     for(j = 0; j < RSP_NFIELDS; ++j)
+       rsp_bits = (size)(rsp_bits + rsp_w[j]);
+   }
++  hv_init();
++  free(host_res);
++  host_res = calloc((size_t)proc_n * 2, sizeof *host_res);
++  host_nres = 0;
++  if(host_res == NULL)
++  {
++    fprintf(stderr, "emulator: out of memory\n");
++    exit(EXIT_MEMORY);
++  }
+   nchan = 0;
+   need_channel(0);                    /* SYS is always present */
+   if(nchan == 0)
+@@ -657,6 +964,19 @@
+ void sys_shutdown(void)
+ {
+   size i;
++  if(getenv("HOST_STATS") && host_errors + host_calls[0] + host_calls[1] + host_calls[2] + host_calls[3] + host_calls[4] + host_calls[11] + host_calls[12] + host_calls[13])
++  {
++    unsigned k;
++    fprintf(stderr, "host calls (definition: calls, longest payload in bits):");
++    for(k = 0; k < 16; ++k)
++      if(host_calls[k])
++        fprintf(stderr, " %u: %lu, %lu;", k, host_calls[k], (unsigned long)host_maxin[k]);
++    fprintf(stderr, " errors %lu\n", host_errors);
++  }
++  memset(host_calls, 0, sizeof host_calls); memset(host_maxin, 0, sizeof host_maxin); host_errors = 0;
++  free(host_res);
++  host_res = NULL;
++  host_nres = 0;
+   for(i = 0; i < nchan; ++i)
+     if(channels[i].owned && channels[i].f != NULL)
+     {
+diff -ruN -x measurements a/emulator/src/sys_ctrl.h b/emulator/src/sys_ctrl.h
+--- a/emulator/src/sys_ctrl.h	2026-10-31 14:57:13.375782982 +0200
++++ b/emulator/src/sys_ctrl.h	2026-10-31 15:09:06.000000000 +0200
+@@ -48,6 +48,9 @@
+ void sys_tick(void);                 /* service channel instructions */
+ size sys_req_bits(void);             /* bits in a request record */
+ size sys_rsp_bits(void);             /* bits in an answer record */
++/* the intervals [lo, hi) that the HOST calls of the last tick wrote (the image, the return value): the audit */
++size sys_host_results(size (**spans)[2]);
++void sys_host_results_clear(void);   /* before each tick (a tick without a channel operation does not reach sys_tick) */
+ /* encode/decode a record at a bit address (host side, tests and tools) */
+ void sys_encode_req(size base, const size *v);  /* v[REQ_NFIELDS] */
+ void sys_decode_rsp(size base, size *v);        /* v[RSP_NFIELDS] */
+diff -ruN -x measurements a/emulator/tests/checked_vm1.c b/emulator/tests/checked_vm1.c
+--- a/emulator/tests/checked_vm1.c	2026-10-31 14:57:13.375782982 +0200
++++ b/emulator/tests/checked_vm1.c	2026-10-31 15:09:06.000000000 +0200
+@@ -1,5 +1,6 @@
+ /* Independent audit of the actual emulator execution; test-only, never installed. */
+ #include "space.h"
++#include "sys_ctrl.h"
+ #include <inttypes.h>
+ #include <assert.h>
+ typedef struct {uint64_t lo,hi;} span;
+@@ -8,8 +9,10 @@
+   for(unsigned k=0;k<width;k++) value|=(uint64_t)((space[(at+k)/8]>>(7-(at+k)%8))&1)<<k;
+   return value;
+ }
++/* the ranges of the tick that audit() found: the copies of the processors, before the tick runs */
++static span *all;static size_t count;
+ static void audit(void) {
+-  span *all=malloc(2*proc_n*sizeof *all);size_t count=0;
++  free(all);all=malloc(2*proc_n*sizeof *all);count=0;
+   uint64_t *devices=malloc(proc_n*sizeof *devices);size_t used=0,requests=0;
+   assert(all && devices);
+   for(size_t i=0;i<proc_n;i++) {
+@@ -41,7 +44,26 @@
+     if(all[i].lo<all[j].hi && all[j].lo<all[i].hi) {
+       fprintf(stderr,"AUDIT overlap: %"PRIu64"..%"PRIu64" / %"PRIu64"..%"PRIu64"\n",all[i].lo,all[i].hi,all[j].lo,all[j].hi);abort();
+     }
+-  free(all);free(devices);
++  free(devices);
++}
++/* The results of the calls of HOST are written by the emulator itself, in the tick, to the positions of the
++ * record of the request (not by a row of a processor): they are ranges of the tick as the rest, they may not
++ * overlap the ranges of the copies of the tick nor one another. Run after the tick. */
++static void audit_results(void) {
++  size (*res)[2];size_t n=sys_host_results(&res);
++  for(size_t i=0;i<n;i++) {
++    assert(res[i][0]<res[i][1] && res[i][1]<=space_nbits);
++    for(size_t j=0;j<count;j++)
++      if(res[i][0]<all[j].hi && all[j].lo<res[i][1]) {
++        fprintf(stderr,"AUDIT overlap: result of HOST %"PRIu64"..%"PRIu64" / %"PRIu64"..%"PRIu64"\n",
++                (uint64_t)res[i][0],(uint64_t)res[i][1],all[j].lo,all[j].hi);abort();
++      }
++    for(size_t j=i+1;j<n;j++)
++      if(res[i][0]<res[j][1] && res[j][0]<res[i][1]) {
++        fprintf(stderr,"AUDIT overlap: results of HOST %"PRIu64"..%"PRIu64" / %"PRIu64"..%"PRIu64"\n",
++                (uint64_t)res[i][0],(uint64_t)res[i][1],(uint64_t)res[j][0],(uint64_t)res[j][1]);abort();
++      }
++  }
+ }
+ int main(int argc,char **argv) {
+   uint64_t ticks=0;parse_config(argc,argv);init_space();
+@@ -55,8 +77,8 @@
+        field(3*address_bits,address_bits)==entry+proc_n*4*address_bits) {
+       fprintf(stderr,"VM1_AUDIT_BOOT_TICKS=%"PRIu64"\n",ticks);boot_reported=1;
+     }
+-    audit();if(!computation())break;ticks++;
++    audit();sys_host_results_clear();if(!computation())break;audit_results();ticks++;
+   }
+   fprintf(stderr,"VM1_AUDIT_TICKS=%"PRIu64"\n",ticks);
+-  destroy_space();return 0;
++  free(all);destroy_space();return 0;
+ }
+diff -ruN -x measurements a/emulator/tests/test_runtime_cli.py b/emulator/tests/test_runtime_cli.py
+--- a/emulator/tests/test_runtime_cli.py	2026-10-31 14:57:13.379783125 +0200
++++ b/emulator/tests/test_runtime_cli.py	2026-10-31 15:04:41.000000000 +0200
+@@ -1,7 +1,9 @@
+ #!/usr/bin/env python3
+ """Real subprocess tests of the emulator contract."""
+ import os
++import re
+ import resource
++import struct
+ import subprocess
+ import tempfile
+ from pathlib import Path
+@@ -101,6 +103,77 @@
+         result = subprocess.run([str(binary), *args], capture_output=True, check=False)
+         assert result.returncode == 2, (binary, args, result.returncode)
+         checks += 1
++# The calls of HOST (18.13) and of LONG (15.2): a call that fails is an error of the development (18.16): the
++# emulator writes the definition (the space), the status and the tick to stderr and stops with the exit code 3.
++CHECKED = Path(os.environ.get('CHECKED_BIN') or output_dir(ROOT, 'build')/'checked-emulator')
++ADDR, RES, REQ_AT = 24000, 27000, 24000
++def request(op, chan, flags, arg, off, payload=b''):
++    return record([op, chan, flags, arg, off], [8, A, 16, 32, 64]) + payload
++def call_program(req, bits, extra_rows=(), after=()):
++    """The layer 1: the request (bits long) to SYS, and extra_rows in the same tick; then the layers after."""
++    return program([[copy(bits, S, REQ_AT, S), *extra_rows], *after], data=[(REQ_AT, req)])[0]
++def run_any(binary, packet, expect_code):
++    result = subprocess.run([str(binary), '-s', str(S), '-p', str(P)], input=packet, capture_output=True,
++                            timeout=60, check=False)
++    assert result.returncode == expect_code, (binary, result.returncode, result.stderr)
++    return result
++def numeric_bytes(v):                           # the 32-bit numeric field in the stream: the bits of the bytes reversed
++    return bytes(int(f'{b:08b}'[::-1], 2) for b in struct.pack('<I', v))
++payload = numeric_bytes(30) + numeric_bytes(12)
++for binary in BINS:
++    # 30 + 12 on the host: the return value is written to the position off[63:32], from the next tick on.
++    packet = call_program(request(7, 0, 0, 3, RES << 32, payload), REQ_BITS + 64, after=[[copy(32, S+2, RES, S)]])
++    result = run_any(binary, packet, 0)
++    assert result.stdout == numeric_bytes(42) and not result.stderr, result
++    checks += 1
++    # an unknown definition, a result outside the space: the message, the code 3, nothing is output after it.
++    for arg, off, status, name in [(99, RES << 32, 22, 'EINVAL'), (3, (S - 8) << 32, 14, 'EFAULT')]:
++        packet = call_program(request(7, 0, 0, arg, off, payload), REQ_BITS + 64, after=[[copy(32, S+2, RES, S)]])
++        result = run_any(binary, packet, 3)
++        text = result.stderr.decode()
++        assert result.stdout == b'' and re.fullmatch(
++            rf'emulator: HOST {arg} failed: status {status} \({os.strerror(status)}\) at tick \d+\n', text), (name, result)
++        checks += 1
++    # LONG to an unknown remote space (99), and a short request (the length is more than the data): the same.
++    for n, length in [(8, 8), (0, 8)]:
++        packet = call_program(request(6, 99 if n else 0, 0, length, 0, b'x'), REQ_BITS + n, after=[[copy(8, S+2, REQ_AT, S)]])
++        result = run_any(binary, packet, 3)
++        text = result.stderr.decode()
++        assert result.stdout == b'' and re.fullmatch(
++            rf'emulator: LONG space {99 if n else 0} failed: status 22 \({os.strerror(22)}\) at tick \d+\n', text), result
++        checks += 1
++    # the old request through the space 0 (here an empty one) is not an error
++    packet = call_program(request(6, 0, 0, REQ_BITS, 0, request(0, 0, 0, 0, 0)), 2 * REQ_BITS)
++    run_any(binary, packet, 0)
++    checks += 1
++    # a call of HOST between the request of a long read and the read of its bits does not take the bits back (nor
++    # replace the answer record of SYS): the old answer (CLOSE of an unknown channel: EBADF) is read through the space 0
++    rsp = RSP_BITS
++    old_answer = record([1, 9, 0, 0, 0, 0], [8, 8, 16, 64, A, 1]).ljust((rsp + 7) // 8, b'\0')
++    rows = [[copy(REQ_BITS, S, 24000, S)], [copy(REQ_BITS, S, 25000, S)], [copy(REQ_BITS + 64, S, 26000, S)],
++            [copy(rsp, 28000, S, S)], [copy(len(old_answer) * 8, S+2, 28000, S)]]
++    packet, _ = program(rows, data=[(24000, request(1, S+9, 0, 0, 0)), (25000, request(6, 0, 1, rsp, 0)),
++                                    (26000, request(7, 0, 0, 3, RES << 32, payload))])
++    result = run_any(binary, packet, 0)
++    assert result.stdout == old_answer and not result.stderr, (result.stdout.hex(), old_answer.hex())
++    checks += 1
++# The audit of the checked emulator (tests/checked_vm1.c) sees the results of a call: here the result is written to
++# bits that another copy of the same tick reads, and the audit stops the run; with the result elsewhere it is clean.
++IMG = 28000
++fill = numeric_bytes(4) + numeric_bytes(170) + numeric_bytes(0)       # the definition 1: u c r; a 32-bit image
++if CHECKED.is_file():
++    clean = call_program(request(7, 0, 0, 1, RES << 32 | IMG, fill), REQ_BITS + 96, extra_rows=[copy(32, 30000, 29000, S)])
++    result = run_any(CHECKED, clean, 0)
++    assert b'VM1_AUDIT_TICKS' in result.stderr and b'AUDIT overlap' not in result.stderr, result
++    for name, extra in [('the return value', copy(32, 30000, RES, S)), ('the image', copy(8, 30000, IMG + 8, S)),
++                        ('the image and the value', copy(8, 30000, IMG + 8, S))]:
++        off = RES << 32 | (RES if name == 'the image and the value' else IMG)
++        packet = call_program(request(7, 0, 0, 1, off, fill), REQ_BITS + 96, extra_rows=[extra])
++        result = run_any(CHECKED, packet, -6)
++        assert b'AUDIT overlap: result' in result.stderr, (name, result)
++    checks += 4
++else:
++    print('checked-emulator is not built: the audit of the results of HOST is not tested')
+ # The keys of the usage line: -r (a host file, the remote space 2) and the joined form -sN.
+ with tempfile.TemporaryDirectory(prefix='emulator-r-') as directory:
+     remote = Path(directory)/'remote'
+diff -ruN -x measurements a/language/hostcall/cmove.fth b/language/hostcall/cmove.fth
+--- a/language/hostcall/cmove.fth	1970-01-01 02:00:00.000000000 +0200
++++ b/language/hostcall/cmove.fth	2026-10-31 12:40:41.000000000 +0200
+@@ -0,0 +1,2 @@
++\ 18.16 (experiment): the block of the call of cmove ( src dst u -- ), a generator (%hb4: the record, three values, 33 slots).
++create %hb4 38 cells allot
+diff -ruN -x measurements a/language/hostcall/common.fth b/language/hostcall/common.fth
+--- a/language/hostcall/common.fth	1970-01-01 02:00:00.000000000 +0200
++++ b/language/hostcall/common.fth	2026-10-31 12:40:41.000000000 +0200
+@@ -0,0 +1,2 @@
++\ 18.15, 18.16 (experiment): the cell of the return value of a call on the host that has no result (fill, put, cmove, lay-numeric).
++create %hs 1 cells allot
+diff -ruN -x measurements a/language/hostcall/encode.fth b/language/hostcall/encode.fth
+--- a/language/hostcall/encode.fth	1970-01-01 02:00:00.000000000 +0200
++++ b/language/hostcall/encode.fth	2026-10-31 12:18:29.000000000 +0200
+@@ -0,0 +1,4 @@
++\ 18.15 (experiment): the block of the call of the encoding of a layer, lay-encode ( rows count -- ) (a generator): the record and
++\ three values, then the rows lay-rows, contiguous. Only for rows = lay-rows (the only argument of the callers).
++create %hb2 5 cells allot
++create lay-rows 32 cells allot
+diff -ruN -x measurements a/language/hostcall/fill.fth b/language/hostcall/fill.fth
+--- a/language/hostcall/fill.fth	1970-01-01 02:00:00.000000000 +0200
++++ b/language/hostcall/fill.fth	2026-10-31 12:40:41.000000000 +0200
+@@ -0,0 +1,2 @@
++\ 18.15 (experiment): the block of the call of fill ( addr u c -- ), a generator (%hb1: the record and three values).
++create %hb1 4 cells allot
+diff -ruN -x measurements a/language/hostcall/numeric.fth b/language/hostcall/numeric.fth
+--- a/language/hostcall/numeric.fth	1970-01-01 02:00:00.000000000 +0200
++++ b/language/hostcall/numeric.fth	2026-10-31 12:40:41.000000000 +0200
+@@ -0,0 +1,2 @@
++\ 18.16 (experiment): the block of the call of lay-numeric ( value nbytes addr -- ), a generator (%hb5: the record and three values).
++create %hb5 4 cells allot
+diff -ruN -x measurements a/language/hostcall/put.fth b/language/hostcall/put.fth
+--- a/language/hostcall/put.fth	1970-01-01 02:00:00.000000000 +0200
++++ b/language/hostcall/put.fth	2026-10-31 12:40:41.000000000 +0200
+@@ -0,0 +1,3 @@
++\ 18.16 (experiment): the block of the call of %hput ( bit-address src n -- ), a generator (%hb3: the record, the three
++\ values and 33 slots of the memory of the source).
++create %hb3 38 cells allot
+diff -ruN -x measurements a/language/hostcall/rowclash.fth b/language/hostcall/rowclash.fth
+--- a/language/hostcall/rowclash.fth	1970-01-01 02:00:00.000000000 +0200
++++ b/language/hostcall/rowclash.fth	2026-10-31 12:18:29.000000000 +0200
+@@ -0,0 +1,5 @@
++\ 18.15 (experiment): the block of the call of lay-clashes? (a generator): the record and the size, then lay-new-row (the
++\ row of every call) and the place of the record of the layer lay-cur (31 cells: the count and the rows), contiguous.
++create %hb0 5 cells allot
++create lay-new-row 4 cells allot
++create %hr2 31 cells allot
+diff -ruN -x measurements a/language/src/forthc.fth b/language/src/forthc.fth
+--- a/language/src/forthc.fth	2026-10-31 14:57:13.379783125 +0200
++++ b/language/src/forthc.fth	2026-10-31 12:39:44.000000000 +0200
+@@ -143,7 +143,9 @@
+     0= if unloop exit then drop
+   loop -8 throw ;
+ : fc-reg-for-pop ( -- r ) fc-reg dup fc-npin @ cells fc-pin + ! 1 fc-npin +! ;
+-variable fc-scr
++variable fc-scr create hc-sb 16 cells allot
++\ the templates of the records of the calls on the host in a program (primitives.fth, 18.16): by definition and register
++create hc-ta 1024 cells allot create hc-tb 16 cells allot variable hc-tc variable hc-to
+ : fc-scratch ( bits align -- at )
+   fc-scr @ over 1- + swap negate and dup rot + dup fc-mem u> if -8 throw then fc-scr ! ;
+ 
+@@ -788,7 +790,8 @@
+   lay-lone fc-cellb over lay-next! lay-layer-cell fc-tramp ! lay-flush
+   lay-lone 0 over lay-next! lay-layer-cell fc-ex ! lay-flush
+   0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-chunk 8 * allocate throw fc-link-buf ! then
+-  fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
++  fc-scr0 fc-scr ! hc-sb 16 cells 0 fill hc-ta 1024 cells 0 fill hc-tb 16 cells 0 fill 0 hc-tc ! 0 hc-to !
++  fc-build-thrower fc-thrower ! ;
+ \ Before the code: each word of the source is looked up in the dictionary (the
+ \ generators only) and the needs of its generator are collected (1: the
+ \ multiplication, 2: the division, 4: the kernel layout, KERNEL-LAYOUT). A
+diff -ruN -x measurements a/language/src/primitives.fth b/language/src/primitives.fth
+--- a/language/src/primitives.fth	2026-10-31 14:57:13.379783125 +0200
++++ b/language/src/primitives.fth	2026-10-31 13:31:30.000000000 +0200
+@@ -6,24 +6,95 @@
+ \ branches by the name of the word the compiler had before. The language
+ \ names are given in FC-GENERATORS: the names here differ (pForth itself uses
+ \ + - * ...).
+-: gen+ ( -- ) 2 fc-fold? if fc-ct2 + fc-ct+ exit then 0 fc-binary ;
+-: gen- ( -- ) 2 fc-fold? if fc-ct2 - fc-ct+ exit then 1 fc-binary ;
+-: gen-and ( -- ) 2 fc-fold? if fc-ct2 and fc-ct+ exit then 2 fc-binary ;
+-: gen-or ( -- ) 2 fc-fold? if fc-ct2 or fc-ct+ exit then 3 fc-binary ;
+-: gen-xor ( -- ) 2 fc-fold? if fc-ct2 xor fc-ct+ exit then 4 fc-binary ;
+-: gen= ( -- ) fc-code 5 fc-binary ;
+-: gen< ( -- ) fc-code 6 fc-binary ;
+-: gen-u< ( -- ) fc-code 7 fc-binary ;
++\ The call of a definition on the host (18.13, op HOST of emulator/src/proto.def), in any program (18.15: the
++\ programs too). A block of the memory of the kernel holds the record of the request (152 bits:
++\ op 8, chan 32, flags 16, arg 32, off 64) and right after it the payload; the record is written into
++\ the stream at the call (op HOST, chan SYS, arg the number of the definition, off: low half the position
++\ of the result image, high half the position of the 32-bit return value). The call is two layers: the
++\ arguments are copied into the block (the payload and the position of the image: the address of the
++\ memory cell a is the bit 16 * a above the start of the memory, so a copy of a at the bit 4 of the
++\ field is the position), then the block (record and payload) is copied to the channel SYS. The
++\ emulator writes the results to the positions of the record, they are read from the next tick on.
++\ 18.16 (isolation): in a program (FC-GUARD, a program that the kernel compiles) the memory that the program can
++\ write (the call block, the constants) may not decide where the emulator writes. The record of the call is
++\ not kept in the block: it is a template in the code of the program (a part of the stream, written when the call is
++\ compiled, in cells of its own, one for each definition and each register of the result), and the first layer of
++\ the call copies it into the block, all but the bits of the position of the image, which the argument gives
++\ (the address, in the memory of the program: its high bits are those of the template). The program cannot
++\ change the template by the means that the isolation of 14.10 checks (the memory words, space! into the kernel);
++\ the code (block 0) it can write, the hole recorded in doc/isolation.md.
++variable hc-b variable hc-l variable hc-n variable hc-nl variable hc-k variable hc-ts variable hc-tf
++create hc-regs 8 cells allot create hc-lay 4 cells allot
++: hc-memb ( addr u -- bit ) fc-lookup dup 0= if -13 throw then 3 cells + @ 4 lshift fc-mem + ;
++: hc-block ( addr u k -- ) \ the block named addr u; its record into the stream (in a program: the template does it)
++  dup hc-k ! >r hc-memb hc-b ! 0 hc-nl !
++  fc-guard @ if r> drop exit then
++  7 1 hc-b @ lay-put-numeric  1 31 lshift 4 hc-b @ 8 + lay-put-numeric  0 2 hc-b @ 40 + lay-put-numeric
++  r> 4 hc-b @ 56 + lay-put-numeric  fc-mem 4 hc-b @ 88 + lay-put-numeric
++  s" %hs" hc-memb 4 hc-b @ 120 + lay-put-numeric ;
++: hc-pops ( n -- ) \ the n registers on top, the first argument first, into HC-REGS
++  dup hc-n ! fc-need hc-n @ 0 ?do fc-pop1 hc-n @ 1- i - cells hc-regs + ! loop ;
++: hc-layer ( d -- layer ) \ the d-th layer of the arguments
++  begin dup hc-nl @ < 0= while lay-layer hc-nl @ cells hc-lay + ! 1 hc-nl +! repeat cells hc-lay + @ ;
++: hc-dups ( i -- d ) \ the number of the earlier arguments in the register of the argument i
++  dup cells hc-regs + @ 0 rot 0 ?do over i cells hc-regs + @ = if 1+ then loop nip ;
++: hc-arg ( i n off sh -- ) \ n bits of the register of the argument i from its bit sh to the block at off
++  >r rot dup hc-dups hc-layer hc-l ! cells hc-regs + @ r> + >r hc-b @ + r> lay-copy hc-l @ lay-row drop ;
++: hc-var ( n off addr u -- ) \ n bits of the cell of the variable addr u to the block at off
++  hc-memb >r hc-b @ + r> lay-copy 0 hc-layer lay-row drop ;
++: hc-tnew ( offh -- addr ) \ a template of the record (152 bits) in the code, off[63:32] = offh
++  hc-to @ 152 + 1024 > hc-tc @ 0= or if lay-new-cell hc-tc ! 0 hc-to ! then
++  hc-tc @ hc-to @ + >r
++  7 1 r@ lay-put-numeric  1 31 lshift 4 r@ 8 + lay-put-numeric  0 2 r@ 40 + lay-put-numeric
++  hc-k @ 4 r@ 56 + lay-put-numeric  fc-mem 4 r@ 88 + lay-put-numeric  4 r@ 120 + lay-put-numeric
++  r> 152 hc-to +! ;
++: hc-templ ( offh -- addr ) \ the template of the definition hc-k with the result position offh (one for each register: HC-TA)
++  dup hc-tf !
++  fc-regs - dup 6 rshift swap 63 and over fc-nregs u< 0= or if drop fc-nregs then
++  hc-k @ 64 * + dup hc-ts ! cells hc-ta + @
++  dup if hc-ts @ hc-k @ 64 * - fc-nregs = if hc-k @ cells hc-tb + @ hc-tf @ <> if drop 0 then then then
++  ?dup if exit then
++  hc-tf @ hc-tnew dup hc-ts @ cells hc-ta + !
++  hc-ts @ hc-k @ 64 * - fc-nregs = if hc-tf @ hc-k @ cells hc-tb + ! then ;
++: hc-rec ( offh -- ) \ in a program: the record of the call copied from its template into the block
++  fc-guard @ 0= if drop exit then
++  hc-templ >r
++  92 hc-b @ r@ lay-copy 0 hc-layer lay-row drop
++  41 hc-b @ 111 + r> 111 + lay-copy 0 hc-layer lay-row drop ;
++: hc-ret ( -- reg ) \ the register of the return value; its position goes to the record by a literal (in a program: the template)
++  fc-reg fc-guard @ if dup hc-rec exit then
++  dup 32 fc-lit drop 32 hc-b @ 120 + rot lay-copy 0 hc-layer lay-row drop ;
++: hc-request ( bits -- ) \ the block and its payload of bits to the channel SYS
++  >r lay-layer hc-l ! 1 31 lshift 1 31 lshift hc-b @ hc-b @ 152 + r> + hc-l @ lay-row drop ;
++: hc-guard ( -- ) fc-code ;
++: hc-sblock ( k -- ) \ the block of the definition k in the memory of the program (scratch, one for all calls of k); its record into the stream (in a program: the template)
++  dup hc-k ! dup cells hc-sb + @ 0= if 256 64 fc-scratch over cells hc-sb + ! then dup cells hc-sb + @ hc-b ! 0 hc-nl !
++  fc-guard @ if drop exit then
++  >r 7 1 hc-b @ lay-put-numeric  1 31 lshift 4 hc-b @ 8 + lay-put-numeric  0 2 hc-b @ 40 + lay-put-numeric
++  r> 4 hc-b @ 56 + lay-put-numeric  fc-mem 4 hc-b @ 88 + lay-put-numeric
++  hc-b @ 4 hc-b @ 120 + lay-put-numeric ;
++\ The binary words ( a b -- r ): op 0 + 1 - 2 and 3 or 4 xor 5 = 6 < 7 u< is the definition 3 + op; the result
++\ is the return value, written into its register by the emulator. Two layers.
++: hc-bin ( op -- )
++  3 + hc-sblock 2 hc-pops 0 32 152 0 hc-arg 1 32 184 0 hc-arg hc-ret >r 64 hc-request r> fc-push ;
++: gen+ ( -- ) 2 fc-fold? if fc-ct2 + fc-ct+ exit then 0 hc-bin ;
++: gen- ( -- ) 2 fc-fold? if fc-ct2 - fc-ct+ exit then 1 hc-bin ;
++: gen-and ( -- ) 2 fc-fold? if fc-ct2 and fc-ct+ exit then 2 hc-bin ;
++: gen-or ( -- ) 2 fc-fold? if fc-ct2 or fc-ct+ exit then 3 hc-bin ;
++: gen-xor ( -- ) 2 fc-fold? if fc-ct2 xor fc-ct+ exit then 4 hc-bin ;
++: gen= ( -- ) fc-code 5 hc-bin ;
++: gen< ( -- ) fc-code 6 hc-bin ;
++: gen-u< ( -- ) fc-code 7 hc-bin ;
+ : gen-lshift ( -- )
+   2 fc-fold? if fc-ct2 31 and lshift fc-ct+ exit then 0 fc-shift-lit? if exit then 8 fc-binary ;
+ : gen-rshift ( -- )
+   2 fc-fold? if fc-ct2 31 and rshift fc-ct+ exit then -1 fc-shift-lit? if exit then 9 fc-binary ;
+-: gen-0= ( -- ) fc-code fc-pop fc-reg tuck swap fc-or-zero fc-push ;
++: gen-0= ( -- ) fc-code s" 0 =" fc-eval ;
+ : gen-cells ( -- ) 1 fc-fold? if fc-ct- 4 * fc-ct+ exit then 2 fc-shift-copy ;
+ : gen-2* ( -- ) 1 fc-fold? if fc-ct- 2 * fc-ct+ exit then 1 fc-shift-copy ;
+-: gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then lay-t-add @ 1 0 fc-inc ;
+-: gen-1- ( -- ) 1 fc-fold? if fc-ct- 1- fc-ct+ exit then lay-t-sub @ 1 1 fc-inc ;
+-: gen-cell+ ( -- ) 1 fc-fold? if fc-ct- 4 + fc-ct+ exit then lay-t-add @ 4 0 fc-inc ;
++: gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then s" 1 +" fc-eval ;
++: gen-1- ( -- ) 1 fc-fold? if fc-ct- 1- fc-ct+ exit then s" 1 -" fc-eval ;
++: gen-cell+ ( -- ) 1 fc-fold? if fc-ct- 4 + fc-ct+ exit then s" 4 +" fc-eval ;
+ \ * / MOD /MOD call the helpers built before the code (FC-SCAN-USES).
+ : gen* ( -- )
+   2 fc-fold? if fc-ct2 * fc-ct+ exit then fc-mul-lit? if exit then
+@@ -247,7 +318,81 @@
+   fc-cpos @ fc-hb - 32 - dup 4194272 u> if -8 throw then 4 fc-hb lay-put-numeric
+   fc-nhost @ dup 1+ fc-word @ 8 cells + ! fc-literal
+   s" %host" dup fc-tl ! fc-tok swap cmove fc-word-token 1 fc-nhost +! ;
++\ FILL ( addr u c -- ): the image of the u bytes at addr with the byte c, whatever the alignment: the
++\ position is that of the slot (a >> 2) at the bit 6, the two low bits of addr are an argument, the
++\ definition gives the displacement of the first byte in the slot. There is no result: the return
++\ value goes to the cell %HS (the block names it).
++: gen-hfill ( -- )
++  hc-guard s" %hb1" 1 hc-block 3 hc-pops
++  0 17 94 2 hc-arg 0 2 216 0 hc-arg 1 32 152 0 hc-arg 2 32 184 0 hc-arg
++  fc-guard @ if s" %hs" hc-memb hc-rec then 96 hc-request ;
++\ LAY-CLASHES? ( -- flag ): does lay-new-row (in the block) clash with a row of the layer lay-cur: its record
++\ (31 cells, the count and the rows) is copied into the block by a copy whose source is patched from the
++\ address of the layer and from the address + 124 (patch, gap, copy).
++variable hc-p variable hc-g variable hc-r variable hc-lc
++\ 18.16: the address of LAY-CUR is cached on the first call (always the kernel's own use of LAY-CLASHES?,
++\ before any program could be compiled): a program that defines its own word named "lay-cur" (fc-lookup
++\ finds the newest entry of a name) does not change what GEN-HCL reads, since GEN-HCL no longer looks the
++\ name up by text (FC-EVAL) once the address is cached; it calls the generators of @, DUP and + directly
++\ (as the checks of 14.10 call their own generators, not words of the dictionary), so a program's own
++\ redefinition of @, DUP or + has no effect here either. No cost at the call (the cached read replaces the
++\ same number of layers FC-EVAL compiled; the cache lookup itself is at compile time, not in the copycode).
++: hc-laddr ( -- a ) \ the language-level address of LAY-CUR (as FC-WORD-TOKEN would give it to FC-LITERAL: the
++  \ value field of its record, not HC-MEMB's copyspace-bit formula, which is for a different kind of name)
++  hc-lc @ ?dup if exit then
++  s" lay-cur" fc-lookup dup 0= if -13 throw then 3 cells + @ dup hc-lc ! ;
++: gen-hcl ( -- )
++  hc-guard hc-laddr fc-literal gen-@ gen-dup 124 fc-literal gen+ s" %hb0" 0 hc-block 2 hc-pops
++  lay-layer hc-p ! lay-layer drop lay-layer hc-g !
++  hc-b @ 576 + dup 1984 + fc-mem dup hc-g @ lay-row hc-r !
++  19 hc-g @ lay-layer-cell hc-r @ 2 lay-field 4 + 0 cells hc-regs + @ lay-copy hc-p @ lay-row drop
++  19 hc-g @ lay-layer-cell hc-r @ 3 lay-field 4 + 1 cells hc-regs + @ lay-copy hc-p @ lay-row drop
++  hc-p @ hc-lay ! 1 hc-nl !
++  32 152 s" lay-size" hc-var hc-ret >r 2408 hc-request r> fc-push ;
++\ LAY-ENCODE ( rows count -- ): the layer of the rows of lay-rows (in the block) into lay-dest; the
++\ return value 0 or -24, and the error is thrown after the call.
++: gen-henc ( -- )
++  hc-guard s" swap drop" fc-eval s" %hb2" 2 hc-block 1 hc-pops
++  32 152 s" lay-a" hc-var 32 184 s" lay-slots" hc-var 19 92 s" lay-dest" hc-var 0 32 216 0 hc-arg
++  hc-ret >r 2216 hc-request r> fc-push s" if -24 throw then" fc-eval ;
+ \ The name of two bytes c1 c2 (S": a quote cannot be written in a string).
++\ 18.16. The bytes of the memory by the host. The source of PUT and CMOVE is copied into the block as the
++\ slots of the memory from the slot of its address (33 slots, 2112 bits: at most 128 bytes): the copy is the row
++\ whose source is patched two layers ahead from the address (the slot) and from the address + 132 (its end), as
++\ LAY-CLASHES?. The registers are reordered to src, src + 132, n, the destination, so that the patches read the
++\ source first.
++: hc-r@ ( i -- r ) cells hc-regs + @ ;
++: hc-set4 ( a b c d -- ) 3 cells hc-regs + ! 2 cells hc-regs + ! 1 cells hc-regs + ! hc-regs ! ;
++variable hc-g2 variable hc-s2
++: hc-slots ( -- ) \ the layers P, gap, G, the row of the copy of the slots into the block (at 248) and its patches
++  2 hc-layer drop
++  hc-b @ 248 + dup 2112 + fc-mem dup 2 hc-layer lay-row hc-s2 !
++  17 2 hc-layer lay-layer-cell hc-s2 @ 2 lay-field 6 + 0 hc-r@ 2 + lay-copy 0 hc-layer lay-row drop
++  17 2 hc-layer lay-layer-cell hc-s2 @ 3 lay-field 6 + 1 hc-r@ 2 + lay-copy 0 hc-layer lay-row drop ;
++\ PUT ( bit-address src n -- ), n <= 128: the n bytes of the memory from src to the bit address of the space (the
++\ sink of the kernel). Only in the kernel (the position is a whole 32-bit argument: the program is not given it).
++: gen-hput ( -- )
++  fc-guard @ if -13 throw then fc-code gen-over 132 fc-literal gen+
++  s" %hb3" 11 hc-block 4 hc-pops
++  1 hc-r@ 3 hc-r@ 2 hc-r@ 0 hc-r@ hc-set4
++  hc-slots
++  0 2 184 0 hc-arg 2 32 152 0 hc-arg 3 32 88 0 hc-arg
++  2208 hc-request ;
++\ CMOVE ( src dst u -- ), u <= 128: the image of the bytes at the slot of dst, displacement 8 * (dst mod 4).
++: gen-hmove ( -- )
++  fc-code gen-rot gen-dup 132 fc-literal gen+
++  s" %hb4" 12 hc-block 4 hc-pops
++  2 hc-r@ 3 hc-r@ 1 hc-r@ 0 hc-r@ hc-set4
++  hc-slots
++  0 2 184 0 hc-arg 2 32 152 0 hc-arg 3 2 216 0 hc-arg 3 17 94 2 hc-arg
++  2208 hc-request ;
++\ LAY-NUMERIC ( value nbytes addr -- ): the bytes of the value (numeric) in the memory from addr.
++: gen-hnum ( -- )
++  fc-code s" %hb5" 13 hc-block 3 hc-pops
++  0 32 152 0 hc-arg 1 32 184 0 hc-arg 2 2 216 0 hc-arg 2 17 94 2 hc-arg
++  96 hc-request ;
++\ +! ( n addr -- ): in place, @ + ! with the + of the host.
++: gen+! ( -- ) fc-code gen-dup gen-@ gen-rot gen+ gen-swap gen-! ;
+ : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
+ \ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel
+ \ layout, 8 a comment, 16 the words of the proof, FC-LIBRARY, 32 the replacement,
+@@ -299,6 +444,10 @@
+   s" long!" ['] gen-library 64 fc-generator  s" long@" ['] gen-library 64 fc-generator
+   s" host" ['] gen-host 243 fc-generator  s" time" ['] gen-library 243 fc-generator
+   s" platform" ['] gen-library 243 fc-generator  s" platform-of" ['] gen-library 243 fc-generator
++  s" fill" ['] gen-hfill 0 fc-generator  s" lay-clashes?" ['] gen-hcl 0 fc-generator
++  s" lay-encode" ['] gen-henc 0 fc-generator
++  s" %hput" ['] gen-hput 0 fc-generator  s" cmove" ['] gen-hmove 0 fc-generator
++  s" lay-numeric" ['] gen-hnum 0 fc-generator  s" +!" ['] gen+! 0 fc-generator
+   s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name
+   s" 4" 4 fc-literal-name  s" 5" 5 fc-literal-name  s" 6" 6 fc-literal-name  s" 7" 7 fc-literal-name
+   s" 8" 8 fc-literal-name  s" 9" 9 fc-literal-name ;
+diff -ruN -x measurements a/language/tests/test_isolation.py b/language/tests/test_isolation.py
+--- a/language/tests/test_isolation.py	2026-10-31 14:57:13.383783269 +0200
++++ b/language/tests/test_isolation.py	2026-10-31 14:50:31.000000000 +0200
+@@ -10,7 +10,8 @@
+ boot.py compiles): the entry of the word kn-.n (it writes a number in decimal) and the record of
+ the constant 48 ([char] 0), which kn-.n adds to a digit.
+ 
+-Options: --l0 PATH (default build L0), --only NAME, --report (print the outputs, do not compare).
++Options: --l0 PATH (default build L0), --words W (L0 is the variant of tools/boot_call.py with the calls on the host),
++--only NAME, --report (print the outputs, do not compare).
+ Exit code 0 if every output is the expected one.
+ """
+ import argparse
+@@ -30,9 +31,15 @@
+ SHOW = ': show 0 swap - 48 + emit ;\n'    # the code of a THROW as a digit: -9 is 9, 0 is 0
+ 
+ 
+-def kernel_addresses():
+-    """(entry of kn-.n, address of the record of the constant 48) from the host pForth."""
+-    stream = boot.boot_input()
++def kernel_addresses(words=None):
++    """(entry of kn-.n, address of the record of the constant 48) from the host pForth. words: the variant with
++    the calls on the host (tools/boot_call.py --words), whose kernel text differs from the definition."""
++    if words is None:
++        stream = boot.boot_input()
++    else:
++        import boot_call
++        lines = [boot.SIZES] + ['fc| ' + line for line in boot_call.kernel_text(words).split('\n')] + ['fc-go', 'bye']
++        stream = paths.source_bytes(paths.LIBRARY_FILES) + ('\n'.join(lines) + '\n').encode('latin-1')
+     tail = b'fc-go\nbye\n'
+     assert stream.endswith(tail)
+     query = (b'fc-go\ns" ENTRY " type s" kn-.n" fc-lookup 3 cells + @ . 48 fc-lit-of drop . cr\nbye\n')
+@@ -63,6 +70,24 @@
+                          'error -13 at spacec@\n')
+     p['execute-kernel'] = (SHOW + f': k {entry} execute ;\n: main 65 emit [\'] k catch show 66 emit ;', 'A9B', 'A0')
+     p['catch-kernel'] = (SHOW + f': c {entry} catch show ;\n: main 65 emit [\'] c catch show 66 emit ;', 'A9B', 'A0')
++    # --- the call on the host (18.16): the record of the request is not in the memory of the program -----
++    # + is a call of the host (HOST): the emulator writes the sum to the position that the request names. In 18.15 that
++    # position was copied from a constant of the program (the position of the register of the result) and the rest of
++    # the record lay in a block in the memory of the program, both written by space! (the program half). The program
++    # writes a place (the constant 48 of the kernel; a place of its own half) over every constant that holds the
++    # position of a register and over the start of the scratch where the block lay, then calls + twice and prints
++    # Y if the sum 49 is in its register, as it must: the record of the call is a part of its code (the template),
++    # and the position that the call writes does not come from the memory. In 18.15 the sum went to the place and the
++    # program did not end (nothing is printed). That kn-.n still adds 48 cannot be seen here: after the fix the
++    # program cannot execute kn-.n (execute of the kernel is refused), so the place of its own half is the same test.
++    regs, pool, scratch = (1 << 30) + 1024, (1 << 30) + 8192, (1 << 30) + (1 << 21) + (1 << 16)
++    for name, target in (('host-call-forge-kernel', lo), ('host-call-forge-own', d)):
++        p[name] = (
++            f': f1 dup dup 32 + space@ {regs} - 3072 u< if {target} swap dup 32 + space! else drop then ;\n'
++            f': f2 {target} swap dup 32 + space! ;\n'
++            ': g 20 29 + 49 = if 89 emit else 78 emit then ;\n'
++            f': main 400 0 do i 64 * {pool} + f1 loop 8 0 do i 64 * {scratch} + f2 loop g g ;',
++            'YY', '')
+     # --- what must keep working -----------------------------------------------------------------------
+     p['program-half'] = (
+         f': main 1234567 {d} {d + 32} space! {d} {d + 32} space@ 1234567 = if 89 emit else 78 emit then\n'
+@@ -127,11 +152,12 @@
+     parser.add_argument('--l0', default=str(paths.L0))
+     parser.add_argument('--only', action='append')
+     parser.add_argument('--report', action='store_true')
++    parser.add_argument('--words', help='the words of the variant of boot_call.py (L0 of --l0 is that variant)')
+     parser.add_argument('--addresses', nargs=2, type=int, metavar=('ENTRY', 'CONSTANT'),
+                         help='the addresses of the kernel of --l0 if its sources are not the current ones')
+     args = parser.parse_args()
+     L0 = open(args.l0, 'rb').read()
+-    entry, constant = args.addresses or kernel_addresses()
++    entry, constant = args.addresses or kernel_addresses(args.words.split(',') if args.words else None)
+     print(f'kernel: entry of kn-.n {entry}, record of the constant 48 at {constant}', flush=True)
+     table = probes(entry, constant)
+     table.update(range_probes())
+diff -ruN -x measurements a/language/tools/boot_call.py b/language/tools/boot_call.py
+--- a/language/tools/boot_call.py	1970-01-01 02:00:00.000000000 +0200
++++ b/language/tools/boot_call.py	2026-10-31 12:40:41.000000000 +0200
+@@ -0,0 +1,103 @@
++#!/usr/bin/env python3
++"""18.13, 18.15, 18.16 (experiment): boot of the variant of the language in which `fill`, `lay-clashes?` (the clash of the
++new row with the rows of a layer), the encoding of a layer (`lay-encode`), the sink of the kernel (`kn-put`: `put`), `cmove`,
++`lay-numeric` and `+!` are executed by the emulator through the call HOST (op 7, hostcall/*.fth, the generators of the same
++names in primitives.fth: the call is put in the place of use). The host pForth loads the compiler natively with the
++ordinary definitions of all words; only the text that the compiler compiles into L0 (the kernel) has the definitions
++replaced. Usage: boot_call.py -o L0.call [--words fill,row,enc,put,cmove,numeric,pstore]"""
++import argparse
++import hashlib
++import subprocess
++import sys
++import time
++
++import boot
++import host
++import paths
++
++HC = paths.ROOT / 'hostcall'
++FILL = (': fill ( addr u c -- )\n  over 3 and 3 pick 3 and or 0= if\n'
++        '    255 and 16843009 * fill-cell ! 2 rshift 0 ?do fill-cell @ over i cells + ! loop drop exit\n'
++        '  then swap 0 ?do 2dup swap i + c! loop 2drop ;\n')
++ROWCLASH = (': lay-row-clash? ( row1 row2 -- flag )\n  lay-rb ! lay-ra ! 0\n  2 0 do 2 0 do\n'
++            '    lay-ra @ j 2* cells + 2@ swap lay-rb @ i 2* cells + 2@ swap lay-clash? or\n  loop loop ;\n')
++NEWROW = 'create lay-new-row 4 cells allot\n'
++CLASHES = (': lay-clashes? ( -- flag )\n  0 lay-cur @ lay-count 0 ?do\n'
++           '    lay-new-row lay-cur @ i lay-row-addr lay-row-clash? if drop -1 leave then\n  loop ;\n')
++ENCODE = (': lay-encode ( rows count -- )\n  lay-dest @ lay-lbytes 0 fill\n  0 ?do\n    4 0 do\n'
++          '      dup j 2 lshift i + cells + @ lay-field-check\n'
++          '      lay-a @ 32 = if lay-dest @ j 4 lshift + i 2 lshift + lay-numeric4\n'
++          '      else lay-a @ 3 rshift lay-dest @ j 2 lshift i + lay-a @ 3 rshift * + lay-numeric then\n'
++          '    loop\n  loop drop ;\n')
++ROWS = 'create lay-rows 32 cells allot\n'
++CMOVE = (': cmove ( src dst u -- )\n  dup 3 and 2 pick 3 and or 3 pick 3 and or 0= if\n'
++         '    2 rshift 0 ?do over i cells + @ over i cells + ! loop 2drop exit\n'
++         '  then 0 ?do over i + c@ over i + c! loop 2drop ;\n')
++NUMERIC = (': lay-numeric ( value nbytes addr -- )\n  swap 0 ?do\n'
++           '    over i 4 < if i 3 lshift rshift 255 and lay-rev + c@ else drop 0 then\n'
++           '    over i + c!\n  loop 2drop ;\n')
++PSTORE = ': +! ( n addr -- ) dup >r @ + r> ! ;\n'
++PUT_TAIL = ('  rot kn-at !\n  over 3 and 0= if\n'
++            '    dup 2 rshift 0 ?do over i cells + @ kn-at @ dup 32 + space! 32 kn-at +! loop\n'
++            '    dup -4 and rot + swap 3 and\n  then\n'
++            '  0 ?do dup i + c@ kn-at @ dup 8 + spacec! 8 kn-at +! loop drop ;\n')
++PUT_HEAD = ': kn-put ( bit-address src n -- )\n'
++PUT_NEW = ('  begin dup 128 > while\n    2 pick 2 pick 128 %hput\n'
++           '    rot 1024 + rot 128 + rot 128 -\n  repeat %hput ;\n')
++
++
++def kernel_text(words):
++    text = paths.text(paths.KERNEL_FILES)
++    if words:
++        text = (HC / 'common.fth').read_text() + text
++    if 'fill' in words:
++        assert FILL in text
++        text = text.replace(FILL, (HC / 'fill.fth').read_text())
++    if 'row' in words:
++        assert ROWCLASH in text and CLASHES in text and text.count(NEWROW) == 1
++        text = text.replace(NEWROW, '').replace(CLASHES, '').replace(ROWCLASH, (HC / 'rowclash.fth').read_text())
++    if 'enc' in words:
++        assert ENCODE in text and text.count(ROWS) == 1
++        text = text.replace(ROWS, '').replace(ENCODE, (HC / 'encode.fth').read_text())
++    if 'cmove' in words:
++        assert CMOVE in text
++        text = text.replace(CMOVE, (HC / 'cmove.fth').read_text())
++    if 'numeric' in words:
++        assert NUMERIC in text
++        text = text.replace(NUMERIC, (HC / 'numeric.fth').read_text())
++    if 'pstore' in words:
++        assert PSTORE in text
++        text = text.replace(PSTORE, '')
++    if 'put' in words:
++        assert PUT_TAIL in text and PUT_HEAD in text
++        text = text.replace(PUT_TAIL, PUT_NEW).replace(PUT_HEAD, (HC / 'put.fth').read_text() + PUT_HEAD)
++    return text
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('-o', '--output', required=True)
++    parser.add_argument('--words', default='fill,row,enc,put,cmove,numeric,pstore')
++    parser.add_argument('--extra', help='a text inserted before the heap (measurements)')
++    args = parser.parse_args()
++    words = [w for w in args.words.split(',') if w]
++    text = kernel_text(words)
++    if args.extra:
++        mark = 'create kn-heap-start'
++        assert mark in text
++        text = text.replace(mark, open(args.extra).read() + mark)
++    lines = [boot.SIZES] + ['fc| ' + line for line in text.split('\n')] + ['fc-go', 'bye']
++    data = paths.source_bytes(paths.LIBRARY_FILES) + ('\n'.join(lines) + '\n').encode('latin-1')
++    executable = host.build()
++    start = time.monotonic()
++    result = subprocess.run([str(executable)], input=data, capture_output=True, timeout=3000, check=False)
++    seconds = time.monotonic() - start
++    if result.returncode or result.stderr or not result.stdout.endswith(b'\n'):
++        sys.exit(f'boot failed: code {result.returncode}, {result.stdout[-300:]!r}, {result.stderr[-300:]!r}')
++    stream = result.stdout[:-1]
++    open(args.output, 'wb').write(stream)
++    print(f'boot_call({args.words}): L0 {len(stream)} bytes in {seconds:.1f} s, sha256 {hashlib.sha256(stream).hexdigest()[:16]}')
++
++
++if __name__ == '__main__':
++    main()
