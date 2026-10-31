@@ -1,0 +1,586 @@
+diff -ruN -x proto_gen.h -x docs -x build -x tmp -x __pycache__ -x '.*' -x emulator.tmp base/emulator/src/proto.def w/emulator/src/proto.def
+--- base/emulator/src/proto.def	2026-10-30 10:57:05.000000000 +0200
++++ w/emulator/src/proto.def	2026-10-31 11:25:05.000000000 +0200
+@@ -46,6 +46,28 @@
+  * gives zeros, a write past the end extends the file.
+  */
+ XOP(LONG,  6)
++/*
++ * HOST (18.13, experiment): call a definition that the emulator holds (written
++ * in C) over its own space of variables, not over the space of the program.
++ * One copy to SYS carries the request: the record (arg = the number of the
++ * definition) and right after it, in the same copy, the argument bits (the
++ * payload, as the data of EXEC). The emulator puts the payload at the start
++ * of its own space (the place the definition is set to read: values, or an
++ * image of cells), runs the definition and returns its results by copying:
++ * the image of the result (as many bits as the definition makes) to the
++ * position off[31:0] of the program space, and the 32-bit return value (numeric)
++ * to the position off[63:32]. The positions are given by the call; the emulator
++ * knows nothing of the layout of the data of the caller. The results are in
++ * the program space from the next tick (the same rule as for the answer of
++ * SYS). Answer: status 0, EINVAL (unknown definition, short payload, a result
++ * that does not fit), EFAULT (a result position outside the space). chan, flags: unused.
++ * 18.15: a definition may also give a displacement (bits) that is added to off[31:0]: a
++ * position inside a slot of 64 bits that it knows from the payload (fill of an unaligned
++ * address). The definitions: 0 clashes of a row with the rows of a layer, 1 fill, 2 encode
++ * of a layer, 3..10 the binary words + - and or xor = < u< (the value is the return
++ * value). The calls are allowed to any program.
++ */
++XOP(HOST,  7)
+ /* reserve: SPAWN, POLL, MMAP, ... */
+ 
+ XFIELD(req, op,    8)
+diff -ruN -x proto_gen.h -x docs -x build -x tmp -x __pycache__ -x '.*' -x emulator.tmp base/emulator/src/runtime.c w/emulator/src/runtime.c
+--- base/emulator/src/runtime.c	2026-10-30 21:56:05.000000000 +0200
++++ w/emulator/src/runtime.c	2026-10-31 10:55:33.000000000 +0200
+@@ -12,6 +12,9 @@
+ size (*instructions)[4];
+ size (*processor)[3];
+ FILE *channel_in,*channel_out;
++static unsigned char *shadow;
++static size_t record_bytes;
++static int shadow_valid;
+ const char **remote_paths; size_t nremote; /* -r path: remote spaces 2.. (15.2) */
+ 
+ /* Bit-reversed byte: stream bytes are MSB-first, numeric fields LSB-first. */
+@@ -143,28 +146,67 @@
+ void destroy_space(void)
+ {
+   backend_shutdown(); sys_shutdown();
+-  free(space); free(instructions); free(processor); free(remote_paths);
++  free(space); free(instructions); free(processor); free(remote_paths); free(shadow); shadow=NULL; shadow_valid=0;
+   remote_paths=NULL; nremote=0;
+   space=NULL; instructions=NULL; processor=NULL;
+ }
++/* The records of the processors are decoded only when their bits changed since the last tick: most of the
++ * records of a layer (the idle ones) are rewritten with the same bits, and decoding is the dearest part of a
++ * tick that does not depend on the work. shadow holds the bits as they were decoded. */
++/* A 32-bit field at a byte, as space_get(at,32). */
++static inline size get32(const unsigned char *p)
++{
++  return (size)reverse8[p[0]]|(size)reverse8[p[1]]<<8|(size)reverse8[p[2]]<<16|(size)reverse8[p[3]]<<24;
++}
++static inline void decode_record(size_t i)
++{
++  size *q=instructions[i],*op=processor[i];
++  if(address_bits==32 && instruction_size%8==0) {
++    const unsigned char *p=space+i*record_bytes;
++    q[0]=get32(p); q[1]=get32(p+4); q[2]=get32(p+8); q[3]=get32(p+12);
++  } else for(size k=0;k<4;k++) q[k]=space_get((i*4+k)*address_bits,address_bits);
++  op[0]=0; op[1]=q[0]; op[2]=q[2];
++  if(q[0]==q[1] && q[0]>=space_nbits) {
++    if(q[2]<q[3] && q[3]<=space_nbits) op[0]=q[3]-q[2];
++  } else if(q[2]==q[3] && q[2]>=space_nbits) {
++    if(q[0]<q[1] && q[1]<=space_nbits) op[0]=q[1]-q[0];
++  } else if(q[2]<q[3]) op[0]=q[3]-q[2];
++}
++static inline int record_changed(const unsigned char *a,const unsigned char *b)
++{
++  if(record_bytes==16) {
++    uint64_t x[2],y[2];
++    memcpy(x,a,16); memcpy(y,b,16);
++    return ((x[0]^y[0])|(x[1]^y[1]))!=0;
++  }
++  return memcmp(a,b,record_bytes)!=0;
++}
+ int computation(void)
+ {
+-  int active=0;
+-  for(size_t i=0;i<proc_n;i++) {
+-    size *q=instructions[i],*op=processor[i];
+-    for(size k=0;k<4;k++) q[k]=space_get((i*4+k)*address_bits,address_bits);
+-    op[0]=0; op[1]=q[0]; op[2]=q[2];
+-    if(q[0]==q[1] && q[0]>=space_nbits) {
+-      if(q[2]<q[3] && q[3]<=space_nbits) op[0]=q[3]-q[2];
+-    } else if(q[2]==q[3] && q[2]>=space_nbits) {
+-      if(q[0]<q[1] && q[1]<=space_nbits) op[0]=q[1]-q[0];
+-    } else if(q[2]<q[3]) op[0]=q[3]-q[2];
+-    if(op[0]) active=1;
++  int active=0,channel_op=0;
++  size_t n=proc_n;
++  if(!shadow) {  /* decode every record at the first tick, and when the records are not whole bytes */
++    if(instruction_size%8==0) {
++      record_bytes=instruction_size/8;
++      shadow=malloc(n*record_bytes);
++      if(!shadow) { fputs("emulator: out of memory\n",stderr); exit(EXIT_MEMORY); }
++    }
++    shadow_valid=0;
++  }
++  for(size_t i=0;i<n;i++) {
++    if(shadow) {
++      const unsigned char *now=space+i*record_bytes; unsigned char *was=shadow+i*record_bytes;
++      if(!shadow_valid || record_changed(now,was)) { decode_record(i); if(record_bytes==16) memcpy(was,now,16); else memcpy(was,now,record_bytes); }
++    } else decode_record(i);
++    size *op=processor[i];
++    if(op[0]) { active=1; if(op[1]>=space_nbits||op[2]>=space_nbits) channel_op=1; }
+   }
++  shadow_valid=shadow!=NULL;
+   if(!active) return 0;
+   /* Valid channel buffers and ordinary ranges are disjoint. Neither this
+-   * host ordering nor sequential bitcpy gives same-tick readiness to guests. */
+-  sys_tick();
++   * host ordering nor sequential bitcpy gives same-tick readiness to guests.
++   * Only an operation with a channel position as an end is served by SYS. */
++  if(channel_op) sys_tick();
+   backend_tick();
+   return 1;
+ }
+diff -ruN -x proto_gen.h -x docs -x build -x tmp -x __pycache__ -x '.*' -x emulator.tmp base/emulator/src/sys_ctrl.c w/emulator/src/sys_ctrl.c
+--- base/emulator/src/sys_ctrl.c	2026-10-30 10:57:05.000000000 +0200
++++ w/emulator/src/sys_ctrl.c	2026-10-31 11:27:45.000000000 +0200
+@@ -318,6 +318,180 @@
+ }
+ 
+ /*
++ * HOST (18.13, 18.15): definitions on the host over the own space of the emulator.
++ * The space of the definitions is the array hv (bits, the same order as the
++ * program space: numeric fields least significant bit first): the input at
++ * the bit 0 (the payload of the request, copied there by one bitcpy), the
++ * output image at HV_OUT. A definition reads its input at the places it is
++ * set to, makes the output image (out bits), a 32-bit return value and, if it
++ * needs, a displacement of the position of the image (disp bits, added to the
++ * position given by the request: the position inside a slot of 64 bits that
++ * the definition knows from the payload, not from the program). The copying of
++ * the results into the program space (to the positions given by the request)
++ * is done here, by the same bitcpy; the definitions never touch the program
++ * space and do not know where the data of the caller are.
++ * The format the definitions are set to: a cell of the program memory is 32
++ * bits (numeric) at the start of a slot of 64 bits, a byte of the memory is 8
++ * bits at 64 * (a / 4) + 8 * (a % 4) bits over the start of the memory.
++ */
++#define HV_IN_BITS  8192u
++#define HV_OUT_BITS (1u << 23)
++#define HV_OUT      HV_IN_BITS
++static unsigned char hv[(HV_IN_BITS + HV_OUT_BITS) / 8];
++static unsigned char hv_rev[256];   /* the byte with its bits reversed: the bytes of numeric fields */
++static void hv_init(void)
++{
++  unsigned b, k;
++  for(b = 0; b < 256; ++b)
++  {
++    unsigned r = 0;
++    for(k = 0; k < 8; ++k) r |= ((b >> k) & 1u) << (7 - k);
++    hv_rev[b] = (unsigned char)r;
++  }
++}
++/* the 32-bit numeric field at the bit at (a multiple of 8) of hv */
++static unsigned hv_get32(size at)
++{
++  const unsigned char *p = hv + at / 8;
++  return (unsigned)hv_rev[p[0]] | (unsigned)hv_rev[p[1]] << 8 | (unsigned)hv_rev[p[2]] << 16 | (unsigned)hv_rev[p[3]] << 24;
++}
++typedef int (*host_def)(size in, size *out, size *ret, size *disp);
++/* 0: clashes ( size, new row, layer record ): the payload: size at 0; the cells (numeric 32 bits, one in each 64
++ * bits) of the new row (dl dh sl sh) from 168; the cells of a record of a layer from 424: the cell, the next, the
++ * count n (cell 2), and from the cell 3 the rows (four cells each) of the layer. The return value is -1 or 0: some
++ * interval of the new row and some interval of one of the n rows are both non-empty, overlap and have their lower
++ * ends below size. */
++static int hd_clashes(size in, size *out, size *ret, size *disp)
++{
++  unsigned size_, a[4], n, i, j, k;
++  (void)disp;
++  if(in < 424 + 3 * 64 + 32) return EINVAL;
++  n = hv_get32(424 + 2 * 64);
++  if(n > 7 || in < 424 + 64 * (3 + 4 * (size)n)) return EINVAL;
++  size_ = hv_get32(0);
++  for(j = 0; j < 4; ++j) a[j] = hv_get32(168 + 64 * (size)j);
++  *out = 0; *ret = 0;
++  for(k = 0; k < n; ++k)
++  {
++    unsigned b[4];
++    for(i = 0; i < 4; ++i) b[i] = hv_get32(424 + 64 * (3 + 4 * (size)k + i));
++    for(j = 0; j < 2; ++j)
++      for(i = 0; i < 2; ++i)
++      {
++        unsigned l1 = a[2 * j], h1 = a[2 * j + 1], l2 = b[2 * i], h2 = b[2 * i + 1];
++        if(l1 < h1 && l2 < h2 && l1 < h2 && l2 < h1 && l1 < size_ && l2 < size_) { *ret = 0xffffffffu; return 0; }
++      }
++  }
++  return 0;
++}
++/* 1: fill ( u, c, alo ): the payload u at 0, c at 32, the two low bits r of the address at 64. The output image
++ * is the u bytes of the memory from the byte at the address, as they lie in the memory (a byte c, the 32 padding
++ * bits of each slot zero), the displacement 8 r (the position of the call is the start of the slot of the
++ * address); the return value is 0. */
++static int hd_fill(size in, size *out, size *ret, size *disp)
++{
++  size u, r, k;
++  unsigned char rc;
++  unsigned char *img = hv + HV_OUT / 8;
++  if(in < 96) return EINVAL;
++  u = hv_get32(0); rc = hv_rev[hv_get32(32) & 255u]; r = hv_get32(64) & 3u;
++  *out = 0; *ret = 0; *disp = 8 * r;
++  if(!u) return 0;
++  if(64 * ((r + u - 1) / 4) + 8 * ((r + u - 1) % 4) + 8 - 8 * r > HV_OUT_BITS) return EINVAL;
++  *out = 64 * ((r + u - 1) / 4) + 8 * ((r + u - 1) % 4) + 8 - 8 * r;
++  memset(img, 0, (size_t)((*out + 7) / 8));
++  k = 0;
++  while(k < u && (r + k) % 4) { img[8 * ((r + k) / 4) + (r + k) % 4 - r] = rc; ++k; }
++  for(; k + 4 <= u; k += 4)
++  {
++    unsigned char *p = img + 8 * ((r + k) / 4) - r;
++    p[0] = p[1] = p[2] = p[3] = rc;
++  }
++  for(; k < u; ++k) img[8 * ((r + k) / 4) + (r + k) % 4 - r] = rc;
++  return 0;
++}
++/* 2: encode ( a, slots, count, rows ): payload a at 0, slots at 32, count at 64, the cells of the rows (4 cells
++ * each) from 168. The output image: the layer of slots rows of four a-bit fields (numeric bytes), the rows after
++ * count zero, in the cells of memory (4 bytes in each 64 bits). The return value is 0, or -24 if a field does not
++ * fit in a bits (a < 32). */
++static int hd_encode(size in, size *out, size *ret, size *disp)
++{
++  size a, slots, count, nbytes, lbytes, j, i, b;
++  unsigned char *img = hv + HV_OUT / 8;
++  (void)disp;
++  if(in < 168 + 64 * 31 + 32) return EINVAL;
++  a = hv_get32(0); slots = hv_get32(32); count = hv_get32(64);
++  if(a % 8 || !a || a > 64 || !slots || slots > 8 || count > slots) return EINVAL;
++  nbytes = a / 8;
++  lbytes = slots * 4 * nbytes;
++  if(lbytes % 4 || 16 * lbytes > HV_OUT_BITS) return EINVAL;
++  memset(img, 0, (size_t)(16 * lbytes / 8));
++  *out = 16 * lbytes; *ret = 0;
++  for(j = 0; j < count; ++j)
++    for(i = 0; i < 4; ++i)
++    {
++      size v = hv_get32(168 + 64 * (4 * j + i));
++      if(a < 32 && (v >> a)) { *out = 0; *ret = 0xffffffe8u; return 0; }
++      if(a == 32) { memcpy(img + 8 * (4 * j + i), hv + (168 + 64 * (4 * j + i)) / 8, 4); continue; }  /* the same bytes: numeric both */
++      for(b = 0; b < nbytes; ++b)
++      {
++        size at = (4 * j + i) * nbytes + b;      /* the byte of the buffer */
++        img[(64 * (at / 4) + 8 * (at % 4)) / 8] = hv_rev[b < 4 ? (v >> (8 * b)) & 255u : 0];
++      }
++    }
++  return 0;
++}
++/* 3..10: the binary operations of the words + - and or xor = < u< ( a b -- r ): the payload a at 0, b at 32 (32 bits,
++ * numeric); no image; the return value is the result (the flags are -1 and 0, as in the words). */
++#define HD_BIN(name, expr) \
++  static int name(size in, size *out, size *ret, size *disp) \
++  { \
++    unsigned a, b; \
++    (void)disp; \
++    if(in < 64) return EINVAL; \
++    a = hv_get32(0); b = hv_get32(32); \
++    *out = 0; *ret = (unsigned)(expr); \
++    return 0; \
++  }
++HD_BIN(hd_add, a + b)
++HD_BIN(hd_sub, a - b)
++HD_BIN(hd_and, a & b)
++HD_BIN(hd_or, a | b)
++HD_BIN(hd_xor, a ^ b)
++HD_BIN(hd_eq, a == b ? 0xffffffffu : 0u)
++HD_BIN(hd_lt, (int)a < (int)b ? 0xffffffffu : 0u)
++HD_BIN(hd_ult, a < b ? 0xffffffffu : 0u)
++static const host_def host_defs[] = { hd_clashes, hd_fill, hd_encode, hd_add, hd_sub, hd_and, hd_or, hd_xor, hd_eq, hd_lt, hd_ult };
++#define HOST_NDEFS (sizeof host_defs / sizeof host_defs[0])
++#define HW_FITS(at, n) ((n) <= (size)space_nbits && (at) <= (size)space_nbits - (n))
++/* the request at bit address base (n bits written to SYS): returns the status */
++static int host_call1(size base, size n, const size *v);
++static unsigned long host_calls[16], host_errors;
++static int host_call(size base, size n, const size *v)
++{
++  int rc;
++  if(v[3] < 16) host_calls[v[3]]++;
++  rc = host_call1(base, n, v);
++  if(rc) { host_errors++; if(getenv("HOST_STATS")) fprintf(stderr, "emulator: HOST %lu failed: %d\n", (unsigned long)v[3], rc); }
++  return rc;
++}
++static int host_call1(size base, size n, const size *v)
++{
++  size in, out = 0, ret = 0, disp = 0, lo = v[4] & 0xffffffffu, hi = v[4] >> 32;
++  if(n < req_bits || v[3] >= HOST_NDEFS) return EINVAL;
++  in = n - req_bits;
++  if(in > HV_IN_BITS) return EINVAL;
++  bitcpy((size_t)in, space, (size_t)(base + req_bits), hv, 0);
++  if(host_defs[v[3]](in, &out, &ret, &disp)) return EINVAL;
++  lo += disp;
++  if(out && !HW_FITS(lo, out)) return EFAULT;
++  if(!HW_FITS(hi, 32)) return EFAULT;
++  if(out) bitcpy((size_t)out, hv, HV_OUT, space, (size_t)lo);
++  space_put(32, ret, hi);
++  return 0;
++}
++
++/*
+  * serve one control request decoded into v (REQ_NFIELDS values). cidx is
+  * the SYS entry; the answer is stored there. CLOSE may close SYS itself.
+  */
+@@ -408,6 +582,9 @@
+       }
+       break;
+     }
++    case OP_HOST:
++      channels[cidx].status = (size)host_call(base, n, v);
++      break;
+     case OP_IOCTL:
+       channels[cidx].status = (size)ENOTTY;
+       break;
+@@ -612,6 +789,7 @@
+     for(j = 0; j < RSP_NFIELDS; ++j)
+       rsp_bits = (size)(rsp_bits + rsp_w[j]);
+   }
++  hv_init();
+   nchan = 0;
+   need_channel(0);                    /* SYS is always present */
+   if(nchan == 0)
+@@ -657,6 +835,9 @@
+ void sys_shutdown(void)
+ {
+   size i;
++  if(getenv("HOST_STATS") && host_errors + host_calls[0] + host_calls[1] + host_calls[2] + host_calls[3] + host_calls[4])
++    fprintf(stderr, "host calls: clashes %lu fill %lu encode %lu add %lu sub %lu, errors %lu\n", host_calls[0], host_calls[1], host_calls[2], host_calls[3], host_calls[4], host_errors);
++  memset(host_calls, 0, sizeof host_calls); host_errors = 0;
+   for(i = 0; i < nchan; ++i)
+     if(channels[i].owned && channels[i].f != NULL)
+     {
+diff -ruN -x proto_gen.h -x docs -x build -x tmp -x __pycache__ -x '.*' -x emulator.tmp base/language/hostcall/encode.fth w/language/hostcall/encode.fth
+--- base/language/hostcall/encode.fth	1970-01-01 02:00:00.000000000 +0200
++++ w/language/hostcall/encode.fth	2026-10-31 11:05:50.000000000 +0200
+@@ -0,0 +1,4 @@
++\ 18.15 (experiment): the block of the call of the encoding of a layer, lay-encode ( rows count -- ) (a generator): the record and
++\ three values, then the rows lay-rows, contiguous. Only for rows = lay-rows (the only argument of the callers).
++create %hb2 5 cells allot
++create lay-rows 32 cells allot
+diff -ruN -x proto_gen.h -x docs -x build -x tmp -x __pycache__ -x '.*' -x emulator.tmp base/language/hostcall/fill.fth w/language/hostcall/fill.fth
+--- base/language/hostcall/fill.fth	1970-01-01 02:00:00.000000000 +0200
++++ w/language/hostcall/fill.fth	2026-10-31 11:05:50.000000000 +0200
+@@ -0,0 +1,4 @@
++\ 18.15 (experiment): the cell of the return value of a call on the host (fill has no result) and the block of the
++\ call of fill ( addr u c -- ), a generator (%hb1: the record and three values).
++create %hs 1 cells allot
++create %hb1 4 cells allot
+diff -ruN -x proto_gen.h -x docs -x build -x tmp -x __pycache__ -x '.*' -x emulator.tmp base/language/hostcall/rowclash.fth w/language/hostcall/rowclash.fth
+--- base/language/hostcall/rowclash.fth	1970-01-01 02:00:00.000000000 +0200
++++ w/language/hostcall/rowclash.fth	2026-10-31 11:05:50.000000000 +0200
+@@ -0,0 +1,5 @@
++\ 18.15 (experiment): the block of the call of lay-clashes? (a generator): the record and the size, then lay-new-row (the
++\ row of every call) and the place of the record of the layer lay-cur (31 cells: the count and the rows), contiguous.
++create %hb0 5 cells allot
++create lay-new-row 4 cells allot
++create %hr2 31 cells allot
+diff -ruN -x proto_gen.h -x docs -x build -x tmp -x __pycache__ -x '.*' -x emulator.tmp base/language/src/forthc.fth w/language/src/forthc.fth
+--- base/language/src/forthc.fth	2026-10-31 10:39:25.000000000 +0200
++++ w/language/src/forthc.fth	2026-10-31 11:18:34.000000000 +0200
+@@ -143,7 +143,7 @@
+     0= if unloop exit then drop
+   loop -8 throw ;
+ : fc-reg-for-pop ( -- r ) fc-reg dup fc-npin @ cells fc-pin + ! 1 fc-npin +! ;
+-variable fc-scr
++variable fc-scr create hc-sb 16 cells allot
+ : fc-scratch ( bits align -- at )
+   fc-scr @ over 1- + swap negate and dup rot + dup fc-mem u> if -8 throw then fc-scr ! ;
+ 
+@@ -788,7 +788,7 @@
+   lay-lone fc-cellb over lay-next! lay-layer-cell fc-tramp ! lay-flush
+   lay-lone 0 over lay-next! lay-layer-cell fc-ex ! lay-flush
+   0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-chunk 8 * allocate throw fc-link-buf ! then
+-  fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
++  fc-scr0 fc-scr ! hc-sb 16 cells 0 fill fc-build-thrower fc-thrower ! ;
+ \ Before the code: each word of the source is looked up in the dictionary (the
+ \ generators only) and the needs of its generator are collected (1: the
+ \ multiplication, 2: the division, 4: the kernel layout, KERNEL-LAYOUT). A
+diff -ruN -x proto_gen.h -x docs -x build -x tmp -x __pycache__ -x '.*' -x emulator.tmp base/language/src/primitives.fth w/language/src/primitives.fth
+--- base/language/src/primitives.fth	2026-10-31 10:39:25.000000000 +0200
++++ w/language/src/primitives.fth	2026-10-31 11:21:31.000000000 +0200
+@@ -6,24 +6,65 @@
+ \ branches by the name of the word the compiler had before. The language
+ \ names are given in FC-GENERATORS: the names here differ (pForth itself uses
+ \ + - * ...).
+-: gen+ ( -- ) 2 fc-fold? if fc-ct2 + fc-ct+ exit then 0 fc-binary ;
+-: gen- ( -- ) 2 fc-fold? if fc-ct2 - fc-ct+ exit then 1 fc-binary ;
+-: gen-and ( -- ) 2 fc-fold? if fc-ct2 and fc-ct+ exit then 2 fc-binary ;
+-: gen-or ( -- ) 2 fc-fold? if fc-ct2 or fc-ct+ exit then 3 fc-binary ;
+-: gen-xor ( -- ) 2 fc-fold? if fc-ct2 xor fc-ct+ exit then 4 fc-binary ;
+-: gen= ( -- ) fc-code 5 fc-binary ;
+-: gen< ( -- ) fc-code 6 fc-binary ;
+-: gen-u< ( -- ) fc-code 7 fc-binary ;
++\ The call of a definition on the host (18.13, op HOST of emulator/src/proto.def), in any program (18.15: the
++\ programs too). A block of the memory of the kernel holds the record of the request (152 bits:
++\ op 8, chan 32, flags 16, arg 32, off 64) and right after it the payload; the record is written into
++\ the stream at the call (op HOST, chan SYS, arg the number of the definition, off: low half the position
++\ of the result image, high half the position of the 32-bit return value). The call is two layers: the
++\ arguments are copied into the block (the payload and the position of the image: the address of the
++\ memory cell a is the bit 16 * a above the start of the memory, so a copy of a at the bit 4 of the
++\ field is the position), then the block (record and payload) is copied to the channel SYS. The
++\ emulator writes the results to the positions of the record, they are read from the next tick on.
++variable hc-b variable hc-l variable hc-n variable hc-nl
++create hc-regs 8 cells allot create hc-lay 4 cells allot
++: hc-memb ( addr u -- bit ) fc-lookup dup 0= if -13 throw then 3 cells + @ 4 lshift fc-mem + ;
++: hc-block ( addr u k -- ) \ the block named addr u; its record into the stream
++  >r hc-memb hc-b !
++  7 1 hc-b @ lay-put-numeric  1 31 lshift 4 hc-b @ 8 + lay-put-numeric  0 2 hc-b @ 40 + lay-put-numeric
++  r> 4 hc-b @ 56 + lay-put-numeric  fc-mem 4 hc-b @ 88 + lay-put-numeric
++  s" %hs" hc-memb 4 hc-b @ 120 + lay-put-numeric  0 hc-nl ! ;
++: hc-pops ( n -- ) \ the n registers on top, the first argument first, into HC-REGS
++  dup hc-n ! fc-need hc-n @ 0 ?do fc-pop1 hc-n @ 1- i - cells hc-regs + ! loop ;
++: hc-layer ( d -- layer ) \ the d-th layer of the arguments
++  begin dup hc-nl @ < 0= while lay-layer hc-nl @ cells hc-lay + ! 1 hc-nl +! repeat cells hc-lay + @ ;
++: hc-dups ( i -- d ) \ the number of the earlier arguments in the register of the argument i
++  dup cells hc-regs + @ 0 rot 0 ?do over i cells hc-regs + @ = if 1+ then loop nip ;
++: hc-arg ( i n off sh -- ) \ n bits of the register of the argument i from its bit sh to the block at off
++  >r rot dup hc-dups hc-layer hc-l ! cells hc-regs + @ r> + >r hc-b @ + r> lay-copy hc-l @ lay-row drop ;
++: hc-var ( n off addr u -- ) \ n bits of the cell of the variable addr u to the block at off
++  hc-memb >r hc-b @ + r> lay-copy 0 hc-layer lay-row drop ;
++: hc-ret ( -- reg ) \ the register of the return value; its position goes to the record by a literal
++  fc-reg dup 32 fc-lit drop 32 hc-b @ 120 + rot lay-copy 0 hc-layer lay-row drop ;
++: hc-request ( bits -- ) \ the block and its payload of bits to the channel SYS
++  >r lay-layer hc-l ! 1 31 lshift 1 31 lshift hc-b @ hc-b @ 152 + r> + hc-l @ lay-row drop ;
++: hc-guard ( -- ) fc-code ;
++: hc-sblock ( k -- ) \ the block of the definition k in the memory of the program (scratch, one for all calls of k); its record into the stream
++  dup cells hc-sb + @ 0= if 256 64 fc-scratch over cells hc-sb + ! then dup cells hc-sb + @ hc-b !
++  >r 7 1 hc-b @ lay-put-numeric  1 31 lshift 4 hc-b @ 8 + lay-put-numeric  0 2 hc-b @ 40 + lay-put-numeric
++  r> 4 hc-b @ 56 + lay-put-numeric  fc-mem 4 hc-b @ 88 + lay-put-numeric
++  hc-b @ 4 hc-b @ 120 + lay-put-numeric  0 hc-nl ! ;
++\ The binary words ( a b -- r ): op 0 + 1 - 2 and 3 or 4 xor 5 = 6 < 7 u< is the definition 3 + op; the result
++\ is the return value, written into its register by the emulator. Two layers.
++: hc-bin ( op -- )
++  3 + hc-sblock 2 hc-pops 0 32 152 0 hc-arg 1 32 184 0 hc-arg hc-ret >r 64 hc-request r> fc-push ;
++: gen+ ( -- ) 2 fc-fold? if fc-ct2 + fc-ct+ exit then 0 hc-bin ;
++: gen- ( -- ) 2 fc-fold? if fc-ct2 - fc-ct+ exit then 1 hc-bin ;
++: gen-and ( -- ) 2 fc-fold? if fc-ct2 and fc-ct+ exit then 2 hc-bin ;
++: gen-or ( -- ) 2 fc-fold? if fc-ct2 or fc-ct+ exit then 3 hc-bin ;
++: gen-xor ( -- ) 2 fc-fold? if fc-ct2 xor fc-ct+ exit then 4 hc-bin ;
++: gen= ( -- ) fc-code 5 hc-bin ;
++: gen< ( -- ) fc-code 6 hc-bin ;
++: gen-u< ( -- ) fc-code 7 hc-bin ;
+ : gen-lshift ( -- )
+   2 fc-fold? if fc-ct2 31 and lshift fc-ct+ exit then 0 fc-shift-lit? if exit then 8 fc-binary ;
+ : gen-rshift ( -- )
+   2 fc-fold? if fc-ct2 31 and rshift fc-ct+ exit then -1 fc-shift-lit? if exit then 9 fc-binary ;
+-: gen-0= ( -- ) fc-code fc-pop fc-reg tuck swap fc-or-zero fc-push ;
++: gen-0= ( -- ) fc-code s" 0 =" fc-eval ;
+ : gen-cells ( -- ) 1 fc-fold? if fc-ct- 4 * fc-ct+ exit then 2 fc-shift-copy ;
+ : gen-2* ( -- ) 1 fc-fold? if fc-ct- 2 * fc-ct+ exit then 1 fc-shift-copy ;
+-: gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then lay-t-add @ 1 0 fc-inc ;
+-: gen-1- ( -- ) 1 fc-fold? if fc-ct- 1- fc-ct+ exit then lay-t-sub @ 1 1 fc-inc ;
+-: gen-cell+ ( -- ) 1 fc-fold? if fc-ct- 4 + fc-ct+ exit then lay-t-add @ 4 0 fc-inc ;
++: gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then s" 1 +" fc-eval ;
++: gen-1- ( -- ) 1 fc-fold? if fc-ct- 1- fc-ct+ exit then s" 1 -" fc-eval ;
++: gen-cell+ ( -- ) 1 fc-fold? if fc-ct- 4 + fc-ct+ exit then s" 4 +" fc-eval ;
+ \ * / MOD /MOD call the helpers built before the code (FC-SCAN-USES).
+ : gen* ( -- )
+   2 fc-fold? if fc-ct2 * fc-ct+ exit then fc-mul-lit? if exit then
+@@ -247,6 +288,32 @@
+   fc-cpos @ fc-hb - 32 - dup 4194272 u> if -8 throw then 4 fc-hb lay-put-numeric
+   fc-nhost @ dup 1+ fc-word @ 8 cells + ! fc-literal
+   s" %host" dup fc-tl ! fc-tok swap cmove fc-word-token 1 fc-nhost +! ;
++\ FILL ( addr u c -- ): the image of the u bytes at addr with the byte c, whatever the alignment: the
++\ position is that of the slot (a >> 2) at the bit 6, the two low bits of addr are an argument, the
++\ definition gives the displacement of the first byte in the slot. There is no result: the return
++\ value goes to the cell %HS (the block names it).
++: gen-hfill ( -- )
++  hc-guard s" %hb1" 1 hc-block 3 hc-pops
++  0 17 94 2 hc-arg 0 2 216 0 hc-arg 1 32 152 0 hc-arg 2 32 184 0 hc-arg
++  96 hc-request ;
++\ LAY-CLASHES? ( -- flag ): does lay-new-row (in the block) clash with a row of the layer lay-cur: its record
++\ (31 cells, the count and the rows) is copied into the block by a copy whose source is patched from the
++\ address of the layer and from the address + 124 (patch, gap, copy).
++variable hc-p variable hc-g variable hc-r
++: gen-hcl ( -- )
++  hc-guard s" lay-cur @ dup 124 +" fc-eval s" %hb0" 0 hc-block 2 hc-pops
++  lay-layer hc-p ! lay-layer drop lay-layer hc-g !
++  hc-b @ 576 + dup 1984 + fc-mem dup hc-g @ lay-row hc-r !
++  19 hc-g @ lay-layer-cell hc-r @ 2 lay-field 4 + 0 cells hc-regs + @ lay-copy hc-p @ lay-row drop
++  19 hc-g @ lay-layer-cell hc-r @ 3 lay-field 4 + 1 cells hc-regs + @ lay-copy hc-p @ lay-row drop
++  hc-p @ hc-lay ! 1 hc-nl !
++  32 152 s" lay-size" hc-var hc-ret >r 2408 hc-request r> fc-push ;
++\ LAY-ENCODE ( rows count -- ): the layer of the rows of lay-rows (in the block) into lay-dest; the
++\ return value 0 or -24, and the error is thrown after the call.
++: gen-henc ( -- )
++  hc-guard s" swap drop" fc-eval s" %hb2" 2 hc-block 1 hc-pops
++  32 152 s" lay-a" hc-var 32 184 s" lay-slots" hc-var 19 92 s" lay-dest" hc-var 0 32 216 0 hc-arg
++  hc-ret >r 2216 hc-request r> fc-push s" if -24 throw then" fc-eval ;
+ \ The name of two bytes c1 c2 (S": a quote cannot be written in a string).
+ : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
+ \ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel
+@@ -299,6 +366,8 @@
+   s" long!" ['] gen-library 64 fc-generator  s" long@" ['] gen-library 64 fc-generator
+   s" host" ['] gen-host 243 fc-generator  s" time" ['] gen-library 243 fc-generator
+   s" platform" ['] gen-library 243 fc-generator  s" platform-of" ['] gen-library 243 fc-generator
++  s" fill" ['] gen-hfill 0 fc-generator  s" lay-clashes?" ['] gen-hcl 0 fc-generator
++  s" lay-encode" ['] gen-henc 0 fc-generator
+   s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name
+   s" 4" 4 fc-literal-name  s" 5" 5 fc-literal-name  s" 6" 6 fc-literal-name  s" 7" 7 fc-literal-name
+   s" 8" 8 fc-literal-name  s" 9" 9 fc-literal-name ;
+diff -ruN -x proto_gen.h -x docs -x build -x tmp -x __pycache__ -x '.*' -x emulator.tmp base/language/tools/boot_call.py w/language/tools/boot_call.py
+--- base/language/tools/boot_call.py	1970-01-01 02:00:00.000000000 +0200
++++ w/language/tools/boot_call.py	2026-10-31 11:06:01.000000000 +0200
+@@ -0,0 +1,74 @@
++#!/usr/bin/env python3
++"""18.13, 18.15 (experiment): boot of the variant of the language in which `fill`, `lay-clashes?` (the clash of the new
++row with the rows of a layer) and the encoding of a layer (`lay-encode`) are executed by the emulator through the call
++HOST (op 7, hostcall/*.fth, the generators of the same names in primitives.fth: the call is put in the place of use). The host pForth loads the compiler natively with the ordinary
++definitions of all words; only the text that the compiler compiles into L0 (the kernel) has the definitions
++replaced. Usage: boot_call.py -o L0.call [--words fill,row,enc]"""
++import argparse
++import hashlib
++import subprocess
++import sys
++import time
++
++import boot
++import host
++import paths
++
++HC = paths.ROOT / 'hostcall'
++FILL = (': fill ( addr u c -- )\n  over 3 and 3 pick 3 and or 0= if\n'
++        '    255 and 16843009 * fill-cell ! 2 rshift 0 ?do fill-cell @ over i cells + ! loop drop exit\n'
++        '  then swap 0 ?do 2dup swap i + c! loop 2drop ;\n')
++ROWCLASH = (': lay-row-clash? ( row1 row2 -- flag )\n  lay-rb ! lay-ra ! 0\n  2 0 do 2 0 do\n'
++            '    lay-ra @ j 2* cells + 2@ swap lay-rb @ i 2* cells + 2@ swap lay-clash? or\n  loop loop ;\n')
++NEWROW = 'create lay-new-row 4 cells allot\n'
++CLASHES = (': lay-clashes? ( -- flag )\n  0 lay-cur @ lay-count 0 ?do\n'
++           '    lay-new-row lay-cur @ i lay-row-addr lay-row-clash? if drop -1 leave then\n  loop ;\n')
++ENCODE = (': lay-encode ( rows count -- )\n  lay-dest @ lay-lbytes 0 fill\n  0 ?do\n    4 0 do\n'
++          '      dup j 2 lshift i + cells + @ lay-field-check\n'
++          '      lay-a @ 32 = if lay-dest @ j 4 lshift + i 2 lshift + lay-numeric4\n'
++          '      else lay-a @ 3 rshift lay-dest @ j 2 lshift i + lay-a @ 3 rshift * + lay-numeric then\n'
++          '    loop\n  loop drop ;\n')
++ROWS = 'create lay-rows 32 cells allot\n'
++
++
++def kernel_text(words):
++    text = paths.text(paths.KERNEL_FILES)
++    if 'fill' in words:
++        assert FILL in text
++        text = text.replace(FILL, (HC / 'fill.fth').read_text())
++    if 'row' in words:
++        assert ROWCLASH in text and CLASHES in text and text.count(NEWROW) == 1
++        text = text.replace(NEWROW, '').replace(CLASHES, '').replace(ROWCLASH, (HC / 'rowclash.fth').read_text())
++    if 'enc' in words:
++        assert ENCODE in text and text.count(ROWS) == 1
++        text = text.replace(ROWS, '').replace(ENCODE, (HC / 'encode.fth').read_text())
++    return text
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('-o', '--output', required=True)
++    parser.add_argument('--words', default='fill,row,enc')
++    parser.add_argument('--extra', help='a text inserted before the heap (measurements)')
++    args = parser.parse_args()
++    words = [w for w in args.words.split(',') if w]
++    text = kernel_text(words)
++    if args.extra:
++        mark = 'create kn-heap-start'
++        assert mark in text
++        text = text.replace(mark, open(args.extra).read() + mark)
++    lines = [boot.SIZES] + ['fc| ' + line for line in text.split('\n')] + ['fc-go', 'bye']
++    data = paths.source_bytes(paths.LIBRARY_FILES) + ('\n'.join(lines) + '\n').encode('latin-1')
++    executable = host.build()
++    start = time.monotonic()
++    result = subprocess.run([str(executable)], input=data, capture_output=True, timeout=3000, check=False)
++    seconds = time.monotonic() - start
++    if result.returncode or result.stderr or not result.stdout.endswith(b'\n'):
++        sys.exit(f'boot failed: code {result.returncode}, {result.stdout[-300:]!r}, {result.stderr[-300:]!r}')
++    stream = result.stdout[:-1]
++    open(args.output, 'wb').write(stream)
++    print(f'boot_call({args.words}): L0 {len(stream)} bytes in {seconds:.1f} s, sha256 {hashlib.sha256(stream).hexdigest()[:16]}')
++
++
++if __name__ == '__main__':
++    main()
