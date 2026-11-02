@@ -7,7 +7,7 @@ with open(f'res/all37-{tag}.txt', 'w') as fo:
     for n in names:
         data = data0 + open(f'../res/progs/{n}.fth', 'rb').read()
         t0 = time.monotonic()
-        p = subprocess.run([emu, '-s', '2147483648', '-p', '8'], input=data, capture_output=True,
+        p = subprocess.run(check=False, args=[emu, '-s', '2147483648', '-p', '8'], input=data, capture_output=True,
                            env=dict(os.environ, HW_TICKS='1'), preexec_fn=lambda: os.sched_setaffinity(0, {cpu}))
         s = time.monotonic() - t0
         err = p.stderr.decode().strip().split()

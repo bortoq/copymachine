@@ -115,6 +115,7 @@ check-tests: $(L0)
 # Isolation of the kernel (14.10, 18.18): probes of L0 (about 20 minutes), not part of check; the word of
 # disjointness on the host is tests/test_disjoint.py (check-fast-tests).
 check-isolation: $(L0)
+	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy)
 	$(call limit,$(KERNEL_SECONDS),,$(CPUS)) $(PYTHON) -B tests/test_isolation.py --l0 "$(L0)"
 # Check and proof (14.12): CHECK-TABLE, ACCURACY, PROVED? on the checked emulator and on L0 (about 3 minutes).
 check-proof: $(L0)

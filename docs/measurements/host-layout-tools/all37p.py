@@ -13,7 +13,7 @@ def run(n):
     try:
         data = data0 + open(f'{progs}/{n}.fth', 'rb').read()
         t0 = time.monotonic()
-        p = subprocess.run([emu, '-s', '2147483648', '-p', '8'], input=data, capture_output=True,
+        p = subprocess.run(check=False, args=[emu, '-s', '2147483648', '-p', '8'], input=data, capture_output=True,
                            env=dict(os.environ, HW_TICKS='1', **({'HW_HIST': os.environ['HISTDIR']+'/'+n+'.txt'} if 'HISTDIR' in os.environ else {})), preexec_fn=lambda: os.sched_setaffinity(0, {c}))
         s = time.monotonic() - t0
         err = p.stderr.decode().strip().split()
