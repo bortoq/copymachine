@@ -58,12 +58,12 @@ def guest_source(build, workdir, count, words):
     s, e = run.index('/s00') + 2, run.index('/e00') + 2     # offsets of the digits of the numbers
     return f''': rv ( b -- b' ) dup 1 and 7 lshift over 2 and 5 lshift or over 4 and 3 lshift or over 8 and 1 lshift or
   over 16 and 1 rshift or over 32 and 3 rshift or over 64 and 5 rshift or swap 128 and 7 rshift or ;
-: exec ( n -- status ) 5 {B} dup 8 + spacec! dup {B + 56} dup 32 + space!
+: exec ( n -- status ) 5 {B} spacec! dup {B + 56} space!
   8 * 152 + {B} + >r 0 0 {B} r> long! 0 0 {R} {R + 136} long@ {R + 8} {R + 16} spacec@ ;
-: same? ( -- f ) -1 {words} 0 do {X} i 32 * + dup 32 + space@ {Y} i 32 * + dup 32 + space@ xor 0= and loop ;
-: pat ( ch off -- ) 8 * {C} + swap rv swap dup 8 + spacec! ;
+: same? ( -- f ) -1 {words} 0 do {X} i 32 * + space@ {Y} i 32 * + space@ xor 0= and loop ;
+: pat ( ch off -- ) 8 * {C} + swap rv swap spacec! ;
 variable po
-: put ( addr u off -- ) po ! 0 do dup i + c@ rv po @ i + 8 * {C} + dup 8 + spacec! loop drop ;
+: put ( addr u off -- ) po ! 0 do dup i + c@ rv po @ i + 8 * {C} + spacec! loop drop ;
 : step ( k -- f ) dup 10 / 48 + dup {s} pat {e} pat 10 mod 48 + dup {s + 1} pat {e + 1} pat
   {len(run)} exec if 0 exit then 2 0 {X} {X + 32 * words} long@ 3 0 {Y} {Y + 32 * words} long@ same? ;
 : main ( -- ) {text(cc)} {len(cc)} exec if 70 emit 10 emit exit then

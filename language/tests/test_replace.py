@@ -23,8 +23,9 @@ previous one onto the stack of definitions; else nothing changes and ok is the r
    on the counters of 13.4 (tools/counters.py) the layers and bits of an execution equal the price,
    the executed instructions its copies; after the replacement an execution of the word costs the
    price of the candidate, which COST gives.
-4. The kernel L0 on the emulator compiles and runs the program of 1: the same output, the prices
-   with the entry marks of the isolation (two per word: the concept cell and the entry).
+4. The kernel L0 on the emulator compiles and runs the program of 1 (the concept cell takes the entry from the
+   record of the word in the data: the program writes no code): the same output, the prices of the program of
+   the kernel.
 """
 import subprocess
 import sys
@@ -74,9 +75,10 @@ MARK = b'\n@@CONCEPTS@@\n'
 FIELDS = ('concept', 'points', 'own', 'entry', 'size', 'bits', 'copies', 'layers', 'known')
 
 
-def compile_dump(source):
-    """(stream, records {name: dict(FIELDS)} of the newest record of each name, trampoline)."""
-    task = ('\n'.join('fc| ' + line for line in source.split('\n')) + '\nfc-go\n' + DUMP
+def compile_dump(source, guard=False):
+    """(stream, records {name: dict(FIELDS)} of the newest record of each name, trampoline). GUARD: compiled as
+    the kernel compiles a program (the prices of the program of the kernel; the stream is not for the emulator)."""
+    task = (('1 fc-guard !\n' if guard else '') + '\n'.join('fc| ' + line for line in source.split('\n')) + '\nfc-go\n' + DUMP
             + 'cr .( ' + MARK.decode().strip() + ') cr rd.all\nbye\n')
     out = check_programs.run_host(host.build(), paths.source_bytes(paths.LIBRARY_FILES) + task.encode('latin-1'))
     at = out.rindex(MARK)
@@ -109,22 +111,21 @@ def fast(i):
     return (i & 15) + ((i >> 4) & 15)
 
 
-def cost_line(r, marks=0):
-    """What C. prints for COST of a record: known layers copies bits size (MARKS entry marks of the kernel)."""
-    m = marks if r['known'] else 0
-    return f'{r["known"]} {r["layers"]} {r["copies"] + m} {r["bits"] + 32 * m} {r["size"]} '
+def cost_line(r):
+    """What C. prints for COST of a record: known layers copies bits size."""
+    return f'{r["known"]} {r["layers"]} {r["copies"]} {r["bits"]} {r["size"]} '
 
 
 def runs(f):
     return ' '.join(str(f(i)) for i in (37, 256, 256, 256, 256, 256)) + ' '
 
 
-def expected(records, marks=0):
+def expected(records):
     add, fast_r = records['add'], records['add-fast']
     assert slow(256) != fast(256) and all(slow(i) & 31 == fast(i) == (i & 15) + (i >> 4) for i in range(256))
-    lines = [runs(slow), '-1 -1 ', cost_line(add, marks), cost_line(add, marks),
-             '1 3 -1 3 3 1 0 0 ', runs(fast), cost_line(fast_r, marks), cost_line(fast_r, marks),
-             cost_line(fast_r, marks), f'-1 0 {slow(256)} -1 1000000 ', '']
+    lines = [runs(slow), '-1 -1 ', cost_line(add), cost_line(add),
+             '1 3 -1 3 3 1 0 0 ', runs(fast), cost_line(fast_r), cost_line(fast_r),
+             cost_line(fast_r), f'-1 0 {slow(256)} -1 1000000 ', '']
     return '\n'.join(lines).encode()
 
 
@@ -207,13 +208,21 @@ def check_counters():
 
 
 def check_kernel_l0(records, want):
+    """18.18: the kernel L0 compiles and runs the program of the replacement: the concept cell of a word takes the
+    entry from the record of the word in the data (the program writes no code), so the word of disjointness
+    accepts it. The output is the prices of the program of the kernel (compiled so on the host)."""
     if not paths.EMULATOR.is_file():
         subprocess.run(['make', '-s', '-C', str(paths.EMULATOR_ROOT), '-j1', 'runtime-bitcopy'], check=True)
-    got, seconds = check_kernel.run(paths.L0.read_bytes() + REPLACE.encode() + b'\0', 3000)
-    want = expected(records, marks=2)
+    # The previous definition is run by its entry on the host; its entry is no xt (a number) in a program of the
+    # kernel: execute goes only to a word of the table of entries, so the output of that run is written by hand.
+    program = REPLACE.replace('4 + @ 256 swap execute n.', f'drop {slow(256)} n.')
+    assert program != REPLACE
+    _, guarded, _ = compile_dump(program, guard=True)
+    want = expected(guarded)
+    got, seconds = check_kernel.run(paths.L0.read_bytes() + program.encode() + b'\0', 3000)
     assert got == want, (got, want)
-    print(f'PASS kernel L0: compiles and runs the program of the replacement, the same output; prices with '
-          f'two entry marks per word ({seconds:.0f} s)')
+    print(f'PASS kernel L0: compiles and runs the program of the replacement, the same output; the prices of the '
+          f'program of the kernel ({seconds:.0f} s)')
 
 
 def main():

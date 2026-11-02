@@ -3,7 +3,7 @@
 
 PROGRAMS run on pForth for the reference output. EXPECTED carry their output
 where pForth is no reference: its MOD and /MOD are unsigned for negative
-operands, it has no address checks and its division by zero is undefined.
+operands, its addresses are not checked as the language takes them modulo the memory, and its division by zero is undefined.
 """
 import random
 
@@ -71,17 +71,16 @@ EXPECTED={
                  b''.join(b4(tdiv(a,b))+b4(a-b*tdiv(a,b)) for a,b in DIV)),
 'mod-signs':(': main -7 2 mod 48 + emit 7 -2 mod 48 + emit -7 -2 mod 48 + emit -7 2 / 48 + emit 7 -2 /mod 48 + emit 48 + emit ;',
              bytes([47,49,47,45,45,49])),
-'faults':(': bad 3 @ ; : far 524288 @ ; : neg -4 @ ; : st 5 2 ! ; : st2 5 600000 ! ; : z 7 0 / ; : zm 7 0 mod ;\n'
+'faults':(': z 7 0 / ; : zm 7 0 mod ;\n'
           ': ok 524284 @ drop 0 524284 ! ; : c 0 swap - emit ;\n'
-          ": main ['] bad catch c ['] far catch c ['] neg catch c ['] st catch c ['] st2 catch c ['] z catch c"
-          " ['] zm catch c ['] ok catch 48 + emit 1 2 ['] bad catch c 48 + emit 48 + emit ;",
-          bytes([23,9,9,23,9,10,10,48,23,50,49])),
-'uncaught-address':(': main 65 emit 1 @ 66 emit ;',b'A'),
+          ": main ['] z catch c ['] zm catch c ['] ok catch 48 + emit 1 2 ['] z catch c 48 + emit 48 + emit ;",
+          bytes([10,10,48,10,50,49])),
+# No address is checked: the cell of an address is taken modulo the memory (2^19 bytes), a byte address too.
+'address-aliasing':(': main 65 emit 7 0 ! 524288 @ 48 + emit 3 @ 48 + emit 1048576 @ 48 + emit ;',b'A777'),
 'uncaught-zero':(': main 65 emit 0 0 / 66 emit ;',b'A'),
-# The ok cell of an address check is entered by BEGIN and THEN with no row.
-# A byte access checks the range only; shifts take the amount modulo 32.
-'bytes':(': far 524288 c@ ; : main 3 c@ 48 + emit 65 7 c! 7 c@ emit 66 524287 c! 524287 c@ emit'
-         " ['] far catch 0 swap - emit 3 33 lshift 48 + emit ;",b'0AB\t6'),
+# A byte access takes the address modulo the memory too; shifts take the amount modulo 32.
+'bytes':(': main 3 c@ 48 + emit 65 7 c! 7 c@ emit 66 524287 c! 524287 c@ emit 67 0 c! 524288 c@ emit'
+         " 3 33 lshift 48 + emit ;",b'0ABC6'),
 'empty-run':('variable x\n: main 1 x ! 0 if then x @ drop begin x @ 1 + dup x ! 3 = until x @ 48 + emit'
              ' 1 if x @ drop then 65 emit ;',b'3A'),
 }

@@ -194,3 +194,129 @@ create lay-new-row 4 cells allot
   lay-sink @ if lay-start-cell ! exit then
   lay-stream-flush lay-clear-rows lay-link-row lay-slots @ 1- lay-row!
   lay-lbuf @ lay-dest ! lay-rows lay-slots @ lay-encode lay-lbuf @ lay-lbytes type ;
+\ The word of disjointness (3.7.5, language/doc/isolation.md). DJ-PROVE ( first end -- flag ): from the layers
+\ of a program as they stand in the space (the cells first .. end - 1, the 32 bits at a bit address read by
+\ the word of DJ-READER) true if, in the four blocks of the space (the program: the code block 0 and the data
+\ block 2),
+\ 1. every row is a no-op, a copy of two intervals of one length, each inside one block of the program, or a
+\    channel row (stdin into the data, the data into stdout);
+\ 2. a copy into the layers (a row whose destination is a cell of the code block from the cell 2: the patch of a field of another
+\    row at run time) writes inside one field, and a wide one (more than DJ-NARROW bits from the start of the
+\    field: the position is the program's, not an index of a table, a stack or the memory, which the planner
+\    places, 3.7.2) gets, from the program, only the low bits of the field: the bits above are the block of the
+\    constant in the row, the end of the reach lies in that block (for the start of an interval in the data,
+\    with the length of the interval above it), and no other row of the layer has a position in that block:
+\    the row stands alone (the rows of a layer: DJ-SCAN; the layer of a patch: DJ-LOAD).
+\ That the rows of a layer do not meet is kept by the scheduler that builds the layers (LAY-ROW, 3.7.2): the word
+\ does not prove it. On failure DJ-BAD-RULE is the number of the rule and DJ-BAD-CELL the cell.
+variable dj-reader variable dj-bad-cell variable dj-bad-rule
+variable dj-bsh variable dj-csh variable dj-ssh variable dj-fsh
+variable dj-first variable dj-end variable dj-pa variable dj-cb
+variable dj-vdl variable dj-vdh variable dj-vsl variable dj-vsh
+variable dj-tc variable dj-ts variable dj-tf variable dj-tb variable dj-tn variable dj-tk variable dj-vt
+variable dj-blk
+create dj-pr 32 cells allot create dj-tr 32 cells allot
+24 constant dj-narrow
+\ Wide patches proved already: cell, slot, field, bits.
+create dj-seen 64 cells allot variable dj-nseen
+: dj-get ( bit-address -- x ) dj-reader @ execute ;
+: dj-fail ( rule -- ) dj-bad-rule @ if drop else dj-bad-rule ! then ;
+: dj-blk? ( x -- n ) dj-bsh @ rshift ;
+\ [lo, hi) is in one block of the program, the code block 0 or the data block 2.
+: dj-in? ( lo hi -- f )
+  2dup u< 0= if 2drop 0 exit then
+  1- dj-blk? swap dj-blk? over = >r dup 0= swap 2 = or r> and ;
+: dj-row! ( slot -- ) \ the row in DJ-V.. into the array DJ-PA
+  2 lshift cells dj-pa @ + >r dj-vdl @ r@ ! dj-vdh @ r@ cell+ ! dj-vsl @ r@ 2 cells + ! dj-vsh @ r> 3 cells + ! ;
+: dj-row@ ( slot array -- ) \ the row of the array into DJ-V..
+  swap 2 lshift cells + >r r@ @ dj-vdl ! r@ cell+ @ dj-vdh ! r@ 2 cells + @ dj-vsl ! r> 3 cells + @ dj-vsh ! ;
+\ A row with an empty source in the memory is a no-op: only its source is read.
+: dj-nop? ( -- f ) dj-vsl @ dj-vsh @ = dj-vsl @ lay-size @ u< and ;
+\ The layer at the bit address cb into the array: the four fields of every slot.
+: dj-load ( cb array -- )
+  dj-pa ! dj-cb !
+  lay-slots @ 0 ?do
+    dj-cb @ i 2 lay-field dj-get dj-vsl ! dj-cb @ i 3 lay-field dj-get dj-vsh !
+    dj-nop? if 0 dj-vdl ! 0 dj-vdh ! 0 dj-vsl ! 0 dj-vsh !
+    else dj-cb @ i 0 lay-field dj-get dj-vdl ! dj-cb @ i 1 lay-field dj-get dj-vdh ! then
+    i dj-row!
+  loop ;
+\ Rule 1.
+: dj-row-ok? ( -- f )
+  dj-nop? if -1 exit then
+  dj-vsl @ dj-vsh @ = if dj-vsl @ lay-stdin = dj-vdl @ dj-vdh @ dj-in? and exit then
+  dj-vdl @ dj-vdh @ = if dj-vdl @ lay-stdout = dj-vsl @ dj-vsh @ dj-in? and exit then
+  dj-vdl @ dj-vdh @ dj-in? dj-vsl @ dj-vsh @ dj-in? and dj-vdh @ dj-vdl @ - dj-vsh @ dj-vsl @ - = and ;
+\ The interval [lo, hi) has a position in the block dj-blk (a channel has none).
+: dj-in-blk? ( lo hi -- f )
+  2dup u< 0= if 2drop 0 exit then
+  over lay-size @ u< 0= if 2drop 0 exit then
+  1- dj-blk? dj-blk @ = swap dj-blk? dj-blk @ = or ;
+\ The row in DJ-V.. has a position in the block DJ-BLK.
+: dj-touches? ( -- f ) dj-vdl @ dj-vdh @ dj-in-blk? dj-vsl @ dj-vsh @ dj-in-blk? or ;
+: dj-seen? ( -- f ) \ the wide patch (DJ-TC .. DJ-TK) was proved
+  0 dj-nseen @ 0 ?do
+    i 2 lshift cells dj-seen + >r
+    r@ @ dj-tc @ = r@ cell+ @ dj-ts @ = and r@ 2 cells + @ dj-tf @ = and r> 3 cells + @ dj-tk @ = and or
+  loop ;
+: dj-seen! ( -- )
+  dj-nseen @ 16 = if 0 dj-nseen ! then
+  dj-nseen @ 2 lshift cells dj-seen + >r dj-tc @ r@ ! dj-ts @ r@ cell+ ! dj-tf @ r@ 2 cells + ! dj-tk @ r> 3 cells + !
+  1 dj-nseen +! ;
+\ Rule 2 for the wide patch of the field DJ-TF of the row DJ-TS of the cell DJ-TC (DJ-TB, DJ-TN, DJ-TK the
+\ start, the width and the end of the patch in the field): the field, then the layer.
+: dj-wide ( -- )
+  dj-seen? if exit then
+  dj-tc @ dj-csh @ lshift dj-ts @ dj-tf @ lay-field dj-get dj-vt !
+  dj-tk @ lay-a @ = if 2 dj-fail exit then
+  dj-vt @ dj-blk? dup dj-blk ! dup 0= swap 2 = or 0= if 2 dj-fail exit then
+  dj-vt @ 1 dj-tk @ lshift 1- invert and 1 dj-tk @ lshift +        ( the end of the reach )
+  dj-tc @ dj-csh @ lshift dj-tr dj-load
+  dj-ts @ dj-tr dj-row@
+  dj-blk @ dj-tf @ 1 and 0= and if dj-vdh @ dj-vdl @ - dj-vsh @ dj-vsl @ - max + then
+  dj-blk @ 1+ dj-bsh @ lshift swap u< if 2 dj-fail exit then
+  lay-slots @ 0 ?do
+    i dj-ts @ = 0= if
+      i dj-tr dj-row@ dj-nop? 0= if dj-touches? if 2 dj-fail then then
+    then
+  loop
+  dj-seen! ;
+\ A row of the layer that writes into the layers.
+: dj-patch ( -- )
+  dj-vdl @ dup dj-csh @ rshift dj-tc !
+  lay-cell-bits @ 1- and dup dj-ssh @ rshift dj-ts !
+  dup lay-inst 1- and dj-fsh @ rshift dj-tf !
+  lay-a @ 1- and dj-tb !
+  dj-vdh @ dj-vdl @ - dj-tn !
+  dj-tb @ dj-tn @ + dup dj-tk ! lay-a @ u> if 2 dj-fail exit then
+  dj-tk @ dj-narrow u> if dj-wide then ;
+\ The rows of the layer at the bit address DJ-CB that are not no-ops, into DJ-PR (DJ-NN of them). The fields
+\ of a slot are at 128 bits from each other, a field has 32 bits (lay-foff, the geometry of the index code); a
+\ no-op reads only its source.
+variable dj-nn variable dj-lo variable dj-hi
+: dj-scan ( -- )
+  0 dj-nn !
+  lay-slots @ 0 ?do
+    dj-cb @ i 7 lshift + 64 + dup dj-get dj-vsl ! 32 + dj-get dj-vsh !
+    dj-nop? 0= if
+      dj-cb @ i 7 lshift + dup dj-get dj-vdl ! 32 + dj-get dj-vdh !
+      dj-nn @ dj-row! 1 dj-nn +!
+    then
+  loop ;
+\ Rules 1 and 2 for the rows of the layer.
+: dj-rows ( -- )
+  dj-nn @ 0 ?do
+    i dj-pr dj-row@
+    dj-row-ok? if
+      dj-vdl @ dj-lo @ u< 0= dj-vdl @ dj-hi @ u< and if dj-patch then
+    else 1 dj-fail then
+  loop ;
+: dj-prove ( first end -- flag )
+  dj-end ! dj-first ! 0 dj-bad-rule ! 0 dj-nseen !
+  lay-size @ lay-bits 3 - dj-bsh !
+  lay-cell-bits @ lay-bits 1- dj-csh ! lay-inst lay-bits 1- dj-ssh ! lay-a @ lay-bits 1- dj-fsh !
+  2 dj-csh @ lshift dj-lo ! lay-size @ 2 rshift dj-hi !
+  dj-end @ dj-first @ ?do
+    i dj-csh @ lshift dj-cb ! dj-pr dj-pa ! dj-scan dj-rows
+    dj-bad-rule @ if i dj-bad-cell ! unloop 0 exit then
+  loop -1 ;

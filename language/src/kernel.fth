@@ -6,22 +6,26 @@
 \ as if loaded from that stream. Compiled after main.fth; this MAIN replaces
 \ that one.
 kernel-layout
-\ The sink of lay-put: numeric bytes written into the space, a cell (32 bits)
-\ at a time where the source is aligned. Only the program's half is written:
-\ [0, 2^29) and [2^30, 2^30 + 2^29), else THROW -9.
+\ The sink of lay-put: numeric bytes written into the space, a cell (32 bits) at a time where the
+\ source is aligned. The positions are those the compiler gives (the layers and the data of the
+\ program), so the sink checks nothing.
 variable kn-at
 : kn-put ( bit-address src n -- )
   dup 0= if drop 2drop exit then
-  2 pick dup 2 pick 3 lshift + 1- 29 rshift swap 29 rshift tuck <> swap 1 and or
-  3 pick 7 and or if -9 throw then
   rot kn-at !
   over 3 and 0= if
-    dup 2 rshift 0 ?do over i cells + @ kn-at @ dup 32 + space! 32 kn-at +! loop
+    dup 2 rshift 0 ?do over i cells + @ kn-at @ space! 32 kn-at +! loop
     dup -4 and rot + swap 3 and
   then
-  0 ?do dup i + c@ kn-at @ dup 8 + spacec! 8 kn-at +! loop drop ;
+  0 ?do dup i + c@ kn-at @ spacec! 8 kn-at +! loop drop ;
 : kn-order ( -- ) 256 0 do i lay-rev i + c! loop ;
-: kn-compile ( -- ) fc-sizes kn-order 1 fc-guard ! ['] kn-put lay-sink ! fc-read fc-go ;
+\ The layers of the program, as they stand in the space, are proved by the word of disjointness
+\ (DJ-PROVE, backend.fth), the layers and the table of entries, before the program runs: else the compile error -9.
+: kn-get ( bit-address -- x ) space@ ;
+: kn-compile ( -- )
+  fc-sizes kn-order 1 fc-guard ! ['] kn-put lay-sink ! ['] kn-get dj-reader ! fc-read fc-go
+  fc-first @ lay-next-cell @ dj-prove 0= if -9 throw then
+  fc-etab lay-cell-bit rshift dup fc-nwords @ 2* + dj-prove 0= if -9 throw then ;
 : kn-.n ( n -- ) \ decimal
   dup 0< if [char] - emit negate then
   dup 10 / ?dup if recurse then 10 mod [char] 0 + emit ;

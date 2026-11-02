@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
-"""Isolation of the kernel (14.10): what a program given to L0 can do to the upper half.
+"""Isolation of the kernel (14.10, 18.18): what a program given to L0 can do to the space of the kernel.
 
-L0 compiles a program from stdin into the lower half of its own space and runs it. The program
-must not write, read or execute the kernel (the upper half) other than by calling a word. Every
-probe is a program given to L0 (as check-kernel does); the table PROBES has what the probe writes
-after the fix and what it wrote before it (14.10, doc/isolation.md).
+L0 compiles a program from stdin into the lower half of its own space (the code block 0 and the data block 2
+of the four blocks of 2^29 bits) and runs it. The program is built so that it cannot leave its half
+(doc/isolation.md): the copies whose position it computes (SPACE! SPACEC! SPACE@ SPACEC@, EXECUTE, CATCH, the
+return) take only the low bits of the position. Every probe is a program given to L0 (as check-kernel does)
+that does an attack when its input is 1 and nothing when it is 0, the same text both times, so L0 compiles
+it to the same state. After the run the emulator (a copy of emulator/src, built here, that prints the
+hashes of the memory at the end) says:
 
-The addresses of the kernel are taken from the definition on the host pForth (the same text that
-boot.py compiles): the entry of the word kn-.n (it writes a number in decimal) and the record of
-the constant 48 ([char] 0), which kn-.n adds to a digit.
+* kernel: the hash of the blocks 1 and 3 (the kernel) is the same after the attack as after the control run:
+  the kernel did not change while the program ran (it does not run then);
+* code tail, data tail: the upper halves of the blocks 0 and 2, where nothing of the program is, are zero
+  (the program wrote neither above its own code nor above its own data).
+The output of the attack is compared with what the probe must write (the writes land in the data of the
+program: the high bits of the position are the constant of the compiler).
 
 Options: --l0 PATH (default build L0), --only NAME, --report (print the outputs, do not compare).
-Exit code 0 if every output is the expected one.
+Exit code 0 if every probe is as expected. The proofs of the word of disjointness are tests/test_disjoint.py.
 """
 import argparse
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
@@ -24,10 +31,40 @@ import check_kernel
 import host
 import paths
 
-PROGRAM_HALF = (0, 1 << 29), (1 << 30, (1 << 30) + (1 << 29))
-FREE = (1 << 30) + (1 << 28)            # a place in the data of the program half that nothing uses
-PROBE_SECONDS = 600                     # a probe that does not end (a hole may loop) is a failure
-SHOW = ': show 0 swap - 48 + emit ;\n'    # the code of a THROW as a digit: -9 is 9, 0 is 0
+B = 1 << 29                                    # a block
+FREE = (1 << 30) + (1 << 27)                   # a place of the data of the program that nothing uses
+PROBE_SECONDS = 900
+LOOP_TICKS = 400_000_000                       # the probes that may not end are cut here
+SHOW = ': show 0 swap - 48 + emit ;\n'          # the code of a THROW as a digit
+
+PATCH = r'''
+  fflush(stdout);
+  {
+    uint64_t hk=1469598103934665603ull,hc=1469598103934665603ull,hd=1469598103934665603ull; size_t a;
+    for(a=(1u<<26);a<(1u<<27);a++) hk=(hk^space[a])*1099511628211ull;
+    for(a=3*(1u<<26);a<(1u<<28);a++) hk=(hk^space[a])*1099511628211ull;
+    for(a=(1u<<25);a<(1u<<26);a++) hc=(hc^space[a])*1099511628211ull;
+    for(a=(1u<<27)+(1u<<25);a<(1u<<27)+(1u<<26);a++) hd=(hd^space[a])*1099511628211ull;
+    fprintf(stderr,"kernel %016llx code-tail %016llx data-tail %016llx\n",(unsigned long long)hk,
+            (unsigned long long)hc,(unsigned long long)hd);
+  }
+  destroy_space();'''
+
+
+def build_emulator(directory):
+    """A copy of the emulator that prints the hashes of the kernel and of the unused halves at the end."""
+    src = paths.EMULATOR_ROOT / 'src'
+    for f in list(src.glob('*.c')) + list(src.glob('*.h')):
+        (directory / f.name).write_bytes(f.read_bytes())
+    runtime = directory / 'runtime.c'
+    text = runtime.read_text()
+    old = '  fflush(stdout); destroy_space();'
+    assert old in text
+    runtime.write_text(text.replace(old, PATCH))
+    out = directory / 'emulator'
+    subprocess.run(['cc', '-O2', '-std=c11', *(str(directory / f) for f in
+                    ('runtime.c', 'sys_ctrl.c', 'bitcopy.c', 'backend_bitcopy.c')), '-o', str(out)], check=True)
+    return out
 
 
 def kernel_addresses():
@@ -42,87 +79,80 @@ def kernel_addresses():
     return int(entry), int(constant)
 
 
+def aliases(offset):
+    """The positions that name `offset` of the data in every block of the space, in the upper half too."""
+    return [b + h + offset for h in (0, 1 << 28) for b in (0, B, 2 * B, 3 * B)]
+
+
 def probes(entry, constant):
-    """name -> (program, output after the fix, output before the fix: what a hole did, or None)."""
-    lo, hi = constant, constant + 32
-    d = FREE
+    """name -> (program, output of the control run, output of the attack, what the attack does)."""
     p = {}
-    # --- the holes of 14.10 (1): write, read, execute the kernel -----------------------------------
-    # Executing the entry of the kernel word kn-.n runs it on the stack of the kernel (it writes the
-    # number 0 in decimal) and never returns to the program. It adds the constant 48 to the digit:
-    # the write of 49 over the constant makes it write 1.
-    w = f': w 49 {lo} {hi} space! ;\n'
-    p['write-kernel'] = (SHOW + w + ": main ['] w catch show 65 emit ;", '9A', '0A')
-    p['writec-kernel'] = (SHOW + f': w 49 {lo} {lo + 8} spacec! ;\n' + ": main ['] w catch show 65 emit ;",
-                          '9A', '0A')
-    p['write-effect'] = (SHOW + f': w 49 {lo} {hi} space! {entry} execute ;\n'
-                         + ": main ['] w catch show 66 emit ;", '9B', '1')
-    p['read-kernel'] = (SHOW + f': r {lo} {hi} space@ drop ;\n: main [\'] r catch show ;', '9',
-                        'error -13 at space@\n')
-    p['readc-kernel'] = (SHOW + f': r {lo} {lo + 8} spacec@ drop ;\n: main [\'] r catch show ;', '9',
-                         'error -13 at spacec@\n')
-    p['execute-kernel'] = (SHOW + f': k {entry} execute ;\n: main 65 emit [\'] k catch show 66 emit ;', 'A9B', 'A0')
-    p['catch-kernel'] = (SHOW + f': c {entry} catch show ;\n: main 65 emit [\'] c catch show 66 emit ;', 'A9B', 'A0')
-    # --- what must keep working -----------------------------------------------------------------------
-    p['program-half'] = (
-        f': main 1234567 {d} {d + 32} space! {d} {d + 32} space@ 1234567 = if 89 emit else 78 emit then\n'
-        f'  200 {d} {d + 8} spacec! {d} {d + 8} spacec@ 200 = if 89 emit else 78 emit then\n'
-        f'  {d} {d + 32} space@ 1234567 = if 89 emit else 78 emit then\n'
-        f'  1 {d + 8} {d + 16} spacec! {d + 8} {d + 16} spacec@ 1 = if 89 emit else 78 emit then ;',
-        'YYNY', None)
+    writes = ' '.join(f'{i + 1} {a} space!' for i, a in enumerate(aliases(1 << 27)))
+    p['space! on every block'] = (
+        f': main key 49 = if {writes} then {FREE} space@ 48 + emit {FREE + 4} spacec@ 48 + emit ;', '00', '80')
+    writes = ' '.join(f'{i + 1} {a} spacec!' for i, a in enumerate(aliases(1 << 27)))
+    p['spacec! on every block'] = (
+        f': main key 49 = if {writes} then {FREE} spacec@ 48 + emit {FREE + 8} spacec@ 48 + emit ;', '00', '80')
+    p['space! on the kernel'] = (
+        f': main key 49 = if 55 {constant} space! 56 {entry} spacec! 57 {constant + 3 * B} space! then 89 emit ;',
+        'Y', 'Y')
+    p['space@ of every block'] = (
+        f': main 7 {FREE} space! key 49 = if ' + ' '.join(f'{a} space@ 48 + emit' for a in aliases(1 << 27)) +
+        ' then 89 emit ;', 'Y', '77777777' + '7' * 0 + 'Y')
+    p['spacec@ of every block'] = (
+        f': main 7 {FREE} spacec! key 49 = if ' + ' '.join(f'{a} spacec@ 48 + emit' for a in aliases(1 << 27)) +
+        ' then 89 emit ;', 'Y', '77777777' + 'Y')
+    # @ ! c@ c!: the address is taken modulo the memory of the program, no address leaves it
+    far = [(1 << 29) + 8, (1 << 30) + 8, 3 * (1 << 29) + 8, (1 << 31) + 8, 3 * (1 << 30) + 8]
+    p['! on addresses above the memory'] = (
+        ': main key 49 = if ' + ' '.join(f'{i + 1} {a} !' for i, a in enumerate(far)) + ' then 8 @ 48 + emit ;', '0', '5')
+    p['c! on addresses above the memory'] = (
+        ': main key 49 = if ' + ' '.join(f'{i + 1} {a + 1} c!' for i, a in enumerate(far)) + ' then 9 c@ 48 + emit ;', '0', '5')
+    p['@ c@ on addresses above the memory'] = (
+        ': main 9 8 ! key 49 = if ' + ' '.join(f'{a} @ 48 + emit' for a in far)
+        + ' ' + ' '.join(f'{a} c@ 48 + emit' for a in far) + ' then 89 emit ;', 'Y', '9999999999Y')
+    # the jumps and the returns that name the kernel or the data go only to the code of the program
+    p['execute of the kernel'] = (
+        f': main 65 emit key 49 = if {entry} execute then 66 emit ;', 'AB', None)
+    p['catch of the kernel'] = (
+        f': main 65 emit key 49 = if {entry} catch drop then 66 emit ;', 'AB', None)
+    # a jump to a cell of the code of the program that is not an entry may not end (it runs what is there:
+    # cell 0 is the processors themselves): the run is cut at LOOP_TICKS, the kernel is still the same
+    p['execute of the data'] = (
+        'variable v\n: main 65 emit key 49 = if [\'] v execute then 66 emit ;', 'AB', None, LOOP_TICKS)
+    p['execute of 0'] = (
+        ': main 65 emit key 49 = if 0 execute then 66 emit ;', 'AB', None, LOOP_TICKS)
+    p['execute of -1'] = (
+        ': main 65 emit key 49 = if -1 execute then 66 emit ;', 'AB', None, LOOP_TICKS)
+    p['return to the kernel'] = (
+        f': f {entry} >r ;\n: main 65 emit key 49 = if f then 66 emit ;', 'AB', None)
+    p['return to the data'] = (
+        f': f {FREE} >r ;\n: main 65 emit key 49 = if f then 66 emit ;', 'AB', None)
+    p['return forged in the data'] = (
+        f': f {entry} {FREE} space! ;\n: main 65 emit key 49 = if f then 66 emit ;', 'AB', None)
     return p
 
 
-def range_probes():
-    """space@ spacec@ space! spacec! on [lo, hi) near the edges of the half of the program: name -> probe.
-    A case is (lo, hi, THROW code, may be written); hi None: lo + the width of the word (32 or 8)."""
-    a, b, c, d = 1 << 29, 1 << 30, (1 << 30) + (1 << 29), FREE
-    probes = {}
-    for op, width, store in [('space@', 32, False), ('spacec@', 8, False), ('space!', 32, True), ('spacec!', 8, True)]:
-        w = width
-        cases = [(0, None, 0, False), (2048, None, 0, False), (a - w, None, 0, False), (a - w // 2, a + w // 2, 9, True),
-                 (a, None, 9, True), (a + w, None, 9, True), (b - w // 2, b + w // 2, 9, True), (b, None, 0, False),
-                 (d, None, 0, True), (d + 1, None, 0, True), (c - w, None, 0, True), (c - w // 2, c + w // 2, 9, True),
-                 (c, None, 9, True), ((1 << 31) - w, 1 << 31, 9, True), (1 << 31, None, 9, True),
-                 (b + w, b, 9, True), (b + w, b + w, 9, True), (0, 0, 9, True), (b, a, 9, True),
-                 (3 << 29, None, 9, True), (-w & 0xFFFFFFFF, 0, 9, True), (0, 0xFFFFFFFF, 9, True),
-                 (d, d + 1, 9, True), (d, d + 2 * w, 9, True), (d, d + w // 2 if w == 32 else d + 32, 9, True)]
-        words, tests, want = [], [], ''
-        for i, (lo, hi, code, writable) in enumerate(cases):
-            hi = lo + w if hi is None else hi
-            if store and not writable:
-                continue
-            args = f'0 {lo} {hi} {op}' if store else f'{lo} {hi} {op} drop'
-            words.append(f': t{i} {args} ;')
-            tests.append(f"['] t{i} catch show")
-            want += str(code)
-        probes['ranges ' + op] = (SHOW + '\n'.join(words) + '\n: main ' + ' '.join(tests) + ' ;', want, None)
-    return probes
-
-
-def execute_probe():
-    """execute and catch take only the entry of a word of the program."""
-    program = (SHOW + ': a 65 emit ;\n: b 66 emit ;\nvariable v\n'
-               ': n1 [\'] v execute ;\n: n3 [\'] a 1+ execute ;\n: n4 0 execute ;\n: n5 -1 execute ;\n'
-               f': n6 {FREE} execute ;\n: n7 {1 << 29} execute ;\n: n8 [\'] v catch drop ;\n'
-               ': main [\'] a execute [\'] b execute [\'] n1 catch show [\'] n3 catch show [\'] n4 catch show'
-               ' [\'] n5 catch show [\'] n6 catch show [\'] n7 catch show [\'] n8 catch show'
-               ' [\'] a catch show [\'] b catch show ;')
-    # n3: the low bits of xt below the bits that execute uses are not read (a + 1 is the entry of a)
-    return (program, 'AB' + '9' + 'A0' + '9' * 5 + 'A0B0', None)
-
-
-def probe(case):
-    source = case[1][0]
-    try:
-        out, seconds = check_kernel.run(L0 + source.encode('latin-1') + b'\0', PROBE_SECONDS)
-        return out.decode('latin-1'), seconds
-    except subprocess.TimeoutExpired:
-        return f'<no end in {PROBE_SECONDS} s>', PROBE_SECONDS
+def run_probe(item):
+    emulator, l0, name, program, attack, ticks = item
+    data = l0 + program.encode('latin-1') + b'\0' + (b'1' if attack else b'0')
+    with tempfile.TemporaryFile() as stdin, tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+        stdin.write(data)
+        stdin.seek(0)
+        try:
+            options = ['-t', str(ticks)] if ticks else []
+            subprocess.run([str(emulator), '-s', str(paths.SIZE), '-p', '8', *options], stdin=stdin, stdout=stdout,
+                           stderr=stderr, timeout=PROBE_SECONDS, check=False)
+        except subprocess.TimeoutExpired:
+            return name, attack, f'<no end in {PROBE_SECONDS} s>', None
+        stdout.seek(0)
+        stderr.seek(0)
+        out = stdout.read().decode('latin-1')
+        hashes = dict(zip(*[iter(stderr.read().decode().split())] * 2, strict=True))
+    return name, attack, out, hashes
 
 
 def main():
-    global L0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--l0', default=str(paths.L0))
     parser.add_argument('--only', action='append')
@@ -130,19 +160,38 @@ def main():
     parser.add_argument('--addresses', nargs=2, type=int, metavar=('ENTRY', 'CONSTANT'),
                         help='the addresses of the kernel of --l0 if its sources are not the current ones')
     args = parser.parse_args()
-    L0 = open(args.l0, 'rb').read()
+    l0 = open(args.l0, 'rb').read()
     entry, constant = args.addresses or kernel_addresses()
     print(f'kernel: entry of kn-.n {entry}, record of the constant 48 at {constant}', flush=True)
-    table = probes(entry, constant)
-    table.update(range_probes())
-    table['execute-program'] = execute_probe()
+    table = {k: v for k, v in probes(entry, constant).items() if not args.only or k in args.only}
+    with tempfile.TemporaryDirectory() as tmp:
+        emulator = build_emulator(Path(tmp))
+        items = []
+        for name, (program, _, _, *cut) in table.items():
+            items.append((emulator, l0, name, program, False, None))
+            items.append((emulator, l0, name, program, True, cut[0] if cut else None))
+        results = {}
+        for name, attack, out, hashes in check_kernel.parallel(run_probe, items):
+            results[name, attack] = (out, hashes)
     failed = []
-    cases = [(name, case) for name, case in table.items() if not args.only or name in args.only]
-
-    for (name, (_, after, before)), (got, seconds) in zip(cases, check_kernel.parallel(probe, cases), strict=True):
-        ok = got == after
-        print(f'{"PASS" if ok else "FAIL"} {name}: output {got!r}' + ('' if ok else f', expected {after!r}')
-              + (f' (before the fix: {before!r})' if before is not None else '') + f' ({seconds:.1f} s)', flush=True)
+    for name, (_, control, attack, *_) in table.items():
+        (c_out, c_hash), (a_out, a_hash) = results[name, False], results[name, True]
+        problems = []
+        if c_out != control:
+            problems.append(f'control output {c_out!r}, expected {control!r}')
+        if attack is not None and a_out != attack:
+            problems.append(f'attack output {a_out!r}, expected {attack!r}')
+        if a_hash is None or c_hash is None:
+            problems.append('no end of the run')
+        else:
+            if a_hash['kernel'] != c_hash['kernel']:
+                problems.append('THE KERNEL CHANGED')
+            for tail in ('code-tail', 'data-tail'):
+                if a_hash[tail] != c_hash[tail]:
+                    problems.append(f'{tail} differs from the control run')
+        ok = not problems
+        print(f'{"PASS" if ok else "FAIL"} {name}: control {c_out!r}, attack {a_out!r}' + ('' if ok else ': ' + '; '.join(problems)),
+              flush=True)
         if not ok:
             failed.append(name)
     if failed and not args.report:

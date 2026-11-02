@@ -12,7 +12,6 @@ Usage: boot.py [-o L0.boot]
 import argparse
 import hashlib
 import json
-import subprocess
 import sys
 import time
 
@@ -32,11 +31,11 @@ def boot_input():
 def boot(timeout=3000):
     executable = host.build()
     start = time.monotonic()
-    result = subprocess.run([str(executable)], input=boot_input(), capture_output=True, timeout=timeout, check=False)
+    code, out, err = host.run(executable, boot_input(), timeout)      # the output goes through a file: a pipe gives it by bytes
     seconds = time.monotonic() - start
-    if result.returncode or result.stderr or not result.stdout.endswith(b'\n'):
-        sys.exit(f'boot failed: code {result.returncode}, {result.stdout[-300:]!r}, {result.stderr[-300:]!r}')
-    return result.stdout[:-1], seconds        # the last newline is the one of the host's output
+    if code or err or not out.endswith(b'\n'):
+        sys.exit(f'boot failed: code {code}, {out[-300:]!r}, {err[-300:]!r}')
+    return out[:-1], seconds        # the last newline is the one of the host's output
 
 
 def main():

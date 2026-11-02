@@ -88,6 +88,7 @@ check-fast-tests:
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_core.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_language_md.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_entry_points.py
+	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_disjoint.py
 # coverage.py of tools/ under the goals of the root check-fast (17.9), except test_platform (it compares wall-clock times, tracing breaks it); needs `pip install coverage`.
 PYCOV = COVERAGE_FILE=$(abspath $(BUILD_DIR))/cov/.coverage $(PYTHON) -B -m coverage run --parallel-mode --source=tools
 coverage-python:
@@ -111,7 +112,8 @@ check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_word.py
 	$(call limit,$(TEST_SECONDS),$(BIG_MEMORY_MIB)) $(PYTHON) -B tests/test_long_copy.py
 	$(call limit,$(TEST_SECONDS),$(BIG_MEMORY_MIB)) $(PYTHON) -B tests/test_platform.py
-# Isolation of the kernel (14.10): probes of L0 (about 20 minutes), not part of check.
+# Isolation of the kernel (14.10, 18.18): probes of L0 (about 20 minutes), not part of check; the word of
+# disjointness on the host is tests/test_disjoint.py (check-fast-tests).
 check-isolation: $(L0)
 	$(call limit,$(KERNEL_SECONDS),,$(CPUS)) $(PYTHON) -B tests/test_isolation.py --l0 "$(L0)"
 # Check and proof (14.12): CHECK-TABLE, ACCURACY, PROVED? on the checked emulator and on L0 (about 3 minutes).

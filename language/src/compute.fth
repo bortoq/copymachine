@@ -130,14 +130,6 @@ variable lay-tx variable lay-tbits variable lay-ts variable lay-tsize variable l
       loop drop
     loop
   then lay-table-done ;
-\ Entries of two cells, low 32 bits first: xt ( i -- lo hi ), s >= 6.
-: lay-table2 ( xt bits s -- base )
-  dup 6 < if -24 throw then
-  rot lay-tx ! lay-table-area drop
-  1 lay-tbits @ lshift 0 ?do
-    i lay-tx @ execute lay-tbuf @ i lay-tper @ * + >r
-    4 r@ 4 + lay-numeric 4 r> lay-numeric
-  loop lay-table-done ;
 : lay-add-entry ( i -- v ) dup 15 and over 4 rshift 15 and + swap 8 rshift +
   dup 4 rshift 5 lshift or ;
 : lay-sub-entry ( i -- v ) dup 15 and over 4 rshift invert 15 and + swap 8 rshift +

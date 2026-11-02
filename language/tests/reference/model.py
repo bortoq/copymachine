@@ -29,7 +29,7 @@ goes to stdout.
 
 A source with KERNEL-LAYOUT is compiled to the upper half of the space (code
 from cell 2^19, data region at 3*2^29): the kernel (kernel.fth) installs the
-programs it compiles in the lower half with SPACE! and SPACEC! ( x lo hi -- ),
+programs it compiles in the lower half with SPACE! and SPACEC! ( x lo -- ),
 which write 32 or 8 bits anywhere in the space, and starts them with EXECUTE;
 the entry of a program is therefore aligned as a word entry.
 """
@@ -49,7 +49,6 @@ def layout(d):
         HANDLER=d+128,CODE=d+192,           # CATCH frame pointer (RP copies), THROW code
         REGS=d+1024,                        # cache registers, 64-bit stride
         TMP=d+4096,XR=d+4160,Z=d+4224,IDX=d+4288,  # IDX: 16 index registers, 16 bits
-        FLT=d+4672,                         # address check: fault flag, copy, code
         MA=d+4800,MB=d+4864,MP=d+4928,MQ=d+4992,MR=d+5056,  # subroutine operands
         ZERO=d+5120,W=d+5376,U=d+5440,KEY=d+5504,  # shift window and 31-n, input byte
         BP=d+5568,                          # bit offsets of a byte in its cell, both endpoints
@@ -88,13 +87,6 @@ def tables(t):
     T['zero32']=t.table(4,6,[0xffffffff if i==0 else 0 for i in range(16)])
     T['nz2']=t.table(4,2,[3 if i else 0 for i in range(16)])
     T['lt32']=t.table(3,6,[0xffffffff if ((i>>1&1) if (i>>1&1)!=(i>>2&1) else not(i&1)) else 0 for i in range(8)])
-    # Address check: OR of bits [19,27) and [27,32) (two tables, one layer);
-    # fault: index the two ORs and the low two address bits; flag, copy, code.
-    T['or8b']=t.table(8,1,[int(i!=0) for i in range(256)])
-    def fault(i):
-        code=-9 if i&3 else -23 if i&12 else 0
-        return int(code!=0)*3|(code&0xffffffff)<<2
-    T['fault']=t.table(4,6,[fault(i) for i in range(16)])
     T['xr2']=t.table(2,2,[((i^i>>1)&1)*3 for i in range(4)])
     T['ult32']=t.table(1,6,[0xffffffff,0])
     T['bytepos']=t.table(2,4,[8*i|(8*i+8)<<6 for i in range(4)])
@@ -335,36 +327,23 @@ class Compiler:
         layer=s.layer();slot=layer.add((M.field(self.tramp,7,2),M.field(self.tramp,7,2)+64,self.RSTK,self.RSTK+64))
         p.add(copy(8,M.field(layer.cell,slot,2)+7,self.IDX));p.add(copy(8,M.field(layer.cell,slot,3)+7,self.IDX+8))
         s.layer();s.jump(self.tramp);self.b.flush();self.s=None
-    def check_address(self,a,access,byte=False):
-        """Check the byte address in register a, then continue in the ok cell.
-
-        Round 1 ORs the high bits [19,32) in two chunks (and for a byte access
-        reads its bit offset: the low six bits of both endpoints, 8b and
-        8b+8); round 2 reads flag, copy and code from the fault table, indexed
-        for a cell access with the low two address bits as well. The fault
-        cell copies the code to CODE and throws. access(rounds, ok) adds the
-        access: rounds is ((l0, l1, read), (l2, l3, read2)), patch layers and
-        read layer of each round; its rows run before the decision, a store
-        goes to a layer of the ok run."""
+    def memory_access(self,a,store,byte,v=None,r=None):
+        """The cell (or the byte) of the address in register a: no address is checked, the row holds the base of
+        the memory and gets only the cell index a[2:2+MW) at bit 6 of its endpoint fields (patch layers, a layer
+        between, then the row); a byte access also the bit offsets of the byte from BP, read from the low two bits of a."""
         s=self.s;T=self.T
-        l0=s.layer();l1=s.layer();s.layer();r=s.layer()
-        hi=MW+2
-        reads=[(T['or8'],1,1,self.Z,[(a+hi,8,0)]),(T['or8b'],1,1,self.Z+1,[(a+hi+8,A-hi-8,0)])]
-        if byte:reads.append((T['bytepos'],4,12,self.BP,[(a,2,0)]))
-        for table,sh,w,dst,segs in reads:
-            slot=r.add((dst,dst+w,table,table+w))
-            for src,n,off in segs:
-                l0.add(copy(n,M.field(r.cell,slot,2)+sh+off,src));l1.add(copy(n,M.field(r.cell,slot,3)+sh+off,src))
-        l2=s.layer();l3=s.layer();s.layer();r2=s.layer()
-        slot=r2.add((self.FLT,self.FLT+34,T['fault'],T['fault']+34))
-        for src,n,off in [(self.Z,2,0)] if byte else [(self.Z,2,0),(a,2,2)]:
-            l2.add(copy(n,M.field(r2.cell,slot,2)+6+off,src));l3.add(copy(n,M.field(r2.cell,slot,3)+6+off,src))
-        group=self.b.group(1);bit=BB
-        patch=s.layer();s.layer();x=s.layer();x.next=group
-        patch.add(copy(1,M.field(x.cell,7,2)+bit,self.FLT));patch.add(copy(1,M.field(x.cell,7,3)+bit,self.FLT+1))
-        ok=Seq(self.b,group);access(((l0,l1,r),(l2,l3,r2)),ok)
-        Seq(self.b,group+STEP).rows([copy(32,self.CODE,self.FLT+2)]).next=self.thrower
-        self.s=ok
+        if byte:
+            l0=s.layer();l1=s.layer();s.layer();rd=s.layer()
+            slot=rd.add((self.BP,self.BP+12,T['bytepos'],T['bytepos']+12))
+            l0.add(copy(2,M.field(rd.cell,slot,2)+4,a));l1.add(copy(2,M.field(rd.cell,slot,3)+4,a))
+        p0=s.layer();p1=s.layer();s.layer();layer=s.layer();w=8 if byte else 32
+        if store:slot=layer.add((self.MEM,self.MEM+w,v,v+w));f=(0,1)
+        else:
+            slot=layer.add((r,r+w,self.MEM,self.MEM+w));f=(2,3)
+            if byte:layer.add(copy(24,r+8,self.ZERO))
+        if byte:self.byte_patches(layer.cell,slot,f,p0,p1,a)
+        else:
+            p0.add(copy(MW,M.field(layer.cell,slot,f[0])+6,a+2));p1.add(copy(MW,M.field(layer.cell,slot,f[1])+6,a+2))
     def byte_patches(self,cell,slot,fields,lo,hi,a):
         """Byte address a: bit offset from BP, cell index a[2:] at bit 6."""
         for f,layer,src in ((fields[0],lo,self.BP),(fields[1],hi,self.BP+6)):
@@ -502,17 +481,10 @@ class Compiler:
         elif name=='unloop':self.adjust(self.RP,[],-2)
         elif name=='c@':
             a=self.pop();self.pinned=(a,);r=self.reg();self.pinned=()
-            def load(rounds,ok):
-                _,(p0,p1,layer)=rounds
-                slot=layer.add((r,r+8,self.MEM,self.MEM+8));layer.add(copy(24,r+8,self.ZERO))
-                self.byte_patches(layer.cell,slot,(2,3),p0,p1,a)
-            self.check_address(a,load,True);self.cache.append(r)
+            self.memory_access(a,False,True,r=r);self.cache.append(r)
         elif name=='c!':
             self.need(2);a=self.cache.pop();v=self.cache.pop()
-            def store(rounds,ok):
-                _,(p0,p1,_)=rounds;ok=ok.layer();slot=ok.add((self.MEM,self.MEM+8,v,v+8))
-                self.byte_patches(ok.cell,slot,(0,1),p0,p1,a)
-            self.check_address(a,store,True)
+            self.memory_access(a,True,True,v=v)
         elif name=='*':self.helper('mul',(self.MA,self.MB),(self.MP,))
         elif name=='/':self.helper('div',(self.MA,self.MB),(self.MQ,))
         elif name=='mod':self.helper('div',(self.MA,self.MB),(self.MR,))
@@ -534,28 +506,32 @@ class Compiler:
             r=self.reg()
             self.adjust(self.RP,[-1],0);self.patched([(r,r+32,self.RSTK,self.RSTK+32)],(2,3),7);self.cache.append(r)
         elif name=='@':
-            # The load runs before the decision; on a fault the cache is dead.
             a=self.pop();self.pinned=(a,);r=self.reg();self.pinned=()
-            def load(rounds,ok):
-                (p0,p1,layer),_=rounds;slot=layer.add((r,r+32,self.MEM,self.MEM+32))
-                p0.add(copy(MW,M.field(layer.cell,slot,2)+6,a+2));p1.add(copy(MW,M.field(layer.cell,slot,3)+6,a+2))
-            self.check_address(a,load);self.cache.append(r)
+            self.memory_access(a,False,False,r=r);self.cache.append(r)
         elif name=='!':
             self.need(2);a=self.cache.pop();v=self.cache.pop()
-            def store(rounds,ok):
-                (p0,p1,_),_=rounds;ok=ok.layer();slot=ok.add((self.MEM,self.MEM+32,v,v+32))
-                p0.add(copy(MW,M.field(ok.cell,slot,0)+6,a+2));p1.add(copy(MW,M.field(ok.cell,slot,1)+6,a+2))
-            self.check_address(a,store)
+            self.memory_access(a,True,False,v=v)
         elif name in ('space!','spacec!'):
-            # x lo hi: bits [lo,hi) of the space get the low 32 (8) bits of
-            # x; a kernel installs code and data with it. The copy row's
-            # destination is patched two layers ahead.
+            # x lo: bits [lo,lo+n) of the space get the low n (32, 8) bits of x; a kernel installs code
+            # and data with it. The end hi = lo + n is made by the adder; the copy row's destination is
+            # patched two layers ahead.
             n=32 if name=='space!' else 8
-            self.need(3);hi=self.cache.pop();lo=self.cache.pop();x=self.cache.pop()
-            if hi==lo:
-                self.pinned=(x,lo);hi=self.reg();self.pinned=();s.rows([copy(32,hi,lo)])
+            self.need(2);lo=self.cache.pop();x=self.cache.pop()
+            self.pinned=(x,lo);hi=self.reg();self.pinned=()
+            s.adder(self.T['add'],self.TMP,lo,self.const(n),0);s.rows([copy(32,hi,self.TMP)])
             p=s.layer();s.layer();layer=s.layer();slot=layer.add((0,0,x,x+n))
             p.add(copy(32,M.field(layer.cell,slot,0),lo));p.add(copy(32,M.field(layer.cell,slot,1),hi))
+        elif name in ('space@','spacec@'):
+            # lo: the low n (32, 8) bits of x are the bits [lo,lo+n) of the space (the upper bits zero);
+            # the source of the copy is patched two layers ahead, the upper bits are cleared between.
+            n=32 if name=='space@' else 8
+            self.need(1);lo=self.cache.pop()
+            self.pinned=(lo,);r=self.reg();self.pinned=(lo,r);hi=self.reg();self.pinned=()
+            s.adder(self.T['add'],self.TMP,lo,self.const(n),0);s.rows([copy(32,hi,self.TMP)])
+            p=s.layer();g=s.layer();layer=s.layer();slot=layer.add((r,r+n,0,0))
+            if n==8:g.add(copy(24,r+8,self.ZERO))
+            p.add(copy(32,M.field(layer.cell,slot,2),lo));p.add(copy(32,M.field(layer.cell,slot,3),hi))
+            self.cache.append(r)
         elif name=='emit':
             c=self.pop();out=self.XR
             s.lookups([(self.T['rev8'],4,8,out,[(c,8,0)],0)])

@@ -105,65 +105,49 @@ variable fc-lv
 \ xt make the price of the word one by execution (FC-BY-EXECUTION).
 : gen-recurse ( -- ) fc-code fc-by-execution fc-word @ dup fc-callee ! fc-xt fc-call ;
 : gen-tick ( -- )
-  fc-code fc-next! fc-find dup 0= if -13 throw then dup 2 cells + @ 1 = if fc-xt else 3 cells + @ then
+  fc-code fc-next! fc-find dup 0= if -13 throw then dup 2 cells + @ 1 = if fc-xtn else 3 cells + @ then
   fc-literal ;
 : gen-throw ( -- ) fc-code fc-throw ;
-\ Isolation of the kernel (14.10). In the program of the kernel (FC-GUARD, set by the kernel
-\ while it compiles a program) the generators of SPACE! SPACEC! SPACE@ SPACEC@ EXECUTE CATCH
-\ write a check before their code: -9 THROW unless [lo,hi) is in the half of the program, or the
-\ address is the entry of a word of the program. A generator is called as the loop of
-\ FC-COMPILE calls it (GEN-CALL: the literal compiled by the previous word is seen); the checks
-\ call the generators themselves, not the words of the dictionary, which the program may redefine.
+\ The copies whose position is computed at run time (SPACE! SPACEC! SPACE@ SPACEC@, EXECUTE, CATCH, the
+\ return and the throw) write into their row only the low bits of the position when the kernel compiles a
+\ program (FC-GUARD, forthc.fth, language/doc/isolation.md): the program cannot name the kernel nor
+\ write its own code, as no row has the bits that tell the block.
+\ A generator is called as the loop of FC-COMPILE calls it (the literal compiled by the previous word is seen).
 : gen-call ( xt -- ) fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! execute ;
-: gen-lit ( v -- ) fc-code fc-literal ;
-\ N PICK as a check needs it: the literal N, then the pick (also at the top level).
-: gen-pick-n ( n -- ) gen-lit fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! 0 fc-pick-roll ;
-\ ( lo hi -- lo hi ) for a store or a fetch of n bits: -9 THROW unless hi - lo = n (the interval of the
-\ copy is valid), lo and hi - 1 are in the same block of 2^29 bits, and the block is 0 or 2 (bits 29 and
-\ 31 of lo are zero). Then [lo, hi) is in the half of the program: [0, 2^29) or [2^30, 2^30 + 2^29).
-: gen-check-range ( n -- )
-  >r ['] gen-over gen-call ['] gen-over gen-call ['] gen-swap gen-call ['] gen- gen-call
-  r> gen-lit ['] gen-xor gen-call 2 gen-pick-n 2 gen-pick-n ['] gen-1- gen-call ['] gen-xor gen-call
-  29 gen-lit ['] gen-rshift gen-call ['] gen-or gen-call
-  2 gen-pick-n 5 29 lshift gen-lit ['] gen-and gen-call ['] gen-or gen-call
-  ['] gen-if gen-call -9 gen-lit ['] gen-throw gen-call ['] gen-then gen-call ;
-\ The entry of a word (a colon definition of the program of the kernel) holds, in the first row of
-\ its first layer, the copy of 32 zero bits to FC-MARK: the field dl of that row, at the start of
-\ the cell, is the mark.
-: fc-mark-entry ( -- ) 32 fc-mark fc-zero lay-copy lay-last lay-row drop ;
-: gen-space! ( -- ) fc-code fc-guard @ if 32 gen-check-range then 32 fc-space-store ;
-: gen-spacec! ( -- ) fc-code fc-guard @ if 8 gen-check-range then 8 fc-space-store ;
-: gen-space@ ( -- ) fc-code fc-guard @ if 32 gen-check-range then 32 fc-space-fetch ;
-: gen-spacec@ ( -- ) fc-code fc-guard @ if 8 gen-check-range then 8 fc-space-fetch ;
-\ ( xt -- xt ) for EXECUTE and CATCH: -9 THROW unless xt is in the code of the program (bits 29 and above
-\ are zero) and the 32 bits at the start of its cell are the mark. The read is of the aligned 32 bits
-\ of the code ((xt and 2^29 - 32), 32 bits), so it never leaves the code of the program.
-: gen-check-entry ( -- )
-  0 0 0 lay-field if -24 throw then
-  ['] gen-dup gen-call 29 gen-lit ['] gen-rshift gen-call ['] gen-over gen-call
-  1 29 lshift 32 - gen-lit ['] gen-and gen-call ['] gen-dup gen-call 32 gen-lit ['] gen+ gen-call
-  32 fc-space-fetch fc-mark gen-lit ['] gen-xor gen-call ['] gen-or gen-call
-  ['] gen-if gen-call -9 gen-lit ['] gen-throw gen-call ['] gen-then gen-call ;
-: gen-execute ( -- )
-  fc-code fc-by-execution fc-guard @ if gen-check-entry then fc-pop -1 fc-call-indirect fc-begin-block drop ;
-: gen-catch ( -- ) fc-code fc-by-execution fc-guard @ if gen-check-entry then fc-catch ;
+: gen-space! ( -- ) fc-code 32 fc-space-store ;
+: gen-spacec! ( -- ) fc-code 8 fc-space-store ;
+: gen-space@ ( -- ) fc-code 32 fc-space-fetch ;
+: gen-spacec@ ( -- ) fc-code 8 fc-space-fetch ;
+: gen-execute ( -- ) fc-code fc-by-execution fc-pop -1 fc-call-indirect fc-begin-block drop ;
+: gen-catch ( -- ) fc-code fc-by-execution fc-catch ;
 \ Defining words and the channel (14.6). : VARIABLE CREATE CONSTANT ALLOT and
 \ KERNEL-LAYOUT belong to the top level (FC-TOP-ONLY: else -13); ; to a
 \ definition (at the top level -22). ( [CHAR] S" read the channel.
 \ The replacement (14.13, language/doc/replace.md). In a program that names it each word has a
-\ concept cell in the code (CELL, its record: cell 3), a layer that jumps to its entry (with the
-\ entry mark in the program of the kernel); a call and the xt of the word go to it. The log starts
+\ concept cell in the code (CELL, its record: cell 3), a layer that jumps to its entry; a call and the
+\ xt of the word go to it. The log starts
 \ with it: the price of the word is that of its path from the concept cell.
+\ The concept cell is written like the call of EXECUTE (FC-CALL-INDIRECT): two patch layers and one between copy the entry of the
+\ definition from the record of the word in the memory of the program (the word at 4 of the record that
+\ FC-CONCEPT-RECORD writes at FC-RTA when the word ends: REPLACE changes it) into the source fields of the link row
+\ of the layer that jumps, FC-JW bits; the program writes data, the code stays as the compiler wrote it.
+: fc-entry-cell ( cell -- ) \ a layer of the table of entries: jumps to the entry of the word being defined
+  lay-seq lay-layer drop fc-word @ 6 cells + @ lay-jump lay-flush ;
 : fc-concept ( cell -- )
-  fc-log-begin dup fc-word @ 3 cells + ! lay-seq lay-layer drop fc-guard @ if fc-mark-entry then
+  fc-log-begin dup fc-word @ 3 cells + ! lay-seq lay-layer fc-v0 ! lay-layer fc-v1 ! lay-layer drop lay-layer
+  fc-jw over lay-layer-cell 7 2 lay-field lay-branch-bit + fc-rta @ 4 + 2 rshift 64 * fc-mem + lay-branch-bit + lay-copy
+  fc-v0 @ lay-row drop
+  fc-jw swap lay-layer-cell 7 3 lay-field lay-branch-bit + fc-rta @ 4 + 2 rshift 64 * fc-mem + lay-branch-bit + lay-copy
+  fc-v1 @ lay-row drop
   fc-word @ 6 cells + @ lay-jump lay-flush ;
 \ : A B ; with B a word is the synonym A of B, no code (14.13). In a program of the replacement the
 \ concept cell of the word (FC-CONCEPT) is the group before its entry.
 : gen-colon ( -- ) \ : NAME starts the word NAME (visible at once: RECURSE)
   fc-top-only fc-close-init fc-next! fc-synonym? ?dup if fc-synonym-of exit then
-  fc-rt @ if 0 lay-group else 0 then 0 lay-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
-  swap ?dup if fc-concept then
-  0 fc-live ! 0 fc-n ! fc-begin-block drop fc-guard @ if fc-mark-entry then fc-rt @ 0= if fc-log-begin then ;
+  fc-guard @ if fc-nwords @ 1 fc-ebits lshift u< 0= if -8 throw then fc-nwords @ fc-etab-at
+  else fc-rt @ if 0 lay-group else 0 then then 0 lay-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
+  swap ?dup if fc-rt @ if fc-concept else fc-entry-cell then then
+  0 fc-live ! 0 fc-n ! fc-begin-block drop fc-rt @ 0= if fc-log-begin then ;
 : gen-semicolon ( -- ) \ ; returns and ends the definition, its price is counted (14.11)
   fc-defining? 0= if -22 throw then fc-nctl @ if -22 throw then fc-ret fc-word @ fc-price-word
   fc-rt @ if fc-word @ fc-concept-record then 0 fc-word ! ;

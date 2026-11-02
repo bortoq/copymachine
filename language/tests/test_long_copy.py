@@ -74,11 +74,11 @@ def run(stream, *options, stdin=b''):
 
 
 def store_bytes(at, values):
-    return '\n'.join(f'{v} {at + 8 * i} {at + 8 * i + 8} spacec!' for i, v in enumerate(values)) + '\n'
+    return '\n'.join(f'{v} {at + 8 * i} spacec!' for i, v in enumerate(values)) + '\n'
 
 
 def emit_bytes(at, n):
-    return f'{n} 0 do {at} i 8 * + dup 8 + spacec@ emit loop'
+    return f'{n} 0 do {at} i 8 * + spacec@ emit loop'
 
 
 def check_file(folder):
