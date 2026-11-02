@@ -1,8 +1,8 @@
-\ Words of pForth used by the compiler libraries, defined for the direct
-\ compiler (forthc), which builds in only the primitives of its subset.
-\ Compiled before backend.fth, compute.fth and forthc.fth; pForth itself
-\ has all of them. ALLOCATE takes from a heap that main.fth starts after the
-\ static data; FREE gives back only the last allocation.
+\ Words of pForth used by the compiler libraries, defined for the
+\ direct compiler (forthc), which builds in only the primitives of
+\ its subset. Compiled before backend.fth, compute.fth, forthc.fth.
+\ ALLOCATE takes from a heap that main.fth starts after the static
+\ data; FREE gives back only the last allocation.
 : nip ( a b -- b ) swap drop ;
 : tuck ( a b -- b a b ) swap over ;
 : -rot ( a b c -- c a b ) rot rot ;

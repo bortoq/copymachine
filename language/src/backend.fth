@@ -1,15 +1,9 @@
 \ SPDX-License-Identifier: MIT
-\ Index-code layers and the emulator boot stream; control: copycode.vm1.backend.
-\ Address fields are byte-sized (a multiple of 8), slots >= 8. Cells are
-\ power-of-two bit ranges holding one layer; cell 0 is the entry layer.
-\ A layer has slots-1 work rows and a link row; rows are dl dh sl sh.
-\ Pending layers are encoded at lay-flush; a sequence ends at lay-flush.
-\ THROW -24: invalid machine/field/unlinked; -9: overlap or put outside;
-\ -8: capacity. Output goes to stdout with TYPE as it is produced, or to a
-\ sink: an xt ( bit-address src n -- ) in lay-sink takes every put, and
-\ lay-finish only keeps the entry in lay-start-cell. A kernel installs code in
-\ its own space so; lay-rev (the stream's bit order of a byte) is then the
-\ identity, the bytes are numeric.
+\ Index-code layers and the emulator boot stream; control: copycode.vm1.backend. Address fields are byte-sized, slots >= 8.
+\ A cell is a power-of-two bit range holding one layer (cell 0: the entry); a layer has slots-1 work rows and a link row;
+\ a row is dl dh sl sh. THROW -24: invalid machine/field/unlinked; -9: overlap or put outside; -8: capacity. Output goes
+\ to stdout (TYPE) or to the sink: the xt in lay-sink takes every put ( bit-address src n -- ) and lay-finish keeps the
+\ entry in lay-start-cell (a kernel installs code in its own space so; lay-rev is then the identity).
 decimal
 variable lay-size variable lay-a variable lay-slots variable lay-cell-bits
 variable lay-chunk variable lay-chunk-buf variable lay-lbuf variable lay-pool
@@ -31,13 +25,11 @@ lay-rev-init
     over i 4 < if i 3 lshift rshift 255 and lay-rev + c@ else drop 0 then
     over i + c!
   loop 2drop ;
-\ The same for four bytes, unrolled: the 32-bit address fields of rows.
 : lay-numeric4 ( value addr -- )
   over 255 and lay-rev + c@ over c!  over 8 rshift 255 and lay-rev + c@ over 1+ c!
   over 16 rshift 255 and lay-rev + c@ over 2 + c!  swap 24 rshift 255 and lay-rev + c@ swap 3 + c! ;
 : lay-field-check ( value -- value )
   lay-a @ 32 < if dup lay-a @ rshift if -24 throw then then ;
-\ Encode count rows (4 cells each) padded with zero rows into lay-dest.
 : lay-encode ( rows count -- )
   lay-dest @ lay-lbytes 0 fill
   0 ?do
@@ -87,14 +79,12 @@ create lay-rows 32 cells allot
 create lay-scratch 8 allot
 : lay-put-numeric ( value nbytes bit-address -- )
   >r dup >r lay-scratch lay-numeric r> r> lay-scratch rot lay-put ;
-\ Layer records: cell, next (-1 unlinked), count, rows. Pending records are
-\ a ring: a new record beyond lay-max-layers first writes the oldest pending
-\ one (it must be linked), as the host Builder with that capacity.
+\ Layer records: cell, next (-1 unlinked), count, rows. Pending records are a ring: a new record beyond
+\ lay-max-layers first writes the oldest one (it must be linked).
 128 constant lay-max-layers
 : lay-record ( -- n ) lay-slots @ 1- 4 * 3 + cells ;
 variable lay-pending variable lay-head variable lay-next-cell
 variable lay-seq# variable lay-seq-first variable lay-seq-entry variable lay-seq-last
-\ Offsets of the fields of each slot, computed by lay-machine.
 create lay-foff 32 cells allot
 : lay-foff-init ( -- ) 8 0 do 4 0 do j lay-inst * i lay-a @ * + j 2 lshift i + cells lay-foff + ! loop loop ;
 : lay-machine ( size slots cell-bits chunk-bytes -- )
@@ -120,11 +110,9 @@ create lay-foff 32 cells allot
 : lay-out ( n src -- dl dh sl sh ) lay-stdout dup 2swap tuck + ;
 : lay-builder ( first-cell -- ) lay-next-cell ! 0 lay-pending ! 0 lay-head ! 0 lay-seq# ! ;
 : lay-new-cell ( -- addr ) lay-next-cell @ dup 1+ lay-next-cell ! lay-cell-bits @ * ;
-\ The link bit selecting a branch target: both endpoints (target, target+layer)
-\ share it, so with a layer filling the cell targets are two cells apart.
+\ The link bit selecting a branch target: both endpoints share it, so with a full layer targets are two cells apart.
 : lay-branch-bit ( -- n ) lay-cell-bits @ lay-bits 1- lay-layer-bits lay-cell-bits @ < 0= - ;
 : lay-branch-step ( -- n ) 1 lay-branch-bit lshift ;
-\ 2^k branch targets lay-branch-step apart, aligned to the block.
 : lay-group ( k -- base )
   1 swap lshift lay-branch-step lay-cell-bits @ / * dup 1- lay-next-cell @ + over / over *
   dup rot + lay-next-cell ! lay-cell-bits @ * ;
@@ -138,8 +126,7 @@ create lay-foff 32 cells allot
   lay-clear-rows dup 3 cells + lay-rows 2 pick lay-count 2 lshift cells cmove
   cell+ @ lay-link-row lay-slots @ 1- lay-row!
   lay-ebuf @ lay-dest ! lay-rows lay-slots @ lay-encode ;
-\ An xt ( layer -- ) in lay-on-write sees every layer as it is written (0: none); the price of
-\ a word (14.11) is counted from them. The stream does not change.
+\ lay-on-write: an xt ( layer -- ) that sees every written layer (0: none); the price of a word (14.11) is from them.
 variable lay-on-write 0 lay-on-write !
 : lay-write ( layer -- )
   lay-on-write @ ?dup if over swap execute then
@@ -180,7 +167,6 @@ create lay-new-row 4 cells allot
   0 lay-cur @ lay-count 0 ?do
     lay-new-row lay-cur @ i lay-row-addr lay-row-clash? if drop -1 leave then
   loop ;
-\ Would the row fit the layer (a free slot, no overlap)? Nothing is added.
 : lay-fits? ( dl dh sl sh layer -- flag )
   lay-row-set lay-full? if 0 exit then lay-clashes? 0= ;
 : lay-row ( dl dh sl sh layer -- slot )
@@ -194,21 +180,17 @@ create lay-new-row 4 cells allot
   lay-sink @ if lay-start-cell ! exit then
   lay-stream-flush lay-clear-rows lay-link-row lay-slots @ 1- lay-row!
   lay-lbuf @ lay-dest ! lay-rows lay-slots @ lay-encode lay-lbuf @ lay-lbytes type ;
-\ The word of disjointness (3.7.5, language/doc/isolation.md). DJ-PROVE ( first end -- flag ): from the layers
-\ of a program as they stand in the space (the cells first .. end - 1, the 32 bits at a bit address read by
-\ the word of DJ-READER) true if, in the four blocks of the space (the program: the code block 0 and the data
-\ block 2),
-\ 1. every row is a no-op, a copy of two intervals of one length, each inside one block of the program, or a
-\    channel row (stdin into the data, the data into stdout);
-\ 2. a copy into the layers (a row whose destination is a cell of the code block from the cell 2: the patch of a field of another
-\    row at run time) writes inside one field, and a wide one (more than DJ-NARROW bits from the start of the
-\    field: the position is the program's, not an index of a table, a stack or the memory, which the planner
-\    places, 3.7.2) gets, from the program, only the low bits of the field: the bits above are the block of the
-\    constant in the row, the end of the reach lies in that block (for the start of an interval in the data,
-\    with the length of the interval above it), and no other row of the layer has a position in that block:
-\    the row stands alone (the rows of a layer: DJ-SCAN; the layer of a patch: DJ-LOAD).
-\ That the rows of a layer do not meet is kept by the scheduler that builds the layers (LAY-ROW, 3.7.2): the word
-\ does not prove it. On failure DJ-BAD-RULE is the number of the rule and DJ-BAD-CELL the cell.
+\ The word of disjointness (3.7.5, language/doc/isolation.md). DJ-PROVE ( first end -- flag ): from the layers of a
+\ program as they stand in the space (cells first .. end - 1, read by DJ-READER) true if, in the four blocks of the
+\ space (the program: code block 0, data block 2),
+\ 1. every row is a no-op, a copy of two intervals of one length each inside one block of the program, or a channel
+\    row (stdin into the data, the data into stdout);
+\ 2. a copy into the layers (the patch of a field of another row at run time) writes inside one field, and a wide one
+\    (more than DJ-NARROW bits from the start of the field) gets from the program only the low bits of the field: the
+\    bits above are the block of the constant in the row, the end of the reach lies in that block, and no other row of
+\    the layer has a position in it (DJ-SCAN, DJ-LOAD).
+\ That the rows of a layer do not meet is kept by the scheduler (LAY-ROW, 3.7.2). On failure DJ-BAD-RULE is the number
+\ of the rule and DJ-BAD-CELL the cell.
 variable dj-reader variable dj-bad-cell variable dj-bad-rule
 variable dj-bsh variable dj-csh variable dj-ssh variable dj-fsh
 variable dj-first variable dj-end variable dj-pa variable dj-cb
@@ -217,12 +199,10 @@ variable dj-tc variable dj-ts variable dj-tf variable dj-tb variable dj-tn varia
 variable dj-blk
 create dj-pr 32 cells allot create dj-tr 32 cells allot
 24 constant dj-narrow
-\ Wide patches proved already: cell, slot, field, bits.
 create dj-seen 64 cells allot variable dj-nseen
 : dj-get ( bit-address -- x ) dj-reader @ execute ;
 : dj-fail ( rule -- ) dj-bad-rule @ if drop else dj-bad-rule ! then ;
 : dj-blk? ( x -- n ) dj-bsh @ rshift ;
-\ [lo, hi) is in one block of the program, the code block 0 or the data block 2.
 : dj-in? ( lo hi -- f )
   2dup u< 0= if 2drop 0 exit then
   1- dj-blk? swap dj-blk? over = >r dup 0= swap 2 = or r> and ;
@@ -230,9 +210,7 @@ create dj-seen 64 cells allot variable dj-nseen
   2 lshift cells dj-pa @ + >r dj-vdl @ r@ ! dj-vdh @ r@ cell+ ! dj-vsl @ r@ 2 cells + ! dj-vsh @ r> 3 cells + ! ;
 : dj-row@ ( slot array -- ) \ the row of the array into DJ-V..
   swap 2 lshift cells + >r r@ @ dj-vdl ! r@ cell+ @ dj-vdh ! r@ 2 cells + @ dj-vsl ! r> 3 cells + @ dj-vsh ! ;
-\ A row with an empty source in the memory is a no-op: only its source is read.
 : dj-nop? ( -- f ) dj-vsl @ dj-vsh @ = dj-vsl @ lay-size @ u< and ;
-\ The layer at the bit address cb into the array: the four fields of every slot.
 : dj-load ( cb array -- )
   dj-pa ! dj-cb !
   lay-slots @ 0 ?do
@@ -241,18 +219,15 @@ create dj-seen 64 cells allot variable dj-nseen
     else dj-cb @ i 0 lay-field dj-get dj-vdl ! dj-cb @ i 1 lay-field dj-get dj-vdh ! then
     i dj-row!
   loop ;
-\ Rule 1.
 : dj-row-ok? ( -- f )
   dj-nop? if -1 exit then
   dj-vsl @ dj-vsh @ = if dj-vsl @ lay-stdin = dj-vdl @ dj-vdh @ dj-in? and exit then
   dj-vdl @ dj-vdh @ = if dj-vdl @ lay-stdout = dj-vsl @ dj-vsh @ dj-in? and exit then
   dj-vdl @ dj-vdh @ dj-in? dj-vsl @ dj-vsh @ dj-in? and dj-vdh @ dj-vdl @ - dj-vsh @ dj-vsl @ - = and ;
-\ The interval [lo, hi) has a position in the block dj-blk (a channel has none).
 : dj-in-blk? ( lo hi -- f )
   2dup u< 0= if 2drop 0 exit then
   over lay-size @ u< 0= if 2drop 0 exit then
   1- dj-blk? dj-blk @ = swap dj-blk? dj-blk @ = or ;
-\ The row in DJ-V.. has a position in the block DJ-BLK.
 : dj-touches? ( -- f ) dj-vdl @ dj-vdh @ dj-in-blk? dj-vsl @ dj-vsh @ dj-in-blk? or ;
 : dj-seen? ( -- f ) \ the wide patch (DJ-TC .. DJ-TK) was proved
   0 dj-nseen @ 0 ?do
@@ -263,8 +238,6 @@ create dj-seen 64 cells allot variable dj-nseen
   dj-nseen @ 16 = if 0 dj-nseen ! then
   dj-nseen @ 2 lshift cells dj-seen + >r dj-tc @ r@ ! dj-ts @ r@ cell+ ! dj-tf @ r@ 2 cells + ! dj-tk @ r> 3 cells + !
   1 dj-nseen +! ;
-\ Rule 2 for the wide patch of the field DJ-TF of the row DJ-TS of the cell DJ-TC (DJ-TB, DJ-TN, DJ-TK the
-\ start, the width and the end of the patch in the field): the field, then the layer.
 : dj-wide ( -- )
   dj-seen? if exit then
   dj-tc @ dj-csh @ lshift dj-ts @ dj-tf @ lay-field dj-get dj-vt !
@@ -281,7 +254,6 @@ create dj-seen 64 cells allot variable dj-nseen
     then
   loop
   dj-seen! ;
-\ A row of the layer that writes into the layers.
 : dj-patch ( -- )
   dj-vdl @ dup dj-csh @ rshift dj-tc !
   lay-cell-bits @ 1- and dup dj-ssh @ rshift dj-ts !
@@ -290,9 +262,8 @@ create dj-seen 64 cells allot variable dj-nseen
   dj-vdh @ dj-vdl @ - dj-tn !
   dj-tb @ dj-tn @ + dup dj-tk ! lay-a @ u> if 2 dj-fail exit then
   dj-tk @ dj-narrow u> if dj-wide then ;
-\ The rows of the layer at the bit address DJ-CB that are not no-ops, into DJ-PR (DJ-NN of them). The fields
-\ of a slot are at 128 bits from each other, a field has 32 bits (lay-foff, the geometry of the index code); a
-\ no-op reads only its source.
+\ The rows of the layer at DJ-CB that are not no-ops, into DJ-PR (DJ-NN of them); the fields of a slot are 128 bits
+\ apart, a field has 32 bits (lay-foff).
 variable dj-nn variable dj-lo variable dj-hi
 : dj-scan ( -- )
   0 dj-nn !
@@ -303,7 +274,6 @@ variable dj-nn variable dj-lo variable dj-hi
       dj-nn @ dj-row! 1 dj-nn +!
     then
   loop ;
-\ Rules 1 and 2 for the rows of the layer.
 : dj-rows ( -- )
   dj-nn @ 0 ?do
     i dj-pr dj-row@

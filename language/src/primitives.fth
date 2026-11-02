@@ -1,11 +1,6 @@
-\ Primitives as generators (14.3-14.7): words of the compiler, executed when the
-\ source names the word of the language, that write its copycode (as an
-\ IMMEDIATE word) or define a word. Compiled after forthc.fth, before main.fth;
-\ the host pForth loads it with the compiler. A generator folds the values
-\ known at the top level (FC-FOLD?) or writes code; the code is that of the
-\ branches by the name of the word the compiler had before. The language
-\ names are given in FC-GENERATORS: the names here differ (pForth itself uses
-\ + - * ...).
+\ Primitives as generators (14.3-14.7): words of the compiler, executed when the source names the word of the language,
+\ that write its copycode or define a word. Compiled after forthc.fth, before main.fth. A generator folds the values
+\ known at the top level (FC-FOLD?) or writes code. The names of the language are in FC-GENERATORS.
 : gen+ ( -- ) 2 fc-fold? if fc-ct2 + fc-ct+ exit then 0 fc-binary ;
 : gen- ( -- ) 2 fc-fold? if fc-ct2 - fc-ct+ exit then 1 fc-binary ;
 : gen-and ( -- ) 2 fc-fold? if fc-ct2 and fc-ct+ exit then 2 fc-binary ;
@@ -24,16 +19,12 @@
 : gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then lay-t-add @ 1 0 fc-inc ;
 : gen-1- ( -- ) 1 fc-fold? if fc-ct- 1- fc-ct+ exit then lay-t-sub @ 1 1 fc-inc ;
 : gen-cell+ ( -- ) 1 fc-fold? if fc-ct- 4 + fc-ct+ exit then lay-t-add @ 4 0 fc-inc ;
-\ * / MOD /MOD call the helpers built before the code (FC-SCAN-USES).
 : gen* ( -- )
   2 fc-fold? if fc-ct2 * fc-ct+ exit then fc-mul-lit? if exit then
   fc-mul-entry @ fc-mul-exit @ fc-call-helper fc-mp fc-result1 ;
 : gen/ ( -- ) fc-code fc-div-entry @ fc-div-exit @ fc-call-helper fc-mq fc-result1 ;
 : gen-mod ( -- ) fc-code fc-div-entry @ fc-div-exit @ fc-call-helper fc-mr fc-result1 ;
 : gen/mod ( -- ) fc-code fc-div-entry @ fc-div-exit @ fc-call-helper fc-mr fc-mq fc-result2 ;
-\ Stack, memory, channels (14.4). At the top level FC-CODE opens the part of
-\ the code first (a definition needs nothing), as the path of the words that
-\ were not found did before.
 : gen-dup ( -- ) fc-code 1 fc-need fc-n @ 1- fc-c@ fc-push ;
 : gen-drop ( -- ) fc-code fc-n @ if fc-pop1 drop else 0 fc-noff ! fc-sp -1 fc-adjust then ;
 : gen-swap ( -- ) fc-code 2 fc-need fc-pop1 fc-pop1 swap fc-push fc-push ;
@@ -43,7 +34,7 @@
 : gen-roll ( -- ) fc-code -1 fc-pick-roll ;
 : gen->r ( -- ) fc-code fc-pop fc-src1 fc-rstk fc-rp 32 fc-mem-push ;
 : gen-r> ( -- ) fc-code fc-rstk fc-rp 1 32 fc-mem-pop 0 fc-npin ! 0 fc-popped@ fc-push ;
-: gen-r@ ( -- ) fc-code -1 fc-r-at ;     \ R@ and I
+: gen-r@ ( -- ) fc-code -1 fc-r-at ;
 : gen-j ( -- ) fc-code -3 fc-r-at ;
 : gen-@ ( -- )
   fc-code fc-pop dup fc-pin ! 1 fc-npin ! fc-reg fc-cres ! 0 fc-npin ! 0 fc-check fc-cres @ fc-push ;
@@ -55,9 +46,7 @@
   fc-code fc-pop lay-lookups-begin fc-t-rev8 @ 4 8 fc-xr 0 lay-item 8 0 lay-seg lay-lookups
   lay-stdout dup fc-xr dup 8 + fc-rows1 ;
 : gen-key ( -- ) fc-code fc-read-key ;
-\ Control (14.5): the branches of FC-CONTROL-TOKEN and FC-WORD-TOKEN. An open
-\ structure is an entry of the control stack (FC-CTL+ FC-CTL-): kind (1 if,
-\ 2 else, 3 begin, 4 while, 5 do), its cell and, for a loop, its leave cell.
+\ Control (14.5): FC-CONTROL-TOKEN, FC-WORD-TOKEN. An open structure is an entry of the control stack (FC-CTL+ FC-CTL-).
 : gen-if ( -- ) fc-code fc-pop fc-spill fc-branch swap 1 swap fc-ctl+ fc-begin-block drop ;
 : gen-else ( -- )
   fc-code fc-ctl- nip fc-spill lay-new-cell dup fc-jump fc-end 2 swap fc-ctl+ fc-begin-block drop ;
@@ -71,11 +60,9 @@
 : gen-while ( -- ) fc-code fc-pop fc-spill fc-branch swap 4 swap fc-ctl+ fc-begin-block drop ;
 : gen-repeat ( -- ) fc-code fc-ctl- nip fc-ctl- nip fc-spill fc-jump fc-end fc-begin-block drop ;
 : gen-again ( -- ) fc-code fc-ctl- nip fc-spill fc-jump fc-end -1 fc-begin-block drop ;
-\ DO: limit and index to the return stack, the loop starts a block.
 : gen-do ( -- )
   fc-code fc-by-execution 2 fc-need fc-pop1 fc-pop1 fc-spill fc-srcs ! fc-srcs cell+ ! 2 fc-nsrc !
   fc-rstk fc-rp 32 fc-mem-push 5 -1 fc-begin-block fc-ctl+ ;
-\ ?DO: equal limit and index skip the loop, straight to its leave cell.
 variable fc-di variable fc-dl
 : gen-?do ( -- )
   fc-code fc-by-execution 2 fc-need fc-pop1 fc-di ! fc-pop1 fc-dl ! fc-spill
@@ -83,7 +70,6 @@ variable fc-di variable fc-dl
   lay-new-cell dup >r rot lay-new-record lay-next! lay-flush fc-begin-block drop
   fc-dl @ fc-srcs ! fc-di @ fc-srcs cell+ ! 2 fc-nsrc ! fc-rstk fc-rp 32 fc-mem-push
   5 -1 fc-begin-block fc-ctl+ r> fc-ctl-leave! ;
-\ LOOP: index + 1, back to the start unless it equals the limit; then the leave cell.
 variable fc-lv
 : gen-loop ( -- )
   fc-code fc-ctl- nip fc-ctl-leave fc-lv ! fc-spill fc-rstk fc-rp 2 32 fc-mem-pop 0 fc-npin !
@@ -98,21 +84,16 @@ variable fc-lv
   fc-code fc-do-entry fc-spill 0 fc-noff ! fc-rp -2 fc-adjust
   fc-loop-leave fc-jump fc-end -1 fc-begin-block drop ;
 : gen-unloop ( -- ) fc-code 0 fc-noff ! fc-rp -2 fc-adjust ;
-\ Calls: EXIT returns, RECURSE calls the word being defined, EXECUTE calls an xt;
-\ ['] X compiles the xt of X (the next word of the channel) as a literal.
 : gen-exit ( -- ) fc-code fc-ret -1 fc-begin-block drop ;
-\ The call of a word goes through its concept cell (FC-XT, 14.11); a loop, RECURSE and a call of an
-\ xt make the price of the word one by execution (FC-BY-EXECUTION).
+\ A call goes through the concept cell (FC-XT, 14.11); a loop, RECURSE and a call of an xt make the price by execution.
 : gen-recurse ( -- ) fc-code fc-by-execution fc-word @ dup fc-callee ! fc-xt fc-call ;
 : gen-tick ( -- )
   fc-code fc-next! fc-find dup 0= if -13 throw then dup 2 cells + @ 1 = if fc-xtn else 3 cells + @ then
   fc-literal ;
 : gen-throw ( -- ) fc-code fc-throw ;
-\ The copies whose position is computed at run time (SPACE! SPACEC! SPACE@ SPACEC@, EXECUTE, CATCH, the
-\ return and the throw) write into their row only the low bits of the position when the kernel compiles a
-\ program (FC-GUARD, forthc.fth, language/doc/isolation.md): the program cannot name the kernel nor
-\ write its own code, as no row has the bits that tell the block.
-\ A generator is called as the loop of FC-COMPILE calls it (the literal compiled by the previous word is seen).
+\ Copies whose position is computed at run time (SPACE! SPACEC! SPACE@ SPACEC@, EXECUTE, CATCH, return, throw) write
+\ into their row only the low bits of the position in the kernel (FC-GUARD, language/doc/isolation.md).
+\ A generator is called as the loop of FC-COMPILE calls it (the previous literal is seen).
 : gen-call ( xt -- ) fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! execute ;
 : gen-space! ( -- ) fc-code 32 fc-space-store ;
 : gen-spacec! ( -- ) fc-code 8 fc-space-store ;
@@ -120,17 +101,11 @@ variable fc-lv
 : gen-spacec@ ( -- ) fc-code 8 fc-space-fetch ;
 : gen-execute ( -- ) fc-code fc-by-execution fc-pop -1 fc-call-indirect fc-begin-block drop ;
 : gen-catch ( -- ) fc-code fc-by-execution fc-catch ;
-\ Defining words and the channel (14.6). : VARIABLE CREATE CONSTANT ALLOT and
-\ KERNEL-LAYOUT belong to the top level (FC-TOP-ONLY: else -13); ; to a
-\ definition (at the top level -22). ( [CHAR] S" read the channel.
-\ The replacement (14.13, language/doc/replace.md). In a program that names it each word has a
-\ concept cell in the code (CELL, its record: cell 3), a layer that jumps to its entry; a call and the
-\ xt of the word go to it. The log starts
-\ with it: the price of the word is that of its path from the concept cell.
-\ The concept cell is written like the call of EXECUTE (FC-CALL-INDIRECT): two patch layers and one between copy the entry of the
-\ definition from the record of the word in the memory of the program (the word at 4 of the record that
-\ FC-CONCEPT-RECORD writes at FC-RTA when the word ends: REPLACE changes it) into the source fields of the link row
-\ of the layer that jumps, FC-JW bits; the program writes data, the code stays as the compiler wrote it.
+\ Defining words and the channel (14.6). : VARIABLE CREATE CONSTANT ALLOT KERNEL-LAYOUT belong to the top level
+\ (FC-TOP-ONLY: else -13); ; to a definition (else -22). ( [CHAR] S" read the channel.
+\ The replacement (14.13, language/doc/replace.md): in a program that names it each word has a concept cell in the code,
+\ a layer that jumps to its entry, written like the call of EXECUTE (FC-CALL-INDIRECT) from the record in the memory of the
+\ program (word 4: REPLACE changes it).
 : fc-entry-cell ( cell -- ) \ a layer of the table of entries: jumps to the entry of the word being defined
   lay-seq lay-layer drop fc-word @ 6 cells + @ lay-jump lay-flush ;
 : fc-concept ( cell -- )
@@ -140,72 +115,56 @@ variable fc-lv
   fc-jw swap lay-layer-cell 7 3 lay-field lay-branch-bit + fc-rta @ 4 + 2 rshift 64 * fc-mem + lay-branch-bit + lay-copy
   fc-v1 @ lay-row drop
   fc-word @ 6 cells + @ lay-jump lay-flush ;
-\ : A B ; with B a word is the synonym A of B, no code (14.13). In a program of the replacement the
-\ concept cell of the word (FC-CONCEPT) is the group before its entry.
-: gen-colon ( -- ) \ : NAME starts the word NAME (visible at once: RECURSE)
+: gen-colon ( -- )
   fc-top-only fc-close-init fc-next! fc-synonym? ?dup if fc-synonym-of exit then
   fc-guard @ if fc-nwords @ 1 fc-ebits lshift u< 0= if -8 throw then fc-nwords @ fc-etab-at
   else fc-rt @ if 0 lay-group else 0 then then 0 lay-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
   swap ?dup if fc-rt @ if fc-concept else fc-entry-cell then then
   0 fc-live ! 0 fc-n ! fc-begin-block drop fc-rt @ 0= if fc-log-begin then ;
-: gen-semicolon ( -- ) \ ; returns and ends the definition, its price is counted (14.11)
+: gen-semicolon ( -- )
   fc-defining? 0= if -22 throw then fc-nctl @ if -22 throw then fc-ret fc-word @ fc-price-word
   fc-rt @ if fc-word @ fc-concept-record then 0 fc-word ! ;
 : gen-variable ( -- ) fc-top-only fc-next! 4 fc-define-data ;
 : gen-create ( -- ) fc-top-only fc-next! 0 fc-define-data ;
 : gen-allot ( -- ) fc-top-only fc-ct- fc-here +! fc-check-here ;
 : gen-constant ( -- ) fc-top-only fc-ct- fc-next! 0 swap fc-define ;
-: gen-decimal ( -- ) ;                  \ numbers are decimal only
-\ The layout itself is chosen before the code: FC-SCAN-USES finds the need 4.
+: gen-decimal ( -- ) ;
 : gen-kernel-layout ( -- ) fc-top-only ;
-\ The word \ (a comment to the end of the line) has the need 8: it is executed
-\ also in FC-SCAN-USES, the words of the comment are not the words of the source.
 : gen-backslash ( -- )
   begin fc-more? if fc-ch 10 <> else 0 then while 1 fc-pos +! repeat ;
-: gen-paren ( -- ) begin fc-next! s" )" fc-is? until ;   \ ( a comment )
+: gen-paren ( -- ) begin fc-next! s" )" fc-is? until ;
 : gen-char ( -- ) fc-code fc-next 0= if -16 throw then fc-raw fc-literal ;
 : gen-string ( -- ) fc-code fc-string-token dup >r fc-store-string fc-literal r> fc-literal ;
-\ Literals, digits, numbers (14.7). A digit 0..9 is a word of the language, the
-\ synonym of a literal (an entry of kind 0, FC-LITERAL-NAME): in a definition
-\ it compiles the literal of its value (FC-LITERAL: one copy of a constant), at
-\ the top level it is a value known at compile time. A number is a word of
-\ digits, after - if negative: the generator LITERAL gets every word not found
-\ in the dictionary (FC-WORD-TOKEN) and builds the value from the values of
-\ the digits (each looked up in the dictionary as a word) modulo 2^32, then
-\ compiles it as a digit is compiled; another word is unknown, -13.
-: fc-digit@ ( addr -- d ) \ the value of the digit at addr (a word of one byte)
+\ Literals, digits, numbers (14.7). A digit 0..9 is a word of the language, a synonym of a literal (kind 0, FC-LITERAL-NAME).
+\ A number: LITERAL gets every word not found in the dictionary and builds the value from its digits modulo 2^32, else -13.
+: fc-digit@ ( addr -- d )
   1 fc-lookup dup if dup 2 cells + @ 0= if 3 cells + @ exit then then -13 throw ;
 : gen-literal ( -- )
   fc-tok fc-tl @ over c@ [char] - = if 1 /string -1 else 1 then >r
   dup 0= if -13 throw then
   0 -rot over + swap do 10 * i fc-digit@ + loop r> *
   fc-defining? if fc-literal else fc-ct+ then ;
-\ The mechanisms of a word (14.11, language/doc/word.md). COST ( xt -- size bits copies layers
-\ known ) and PROVED? ( xt -- f ) need the xt known at compile time: the literal just compiled
-\ (['] W), else -13; they compile literals. PRICE ( size bits copies layers -- n ): the sum, the
-\ code of three + (at the top level folded, as +).
+\ The mechanisms of a word (14.11, language/doc/word.md). COST ( xt -- size bits copies layers known ) and PROVED?
+\ ( xt -- f ) need the xt known at compile time (['] W just compiled), else -13. PRICE ( size bits copies layers -- n ): the sum.
 : fc-known-xt ( -- xt ) fc-lit? 0= if -13 throw then fc-pop1 drop fc-plv @ ;
 : gen-cost ( -- )
   fc-known-xt fc-cost >r >r >r >r fc-literal r> fc-literal r> fc-literal r> fc-literal r> fc-literal ;
 : gen-proved? ( -- ) fc-known-xt fc-proved? fc-literal ;
 : gen-library ( -- ) -13 throw ;   \ never called: FC-LIBRARY (FC-LONG, FC-PLATFORM) defines these names
 : gen-price ( -- ) ['] gen+ gen-call ['] gen+ gen-call ['] gen+ gen-call ;
-\ Platform 1, the host (15.3, language/doc/platform.md): HOST NAME in a definition makes it
-\ the definition of NAME on the host. The text of NAME (the first : NAME of the source; a word of it
-\ inline, to the depth 16) becomes a C program: + - * and or xor lshift rshift dup drop swap over
-\ (generators 0-2, 6-10, 20-23 of FC-GENERATORS: X(100+index)), numbers and digits, else -13. The
-\ text goes to the stream at HB + 32, its length in bits at HB = 2^30 + 2^29 + 2^22 K (K the number of
-\ the host program, 16 at most); the word compiles K and the call of %HOST ( x k -- r ) (FC-PLATFORM);
-\ K+1 goes to the cell 8 of the record (the host definition).
+\ Platform 1, the host (15.3, language/doc/platform.md): HOST NAME in a definition makes it the definition of NAME on the
+\ host: its text (the first : NAME of the source, words inline to the depth 16) becomes a C program (generators + - * and
+\ or xor lshift rshift dup drop swap over, numbers, digits, else -13) in the stream at HB + 32, its length in bits at
+\ HB = 2^30 + 2^29 + 2^22 K (K at most 16); K+1 goes to the cell 8 of the record.
 variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 256 allot
 : fc-hb ( -- at ) fc-nhost @ 22 lshift 1610612736 + ;
-: fc-c, ( addr u -- ) >r >r fc-cpos @ r> r@ lay-put r> 8 * fc-cpos +! ;   \ the C text goes on
+: fc-c, ( addr u -- ) >r >r fc-cpos @ r> r@ lay-put r> 8 * fc-cpos +! ;
 : fc-c1 ( c -- ) fc-eight c! fc-eight 1 fc-c, ;
-: fc-c-gen ( record -- ) \ a generator of the record as C; a comment skipped
+: fc-c-gen ( record -- )
   dup 3 cells + @ ['] gen-paren = if drop gen-paren exit then
   fc-wt @ - 6 rshift dup 24 u< if 1 over lshift 15730631 and else 0 then 0= if -13 throw then
   s" X(1" fc-c, dup 10 / 48 + fc-c1 10 mod 48 + fc-c1 s" );" fc-c, ;
-: fc-c-body ( -- ) \ the definition of the word read as C
+: fc-c-body ( -- )
   fc-cdepth @ 16 = if -8 throw then 1 fc-cdepth +!
   fc-tok fc-hname fc-tl @ cmove fc-tl @ fc-hn ! fc-pos @ >r 0 fc-pos !
   begin fc-next! s" :" fc-is? if fc-next! fc-hname fc-hn @ fc-is? else 0 then until
@@ -231,12 +190,9 @@ variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 256 allot
   fc-cpos @ fc-hb - 32 - dup 4194272 u> if -8 throw then 4 fc-hb lay-put-numeric
   fc-nhost @ dup 1+ fc-word @ 8 cells + ! fc-literal
   s" %host" dup fc-tl ! fc-tok swap cmove fc-word-token 1 fc-nhost +! ;
-\ The name of two bytes c1 c2 (S": a quote cannot be written in a string).
 : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
-\ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel
-\ layout, 8 a comment, 16 the words of the proof, FC-LIBRARY, 32 the replacement,
-\ 14.13, 64 the long copy, FC-LONG, 15.2, 128 the platforms, FC-PLATFORM, 15.3); the digits: name and
-\ value of the literal.
+\ Language name, generator, needs (1 multiplication, 2 division, 4 kernel layout, 8 comment, 16 proof words and FC-LIBRARY,
+\ 32 the replacement, 64 the long copy, 128 the platforms); the digits: name, value.
 : fc-generators ( -- )
   s" +" ['] gen+ 0 fc-generator  s" -" ['] gen- 0 fc-generator
   s" *" ['] gen* 1 fc-generator  s" /" ['] gen/ 2 fc-generator

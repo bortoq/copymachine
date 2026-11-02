@@ -1,11 +1,8 @@
 \ SPDX-License-Identifier: MIT
-\ Computation by copies; control: copycode.vm1.compute. Requires backend.fth.
-\ A lookup reads a table entry whose index bits are copied into both source
-\ endpoints of the read row: lower-endpoint patches, upper-endpoint patches,
-\ one gap layer, then the reads. Entry stride exceeds width, so both
-\ endpoints share the index bits. Layers and rows are created in the same
-\ order as the host model, so the streams are identical. Words keep their
-\ state in variables and are not reentrant. THROW -8: capacity.
+\ Computation by copies; control: copycode.vm1.compute. Requires backend.fth. A lookup reads a table entry whose index
+\ bits are copied into both source endpoints of the read row: patches of the lower endpoint, of the upper, one gap
+\ layer, then the reads (the entry stride exceeds the width, so both share the index bits). Layers and rows are created
+\ in the host model's order (identical streams). Not reentrant. THROW -8: capacity.
 decimal
 variable lay-t1 variable lay-t2 variable lay-t3 variable lay-t4 variable lay-t5
 variable lay-lo variable lay-hi
@@ -13,11 +10,10 @@ variable lay-l0 variable lay-l1 variable lay-l2 variable lay-l3 variable lay-l4 
 : lay-work ( -- n ) lay-slots @ 1- ;
 : lay-cell-bit ( -- n ) lay-cell-bits @ lay-bits 1- ;
 : lay-link-slot ( -- n ) lay-slots @ 1- ;
-\ Lookup items: table s width out preset nseg, then 4 segments (src n off).
 18 constant lay-item-cells 16 constant lay-max-items
 create lay-items lay-max-items lay-item-cells * cells allot
 variable lay-nitems
-: lay-item@ ( i -- addr ) dup 4 lshift swap 2* + cells lay-items + ;   \ 18 cells each
+: lay-item@ ( i -- addr ) dup 4 lshift swap 2* + cells lay-items + ;
 : lay-lookups-begin ( -- ) 0 lay-nitems ! ;
 : lay-item ( table s width out preset -- )
   lay-nitems @ lay-max-items < 0= if -8 throw then
@@ -63,7 +59,6 @@ create lay-used 8 cells allot variable lay-nused variable lay-rl variable lay-pk
   lay-t5 @ 0 ?do lay-layer i cells lay-sh + ! loop
   lay-layer drop lay-place-reads 0 lay-pk ! 0 lay-pkl !
   lay-nitems @ 0 ?do i lay-item@ 5 cells + @ 0 ?do j i lay-patch loop loop ;
-\ Nibble adder: x = a + b, or a + ~b + 1 with the sub table and carry 1.
 create lay-al 25 cells allot create lay-ar 8 cells allot
 variable lay-ax variable lay-aa variable lay-ab variable lay-atab variable lay-acarry
 : lay-al@ ( i -- layer ) cells lay-al + @ ;
@@ -89,7 +84,6 @@ variable lay-ax variable lay-aa variable lay-ab variable lay-atab variable lay-a
       1 i lay-rd 3 lay-field 11 + lay-ax @ i 4 * + 1+ lay-copy i dup 2* + 1+ lay-al@ lay-row drop
     then
   loop ;
-\ Continue at group target value(src[0:k]); src[k:2k] holds a copy.
 variable lay-dsrc variable lay-dk variable lay-dg variable lay-dp variable lay-dx
 : lay-decide ( src k -- group )
   lay-dk ! lay-dsrc ! lay-dk @ lay-group lay-dg !
@@ -98,7 +92,6 @@ variable lay-dsrc variable lay-dk variable lay-dg variable lay-dp variable lay-d
   lay-dk @ lay-dx @ lay-layer-cell lay-link-slot 2 lay-field lay-branch-bit + lay-dsrc @ lay-copy lay-dp @ lay-row drop
   lay-dk @ lay-dx @ lay-layer-cell lay-link-slot 3 lay-field lay-branch-bit + lay-dsrc @ lay-dk @ + lay-copy
   lay-dp @ lay-row drop lay-dg @ ;
-\ Tables are placed in [at, limit), each aligned to its size.
 variable lay-table-at variable lay-table-limit variable lay-tbuf
 variable lay-tx variable lay-tbits variable lay-ts variable lay-tsize variable lay-tbase variable lay-tper
 : lay-tables ( at limit -- ) lay-table-limit ! lay-table-at ! ;
@@ -112,7 +105,6 @@ variable lay-tx variable lay-tbits variable lay-ts variable lay-tsize variable l
   1 lay-ts @ lshift 3 rshift lay-tper ! lay-tbuf @ ;
 : lay-table-done ( -- base )
   lay-tbase @ lay-tbuf @ lay-tsize @ 3 rshift lay-put lay-tbuf @ free throw lay-tbase @ ;
-\ Or fill the buffer of lay-table-area directly (entry i at i * 2^s / 8 bytes).
 : lay-table ( xt bits s -- base )
   rot lay-tx ! lay-table-area drop
   lay-ts @ 3 < 0= if
@@ -164,7 +156,6 @@ variable lay-t-fill24 variable lay-t-fill16 variable lay-t-inc1 variable lay-t-i
   ['] lay-sign-entry 1 6 lay-table lay-t-sign32 ! ['] lay-fill24-entry 1 5 lay-table lay-t-fill24 !
   ['] lay-fill16-entry 1 5 lay-table lay-t-fill16 ! ['] lay-inc1-entry 2 2 lay-table lay-t-inc1 !
   ['] lay-inc2-entry 2 2 lay-table lay-t-inc2 ! ;
-\ Building blocks over registers given as bit addresses.
 variable lay-oo variable lay-os variable lay-ol variable lay-oh
 : lay-or-chunks ( out src lo hi -- )
   lay-oh ! lay-ol ! lay-os ! lay-oo !
@@ -218,8 +209,7 @@ variable lay-sarg variable lay-sign
   lay-layer lay-l4 ! lay-layer drop lay-layer dup lay-l5 ! lay-shift-row
   5 lay-sarg @ lay-l5 @ 2 0 lay-l4 @ lay-shift-patch
   5 lay-sarg @ 5 + lay-l5 @ 3 0 lay-l4 @ lay-shift-patch ;
-\ Exit select: flag pair (source patched by the caller) becomes the cell bit
-\ of the exit link, so a call returns to ret or ret + lay-branch-step.
+\ Exit select: the flag pair becomes the cell bit of the exit link (a call returns to ret or ret + lay-branch-step).
 variable lay-fc variable lay-ff
 : lay-flag-exit ( c2 flags -- row exit )
   lay-ff ! lay-fc !
@@ -229,18 +219,15 @@ variable lay-fc variable lay-ff
   1 lay-l2 @ lay-layer-cell lay-link-slot 2 lay-field lay-branch-bit + lay-fc @ lay-copy lay-l1 @ lay-row drop
   1 lay-l2 @ lay-layer-cell lay-link-slot 3 lay-field lay-branch-bit + lay-fc @ 1+ lay-copy lay-l1 @ lay-row drop
   lay-l0 @ lay-layer-cell 0 0 lay-field lay-l2 @ lay-layer-cell ;
-\ Shared returns: write res to a patched destination, or plain return.
 : lay-exit-layers ( res discard width -- xw x )
   lay-lone lay-l0 ! swap rot lay-copy lay-l0 @ lay-row drop lay-cell-bits @ lay-l0 @ lay-next!
   lay-lone lay-l1 ! lay-cell-bits @ lay-l1 @ lay-next!
   lay-l0 @ lay-layer-cell lay-l1 @ lay-layer-cell ;
-\ Call site rows: patch the exit link with ret and ret+layer stored at lo/hi.
 variable lay-ce variable lay-cl variable lay-ch
 : lay-call-rows ( exit lo-src hi-src layer -- )
   lay-l0 ! lay-ch ! lay-cl ! lay-ce !
   lay-a @ lay-ce @ lay-link-slot 2 lay-field lay-cl @ lay-copy lay-l0 @ lay-row drop
   lay-a @ lay-ce @ lay-link-slot 3 lay-field lay-ch @ lay-copy lay-l0 @ lay-row drop ;
-\ Halt: one stdout region per layer, then the zero cell 1.
 : lay-halt-begin ( -- ) -1 lay-seq ;
 : lay-halt-region ( n src -- ) lay-layer >r lay-out r> lay-row drop ;
 : lay-halt-end ( -- cell ) lay-cell-bits @ lay-jump lay-entry ;

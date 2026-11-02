@@ -1,30 +1,16 @@
-\ Direct Forth compiler (9.5): Forth source to emulator index code, in Forth.
-\ Requires backend.fth and compute.fth. Control: scripts/forthc/model.py; for
-\ the same source both write the same boot stream byte for byte, so every
-\ layer, row, table, constant and cell is created in the model's order.
-\ Usage: FC| <line> appends a source line, FC-GO compiles the text (word
-\ MAIN is the entry) and types the stream, FC-RESET clears the text.
-\ Cells may be 32 bits: values of 34 and 64 bits are kept as two cells.
-\ Words keep their state in variables and are not reentrant. THROW -8:
-\ capacity, -13: unknown word, -22: control structure, -16: missing word.
+\ Direct Forth compiler (9.5): Forth source to emulator index code, in Forth. Requires backend.fth and compute.fth.
+\ Control: scripts/forthc/model.py (same source, same boot stream). FC| <line> appends a source line, FC-GO compiles
+\ and types the stream, FC-RESET clears. Not reentrant. THROW -8: capacity, -13: unknown word, -22: control
+\ structure, -16: missing word.
 decimal
 1 31 lshift constant fc-size  1024 constant fc-cellb  1024 constant fc-l  32 constant fc-a
-\ The data region at fc-d and the first code cell: a program at 2^30 and 2,
-\ a kernel (a source with KERNEL-LAYOUT: FC-SCAN-USES) in the upper half of
-\ both, so the programs it installs in its own space keep their layout
-\ (model: layout).
+\ The data region at fc-d and the first code cell: a program at 2^30 and 2, a kernel in the upper half.
 variable fc-d variable fc-first
-\ The program of the kernel: nonzero while the kernel compiles a program into its own space. The
-\ copies whose position is computed at run time (SPACE! SPACEC! SPACE@ SPACEC@ EXECUTE CATCH, the
-\ return and the throw) then write into the row only the low bits of the position, the high bits are
-\ a constant of the compiler (dynamic isolation, language/doc/isolation.md). Zero: the whole space.
+\ Nonzero while the kernel compiles a program: run-time positions keep only low bits (language/doc/isolation.md).
 variable fc-guard
-\ The layout of a program of the kernel, in one place. A block of the space has 2^FC-BBITS bits (the space has
-\ four: code 0, kernel code 1, data 2, kernel data 3). The program's own place takes FC-ABITS bits of an address
-\ in the data (SPACE! SPACE@): the lower half of the block, so that an interval of the data, of 32 bits at most,
-\ stays in the block; FC-BBITS bits of an address of the code (a jump). The xt of a word is its number, FC-EBITS
-\ bits: the layer of the table of entries FC-ETAB (2 cells apart, from the bit address FC-ETAB, in the upper half
-\ of the code block) that jumps to the entry of the word.
+\ Layout of a program of the kernel: a block of the space has 2^FC-BBITS bits (code 0, kernel code 1, data 2, kernel
+\ data 3); a data address takes FC-ABITS bits, a code address FC-BBITS. The xt of a word is its number, FC-EBITS bits:
+\ the layer of the table of entries FC-ETAB that jumps to its entry.
 29 constant fc-bbits  fc-bbits 1- constant fc-abits  11 constant fc-ebits  1 fc-bbits 1- lshift constant fc-etab
 : fc-layout ( kernel? -- )
   if 3 29 lshift 1 19 lshift else 1 30 lshift 2 then fc-first ! fc-d ! ;
@@ -41,12 +27,10 @@ variable fc-guard
 : fc-mem 1 23 lshift fc-d+ ;  17 constant fc-mw  : fc-htab 1 24 lshift fc-d+ ;
 256 constant fc-data-start
 
-\ --- tables ----------------------------------------------------------------
 create fc-off 17 cells allot variable fc-oc
 variable fc-t-rev8 variable fc-t-zero32 variable fc-t-nz2 variable fc-t-lt32
 variable fc-t-xr2 variable fc-t-ult32 variable fc-t-bytepos
 : fc-off@ ( c -- table ) 8 + cells fc-off + @ ;
-\ Entry i: (i+c) & 255 in each of 8 bytes, then 8 zero bytes.
 : fc-off-table ( c -- base )
   fc-oc ! 8 7 lay-table-area
   256 0 do dup i 16 * + 8 i fc-oc @ + 255 and lay-rev + c@ fill loop drop lay-table-done ;
@@ -58,7 +42,6 @@ variable fc-t-xr2 variable fc-t-ult32 variable fc-t-bytepos
   r> drop 0<> ;
 : fc-xr2-entry ( i -- v ) dup 1 rshift xor 1 and 3 * ;
 : fc-ult-entry ( i -- v ) 0= ;
-\ Bit offsets of byte i in its cell: 8i for the lower endpoint, 8i+8 above.
 : fc-bytepos-entry ( i -- v ) 8 * dup 8 + 6 lshift or ;
 : fc-tables ( -- )
   fc-tab fc-stk lay-tables lay-standard-tables
@@ -76,12 +59,10 @@ variable fc-t-xr2 variable fc-t-ult32 variable fc-t-bytepos
   dup 15 and over 4 rshift 4 lshift or swap 4 rshift 8 lshift or ;
 : fc-qsel-entry ( i -- v ) dup 1 and if 2 rshift else 1 rshift then 1 and 3 * ;
 
-\ --- constants: value low, high, bits; at fc-consts + 64 * index -----------
-\ Tables live in the heap, allocated once at the sizes in these variables;
-\ words and constants are found through hash chains (index+1, 0 ends).
+\ --- constants: value low, high, bits; at fc-consts + 64 * index ---
 variable fc-max-consts 384 fc-max-consts ! variable fc-ck variable fc-nconsts
 variable fc-nbuckets 256 fc-nbuckets ! variable fc-cbk
-: fc-ck@ ( i -- addr ) 4 * cells fc-ck @ + ;   \ value low, high, bits, next
+: fc-ck@ ( i -- addr ) 4 * cells fc-ck @ + ;
 : fc-chash ( lo hi bits -- addr ) + + dup 16 rshift xor fc-nbuckets @ 1- and cells fc-cbk @ + ;
 variable fc-cb
 : fc-const2 ( lo hi bits -- addr )
@@ -96,24 +77,15 @@ variable fc-cb
   fc-nconsts @ 1+ fc-cb @ ! fc-nconsts @ 64 * fc-consts + 1 fc-nconsts +! ;
 : fc-const ( value -- addr ) 0 32 fc-const2 ;
 
-\ --- literals (14.7) -----------------------------------------------------------
-\ A literal is a half-interval [lo, hi) of positions of the space whose bits
-\ are constant: a part of a record of the constant area (FC-CONST), written
-\ with the stream. The record of a value v holds its 32 bits; the literal of v
-\ is [lo, lo + n), n the length of v in bits (1 at least, 32 if v < 0), and the
-\ record is zero above it. Bit 0 and bit 1 are the literals of length 1.
-: fc-lit ( v n -- lo hi ) swap fc-const tuck + ;     \ the low n bits of v, n <= 32
+\ --- literals (14.7): [lo, hi) of the space with constant bits; the record of v (FC-CONST) holds its 32 bits ---
+: fc-lit ( v n -- lo hi ) swap fc-const tuck + ;
 : fc-bit0 ( -- lo hi ) 0 1 fc-lit ;
 : fc-bit1 ( -- lo hi ) 1 1 fc-lit ;
 : fc-length ( v -- n ) 0 swap begin ?dup while 1 rshift swap 1+ swap repeat 1 max ;
-: fc-lit-of ( v -- lo hi ) \ the literal of v: 0 and 1 are the bits
+: fc-lit-of ( v -- lo hi )
   dup 2 u< if if fc-bit1 else fc-bit0 then exit then dup fc-length fc-lit ;
-\ The literal as a cell of register r: one copy of the 32 bits of its record
-\ from lo (above hi they are zeros).
 : fc-load ( lo hi r -- ) nip 32 swap rot lay-copy lay-layer lay-row drop ;
 
-\ Link pool: the link fields (cell, cell+layer) of each continuation, one
-\ entry per call site, written to the stream fc-link-chunk at a time.
 variable fc-nlinks variable fc-link-buf variable fc-nbuf
 : fc-put-links ( -- )
   fc-nbuf @ if
@@ -132,7 +104,6 @@ create fc-eight 8 allot create fc-zeros 16 allot fc-zeros 16 0 fill
       fc-eight 8 lay-put then r> drop
   loop ;
 
-\ --- stack cache and registers ----------------------------------------------
 create fc-cache 64 cells allot variable fc-n
 create fc-pin 16 cells allot variable fc-npin
 : fc-c@ ( i -- r ) cells fc-cache + @ ;
@@ -149,9 +120,7 @@ variable fc-scr
 : fc-scratch ( bits align -- at )
   fc-scr @ over 1- + swap negate and dup rot + dup fc-mem u> if -8 throw then fc-scr ! ;
 
-\ --- memory stacks ------------------------------------------------------------
 create fc-offs 8 cells allot variable fc-noff variable fc-ptr
-\ IDX+16k = pointer + offsets[k] (value, copy; FC-IW bits: 16, or 32 for four copies); pointer += delta.
 variable fc-iw 16 fc-iw !
 : fc-adjust ( pointer delta -- )
   swap fc-ptr ! lay-lookups-begin
@@ -165,10 +134,8 @@ variable fc-rl variable fc-f0 variable fc-f1 variable fc-psh
 : fc-row+ ( dl dh sl sh -- )
   fc-nrow @ 4 * cells fc-prow + >r r@ 3 cells + ! r@ 2 cells + ! r@ cell+ ! r> ! 1 fc-nrow +! ;
 : fc-4@ ( addr -- a b c d ) >r r@ @ r@ cell+ @ r@ 2 cells + @ r> 3 cells + @ ;
-\ Rows whose endpoint fields f0, f1 get IDX+16k (and its copy) at bit shift.
 : fc-patched ( f0 f1 shift -- )
   fc-psh ! fc-f1 ! fc-f0 !
-  \ ceil(2n/7) patch layers for n <= 7 rows
   fc-nrow @ dup 0> 1 and swap 3 > 1 and + 0 ?do lay-layer i cells fc-pl + ! loop lay-layer drop
   lay-layer fc-rl !
   fc-nrow @ 0 ?do i 4 * cells fc-prow + fc-4@ fc-rl @ lay-row i cells fc-pslot + ! loop
@@ -196,8 +163,6 @@ variable fc-mbase variable fc-mptr variable fc-mn variable fc-mw2
   0 fc-nrow ! fc-nsrc @ 0 ?do
     fc-mbase @ i fc-mbase @ fc-shift lshift + dup fc-mw2 @ + i cells fc-srcs + @ dup fc-mw2 @ + fc-row+
   loop 0 1 fc-mbase @ fc-shift fc-patched ;
-\ The first source that repeats an earlier one (DUP shares a register; one
-\ layer may not read it twice), else the count.
 : fc-dup-at ( -- k )
   fc-nsrc @ 1 ?do i cells fc-srcs + @ fc-srcs i fc-in? if i unloop exit then loop fc-nsrc @ ;
 create fc-rest 8 cells allot variable fc-nrest
@@ -208,14 +173,12 @@ create fc-rest 8 cells allot variable fc-nrest
     fc-push-group fc-rest fc-srcs fc-nrest @ cells cmove fc-nrest @ fc-nsrc !
   repeat drop fc-push-group ;
 : fc-src1 ( r -- ) fc-srcs ! 1 fc-nsrc ! ;
-\ Ensure n cached items, popping the missing ones from memory.
 : fc-need ( n -- )
   fc-n @ - begin dup 0> while
     dup 7 min >r fc-stk fc-sp r@ 32 fc-mem-pop 0 fc-npin !
     fc-cache dup r@ cells + fc-n @ cells cmove>
     r@ 0 ?do i fc-popped@ i cells fc-cache + ! loop r@ fc-n +! r> -
   repeat drop ;
-\ Write the cache to the data stack in memory, seven items per step.
 : fc-spill ( -- )
   begin fc-n @ while
     fc-n @ 7 min fc-nsrc ! fc-nsrc @ 0 ?do i fc-c@ i cells fc-srcs + ! loop
@@ -224,21 +187,16 @@ create fc-rest 8 cells allot variable fc-nrest
   repeat ;
 : fc-pop ( -- r ) 1 fc-need fc-pop1 ;
 
-\ --- the log of the layers of a word (14.11) --------------------------------------------
-\ While a word is compiled (and the helpers * / are built) every written layer goes to the log
-\ (CC-ON-WRITE): its cell, copies, bits, next cell. Copies: the rows of n > 0 bits and the link row;
-\ bits: n of the copies between positions of the space (not of a channel), the link row a layer.
-\ The layers that choose a target (decisions) and the calls are noted when they are made. From
-\ the log FC-PATH finds the longest path of the word. Nothing of this goes to the stream.
+\ --- the log of the layers of a word (14.11) ---
+\ Every layer written while a word is compiled goes to the log (CC-ON-WRITE): cell, copies, bits, next cell;
+\ FC-PATH takes the price from it. Nothing goes to the stream.
 2048 constant fc-max-log 64 constant fc-max-notes
 variable fc-log variable fc-nlog variable fc-decs variable fc-ndec variable fc-calls variable fc-ncall
 variable fc-pend variable fc-npend variable fc-unknown
 variable fc-lc variable fc-lb
-\ The width of a row (dl dh sl sh at addr): of its destination or of its source, the larger (a pair
-\ of fields that the code writes at run time is 0 0 until then: SPACE! SPACE@).
 : fc-row-n ( addr -- n ) dup cell+ @ over @ - swap dup 3 cells + @ swap 2 cells + @ - max ;
 : fc-mem-row? ( addr -- f ) dup @ lay-size @ u< swap 2 cells + @ lay-size @ u< and ;
-: fc-log-layer ( layer -- ) \ CC-ON-WRITE: the layer into the log
+: fc-log-layer ( layer -- )
   fc-nlog @ fc-max-log = if drop -1 fc-unknown ! exit then
   1 fc-lc ! lay-layer-bits fc-lb !
   dup lay-count 0 ?do
@@ -252,28 +210,22 @@ variable fc-lc variable fc-lb
 : fc-log-begin ( -- )
   0 fc-nlog ! 0 fc-ndec ! 0 fc-ncall ! 0 fc-unknown ! ['] fc-log-layer lay-on-write ! ;
 : fc-log-end ( -- ) 0 lay-on-write ! ;
-\ The price is by execution (a loop, recursion, a call of an xt): the log stops.
 : fc-by-execution ( -- ) -1 fc-unknown ! fc-log-end ;
 : fc-dec@ ( i -- addr ) 2* cells fc-decs @ + ;
 : fc-call@ ( i -- addr ) dup 2* + cells fc-calls @ + ;
-\ The last layer chooses one of 2^k targets, CC-BRANCH-STEP apart from its next cell.
 : fc-log-decision ( k -- )
   lay-on-write @ 0= if drop exit then
   fc-ndec @ fc-max-notes = if drop fc-by-execution exit then
   fc-ndec @ fc-dec@ >r r@ cell+ ! lay-last lay-layer-cell r> ! 1 fc-ndec +! ;
-\ The last layer jumps to a callee and the path goes on at cont, with the price of the callee:
-\ block holds its bits, copies, layers, known (a record of a word from its cell 10, or a helper).
 : fc-log-call ( cont block -- )
   lay-on-write @ 0= if 2drop exit then
   fc-ncall @ fc-max-notes = if 2drop fc-by-execution exit then
   fc-ncall @ fc-call@ >r r@ 2 cells + ! r@ cell+ ! lay-last lay-layer-cell r> ! 1 fc-ncall +! ;
 variable fc-callee   \ the record of the word FC-CALL calls (0: not a word)
 
-\ --- control --------------------------------------------------------------
 variable fc-live variable fc-tramp variable fc-ex variable fc-thrower
 : fc-jump ( target -- ) lay-seq# @ 0= if lay-layer drop then lay-jump ;
 : fc-end ( -- ) lay-flush 0 fc-live ! ;
-\ Start a new layer run at cell (-1: a new cell); the previous one continues.
 : fc-begin-block ( cell|-1 -- cell )
   dup -1 = if drop lay-new-cell then
   fc-live @ if dup fc-jump then
@@ -283,19 +235,12 @@ variable fc-live variable fc-tramp variable fc-ex variable fc-thrower
   lay-lookups-begin fc-z swap 0 32 lay-or-chunks lay-lookups
   lay-lookups-begin fc-t-nz2 @ 2 2 fc-xr 0 lay-item fc-z 4 0 lay-seg lay-lookups fc-xr ;
 : fc-branch ( flag -- zero yes ) fc-nonzero 1 lay-decide 1 fc-log-decision fc-end dup lay-branch-step + ;
-\ A call of a word (FC-CALLEE: its record) is noted in the log (14.11).
 : fc-call ( entry -- )
   fc-spill lay-new-cell >r r@ fc-link-const fc-src1 fc-rstk fc-rp 64 fc-mem-push
   lay-jump fc-callee @ ?dup if r@ swap 10 cells + fc-log-call then 0 fc-callee !
   fc-end r> fc-begin-block drop ;
 variable fc-v0 variable fc-v1
-\ The bits of an address that a copy writes into the source fields of a link row (the target of a
-\ jump), from the bit lay-branch-bit: all, or in the program of the kernel those below 2^29, the code
-\ of the program (block 0): the bits above are the constant of the row, 0.
 : fc-jw ( -- n ) fc-guard @ if fc-bbits else fc-a then lay-branch-bit - ;
-\ The xt of EXECUTE and CATCH: its address from the bit lay-branch-bit, or in the program of the kernel the number
-\ of a word, FC-EBITS bits from the bit 0, which go to the bit lay-branch-bit of the link row, and the rest
-\ of the row is the constant FC-ETAB: the jump goes only to a layer of the table of entries.
 : fc-xw ( -- n ) fc-guard @ if fc-ebits else fc-a lay-branch-bit - then ;
 : fc-xoff ( -- n ) fc-guard @ if 0 else lay-branch-bit then ;
 : fc-etab-at ( i -- bit-address ) lay-branch-bit lshift fc-etab + ;
@@ -310,15 +255,12 @@ variable fc-v0 variable fc-v1
 : fc-push-frame ( thrown -- )
   fc-link-const fc-sp fc-srcs ! fc-handler fc-srcs cell+ ! fc-srcs 2 cells + ! 3 fc-nsrc !
   fc-rstk fc-rp 64 fc-mem-push 64 fc-handler fc-rp lay-copy fc-rows1 ;
-\ The two words (source and upper endpoint) of a link pair at src into the source fields of a link
-\ row at dst, one layer: one row of 64 bits, or in the program of the kernel two rows of 29 bits
-\ (the bits below 2^29, the code of the program), the constant of the row above.
 : fc-link-copy ( dst src -- )
   fc-guard @ if
     2dup fc-bbits -rot lay-copy lay-layer dup >r lay-row drop
     32 + swap 32 + swap fc-bbits -rot lay-copy r> lay-row drop
   else 64 -rot lay-copy fc-rows1 then ;
-: fc-restore ( dst src -- ) \ pointer from the first copy, by the identity table
+: fc-restore ( dst src -- )
   >r >r 0 fc-off@ 7 64 r> 0 lay-item r> 8 0 lay-seg ;
 : fc-build-thrower ( -- entry )
   0 fc-n ! -1 lay-seq 64 fc-rp fc-handler lay-copy fc-rows1 lay-entry
@@ -339,9 +281,6 @@ variable fc-v0 variable fc-v1
   swap fc-begin-block drop fc-reg dup >r 32 swap fc-code lay-copy fc-rows1 0 fc-n ! r> fc-push fc-spill
   dup lay-jump fc-end fc-begin-block drop ;
 variable fc-ret-p variable fc-ret-l variable fc-rs0 variable fc-rs1
-\ In the program of the kernel the pair on top of the return stack goes into the link row of the
-\ trampoline as two rows of 29 bits (the bits below 2^29, the code of the program); their four source
-\ fields get the four copies of the index (FC-IW 32), the same two layers as the one row of 64 bits.
 : fc-ret-patch ( slot f j -- )
   8 * fc-idx + >r fc-ret-l @ lay-layer-cell -rot lay-field 7 + 8 swap r> lay-copy fc-ret-p @ lay-row drop ;
 : fc-ret-masked ( -- )
@@ -357,26 +296,18 @@ variable fc-ret-p variable fc-ret-l variable fc-rs0 variable fc-rs1
     8 fc-ret-l @ lay-layer-cell r> 3 lay-field 7 + fc-idx 8 + lay-copy fc-ret-p @ lay-row drop
   then
   lay-layer drop fc-tramp @ lay-jump fc-end ;
-\ Access to the memory of the program: the cell (or the byte) of the address in register a, FC-CMODE 0: load a
-\ cell into FC-CRES, 1: store FC-CV, 2 and 3: the same for a byte. No address is checked: the row holds, as the
-\ constant of the compiler, the base of the memory (FC-MEM), and gets from the address only the cell index
-\ a[2:2+FC-MW) at bit 6 of its endpoint fields (patches in layers l0, l1, a layer between, then the row; a byte access also
-\ the bit offsets of the byte from FC-BP in the low six bits, which a lookup in the table FC-T-BYTEPOS makes from
-\ the low two bits of a first). The high bits of the address do not enter the row, so the position stays in the
-\ memory (the address is taken modulo its size).
+\ Access to the memory of the program: the cell (byte) at the address in register a; FC-CMODE 0: load into FC-CRES, 1: store
+\ FC-CV, 2 and 3: the same for a byte. The row holds the base (FC-MEM) and gets only the cell index a[2:2+FC-MW): the address is
+\ taken modulo the memory.
 variable fc-ca variable fc-cl0 variable fc-cl1 variable fc-cr variable fc-cslot variable fc-csh
 variable fc-cv variable fc-cres variable fc-cmode variable fc-ar
-\ Read row (dst, dst+w, table, table+w) in the read layer.
 : fc-chk-read ( table sh w dst -- )
   >r swap fc-csh ! r@ over r> + 2swap over + fc-cr @ lay-row fc-cslot ! ;
-\ Its index segment: patches in l0 (lower endpoint) and l1 (upper).
 : fc-chk-seg ( src n off -- )
   fc-csh @ + >r 2dup fc-cr @ lay-layer-cell fc-cslot @ 2 lay-field r@ + rot lay-copy fc-cl0 @ lay-row drop
   fc-cr @ lay-layer-cell fc-cslot @ 3 lay-field r> + rot lay-copy fc-cl1 @ lay-row drop ;
-\ The access row (in layer, slot) gets the cell index a[2:] at bit 6 of its endpoint fields f, f+1 (patches in
-\ l0, l1); a byte access also the bit offsets of the byte from BP in the low six bits.
 variable fc-as variable fc-af variable fc-al0 variable fc-al1 variable fc-apl variable fc-afld
-: fc-access-patch ( k -- ) \ endpoint field f+k, patch layer l0 or l1
+: fc-access-patch ( k -- )
   dup if fc-al1 else fc-al0 then @ fc-apl !
   fc-ar @ lay-layer-cell fc-as @ fc-af @ 3 pick + lay-field fc-afld !
   fc-cmode @ 2 and if 6 fc-afld @ fc-bp 3 pick 6 * + lay-copy fc-apl @ lay-row drop then
@@ -399,7 +330,7 @@ variable fc-as variable fc-af variable fc-al0 variable fc-al1 variable fc-apl va
   then
   fc-cl0 @ fc-cl1 @ fc-access ;
 
-\ --- straight-line scheduler (model: Sched) ---------------------------------
+\ --- straight-line scheduler (model: Sched) ---
 64 constant fc-ring 48 constant fc-window
 create fc-sl fc-ring cells allot variable fc-stabs
 variable fc-slen variable fc-slow
@@ -425,7 +356,6 @@ create fc-prw 4 cells allot variable fc-ptab
     then r> drop 1+
   again ;
 : fc-scopy ( n dst src ready -- t ) >r lay-copy fc-sbegin r> 0 fc-place drop 1+ ;
-\ Segments: src, src for the upper endpoint, n, index offset, ready.
 create fc-segs 20 cells allot variable fc-nseg
 create fc-pp 48 cells allot variable fc-npp variable fc-latest variable fc-sga
 variable fc-ltab variable fc-ls variable fc-lw variable fc-ldst
@@ -451,7 +381,6 @@ variable fc-ltab variable fc-ls variable fc-lw variable fc-ldst
     fc-ls @ + fc-sga @ 5 cells + @ + fc-sga @ 3 cells + @ lay-copy
     fc-sga @ @ fc-at fc-sga @ cell+ @ lay-row-addr >r r@ 3 cells + ! r@ 2 cells + ! r@ cell+ ! r> !
   loop drop 1+ 0 fc-nseg ! ;
-\ x = 0 + ~value + 1 by nibbles (the negation), step i writing x[4i, 4i+6).
 variable fc-nx variable fc-nv variable fc-nt
 : fc-negate-chain ( table x value ready -- t )
   fc-nt ! fc-nv ! fc-nx ! fc-nt @ 8 0 do
@@ -459,7 +388,6 @@ variable fc-nx variable fc-nv variable fc-nt
     i if fc-nx @ i 4 * + dup 1+ 1 8 4 pick fc-seg+ then
     over 3 6 fc-nx @ i 4 * + i 0= if 256 else 0 then fc-slookup nip
   loop nip ;
-\ dst = sign ? -value : value, from a window (value, negation).
 variable fc-gw variable fc-gs variable fc-gs2 variable fc-gts variable fc-gdst
 : fc-negate-select ( value t sign sign2 ts dst table -- t )
   >r fc-gdst ! fc-gts ! fc-gs2 ! fc-gs ! 128 128 fc-scratch fc-gw !
@@ -468,8 +396,8 @@ variable fc-gw variable fc-gs variable fc-gs2 variable fc-gts variable fc-gdst
   fc-gs @ fc-gs2 @ 1 6 fc-gts @ fc-seg+ fc-gw @ 0 32 fc-gdst @ 0 fc-slookup ;
 : fc-sfinish ( -- exit ) fc-slen @ 1- fc-at dup fc-cellb swap lay-next! lay-layer-cell ;
 
-\ --- multiplication and division ------------------------------------------
-create fc-pr 128 cells allot create fc-xs 128 cells allot   \ (reg, ready) pairs
+\ --- multiplication and division ---
+create fc-pr 128 cells allot create fc-xs 128 cells allot
 variable fc-m4 variable fc-mj variable fc-mk
 : fc-p@ ( i j -- reg t ) 8 * + 2* cells fc-pr + 2@ swap ;
 : fc-p! ( reg t i j -- ) 8 * + 2* cells fc-pr + >r swap r> 2! ;
@@ -498,7 +426,6 @@ variable fc-absa variable fc-absb variable fc-ta variable fc-tb
 variable fc-rem variable fc-tr variable fc-q variable fc-tq variable fc-k
 variable fc-w variable fc-lo variable fc-tlo variable fc-t0 variable fc-t1 variable fc-qr variable fc-tqk
 : fc-sub@ ( i -- table ) cells fc-sub + @ ;
-\ One step of a sub chain at nibble i of t - d; carry 0: none.
 : fc-step ( table dst i carry t preset -- t )
   >r >r >r
   dup 0= if fc-absa @ fc-k @ + dup 1 0 fc-ta @ fc-seg+ fc-rem @ dup 3 1 fc-tr @ fc-seg+
@@ -541,11 +468,9 @@ variable fc-w variable fc-lo variable fc-tlo variable fc-t0 variable fc-t1 varia
   fc-sfinish ;
 variable fc-mul-entry variable fc-mul-exit variable fc-div-entry variable fc-div-exit
 variable fc-hl variable fc-hcont
-\ The price of the helpers (14.11): bits, copies, layers, known of the path from entry to exit.
 create fc-mul-cost 16 allot create fc-div-cost 16 allot
 : fc-row-or-new ( dl dh sl sh -- )
   2over 2over fc-hl @ lay-fits? if fc-hl @ lay-row drop else lay-layer dup fc-hl ! lay-row drop then ;
-\ Operands to MA/MB and the exit link patched with the continuation, one layer.
 : fc-call-helper ( entry exit -- )
   2 fc-need fc-pop1 fc-pop1 2swap lay-new-cell fc-hcont !
   7 2 lay-field fc-hcont @ fc-link-const fc-guard @ if
@@ -561,17 +486,13 @@ variable fc-s1 variable fc-s2 variable fc-r1
   fc-s2 ! fc-s1 ! fc-reg dup fc-push fc-r1 ! fc-reg dup fc-push
   32 fc-r1 @ fc-s1 @ lay-copy lay-layer dup >r lay-row drop 32 swap fc-s2 @ lay-copy r> lay-row drop ;
 
-\ --- the longest path (14.11) ----------------------------------------------------------------
-\ The price of a word without loops and recursion at compile time. The layers of the log are in
-\ the order they were made, and a path of such a word only goes to later layers: a loop or a call of
-\ an xt leaves a target that no later layer takes, and the price is then by execution. For each
-\ counter the longest path from the entry to the exit: the sum over its layers and calls, the
-\ largest branch. A path to the thrower (THROW, a fault) leaves the word and is not counted.
+\ --- the longest path (14.11) ---
+\ The price of a word without loops and recursion (such a path goes only to later layers; a loop or a call of an xt:
+\ by execution): per counter the longest path from entry to exit; a path to the thrower is not counted.
 variable fc-pexit variable fc-ptramp variable fc-pd variable fc-pc variable fc-ends
 variable fc-pb variable fc-pcp variable fc-pln variable fc-pk variable fc-pcall
 create fc-best 12 allot
-: fc-pend@ ( i -- addr ) 2 lshift cells fc-pend @ + ;   \ cell, bits, copies, layers
-\ A path reaches cell with these counters: kept, the largest of each.
+: fc-pend@ ( i -- addr ) 2 lshift cells fc-pend @ + ;
 : fc-reach ( bits copies layers cell -- )
   fc-npend @ 0 ?do
     i fc-pend@ @ over = if
@@ -581,7 +502,6 @@ create fc-best 12 allot
   loop
   fc-npend @ fc-max-notes = if 2drop 2drop -1 fc-unknown ! exit then
   fc-npend @ fc-pend@ >r r@ ! r@ 3 cells + ! r@ 2 cells + ! r> cell+ ! 1 fc-npend +! ;
-\ The counters of the paths that reach cell, taken off (0: no path reaches it).
 : fc-take ( cell -- bits copies layers -1 | 0 )
   fc-npend @ 0 ?do
     i fc-pend@ @ over = if
@@ -589,17 +509,14 @@ create fc-best 12 allot
       -1 fc-npend +! fc-npend @ fc-pend@ i fc-pend@ 4 cells cmove -1 unloop exit
     then
   loop drop 0 ;
-\ A path reaches the exit; the exit of a word is the trampoline of the return, one layer more.
 : fc-end-path ( bits copies layers -- )
   fc-ptramp @ if 1+ rot lay-layer-bits + rot 1+ rot then
   fc-best 2 cells + @ max fc-best 2 cells + ! fc-best cell+ @ max fc-best cell+ ! fc-best @ max fc-best !
   -1 fc-ends ! ;
-\ The path through the layer (counters in FC-PB FC-PCP FC-PL) goes on at cell.
 : fc-to ( cell -- )
   dup fc-pexit @ = if drop fc-pb @ fc-pcp @ fc-pln @ fc-end-path exit then
   dup fc-thrower @ = if drop exit then
   >r fc-pb @ fc-pcp @ fc-pln @ r> fc-reach ;
-\ A layer of the log (its entry): the notes made for it; if a path reaches it, its targets.
 : fc-node ( entry -- )
   -1 fc-pk ! 0 fc-pcall !
   fc-pd @ fc-ndec @ < if
@@ -618,8 +535,7 @@ create fc-best 12 allot
     dup 3 cells + @ 0= if 2drop -1 fc-unknown ! exit then
     dup @ fc-pb +! dup cell+ @ fc-pcp +! 2 cells + @ fc-pln +!
   then fc-to ;
-\ The longest path from the cell entry to the cell exit (tramp?: a word, the exit is the
-\ trampoline); known: -1, or 0 and no counters (by execution).
+\ The longest path from entry to exit (tramp?: a word, the exit is the trampoline); known: -1, or 0 (by execution).
 : fc-path ( entry exit tramp? -- bits copies layers known )
   fc-ptramp ! fc-pexit !
   fc-unknown @ if drop 0 0 0 0 exit then
@@ -631,16 +547,13 @@ create fc-best 12 allot
   fc-best @ fc-best cell+ @ fc-best 2 cells + @ -1 ;
 : fc-cost! ( bits copies layers known block -- ) >r r@ 3 cells + ! r@ 2 cells + ! r@ cell+ ! r> ! ;
 
-\ --- primitives ---------------------------------------------------------------
-\ The literal compiled by the previous word (for N PICK, N ROLL).
 variable fc-ll variable fc-llr variable fc-llv variable fc-plit variable fc-plr variable fc-plv
-: fc-literal ( value -- ) \ the literal of value onto the stack
+: fc-literal ( value -- )
   dup fc-llv ! fc-reg dup fc-llr ! -1 fc-ll ! dup fc-push >r fc-lit-of r> fc-load ;
-: fc-or-zero ( out r -- ) \ out = (r == 0) as 32 bits
+: fc-or-zero ( out r -- )
   lay-lookups-begin fc-z swap 0 32 lay-or-chunks lay-lookups
   >r lay-lookups-begin fc-t-zero32 @ 6 32 r> 0 lay-item fc-z 4 0 lay-seg lay-lookups ;
 variable fc-ba variable fc-bb variable fc-br
-\ op: 0 + 1 - 2 and 3 or 4 xor 5 = 6 < 7 u< 8 lshift 9 rshift
 : fc-binary ( op -- )
   2 fc-need fc-pop1 fc-bb ! fc-pop1 fc-ba !
   fc-ba @ fc-bb @ = if
@@ -665,26 +578,23 @@ variable fc-ba variable fc-bb variable fc-br
   else 8 = if fc-br @ fc-ba @ fc-bb @ fc-sw fc-zero fc-su lay-shift-left
   else fc-br @ fc-ba @ fc-bb @ fc-sw fc-zero 0 lay-shift-right
   then then then then then then fc-br @ fc-push ;
-: fc-r-at ( offset -- ) \ R@ and I: -1, J: -3
+: fc-r-at ( offset -- )
   fc-reg >r fc-offs ! 1 fc-noff ! fc-rp 0 fc-adjust
   0 fc-nrow ! r@ dup 32 + fc-rstk dup 32 + fc-row+ 2 3 7 fc-patched r> fc-push ;
 : fc-pop-pinned ( -- a r ) fc-pop dup fc-pin ! 1 fc-npin ! fc-reg 0 fc-npin ! ;
-\ CELLS and 2*: a shift by copying, one layer.
 variable fc-sk
 : fc-shift-copy ( k -- )
   fc-sk ! fc-pop-pinned lay-layer >r
   32 fc-sk @ - over fc-sk @ + 3 pick lay-copy r@ lay-row drop
   fc-sk @ over fc-zero lay-copy r> lay-row drop fc-push drop ;
-\ 1+ 1- CELL+: the adder with a constant.
 : fc-inc ( table k carry -- )
   >r >r >r fc-pop-pinned swap r> fc-tmp rot r> fc-const r> lay-adder
   dup 32 swap fc-tmp lay-copy fc-rows1 fc-push ;
-: fc-read-key ( -- ) \ a cleared byte, then stdin: at the end of input it stays 0
+: fc-read-key ( -- )
   fc-reg 8 fc-key fc-zero lay-copy fc-rows1 fc-key dup 8 + lay-stdin dup fc-rows1 lay-layer drop
   lay-lookups-begin fc-t-rev8 @ 4 8 3 pick 0 lay-item fc-key 8 0 lay-seg lay-lookups
   24 over 8 + fc-zero lay-copy fc-rows1 fc-push ;
 
-\ --- source text and words ------------------------------------------------
 variable fc-text variable fc-tlen variable fc-pos variable fc-text-size 8192 fc-text-size !
 create fc-tok 256 allot variable fc-tl
 : fc-reset ( -- ) fc-text @ 0= if fc-text-size @ allocate throw fc-text ! then 0 fc-tlen ! ;
@@ -695,9 +605,6 @@ create fc-tok 256 allot variable fc-tl
 : fc| ( "line" -- ) source >in @ /string fc-append source nip >in ! ;
 : fc-ch ( -- c ) fc-text @ fc-pos @ + c@ ;
 : fc-more? ( -- f ) fc-pos @ fc-tlen @ < ;
-\ Next word into fc-tok, ASCII letters folded to lower case. Words are runs of
-\ bytes above 32. False at the end of the text. The word \ is not special here:
-\ it is a generator of the language (GEN-BACKSLASH, primitives.fth).
 : fc-next ( -- f )
   begin fc-more? if fc-ch 33 < else 0 then while 1 fc-pos +! repeat
   fc-more? 0= if 0 exit then
@@ -707,13 +614,10 @@ create fc-tok 256 allot variable fc-tl
     fc-ch dup [char] A [char] Z 1+ over - >r - r> u< if 32 + then fc-tok fc-tl @ + c! 1 fc-tl +! 1 fc-pos +!
   repeat -1 ;
 : fc-next! ( -- ) fc-next 0= if -16 throw then ;
-\ The word read is the name addr u (for the generators: the end of a comment).
-: fc-is? ( addr u -- f ) \ length and first byte first: most words differ there
+: fc-is? ( addr u -- f )
   dup fc-tl @ <> if 2drop 0 exit then over c@ fc-tok c@ <> if 2drop 0 exit then
   fc-tok fc-tl @ compare 0= ;
-\ The first byte of the word as written (not folded).
 : fc-raw ( -- c ) fc-text @ fc-pos @ fc-tl @ - + c@ ;
-\ S" text": one delimiter, then the bytes up to the closing quote.
 : fc-string-token ( -- addr u )
   fc-pos @ 1+ fc-tlen @ min fc-pos ! fc-pos @
   begin fc-more? if fc-ch [char] " <> else 0 then while 1 fc-pos +! repeat
@@ -721,45 +625,34 @@ create fc-tok 256 allot variable fc-tl
   fc-text @ over + fc-pos @ rot - 1 fc-pos +! ;
 variable fc-names-size 4096 fc-names-size ! variable fc-max-words 256 fc-max-words !
 variable fc-names variable fc-names-used
-variable fc-wt variable fc-nwords variable fc-wbk   \ records of 16 cells (14.11)
-\ The record of a word (14.11, language/doc/word.md): 0 the offset of the name, 1 its length,
-\ 2 the kind, 3 the value (of a word: its concept cell, the xt of the current definition), 4 the
-\ next record of the chain. The concept: 5 the address of the concept cell, through which the word
-\ is called. The definitions by type of addressing: 6 index space (the entry), 7 copy space,
-\ 8 host space (0: none). The price: 9 size (cells), 10 bits, 11 copies, 12 layers, 13 known
-\ (-1: at compile time, 0: by execution). 14 the proof: FC-PROVED, or a record of the unproved.
-\ 15 the stack of definitions (0: empty).
+variable fc-wt variable fc-nwords variable fc-wbk
+\ The record of a word (14.11): 16 cells, language/doc/word.md (3 the value, 5 the concept cell through which the word is
+\ called, 6 7 8 the definitions, 9-13 the price, 14 the proof, 15 the stack of definitions).
 : fc-wt@ ( i -- addr ) 4 lshift cells fc-wt @ + ;
-\ The common word "proved": a table of one value of one bit, 1. The proof of a proved word refers to
-\ it; that of an unproved word to a record of what was checked: inputs, their bits, the way
-\ (FC-UNPROVED: nothing was checked, 0 0 0).
+\ The word "proved": a table of one value of one bit, 1; an unproved word has a record of what was checked.
 create fc-proved 4 allot 1 fc-proved !
 create fc-unproved 12 allot fc-unproved 12 0 fill
-\ The mechanisms of a new record: the concept cell is its own, the index definition its value (if a
-\ word), no price yet, not proved, no earlier definitions.
 : fc-mechanisms ( record -- )
   dup 5 cells + 11 cells 0 fill
   dup 3 cells + over 5 cells + !
   dup 2 cells + @ 1 = if dup 3 cells + @ over 6 cells + ! then
   fc-unproved swap 14 cells + ! ;
-: fc-xt ( record -- xt ) 5 cells + @ @ ;   \ the address of the concept cell of a word: its content
-\ The xt of a word (the literal of [']): that address, or in the program of the kernel the number of the word
-\ (the index of its record, the first of its concept: a synonym has the number of the word it names).
+: fc-xt ( record -- xt ) 5 cells + @ @ ;
+\ The xt of a word (the literal of [']): its concept cell, in the kernel its number (a synonym has that of its word).
 : fc-xtn ( record -- xt ) fc-guard @ if 5 cells + @ 3 cells - fc-wt @ - 6 rshift else fc-xt then ;
-: fc-hash ( addr u -- bucket ) \ of the name addr u
+: fc-hash ( addr u -- bucket )
   0 swap 0 ?do dup 5 lshift swap - over i + c@ + loop nip fc-nbuckets @ 1- and cells fc-wbk @ + ;
-: fc-define ( kind value -- ) \ the newest definition heads its chain
+: fc-define ( kind value -- )
   fc-nwords @ fc-max-words @ = fc-names-used @ fc-tl @ + fc-names-size @ > or if -8 throw then
   fc-nwords @ fc-wt@ >r r@ 3 cells + ! r@ 2 cells + !
   fc-names-used @ r@ ! fc-tl @ r@ cell+ ! fc-tok fc-tl @ fc-hash dup @ r@ 4 cells + ! fc-nwords @ 1+ swap !
   r> fc-mechanisms fc-tok fc-names @ fc-names-used @ + fc-tl @ cmove fc-tl @ fc-names-used +! 1 fc-nwords +! ;
-: fc-lookup ( addr u -- entry|0 ) \ the newest entry of the name addr u
+: fc-lookup ( addr u -- entry|0 )
   2dup fc-hash @ begin ?dup while
     1- fc-wt@ dup @ fc-names @ + over cell+ @ 4 pick 4 pick compare 0= if nip nip exit then 4 cells + @
   repeat 2drop 0 ;
-: fc-find ( -- entry|0 ) fc-tok fc-tl @ fc-lookup ;   \ of the word read
-\ The mechanisms for COST and PROVED? (14.11): the newest word whose concept cell holds xt (in the program
-\ of the kernel: the word of the number xt).
+: fc-find ( -- entry|0 ) fc-tok fc-tl @ fc-lookup ;
+\ For COST and PROVED? (14.11): the newest word whose concept cell holds xt (in the kernel: of number xt).
 : fc-word-of ( xt -- record|0 )
   fc-guard @ if
     dup fc-nwords @ u< 0= if drop 0 exit then
@@ -768,32 +661,24 @@ create fc-unproved 12 allot fc-unproved 12 0 fill
   fc-nwords @ begin dup while
     1- dup fc-wt@ dup 2 cells + @ 1 = if dup fc-xt 3 pick = if nip nip exit then then drop
   repeat nip ;
-: fc-cost ( xt -- size bits copies layers known ) \ the price of the word of xt; no word: 0 0 0 0 0
+: fc-cost ( xt -- size bits copies layers known )
   fc-word-of ?dup 0= if 0 0 0 0 0 exit then
   >r r@ 9 cells + @ r@ 10 cells + @ r@ 11 cells + @ r@ 12 cells + @ r> 13 cells + @ ;
 : fc-proved? ( xt -- f ) fc-word-of dup if 14 cells + @ fc-proved = then ;
 
-\ --- compiler -------------------------------------------------------------
 variable fc-here variable fc-word variable fc-uses
-\ A program that names the word of the replacement (14.13): FC-RT the address of the table of the
-\ records of its words in its memory (0: another program), FC-RTA of the next record.
 variable fc-rt variable fc-rta
-\ Control entries: kind (1 if, 2 else, 3 begin, 4 while, 5 do), cell, and for
-\ a loop its leave cell (0: none yet).
 create fc-ctl 96 cells allot variable fc-nctl variable fc-cleave
 : fc-ctl@ ( i -- addr ) dup 2* + cells fc-ctl + ;
 : fc-ctl+ ( kind cell -- )
   fc-nctl @ 32 = if -8 throw then fc-nctl @ fc-ctl@ >r r@ cell+ ! r@ ! 0 r> 2 cells + ! 1 fc-nctl +! ;
 : fc-ctl- ( -- kind cell )
   fc-nctl @ 0= if -22 throw then -1 fc-nctl +! fc-nctl @ fc-ctl@ >r r@ @ r@ cell+ @ r> 2 cells + @ fc-cleave ! ;
-: fc-do-entry ( -- addr ) \ the innermost loop
+: fc-do-entry ( -- addr )
   fc-nctl @ 0 ?do fc-nctl @ 1- i - fc-ctl@ dup @ 5 = if unloop exit then drop loop -22 throw ;
-\ The leave cell (14.5): of the entry FC-CTL- took (0: none), of the top
-\ entry, of the loop entry (a new cell if it has none yet).
 : fc-ctl-leave ( -- cell ) fc-cleave @ ;
 : fc-ctl-leave! ( cell -- ) fc-nctl @ 1- fc-ctl@ 2 cells + ! ;
 : fc-loop-leave ( entry -- cell ) dup 2 cells + @ 0= if lay-new-cell over 2 cells + ! then 2 cells + @ ;
-\ Data memory: HERE is cell aligned for each definition and string.
 : fc-align ( -- ) fc-here @ 3 + -4 and fc-here ! ;
 : fc-check-here ( -- ) fc-here @ 4 fc-mw lshift > if -8 throw then ;
 : fc-define-data ( size -- ) fc-align 0 fc-here @ fc-define fc-here +! fc-check-here ;
@@ -803,12 +688,10 @@ variable fc-sat
     dup i + c@ lay-rev + c@ fc-eight c!
     fc-sat @ i + dup 2 rshift 64 * swap 3 and 8 * + fc-mem + fc-eight 1 lay-put
   loop drop fc-check-here fc-sat @ ;
-\ Values known at compile time at the top level.
 create fc-ct 64 cells allot variable fc-nct
 : fc-ct+ ( v -- ) fc-nct @ 64 = if -8 throw then fc-ct fc-nct @ cells + ! 1 fc-nct +! ;
 : fc-ct- ( -- v ) fc-nct @ 0= if -22 throw then -1 fc-nct +! fc-ct fc-nct @ cells + @ ;
 : fc-ct2 ( -- a b ) fc-ct- fc-ct- swap ;
-\ Other top-level code runs before MAIN: parts, each a word of its own.
 create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
 : fc-init ( -- )
   fc-size 8 fc-cellb 4096 lay-machine fc-first @ lay-builder fc-tables
@@ -824,11 +707,8 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
   lay-lone fc-ex-base over lay-next! lay-layer-cell fc-ex ! lay-flush
   0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-chunk 8 * allocate throw fc-link-buf ! then
   fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
-\ Before the code: each word of the source is looked up in the dictionary (the
-\ generators only) and the needs of its generator are collected (1: the
-\ multiplication, 2: the division, 4: the kernel layout, KERNEL-LAYOUT). A
-\ generator with the need 8 (the comment to the end of the line, \) is executed
-\ here too: the words of the comment are not the words of the source.
+\ Before the code: the generators of the source are found and their needs collected (1: multiplication, 2: division,
+\ 4: KERNEL-LAYOUT); the generator \ (need 8) is executed too.
 : fc-scan-uses ( -- )
   0 fc-uses ! 0 fc-pos ! begin fc-next while
     fc-find ?dup if
@@ -836,7 +716,6 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
       else fc-uses @ or fc-uses ! drop then
     then
   repeat 0 fc-pos ! ;
-\ N PICK and N ROLL: N is the literal just compiled, on top of the cache.
 : fc-const-shift ( right? k -- )
   dup 0= if 2drop fc-pop fc-push exit then
   fc-sk ! fc-pop-pinned lay-layer >r rot if
@@ -846,9 +725,7 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
     32 fc-sk @ - over fc-sk @ + 3 pick lay-copy r@ lay-row drop
     fc-sk @ over fc-zero lay-copy r> lay-row drop
   then fc-push drop ;
-\ A literal power of two before * (the generator of *), or a literal shift
-\ below 32 (of LSHIFT, RSHIFT): a shift by copying, one layer.
-: fc-lit? ( -- f ) \ the top of the cache is the literal just compiled
+: fc-lit? ( -- f )
   fc-plit @ 0= fc-n @ 0= or if 0 exit then fc-n @ 1- fc-c@ fc-plr @ = ;
 : fc-mul-lit? ( -- f )
   fc-lit? 0= if 0 exit then fc-plv @
@@ -864,23 +741,14 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
   swap if
     dup fc-c@ >r fc-cache over cells + dup cell+ swap fc-n @ 3 pick - 1- cells cmove drop -1 fc-n +! r> fc-push
   else fc-c@ fc-push then ;
-\ SPACE! and SPACEC! ( x lo -- ): the n = 32 (8) bits [lo, lo + n) of the space get the low n bits of x;
-\ SPACE@ and SPACEC@ ( lo -- x ): the low n bits of x are the bits [lo, lo + n) of the space (the upper
-\ bits are zero). The width is the word's, the program gives only the start. The row has the place of
-\ the interval as a placeholder; the end hi = lo + n is made by the adder and both go into the row two
-\ layers ahead, the destination of SPACE! and the source of SPACE@ (the patch layer, a layer between,
-\ the row alone in its layer; the upper bits of SPACEC@ are cleared in the layer between). In the program of
-\ the kernel (FC-GUARD) the program does not name the place: the row holds, as the constant of the compiler,
-\ the data of the program (block 2, the bit FC-D), and gets only the low FC-ABITS bits of lo (the interval, of
-\ n bits at most, stays in the block) and FC-ABITS + 1 bits of the end, made from those. Elsewhere all bits.
+\ SPACE! SPACEC! ( x lo -- ): the n = 32 (8) bits [lo, lo + n) of the space get the low n bits of x; SPACE@ SPACEC@ ( lo -- x ):
+\ x is those bits. The row has a placeholder of the interval; hi = lo + n is made by the adder and both go into the row two
+\ layers ahead. In the kernel (FC-GUARD) only the low FC-ABITS bits of lo and FC-ABITS + 1 bits of the end (language/doc/isolation.md).
 variable fc-stx variable fc-stlo variable fc-sthi variable fc-stp variable fc-strow variable fc-stm
 variable fc-ftr variable fc-stg
-: fc-sw0 ( -- w ) fc-guard @ if fc-abits else 32 then ;     \ bits of lo that go into the row
-: fc-sw1 ( -- w ) fc-guard @ if fc-abits 1+ else 32 then ;     \ bits of the end that go into the row
-\ The placeholder of the interval of n bits: the base of the data of the program and its end, else 0 0.
+: fc-sw0 ( -- w ) fc-guard @ if fc-abits else 32 then ;
+: fc-sw1 ( -- w ) fc-guard @ if fc-abits 1+ else 32 then ;
 : fc-sbase ( n -- lo hi ) fc-guard @ if fc-d @ tuck + else drop 0 0 then ;
-\ FC-STHI = FC-STLO + n in a register of its own; the registers pinned by the caller (FC-NPIN) stay.
-\ In the program of the kernel before: the low FC-ABITS bits of lo in a register FC-STM, the rest zero.
 : fc-space-end ( n -- )
   fc-guard @ if
     fc-reg dup fc-stm ! fc-npin @ cells fc-pin + ! 1 fc-npin +!
@@ -905,10 +773,8 @@ variable fc-ftr variable fc-stg
   fc-sw0 fc-strow @ lay-layer-cell 2 pick 2 lay-field fc-stlo @ lay-copy fc-stp @ lay-row drop
   fc-sw1 fc-strow @ lay-layer-cell rot 3 lay-field fc-sthi @ lay-copy fc-stp @ lay-row drop
   r> drop fc-ftr @ fc-push ;
-\ %COPY ( dl dh sl sh -- ) (15.2): one row of copying [dl,dh) <- [sl,sh), its four fields patched ahead
-\ (as the destination of SPACE!), each in a layer of its own: a layer may not read a register twice (DUP).
-\ A channel is [C,C]. Only in a program that names the long copy (FC-LONG).
-\ FC-CP: the patch of the field f of the row (strow, slot) by the register on top, in the layer p.
+\ %COPY ( dl dh sl sh -- ) (15.2): one row [dl,dh) <- [sl,sh), four fields patched ahead, each in its own layer. A
+\ channel is [C,C]. Only with the long copy (FC-LONG). FC-CP: the patch of the field f of the row (strow, slot) by the top register.
 : fc-cp ( p strow slot f -- strow slot )
   >r 2dup swap lay-layer-cell swap r> lay-field 32 swap fc-pop1 lay-copy 6 roll lay-row drop ;
 : fc-copy-row ( -- )
@@ -917,28 +783,23 @@ variable fc-ftr variable fc-stg
 : fc-close-init ( -- )
   fc-nct @ if -22 throw then
   fc-init-open @ if fc-ret 0 fc-init-open ! 0 fc-word ! then ;
-: fc-open-init ( -- ) \ start a part if needed, then the known values as literals
+: fc-open-init ( -- )
   fc-init-open @ 0= if
     fc-ninit @ 64 = if -8 throw then 0 lay-group dup fc-inits fc-ninit @ cells + ! 1 fc-ninit +!
     -1 fc-init-open ! -1 fc-word ! 0 fc-live ! 0 fc-n ! fc-begin-block drop
   then
   fc-nct @ 0 ?do fc-ct i cells + @ fc-literal loop 0 fc-nct ! ;
 
-\ --- generators (14.3) ----------------------------------------------------
-\ A generator is a dictionary entry of kind 2 (+ 4 * what it needs before the
-\ code: 1 multiplication, 2 division, 4 the kernel layout) whose value is the
-\ xt of a word of the compiler: found in the source, it is executed and writes
-\ the copycode (or defines a word, reads the channel).
-\ Generators are registered by the word in FC-GENS (primitives.fth) when
-\ the dictionary is cleared, before the source is read; the source may
-\ redefine their names. The words below are the state of the compiler a
-\ generator uses (language/doc/generators.md).
+\ --- generators (14.3) ---
+\ A generator is a dictionary entry of kind 2 (+ 4 * need: 1 multiplication, 2 division, 4 kernel layout) whose value
+\ is the xt of a word of the compiler: found in the source, it writes the copycode (or defines a word, reads the
+\ channel); the source may redefine its name (language/doc/generators.md, FC-GENS).
 variable fc-gens
-: fc-generator ( addr u xt uses -- ) \ the entry: name addr u, xt, needs
+: fc-generator ( addr u xt uses -- )
   2 lshift 2 or swap 2swap dup fc-tl ! fc-tok swap cmove fc-define ;
-: fc-literal-name ( addr u v -- ) \ the name addr u of the literal v (14.7: a digit)
+: fc-literal-name ( addr u v -- )
   >r dup fc-tl ! fc-tok swap cmove 0 r> fc-define ;
-: fc-words ( -- ) \ the dictionary: cleared, then the generators
+: fc-words ( -- )
   fc-wt @ 0= if
     fc-max-words @ 4 lshift cells allocate throw fc-wt ! fc-names-size @ allocate throw fc-names !
     fc-nbuckets @ cells allocate throw fc-wbk !
@@ -947,85 +808,52 @@ variable fc-gens
   then
   fc-wbk @ fc-nbuckets @ cells 0 fill 0 fc-nwords ! 0 fc-names-used !
   fc-gens @ ?dup if execute then ;
-: fc-depth ( -- n ) fc-n @ ;           \ items in the stack cache
-: fc-ctl-depth ( -- n ) fc-nctl @ ;    \ entries of the control stack
-: fc-known ( -- n ) fc-nct @ ;         \ values known at compile time
-\ True inside a definition (the word being defined is in FC-WORD), false at
-\ the top level, also while its code (a part before MAIN) is open.
+: fc-depth ( -- n ) fc-n @ ;
+: fc-ctl-depth ( -- n ) fc-nctl @ ;
+: fc-known ( -- n ) fc-nct @ ;
+\ True inside a definition (the word being defined is in FC-WORD), false at the top level.
 : fc-defining? ( -- f ) fc-word @ fc-init-open @ 0= and ;
-\ Code at the top level runs before MAIN: open its part (the known values
-\ become literals); inside a definition nothing is needed.
 : fc-code ( -- ) fc-defining? 0= if fc-open-init 0 fc-plit ! then ;
-\ True: n values are known (the generator folds them with FC-CT- FC-CT+);
-\ else FC-CODE and false (the generator writes code).
+\ True: n values are known (the generator folds them with FC-CT- FC-CT+); else FC-CODE and false (it writes code).
 : fc-fold? ( n -- f ) fc-known > if fc-code 0 else -1 then ;
-\ Words of the top level only (defining words): inside a definition -13.
 : fc-top-only ( -- ) fc-defining? if -13 throw then ;
 
-\ A word not in the dictionary goes to the generator LITERAL (14.7: the word
-\ of numbers, primitives.fth; the newest entry of that name); without it the
-\ word is unknown, -13.
 : fc-not-found ( -- entry )
   s" literal" fc-lookup dup if dup 2 cells + @ 2 and if exit then then -13 throw ;
-\ One word of the channel (14.6): the word is looked up in the dictionary,
-\ else it is given to LITERAL; a generator is executed (the defining words
-\ : ; VARIABLE ... are generators too), a word is called, data (a digit, a
-\ constant, a variable) is a literal: at the top level a value known at
-\ compile time. Top-level code runs before MAIN as parts, in order (FC-CODE).
 : fc-word-token ( -- )
   fc-find ?dup 0= if fc-not-found then
   dup 2 cells + @ dup 2 and if drop 3 cells + @ execute exit then
   dup fc-defining? or 0= if drop 3 cells + @ fc-ct+ exit then
   fc-code if dup fc-callee ! fc-xt fc-call else 3 cells + @ fc-literal then ;
-\ One word of the channel, with the bookkeeping of the literal compiled by the previous word (the loop
-\ of FC-COMPILE and FC-EVAL).
 : fc-token ( -- ) fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! fc-word-token ;
-\ A synonym (14.13): the word read is a name of the word of the record: its concept cell (cell 5:
-\ of a synonym the concept cell of the first word of the chain), definitions, price, proof, stack.
 : fc-synonym-of ( record -- ) 1 0 fc-define 5 cells + fc-nwords @ 1- fc-wt@ 5 cells + 11 cells cmove ;
-\ The name addr u for the word addr2 u2.
 : fc-synonym ( addr u addr2 u2 -- ) fc-lookup >r dup fc-tl ! fc-tok swap cmove r> fc-synonym-of ;
-\ : A B ; with B a word (14.13): the record of B, the word read is A again and the text goes on after
-\ the ; (else 0, the text goes on after A).
+\ : A B ; with B a word (14.13): the record of B, the word read is A again and the text goes on after the ;
+\ (else 0, the text goes on after A).
 variable fc-sy
 : fc-synonym? ( -- record|0 )
   fc-pos @ fc-tl @ - fc-sy ! fc-next drop fc-find dup if dup 2 cells + @ 1 = and then
   fc-next drop s" ;" fc-is? and fc-pos @ fc-sy @ fc-pos ! fc-next drop over if fc-pos ! else drop then ;
-\ The replacement (14.13, language/doc/replace.md): the records of the words in the program.
-\ 32 bits of value v at FC-RTA in the memory of the program, with the stream; FC-RTA to the next cell.
 : fc-poke ( v -- ) fc-rta @ 2 rshift 64 * fc-mem + 4 swap lay-put-numeric 4 fc-rta +! ;
-\ The record of the word in the table of the program, cells 3, 6-13 and 15 of the record of the
-\ compiler: 0 the concept cell, 4 8 12 the definitions (index: its entry, copy, host space), 16 size,
-\ 20 bits, 24 copies, 28 layers, 32 known, 36 the stack of definitions (0: empty). The table ends with
-\ a record of zeros: 99 records.
+\ The replacement (14.13, language/doc/replace.md): the table of the records of the program, 99 records of cells 3, 6-13, 15
+\ of the compiler's record at the offsets 0 4 8 ... 36; 32 bits of v at FC-RTA.
 : fc-concept-record ( record -- )
   fc-rta @ fc-rt @ - 3960 = if -8 throw then
   dup fc-xtn fc-poke 14 6 do dup i cells + @ fc-poke loop drop 4 fc-rta +! ;
-\ A text of the language compiled in the middle of the channel (14.12): the text being compiled goes
-\ on after it. FC-LIBRARY: the words of the program that CHECK-TABLE and ACCURACY need (the
-\ registry of the proofs, keyed by xt), compiled before the program when its source names them.
+\ A text of the language compiled in the middle of the channel (14.12). FC-LIBRARY: the words CHECK-TABLE and ACCURACY
+\ need, compiled before the program when its source names them.
 : fc-eval ( addr u -- )
   fc-text @ fc-tlen @ fc-pos @ >r >r >r fc-tlen ! fc-text ! 0 fc-pos !
   begin fc-next while fc-token repeat
   r> r> r> fc-pos ! fc-tlen ! fc-text ! ;
-\ The table of the records of the words (FC-CONCEPT-RECORD), the stack of definitions and the fields
-\ of the link row of a concept cell, before the words of the program (14.13).
 : fc-concepts ( -- )
   s" create %w 4000 allot create %ds 1280 allot variable %nd" fc-eval
   s" %w" fc-lookup 3 cells + @ dup fc-rt ! fc-rta ! ;
-\ The platforms (15.3, language/doc/platform.md), before the replacement. %RUN ( xt -- ns ): the time
-\ of 0 xt (the result dropped) by the clock (the remote space 1). %TIME ( xt -- ns err ): one run, then 7
-\ runs (%RA); %BOTH ( a b -- ta ea tb eb ): one run of each, then 7 of a and 7 of b in turn (%RA, %RB);
-\ %ST: ns the least run, err the second largest less the least. %HOST ( x k -- r ) runs the host program
-\ K (GEN-HOST: its text at HB + 32, the length at HB): the first time the file of the text (the remote
-\ space 2) is emptied, the text written to it and built; x is written to the remote space 3 at 0, the
-\ program runs, r is read at 32. A command is a request EXEC through the remote space 0 (%EXEC: the
-\ record, op 5 and arg its length, before the command); the commands are in the stream at P = 2^30 +
-\ 2^29 + 2^26 + 152, P + 1024, P + 2048, %KL writes the letter of K into them (%RV reverses the bits of a
-\ byte). The table of the platforms %PF: the cell p holds the xt of the word that runs a definition on
-\ the platform p, 0 the guest %GUEST (execute), 1 the host %HOST. Synonyms: TIME, PLATFORM ( p -- xt ).
-\ The clock is read to P + 2920, x at P + 3048, r at P + 3176.
-variable fc-nhost   \ the number of the host programs (GEN-HOST)
+\ The platforms (15.3, language/doc/platform.md), before the replacement. %RUN, %TIME ( xt -- ns err ), %BOTH, %ST: the
+\ time by the clock (remote space 1), one run, then 7. %HOST ( x k -- r ) runs the host program K (GEN-HOST: text at HB + 32,
+\ length at HB). The commands (%EXEC) are in the stream at P = 2^30 + 2^29 + 2^26 + 152 + 1024 i (%KL, %RV); the clock is
+\ read to P + 2920, x at P + 3048, r at P + 3176. %PF: the cell p holds the xt of the word that runs the definition on the platform p.
+variable fc-nhost
 : fc-platform ( -- )
   0 fc-nhost ! 1677721752 s" : > host.c" lay-put 1677722776 s" cc -O2 -o h? host.c" lay-put
   1677723800 s" ./h?" lay-put s" variable %tm variable %tn variable %tq variable %hk variable %hl" fc-eval
@@ -1047,11 +875,8 @@ variable fc-nhost   \ the number of the host programs (GEN-HOST)
   s" 1677724928 space@ ; : %guest execute ; : %pt cells %pf + @ ;" fc-eval
   s" ['] %guest %pf ! ['] %host %pf 4 + !" fc-eval
   s" time" s" %time" fc-synonym s" platform" s" %pt" fc-synonym ;
-\ In a program of the platforms the price of the replacement is the time (2.11.5): %BETTER ( cand
-\ concept -- f ) is true if the time of cand is less by the sum of the errors at least (%BOTH); if the times are
-\ equal, true if the copies of cand are fewer, if equal its bits, if equal its layers (%TIE; all known
-\ at compile time, else false). %PL ( xt -- p ): the platform of the current definition, 1 if the
-\ host definition (cell 12 of the record of the program) is not 0; synonym PLATFORM-OF.
+\ In a program of the platforms the price is the time (2.11.5): %BETTER ( cand concept -- f ): the time of cand is less by the
+\ sum of the errors at least (%BOTH); if equal, fewer copies, bits, layers (%TIE). %PL ( xt -- p ): the platform.
 : fc-time-price ( -- )
   s" variable %ta variable %tl variable %tb variable %tc variable %bc variable %bk" fc-eval
   s" : %cbl %cost >r rot swap >r >r >r drop r> r> r> r> ; : %tie %cbl %ta ! %tl ! %tb ! %tc ! %cbl" fc-eval
@@ -1060,11 +885,8 @@ variable fc-nhost   \ the number of the host programs (GEN-HOST)
   s" : %better over over %bk ! %bc ! %both rot + >r over over - dup 0 < if 0 swap -" fc-eval
   s" then r> < if drop drop %bc @ %bk @ %tie exit then < ; : %pl %rec dup if 12 + @ 0= 0= 1 and then ;" fc-eval
   s" platform-of" s" %pl" fc-synonym ;
-\ The replacement: %REC the record of a concept cell, %COST its price, %LINK writes a definition into a
-\ concept cell; %REPLACE ( xt concept -- ok ): -1 replaced, else the reason: 0 not words, 1 the
-\ artifacts (none: the concept was not checked by a table; or the check of xt failed), 2 the
-\ accuracy, 3 the price (%BETTER false: not less, or not known at compile time; 15.3: in a program of
-\ the platforms the time, FC-TIME-PRICE).
+\ The replacement: %REC the record of a concept cell, %COST its price, %LINK writes a definition into it; %REPLACE
+\ ( xt concept -- ok ): -1 replaced, else the reason: 0 not words, 1 artifacts, 2 accuracy, 3 price (%BETTER).
 : fc-replacement ( -- )
   s" variable %k variable %q variable %y variable %z : %rec %w begin dup @ while over over @ =" fc-eval
   s" if swap drop exit then 40 + repeat drop drop 0 ; : %cost %rec dup if dup 16 + @ over 20 + @ 2 pick" fc-eval
@@ -1097,13 +919,8 @@ variable fc-nhost   \ the number of the host programs (GEN-HOST)
   s" swap r@ rshift swap r> - 1 swap lshift swap 1000000 * swap / ;" fc-eval
   s" check-table" s" %check" fc-synonym s" accuracy" s" %acc" fc-synonym s" proved?" s" %prv" fc-synonym
   fc-uses @ 128 and if fc-platform then fc-uses @ 32 and if fc-replacement then ;
-\ The long copy (15.2, emulator/src/proto.def): ( space pos lo hi -- ) to the remote space (synonym
-\ of %LST) and from it (%LLD), written on the language before the program when its source names them.
-\ %LR ( space pos len dir -- ) writes the request record LONG at W = 2^30 + 2^28 (the data region of a
-\ program, above its tables): op 8, chan 32 the remote space, flags 16 the direction, arg 32 the length,
-\ off 64 the position; it is written to the channel S = 2^31 by %COPY. To: the bits of [lo,hi) are copied
-\ after the record (W + 152), then the record and them to S. From: the record to S, then S to [lo,hi) (the
-\ answer read, a later tick). Not in the program of the kernel (-13): %COPY writes anywhere.
+\ The long copy (15.2, emulator/src/proto.def): ( space pos lo hi -- ) to the remote space (synonym of %LST) and from it (%LLD);
+\ %LR ( space pos len dir -- ) writes the request record LONG at W = 2^30 + 2^28 to S = 2^31 by %COPY. Not in the kernel (-13).
 : fc-long ( -- )
   fc-guard @ if -13 throw then s" %copy" ['] fc-copy-row 0 fc-generator
   s" variable %la variable %ln : %lr 1342177320 space! dup %ln ! 1342177336 space!" fc-eval
@@ -1112,16 +929,13 @@ variable fc-nhost   \ the number of the host programs (GEN-HOST)
   s" 1342177432 %copy %la @ dup %ln @ + 2147483648 2147483648 %copy ; : %lst over %la ! swap - 0 %lr" fc-eval
   s" 1342177432 dup %ln @ + %la @ dup %ln @ + %copy 2147483648 2147483648 1342177280 1342177432 %ln @ + %copy ;" fc-eval
   s" long!" s" %lst" fc-synonym s" long@" s" %lld" fc-synonym ;
-\ The price of the helpers, built before the code (FC-COMPILE, 14.11): their last layers are still
-\ pending, they go to the log as they are, unwritten.
 : fc-helpers-cost ( -- )
   lay-pending @ 0 ?do i lay-pending@ fc-log-layer loop
   fc-uses @ 1 and if fc-mul-entry @ fc-cellb 0 fc-path fc-mul-cost fc-cost! then
   fc-uses @ 2 and if fc-div-entry @ fc-cellb 0 fc-path fc-div-cost fc-cost! then
   fc-log-end ;
-\ The price of the word just defined (14.11): its size, the cells from its entry to the first free
-\ one, exactly; the bits, copies, layers of its longest path if known at compile time (from its
-\ concept cell: the entry, or in a program of the replacement the cell of FC-CONCEPT).
+\ The price of the word just defined (14.11): its size, the cells from its entry to the first free one; the bits, copies,
+\ layers of its longest path if known at compile time.
 : fc-price-word ( record -- )
   >r lay-next-cell @ r@ 6 cells + @ lay-cell-bit rshift - r@ 9 cells + !
   r@ 3 cells + @ fc-tramp @ -1 fc-path r> 10 cells + fc-cost! fc-log-end ;

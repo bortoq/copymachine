@@ -1,6 +1,5 @@
-\ The compiled compiler: the source on stdin, the boot stream on stdout.
-\ Compiled last, after prelude.fth, backend.fth, compute.fth and forthc.fth:
-\ the heap starts after all static data.
+\ The compiled compiler: the source on stdin, the boot stream on stdout. Compiled last: the heap starts after
+\ all static data.
 create heap-start
 heap-start heap-ptr !
 \ Input ends at the end of stdin or at a zero byte.
