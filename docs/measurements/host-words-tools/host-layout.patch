@@ -1,6 +1,6 @@
-diff -ruN -x measurements -x .git -x build a/emulator/Makefile b/emulator/Makefile
---- a/emulator/Makefile	2026-10-31 15:52:12.251581793 +0200
-+++ b/emulator/Makefile	2026-10-31 15:52:12.383585236 +0200
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/emulator/Makefile b/emulator/Makefile
+--- a/emulator/Makefile	2026-10-30 21:56:49.000000000 +0200
++++ b/emulator/Makefile	2026-11-02 15:23:11.511787166 +0200
 @@ -10,11 +10,11 @@
  
  # One emulator: four-index runtime, bitcopy, the long copy LONG (-r) and SYS.
@@ -11,7 +11,7 @@ diff -ruN -x measurements -x .git -x build a/emulator/Makefile b/emulator/Makefi
  BUILD_CONFIG = $(OUT)/build-config
  
 -.PHONY: all emulator pgo FORCE check check-runtime checked runtime-bitcopy coverage clean help
-+.PHONY: all emulator pgo FORCE check check-runtime check-host-layout host-layout checked runtime-bitcopy coverage clean help
++.PHONY: all emulator pgo FORCE check check-runtime host-layout checked runtime-bitcopy coverage clean help
  all: emulator
  FORCE:
  
@@ -20,27 +20,24 @@ diff -ruN -x measurements -x .git -x build a/emulator/Makefile b/emulator/Makefi
  
  check: check-runtime
 -check-runtime: $(OUT)/emulator $(OUT)/test_runtime $(OUT)/test_sys $(BUILD_DIR)/test_bitcopy
-+check-runtime: check-host-layout $(OUT)/emulator $(OUT)/test_runtime $(OUT)/test_sys $(BUILD_DIR)/test_bitcopy $(BUILD_DIR)/checked-emulator
++check-runtime: $(OUT)/emulator $(OUT)/test_runtime $(OUT)/test_sys $(BUILD_DIR)/test_bitcopy $(BUILD_DIR)/checked-emulator
  	$(BUILD_DIR)/test_bitcopy
  	$(OUT)/test_runtime
  	$(OUT)/test_sys
-@@ -95,3 +95,13 @@
+@@ -95,3 +95,10 @@
  
  src/proto_gen.h: src/proto.def tools/proto_gen.py
  	python3 -B tools/proto_gen.py src/proto.def src/proto_gen.h
 +
 +# 18.19: the layout of the space of the emulator for the definitions on the host is written in the language
 +# (language/src/hostlayout.fth) and executed by the host pForth: host-layout writes the table the emulator is built from
-+# (src/host_layout.h, kept like src/proto_gen.h); check-host-layout (a part of check) sees that it is the one of that text.
++# (src/host_layout.h, kept like src/proto_gen.h); that it is the one of that text is checked by the language
++# (make -C language check-host-layout, 7.2.25).
 +host-layout:
 +	python3 -B ../language/tools/host_layout.py -o src/host_layout.h
-+check-host-layout:
-+	mkdir -p "$(BUILD_DIR)"
-+	python3 -B ../language/tools/host_layout.py > "$(BUILD_DIR)/host_layout.h.new" || { rm -f "$(BUILD_DIR)/host_layout.h.new"; exit 1; }
-+	cmp "$(BUILD_DIR)/host_layout.h.new" src/host_layout.h
-diff -ruN -x measurements -x .git -x build a/emulator/src/host_layout.h b/emulator/src/host_layout.h
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/emulator/src/host_layout.h b/emulator/src/host_layout.h
 --- a/emulator/src/host_layout.h	1970-01-01 02:00:00.000000000 +0200
-+++ b/emulator/src/host_layout.h	2026-10-31 15:52:12.383585236 +0200
++++ b/emulator/src/host_layout.h	2026-11-02 15:23:11.511787166 +0200
 @@ -0,0 +1,60 @@
 +/* generated from language/src/hostlayout.fth by language/tools/host_layout.py; do not edit.
 + * The layout of the space of the emulator for the definitions on the host: laid by the language. */
@@ -102,9 +99,9 @@ diff -ruN -x measurements -x .git -x build a/emulator/src/host_layout.h b/emulat
 +#define HL_NUM_CELLS 6
 +
 +#endif
-diff -ruN -x measurements -x .git -x build a/emulator/src/proto.def b/emulator/src/proto.def
---- a/emulator/src/proto.def	2026-10-31 15:52:12.251581793 +0200
-+++ b/emulator/src/proto.def	2026-10-31 15:52:12.383585236 +0200
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/emulator/src/proto.def b/emulator/src/proto.def
+--- a/emulator/src/proto.def	2026-10-30 10:57:05.000000000 +0200
++++ b/emulator/src/proto.def	2026-11-02 15:23:11.511787166 +0200
 @@ -44,6 +44,15 @@
   * Spaces 2.. are the host files given at startup (-r path, in order), bit
   * addressed (position 0 is the high bit of byte 0); a read past the end
@@ -121,9 +118,9 @@ diff -ruN -x measurements -x .git -x build a/emulator/src/proto.def b/emulator/s
   */
  XOP(LONG,  6)
  /* reserve: SPAWN, POLL, MMAP, ... */
-diff -ruN -x measurements -x .git -x build a/emulator/src/runtime.c b/emulator/src/runtime.c
---- a/emulator/src/runtime.c	2026-10-31 15:52:12.251581793 +0200
-+++ b/emulator/src/runtime.c	2026-10-31 15:52:12.383585236 +0200
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/emulator/src/runtime.c b/emulator/src/runtime.c
+--- a/emulator/src/runtime.c	2026-10-31 13:12:03.000000000 +0200
++++ b/emulator/src/runtime.c	2026-11-02 15:23:11.511787166 +0200
 @@ -6,7 +6,7 @@
  #include <signal.h>
  
@@ -141,9 +138,9 @@ diff -ruN -x measurements -x .git -x build a/emulator/src/runtime.c b/emulator/s
    return 1;
  }
  #ifndef VM1_NO_MAIN
-diff -ruN -x measurements -x .git -x build a/emulator/src/space.h b/emulator/src/space.h
---- a/emulator/src/space.h	2026-10-31 15:52:12.251581793 +0200
-+++ b/emulator/src/space.h	2026-10-31 15:52:12.383585236 +0200
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/emulator/src/space.h b/emulator/src/space.h
+--- a/emulator/src/space.h	2026-10-30 10:57:05.000000000 +0200
++++ b/emulator/src/space.h	2026-11-02 15:23:11.511787166 +0200
 @@ -12,9 +12,10 @@
  #include <string.h>
  typedef uint64_t size;
@@ -156,9 +153,9 @@ diff -ruN -x measurements -x .git -x build a/emulator/src/space.h b/emulator/src
  extern size address_bits, nfield_bits, instruction_size;
  extern unsigned char *space;
  /* Decoded four-field processor snapshot; never fetched again during a tick. */
-diff -ruN -x measurements -x .git -x build a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
---- a/emulator/src/sys_ctrl.c	2026-10-31 15:52:12.251581793 +0200
-+++ b/emulator/src/sys_ctrl.c	2026-10-31 15:52:12.383585236 +0200
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
+--- a/emulator/src/sys_ctrl.c	2026-10-30 10:57:05.000000000 +0200
++++ b/emulator/src/sys_ctrl.c	2026-11-02 15:23:11.511787166 +0200
 @@ -17,6 +17,7 @@
   */
  #include "sys_ctrl.h"
@@ -657,9 +654,9 @@ diff -ruN -x measurements -x .git -x build a/emulator/src/sys_ctrl.c b/emulator/
    for(i = 0; i < nchan; ++i)
      if(channels[i].owned && channels[i].f != NULL)
      {
-diff -ruN -x measurements -x .git -x build a/emulator/src/sys_ctrl.h b/emulator/src/sys_ctrl.h
---- a/emulator/src/sys_ctrl.h	2026-10-31 15:52:12.251581793 +0200
-+++ b/emulator/src/sys_ctrl.h	2026-10-31 15:52:12.383585236 +0200
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/emulator/src/sys_ctrl.h b/emulator/src/sys_ctrl.h
+--- a/emulator/src/sys_ctrl.h	2026-10-30 10:57:05.000000000 +0200
++++ b/emulator/src/sys_ctrl.h	2026-11-02 15:23:11.511787166 +0200
 @@ -48,6 +48,9 @@
  void sys_tick(void);                 /* service channel instructions */
  size sys_req_bits(void);             /* bits in a request record */
@@ -670,9 +667,9 @@ diff -ruN -x measurements -x .git -x build a/emulator/src/sys_ctrl.h b/emulator/
  /* encode/decode a record at a bit address (host side, tests and tools) */
  void sys_encode_req(size base, const size *v);  /* v[REQ_NFIELDS] */
  void sys_decode_rsp(size base, size *v);        /* v[RSP_NFIELDS] */
-diff -ruN -x measurements -x .git -x build a/emulator/tests/checked_vm1.c b/emulator/tests/checked_vm1.c
---- a/emulator/tests/checked_vm1.c	2026-10-31 15:52:12.255581898 +0200
-+++ b/emulator/tests/checked_vm1.c	2026-10-31 15:52:12.383585236 +0200
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/emulator/tests/checked_vm1.c b/emulator/tests/checked_vm1.c
+--- a/emulator/tests/checked_vm1.c	2026-10-19 19:49:13.000000000 +0300
++++ b/emulator/tests/checked_vm1.c	2026-11-02 15:23:11.511787166 +0200
 @@ -1,5 +1,6 @@
  /* Independent audit of the actual emulator execution; test-only, never installed. */
  #include "space.h"
@@ -731,9 +728,9 @@ diff -ruN -x measurements -x .git -x build a/emulator/tests/checked_vm1.c b/emul
 -  destroy_space();return 0;
 +  free(all);destroy_space();return 0;
  }
-diff -ruN -x measurements -x .git -x build a/emulator/tests/test_runtime_cli.py b/emulator/tests/test_runtime_cli.py
---- a/emulator/tests/test_runtime_cli.py	2026-10-31 15:52:12.255581898 +0200
-+++ b/emulator/tests/test_runtime_cli.py	2026-10-31 15:52:12.383585236 +0200
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/emulator/tests/test_runtime_cli.py b/emulator/tests/test_runtime_cli.py
+--- a/emulator/tests/test_runtime_cli.py	2026-10-30 14:43:22.000000000 +0200
++++ b/emulator/tests/test_runtime_cli.py	2026-11-02 15:23:11.511787166 +0200
 @@ -1,7 +1,9 @@
  #!/usr/bin/env python3
  """Real subprocess tests of the emulator contract."""
@@ -864,70 +861,203 @@ diff -ruN -x measurements -x .git -x build a/emulator/tests/test_runtime_cli.py 
  # The keys of the usage line: -r (a host file, the remote space 2) and the joined form -sN.
  with tempfile.TemporaryDirectory(prefix='emulator-r-') as directory:
      remote = Path(directory)/'remote'
-diff -ruN -x measurements -x .git -x build a/language/doc/boot.md b/language/doc/boot.md
---- a/language/doc/boot.md	2026-10-31 15:52:12.267582211 +0200
-+++ b/language/doc/boot.md	2026-10-31 15:52:12.399585653 +0200
-@@ -23,7 +23,7 @@
-    самого pForth) не менялся — его хватает.
- 2. `tools/boot.py` подаёт хосту на stdin: библиотеки компилятора (`backend.fth`,
-    `compute.fth`, `forthc.fth`, с 14.3 и `primitives.fth`) как исходник pForth, строку размеров
--   (`131072 fc-text-size ! 4096 fc-max-consts ! 2048 fc-max-words ! 32768 fc-names-size ! 1024 fc-nbuckets !`),
-+   (`139264 fc-text-size ! 4096 fc-max-consts ! 2048 fc-max-words ! 32768 fc-names-size ! 1024 fc-nbuckets !`),
-    затем весь текст определения построчно как `fc| <строка>` и `fc-go bye`.
-    Компилятор (`forthc.fth`, исполняемый pForth) читает текст определения, а не
-    Python-модель; поток на выходе хоста — L0 (последний `\n` — вывод самого хоста,
-diff -ruN -x measurements -x .git -x build a/language/hostcall/cmove.fth b/language/hostcall/cmove.fth
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/hostcall/cmove.fth b/language/hostcall/cmove.fth
 --- a/language/hostcall/cmove.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/cmove.fth	2026-10-31 15:52:12.395585549 +0200
++++ b/language/hostcall/cmove.fth	2026-11-02 15:23:11.511787166 +0200
 @@ -0,0 +1,2 @@
 +\ 18.16 (experiment): the block of the call of cmove ( src dst u -- ), a generator (%hb4: the record, three values, 33 slots).
 +create %hb4 hl-mv-cells cells allot
-diff -ruN -x measurements -x .git -x build a/language/hostcall/common.fth b/language/hostcall/common.fth
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/hostcall/common.fth b/language/hostcall/common.fth
 --- a/language/hostcall/common.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/common.fth	2026-10-31 15:52:12.395585549 +0200
++++ b/language/hostcall/common.fth	2026-11-02 15:23:11.515787322 +0200
 @@ -0,0 +1,2 @@
 +\ 18.15, 18.16 (experiment): the cell of the return value of a call on the host that has no result (fill, put, cmove, lay-numeric).
 +create %hs 1 cells allot
-diff -ruN -x measurements -x .git -x build a/language/hostcall/encode.fth b/language/hostcall/encode.fth
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/hostcall/encode.fth b/language/hostcall/encode.fth
 --- a/language/hostcall/encode.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/encode.fth	2026-10-31 15:52:12.395585549 +0200
++++ b/language/hostcall/encode.fth	2026-11-02 15:23:11.515787322 +0200
 @@ -0,0 +1,4 @@
 +\ 18.15 (experiment): the block of the call of the encoding of a layer, lay-encode ( rows count -- ) (a generator): the record and
 +\ three values, then the rows lay-rows, contiguous. Only for rows = lay-rows (the only argument of the callers).
 +create %hb2 hl-enc-cells cells allot
 +create lay-rows 32 cells allot
-diff -ruN -x measurements -x .git -x build a/language/hostcall/fill.fth b/language/hostcall/fill.fth
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/hostcall/fill.fth b/language/hostcall/fill.fth
 --- a/language/hostcall/fill.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/fill.fth	2026-10-31 15:52:12.395585549 +0200
++++ b/language/hostcall/fill.fth	2026-11-02 15:23:11.515787322 +0200
 @@ -0,0 +1,2 @@
 +\ 18.15 (experiment): the block of the call of fill ( addr u c -- ), a generator (%hb1: the record and three values).
 +create %hb1 hl-fill-cells cells allot
-diff -ruN -x measurements -x .git -x build a/language/hostcall/numeric.fth b/language/hostcall/numeric.fth
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/hostcall/numeric.fth b/language/hostcall/numeric.fth
 --- a/language/hostcall/numeric.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/numeric.fth	2026-10-31 15:52:12.395585549 +0200
++++ b/language/hostcall/numeric.fth	2026-11-02 15:23:11.515787322 +0200
 @@ -0,0 +1,2 @@
 +\ 18.16 (experiment): the block of the call of lay-numeric ( value nbytes addr -- ), a generator (%hb5: the record and three values).
 +create %hb5 hl-num-cells cells allot
-diff -ruN -x measurements -x .git -x build a/language/hostcall/put.fth b/language/hostcall/put.fth
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/hostcall/put.fth b/language/hostcall/put.fth
 --- a/language/hostcall/put.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/put.fth	2026-10-31 15:52:12.395585549 +0200
++++ b/language/hostcall/put.fth	2026-11-02 15:23:11.515787322 +0200
 @@ -0,0 +1,3 @@
 +\ 18.16 (experiment): the block of the call of %hput ( bit-address src n -- ), a generator (%hb3: the record, the three
 +\ values and 33 slots of the memory of the source).
 +create %hb3 hl-mv-cells cells allot
-diff -ruN -x measurements -x .git -x build a/language/hostcall/rowclash.fth b/language/hostcall/rowclash.fth
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/hostcall/rowclash.fth b/language/hostcall/rowclash.fth
 --- a/language/hostcall/rowclash.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/rowclash.fth	2026-10-31 15:52:12.395585549 +0200
++++ b/language/hostcall/rowclash.fth	2026-11-02 15:23:11.515787322 +0200
 @@ -0,0 +1,5 @@
 +\ 18.15 (experiment): the block of the call of lay-clashes? (a generator): the record and the size, then lay-new-row (the
 +\ row of every call) and the place of the record of the layer lay-cur (31 cells: the count and the rows), contiguous.
 +create %hb0 hl-clash-cells cells allot
 +create lay-new-row 4 cells allot
 +create %hr2 31 cells allot
-diff -ruN -x measurements -x .git -x build a/language/src/forthc.fth b/language/src/forthc.fth
---- a/language/src/forthc.fth	2026-10-31 15:52:12.267582211 +0200
-+++ b/language/src/forthc.fth	2026-10-31 15:52:12.399585653 +0200
-@@ -143,7 +143,9 @@
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/Makefile b/language/Makefile
+--- a/language/Makefile	2026-11-02 14:57:42.000000000 +0200
++++ b/language/Makefile	2026-11-02 15:23:11.515787322 +0200
+@@ -50,7 +50,7 @@
+ endif
+ SOURCES = $(wildcard src/*.fth)
+ TOOLS = $(wildcard tools/*.py)
+-.PHONY: all boot space check check-programs check-space-replace check-closure check-kernel check-self check-tests check-fast-tests check-language-md check-isolation check-proof check-replace check-user-programs coverage-python clean
++.PHONY: all boot space check check-programs check-space-replace check-closure check-host-layout check-kernel check-self check-tests check-fast-tests check-language-md check-isolation check-proof check-replace check-user-programs coverage-python clean
+ all: boot
+ boot: $(L0)
+ space: $(SPACE_BIN)
+@@ -72,6 +72,13 @@
+ # 14.11: the prices of its colon definitions are those of the compiler (tests/test_word.py).
+ check-language-md:
+ 	$(PYTHON) -B tools/language_md.py --check
++# 18.19: the layout of the space of the emulator for the definitions on the host is written in the language
++# (src/hostlayout.fth); emulator/src/host_layout.h, the table the emulator is built from, must be the one of that text
++# (`make -C emulator host-layout` writes it).
++check-host-layout:
++	mkdir -p "$(BUILD_DIR)"
++	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tools/host_layout.py -o "$(BUILD_DIR)/host_layout.h.new"
++	cmp "$(BUILD_DIR)/host_layout.h.new" "$(EMULATOR_ROOT)/src/host_layout.h"
+ check-kernel: $(L0)
+ 	$(if $(EMULATOR),,$(call limit,600) $(MAKE) -C "$(EMULATOR_ROOT)" -j1 runtime-bitcopy)
+ 	$(call limit,$(KERNEL_SECONDS),,$(CPUS)) $(PYTHON) -B tools/check_kernel.py --l0 "$(L0)"
+@@ -128,6 +135,6 @@
+ # with a recompiled language and keeps the previous code if the new one is dearer (about 1 minute).
+ check-user-programs:
+ 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_user_programs.py
+-check: check-programs check-closure check-tests check-language-md
++check: check-programs check-closure check-tests check-language-md check-host-layout
+ clean:
+ 	rm -rf "$(BUILD_DIR)"
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/src/backend.fth b/language/src/backend.fth
+--- a/language/src/backend.fth	2026-11-02 15:12:33.000000000 +0200
++++ b/language/src/backend.fth	2026-11-02 15:42:26.572144724 +0200
+@@ -189,6 +189,11 @@
+ \    (more than DJ-NARROW bits from the start of the field) gets from the program only the low bits of the field: the
+ \    bits above are the block of the constant in the row, the end of the reach lies in that block, and no other row of
+ \    the layer has a position in it (DJ-SCAN, DJ-LOAD).
++\ 3. a row into the channel SYS (the call of a definition on the host) copies a block of the data of the program of at
++\    least DJ-HDR bits (DJ-HB), and the header of the block (the record of the long copy, the number of the definition,
++\    the cells of the positions of the results) is written only by rows that copy it from the code, the template of
++\    the compiler (DJ-HEADS): the program gives the arguments and, for the position of the image, the bits of its
++\    address (DJ-WA .. DJ-WB). The positions of the results that the template gives lie in the data of the program.
+ \ That the rows of a layer do not meet is kept by the scheduler (LAY-ROW, 3.7.2). On failure DJ-BAD-RULE is the number
+ \ of the rule and DJ-BAD-CELL the cell.
+ variable dj-reader variable dj-bad-cell variable dj-bad-rule
+@@ -200,6 +205,16 @@
+ create dj-pr 32 cells allot create dj-tr 32 cells allot
+ 24 constant dj-narrow
+ create dj-seen 64 cells allot variable dj-nseen
++hl-rec hl-args + constant dj-hdr  hl-rec hl-ret + constant dj-oret  hl-rec hl-img + constant dj-oimg
++dj-oimg 4 + constant dj-wa  dj-oimg 23 + constant dj-wb  1 23 lshift hl-out-bits + 1 - constant dj-imax
++variable dj-nh create dj-hb 32 cells allot create dj-hf 32 cells allot
++variable dj-hlo variable dj-hhi variable dj-h variable dj-hx variable dj-hd
++\ The cells of the templates (HC-TNEW, primitives.fth) hold data, not layers: DJ-PROVE does not read them as layers (a stand-in, doc 18.20).
++create dj-tc-list 1024 cells allot variable dj-ntc variable dj-tp variable dj-ro
++: dj-tcell! ( cell -- ) dj-ntc @ cells dj-tc-list + ! 1 dj-ntc +! ;
++: dj-tcell? ( cell -- f ) \ asked in ascending order
++  begin dj-tp @ dj-ntc @ u< if dj-tp @ cells dj-tc-list + @ over u< else 0 then while 1 dj-tp +! repeat
++  dj-tp @ dj-ntc @ u< if dj-tp @ cells dj-tc-list + @ = else drop 0 then ;
+ : dj-get ( bit-address -- x ) dj-reader @ execute ;
+ : dj-fail ( rule -- ) dj-bad-rule @ if drop else dj-bad-rule ! then ;
+ : dj-blk? ( x -- n ) dj-bsh @ rshift ;
+@@ -219,8 +234,17 @@
+     else dj-cb @ i 0 lay-field dj-get dj-vdl ! dj-cb @ i 1 lay-field dj-get dj-vdh ! then
+     i dj-row!
+   loop ;
++: dj-hfind ( b -- i ) \ the number of the block b in DJ-HB (DJ-NH if it is not there)
++  dj-nh @ 0 ?do dup i cells dj-hb + @ = if drop i unloop exit then loop drop dj-nh @ ;
++: dj-sys-ok? ( -- f ) \ a row into SYS: a block of the data of the program, entered in DJ-HB
++  dj-vsl @ dj-blk? 2 = dj-vsh @ 1- dj-blk? 2 = and dj-vsh @ dj-vsl @ - dj-hdr u< 0= and 0= if 0 exit then
++  dj-vsl @ dj-hfind dup dj-nh @ = if
++    dj-nh @ 32 = if drop 0 exit then
++    dj-vsl @ over cells dj-hb + ! 0 over cells dj-hf + ! 1 dj-nh +!
++  then drop -1 ;
+ : dj-row-ok? ( -- f )
+   dj-nop? if -1 exit then
++  dj-vdl @ dj-vdh @ = dj-vdl @ lay-size @ = and if dj-sys-ok? exit then
+   dj-vsl @ dj-vsh @ = if dj-vsl @ lay-stdin = dj-vdl @ dj-vdh @ dj-in? and exit then
+   dj-vdl @ dj-vdh @ = if dj-vdl @ lay-stdout = dj-vsl @ dj-vsh @ dj-in? and exit then
+   dj-vdl @ dj-vdh @ dj-in? dj-vsl @ dj-vsh @ dj-in? and dj-vdh @ dj-vdl @ - dj-vsh @ dj-vsl @ - = and ;
+@@ -281,12 +305,57 @@
+       dj-vdl @ dj-lo @ u< 0= dj-vdl @ dj-hi @ u< and if dj-patch then
+     else 1 dj-fail then
+   loop ;
++: dj-u<= ( a b -- f ) swap u< 0= ;
++: dj-in2? ( x -- f ) dj-blk? 2 = ;
++: dj-ret? ( x -- f ) dup dj-in2? swap 31 + dj-in2? and ;
++: dj-img? ( x -- f ) 23 rshift 23 lshift dup dj-in2? swap dj-imax + dj-in2? and ;
++: dj-flag ( mask -- ) dj-hx @ cells dj-hf + dup @ rot or swap ! ;
++: dj-covers? ( off n -- f ) \ the destination of the row covers the n bits at h + off
++  over dj-h @ + dj-vdl @ swap dj-u<= >r + dj-h @ + dj-vdh @ dj-u<= r> and ;
++: dj-head ( -- ) \ the row in DJ-V.. writes into the header at DJ-H (block number DJ-HX)
++  dj-vsl @ dj-blk? if
++    dj-h @ dj-wa + dj-vdl @ dj-u<= dj-vdh @ dj-h @ dj-wb + dj-u<= and if 1 dj-flag else 3 dj-fail then exit
++  then
++  dj-vsl @ dj-vdl @ - dj-hd !
++  dj-oret 32 dj-covers? if dj-oret dj-h @ + dj-hd @ + dj-get dj-ret? if 4 dj-flag else 3 dj-fail then then
++  dj-wb 9 dj-covers? if
++    dj-oimg dj-h @ + dj-hd @ + dj-get dup 23 rshift if dj-img? if 2 dj-flag else 3 dj-fail then else drop then
++  then ;
++: dj-hits ( -- ) \ the row in DJ-V.. against the headers
++  dj-vdl @ dj-hhi @ u< dj-hlo @ dj-vdh @ u< and 0= if exit then
++  dj-nh @ 0 ?do
++    i cells dj-hb + @ dj-h !
++    dj-vdl @ dj-h @ dj-hdr + u< dj-h @ dj-vdh @ u< and if i dj-hx ! dj-head then
++  loop ;
++: dj-hscan ( -- ) \ the rows of the layer at DJ-CB that may write into a header
++  lay-slots @ 0 ?do
++    dj-cb @ i 7 lshift + dj-ro !
++    dj-ro @ dj-get dup dj-vdl ! dj-hhi @ u< if
++      dj-ro @ 32 + dj-get dup dj-vdh ! dj-hlo @ u< 0= if
++        dj-ro @ 64 + dj-get dj-vsl ! dj-ro @ 96 + dj-get dj-vsh !
++        dj-vdl @ dj-vdh @ = 0= dj-nop? 0= and if dj-hits then
++      then
++    then
++  loop ;
++: dj-heads ( -- ) \ the second pass over the layers: the writers of the headers of the blocks in DJ-HB
++  -1 dj-hlo ! 0 dj-hhi ! 0 dj-tp !
++  dj-nh @ 0 ?do
++    i cells dj-hb + @ dup dj-hlo @ u< if dup dj-hlo ! then dj-hdr + dup dj-hhi @ u< 0= if dj-hhi ! else drop then
++  loop
++  dj-end @ dj-first @ ?do
++    i dj-tcell? 0= if i dj-csh @ lshift dj-cb ! dj-hscan then
++    dj-bad-rule @ if i dj-bad-cell ! unloop exit then
++  loop
++  dj-nh @ 0 ?do
++    i cells dj-hf + @ dup 4 and 0= swap dup 1 and swap 2 and 0= and or if 3 dj-fail then
++  loop ;
+ : dj-prove ( first end -- flag )
+-  dj-end ! dj-first ! 0 dj-bad-rule ! 0 dj-nseen !
++  dj-end ! dj-first ! 0 dj-bad-rule ! 0 dj-nseen ! 0 dj-nh ! 0 dj-tp !
+   lay-size @ lay-bits 3 - dj-bsh !
+   lay-cell-bits @ lay-bits 1- dj-csh ! lay-inst lay-bits 1- dj-ssh ! lay-a @ lay-bits 1- dj-fsh !
+   2 dj-csh @ lshift dj-lo ! lay-size @ 2 rshift dj-hi !
+   dj-end @ dj-first @ ?do
+-    i dj-csh @ lshift dj-cb ! dj-pr dj-pa ! dj-scan dj-rows
++    i dj-tcell? 0= if i dj-csh @ lshift dj-cb ! dj-pr dj-pa ! dj-scan dj-rows then
+     dj-bad-rule @ if i dj-bad-cell ! unloop 0 exit then
+-  loop -1 ;
++  loop
++  dj-nh @ if dj-heads then dj-bad-rule @ 0= ;
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/src/forthc.fth b/language/src/forthc.fth
+--- a/language/src/forthc.fth	2026-11-02 15:12:33.000000000 +0200
++++ b/language/src/forthc.fth	2026-11-02 15:35:01.041794400 +0200
+@@ -116,7 +116,9 @@
      0= if unloop exit then drop
    loop -8 throw ;
  : fc-reg-for-pop ( -- r ) fc-reg dup fc-npin @ cells fc-pin + ! 1 fc-npin +! ;
@@ -938,19 +1068,19 @@ diff -ruN -x measurements -x .git -x build a/language/src/forthc.fth b/language/
  : fc-scratch ( bits align -- at )
    fc-scr @ over 1- + swap negate and dup rot + dup fc-mem u> if -8 throw then fc-scr ! ;
  
-@@ -788,7 +790,8 @@
+@@ -706,7 +708,8 @@
    lay-lone fc-cellb over lay-next! lay-layer-cell fc-tramp ! lay-flush
-   lay-lone 0 over lay-next! lay-layer-cell fc-ex ! lay-flush
+   lay-lone fc-ex-base over lay-next! lay-layer-cell fc-ex ! lay-flush
    0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-chunk 8 * allocate throw fc-link-buf ! then
 -  fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
-+  fc-scr0 fc-scr ! hc-sb 16 cells 0 fill hc-ta 1024 cells 0 fill hc-tb 16 cells 0 fill 0 hc-tc ! 0 hc-to !
++  fc-scr0 fc-scr ! hc-sb 16 cells 0 fill hc-ta 1024 cells 0 fill hc-tb 16 cells 0 fill 0 hc-tc ! 0 hc-to ! 0 dj-ntc !
 +  fc-build-thrower fc-thrower ! ;
- \ Before the code: each word of the source is looked up in the dictionary (the
- \ generators only) and the needs of its generator are collected (1: the
- \ multiplication, 2: the division, 4: the kernel layout, KERNEL-LAYOUT). A
-diff -ruN -x measurements -x .git -x build a/language/src/hostlayout.fth b/language/src/hostlayout.fth
+ \ Before the code: the generators of the source are found and their needs collected (1: multiplication, 2: division,
+ \ 4: KERNEL-LAYOUT); the generator \ (need 8) is executed too.
+ : fc-scan-uses ( -- )
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/src/hostlayout.fth b/language/src/hostlayout.fth
 --- a/language/src/hostlayout.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/src/hostlayout.fth	2026-10-31 15:52:12.399585653 +0200
++++ b/language/src/hostlayout.fth	2026-11-02 15:23:11.515787322 +0200
 @@ -0,0 +1,70 @@
 +\ The layout of the space of the emulator for the definitions on the host (18.19; design 7.2.15, 7.2.17, 7.2.24).
 +\ The language lays everything the emulator does for a definition on the host: where the number of a definition goes (the
@@ -1022,24 +1152,13 @@ diff -ruN -x measurements -x .git -x build a/language/src/hostlayout.fth b/langu
 +hl-args 64 + constant hl-num-rd
 +hl-num-rd 32 + constant hl-num-end
 +hl-num-end hl-rec + 63 + 6 rshift constant hl-num-cells
-diff -ruN -x measurements -x .git -x build a/language/src/main.fth b/language/src/main.fth
---- a/language/src/main.fth	2026-10-31 15:52:12.267582211 +0200
-+++ b/language/src/main.fth	2026-10-31 15:52:12.399585653 +0200
-@@ -10,6 +10,6 @@
-   repeat ;
- \ Room for the compiler's own source (pForth keeps the smaller defaults).
- : fc-sizes ( -- )
--  131072 fc-text-size ! 4096 fc-max-consts ! 2048 fc-max-words ! 32768 fc-names-size !
-+  139264 fc-text-size ! 4096 fc-max-consts ! 2048 fc-max-words ! 32768 fc-names-size !
-   1024 fc-nbuckets ! ;
- : main ( -- ) fc-sizes fc-read fc-go ;
-diff -ruN -x measurements -x .git -x build a/language/src/primitives.fth b/language/src/primitives.fth
---- a/language/src/primitives.fth	2026-10-31 15:52:12.267582211 +0200
-+++ b/language/src/primitives.fth	2026-10-31 15:52:12.399585653 +0200
-@@ -6,24 +6,113 @@
- \ branches by the name of the word the compiler had before. The language
- \ names are given in FC-GENERATORS: the names here differ (pForth itself uses
- \ + - * ...).
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/src/primitives.fth b/language/src/primitives.fth
+--- a/language/src/primitives.fth	2026-11-02 15:12:33.000000000 +0200
++++ b/language/src/primitives.fth	2026-11-02 15:44:31.921173934 +0200
+@@ -1,24 +1,113 @@
+ \ Primitives as generators (14.3-14.7): words of the compiler, executed when the source names the word of the language,
+ \ that write its copycode or define a word. Compiled after forthc.fth, before main.fth. A generator folds the values
+ \ known at the top level (FC-FOLD?) or writes code. The names of the language are in FC-GENERATORS.
 -: gen+ ( -- ) 2 fc-fold? if fc-ct2 + fc-ct+ exit then 0 fc-binary ;
 -: gen- ( -- ) 2 fc-fold? if fc-ct2 - fc-ct+ exit then 1 fc-binary ;
 -: gen-and ( -- ) 2 fc-fold? if fc-ct2 and fc-ct+ exit then 2 fc-binary ;
@@ -1105,8 +1224,8 @@ diff -ruN -x measurements -x .git -x build a/language/src/primitives.fth b/langu
 +  >r rot dup hc-dups hc-layer hc-l ! cells hc-regs + @ r> + >r hc-b @ + r> lay-copy hc-l @ lay-row drop ;
 +: hc-var ( n off addr u -- ) \ n bits of the cell of the variable addr u to the block at off
 +  hc-memb >r hc-b @ + r> lay-copy 0 hc-layer lay-row drop ;
-+: hc-tnew ( offh -- addr ) \ a template of the record and the constant cells (HL-REC + HL-ARGS bits) in the code, the cell HL-RET = offh
-+  hc-to @ hc-tl + 1024 > hc-tc @ 0= or if lay-new-cell hc-tc ! 0 hc-to ! then
++: hc-tnew ( offh -- addr ) \ a template of the record and the constant cells (HL-REC + HL-ARGS bits) in the code, the cell HL-RET = offh (a new cell of templates is entered for DJ-PROVE: data, not a layer)
++  hc-to @ hc-tl + 1024 > hc-tc @ 0= or if lay-new-cell hc-tc ! 0 hc-to ! hc-tc @ lay-cell-bits @ / dj-tcell! then
 +  hc-tc @ hc-to @ + >r
 +  r@ hc-rec0 4 r@ hc-oret + lay-put-numeric
 +  r> hc-tl hc-to +! ;
@@ -1159,10 +1278,10 @@ diff -ruN -x measurements -x .git -x build a/language/src/primitives.fth b/langu
 +: gen-1+ ( -- ) 1 fc-fold? if fc-ct- 1+ fc-ct+ exit then s" 1 +" fc-eval ;
 +: gen-1- ( -- ) 1 fc-fold? if fc-ct- 1- fc-ct+ exit then s" 1 -" fc-eval ;
 +: gen-cell+ ( -- ) 1 fc-fold? if fc-ct- 4 + fc-ct+ exit then s" 4 +" fc-eval ;
- \ * / MOD /MOD call the helpers built before the code (FC-SCAN-USES).
  : gen* ( -- )
    2 fc-fold? if fc-ct2 * fc-ct+ exit then fc-mul-lit? if exit then
-@@ -247,7 +336,82 @@
+   fc-mul-entry @ fc-mul-exit @ fc-call-helper fc-mp fc-result1 ;
+@@ -190,6 +279,81 @@
    fc-cpos @ fc-hb - 32 - dup 4194272 u> if -8 throw then 4 fc-hb lay-put-numeric
    fc-nhost @ dup 1+ fc-word @ 8 cells + ! fc-literal
    s" %host" dup fc-tl ! fc-tok swap cmove fc-word-token 1 fc-nhost +! ;
@@ -1204,7 +1323,6 @@ diff -ruN -x measurements -x .git -x build a/language/src/primitives.fth b/langu
 +  32 hc-oea s" lay-a" hc-var 32 hc-oes s" lay-slots" hc-var 19 hc-oim4 s" lay-dest" hc-var
 +  0 32 hc-oec 0 hc-arg
 +  hc-ret >r hc-request r> fc-push s" if -24 throw then" fc-eval ;
- \ The name of two bytes c1 c2 (S": a quote cannot be written in a string).
 +\ 18.16. The bytes of the memory by the host. The source of PUT and CMOVE is copied into the block as the
 +\ slots of the memory from the slot of its address (33 slots, 2112 bits: at most 128 bytes): the copy is the row
 +\ whose source is patched two layers ahead from the address (the slot) and from the address + 132 (its end), as
@@ -1243,9 +1361,9 @@ diff -ruN -x measurements -x .git -x build a/language/src/primitives.fth b/langu
 +\ +! ( n addr -- ): in place, @ + ! with the + of the host.
 +: gen+! ( -- ) fc-code gen-dup gen-@ gen-rot gen+ gen-swap gen-! ;
  : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
- \ Language name, generator, needs (1 multiplication, 2 division, 4 the kernel
- \ layout, 8 a comment, 16 the words of the proof, FC-LIBRARY, 32 the replacement,
-@@ -299,6 +463,10 @@
+ \ Language name, generator, needs (1 multiplication, 2 division, 4 kernel layout, 8 comment, 16 proof words and FC-LIBRARY,
+ \ 32 the replacement, 64 the long copy, 128 the platforms); the digits: name, value.
+@@ -239,6 +403,10 @@
    s" long!" ['] gen-library 64 fc-generator  s" long@" ['] gen-library 64 fc-generator
    s" host" ['] gen-host 243 fc-generator  s" time" ['] gen-library 243 fc-generator
    s" platform" ['] gen-library 243 fc-generator  s" platform-of" ['] gen-library 243 fc-generator
@@ -1256,21 +1374,68 @@ diff -ruN -x measurements -x .git -x build a/language/src/primitives.fth b/langu
    s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name
    s" 4" 4 fc-literal-name  s" 5" 5 fc-literal-name  s" 6" 6 fc-literal-name  s" 7" 7 fc-literal-name
    s" 8" 8 fc-literal-name  s" 9" 9 fc-literal-name ;
-diff -ruN -x measurements -x .git -x build a/language/tests/test_isolation.py b/language/tests/test_isolation.py
---- a/language/tests/test_isolation.py	2026-10-31 15:52:12.267582211 +0200
-+++ b/language/tests/test_isolation.py	2026-10-31 15:52:12.399585653 +0200
-@@ -10,7 +10,8 @@
- boot.py compiles): the entry of the word kn-.n (it writes a number in decimal) and the record of
- the constant 48 ([char] 0), which kn-.n adds to a digit.
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/tests/test_disjoint.py b/language/tests/test_disjoint.py
+--- a/language/tests/test_disjoint.py	2026-11-02 14:42:07.000000000 +0200
++++ b/language/tests/test_disjoint.py	2026-11-02 15:40:03.010326975 +0200
+@@ -30,6 +30,9 @@
+ CELLS = 1 << 15                     # the image holds the cells below this, then the cells of the table of entries
+ TABLE = 1 << 12
+ ETAB = 1 << 18                      # the first cell of the table of entries (fc-etab)
++HDR = 248                           # the header of the block of a call: hl-rec + hl-args
++RET = 184                           # its cell of the position of the result: hl-rec + hl-ret
++IMG = 216                           # and of the position of the image: hl-rec + hl-img
+ 
+ HARNESS = r'''
+ variable cap-buf variable cap-main variable cap-tab
+@@ -127,7 +130,13 @@
+             two = (c, data[0], data[1])
+             break
+     assert two
+-    chan = sel(lambda r: r[0] == r[1] and r[0] >= 1 << 31 and r[3] > r[2])
++    chan = sel(lambda r: r[0] == r[1] and r[0] == (1 << 31) + 2 and r[3] > r[2])
++    # the call on the host (18.20): the copy of its block into SYS; the template (a copy from the code) of its header
++    sysrow = sel(lambda r: r[0] == r[1] == 1 << 31 and r[3] > r[2])
++    blk = row(img, *sysrow)[2]
++    templ = sel(lambda r: r[0] == blk and r[2] < BLOCK and r[3] - r[2] == r[1] - r[0] > 0)
++    templ_src = row(img, *templ)[2]
++    argrow = sel(lambda r: blk + HDR <= r[0] < blk + HDR + 64 and BASE2 <= r[2] < 2 * BLOCK + BASE2 and r[3] - r[2] == 32)
+     out = {}
+     out['source of a link row in the kernel block'] = (
+         [(fld(*link, 2), BLOCK + word(img, fld(*link, 2))), (fld(*link, 3), BLOCK + word(img, fld(*link, 3)))], 1)
+@@ -151,6 +160,18 @@
+         [(fld(*tab, 2), BLOCK + word(img, fld(*tab, 2))), (fld(*tab, 3), BLOCK + word(img, fld(*tab, 3)))], 1)
+     out['patch across the border of the field'] = (
+         [(fld(*dl_patch, 0), row(img, *dl_patch)[0] + 8), (fld(*dl_patch, 1), row(img, *dl_patch)[1] + 8)], 2)
++    # rule 3: the header of the block of a call is written only from the template in the code
++    n = row(img, *templ)[1] - row(img, *templ)[0]
++    out['the header of the block of a call from the data (not from the template)'] = (
++        [(fld(*templ, 2), BASE2 + 4096), (fld(*templ, 3), BASE2 + 4096 + n)], 3)
++    out['a row of the data into the header of the block of a call'] = (
++        [(fld(*argrow, 0), blk + 8), (fld(*argrow, 1), blk + 40)], 3)
++    out['the position of the result (the cell HL-RET) in the code'] = ([(templ_src + RET, 4096)], 3)
++    out['the position of the image in the code'] = ([(templ_src + IMG, 1 << 23)], 3)
++    out['a copy into SYS of the code'] = (
++        [(fld(*sysrow, 2), 4096), (fld(*sysrow, 3), 4096 + row(img, *sysrow)[3] - row(img, *sysrow)[2])], 1)
++    out['a copy into SYS of a block that no template writes'] = (
++        [(fld(*sysrow, 2), BASE2 + (1 << 20)), (fld(*sysrow, 3), BASE2 + (1 << 20) + row(img, *sysrow)[3] - row(img, *sysrow)[2])], 3)
+     free = next(t for t in range(7) if row(img, store[0], t) == [0, 0, 0, 0])
+     out['a row of data in the layer of a position of the program'] = (
+         [(fld(store[0], free, 0), BASE2 + 4096), (fld(store[0], free, 1), BASE2 + 4128),
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/tests/test_isolation.py b/language/tests/test_isolation.py
+--- a/language/tests/test_isolation.py	2026-11-02 14:42:07.000000000 +0200
++++ b/language/tests/test_isolation.py	2026-11-02 15:23:11.515787322 +0200
+@@ -16,7 +16,8 @@
+ The output of the attack is compared with what the probe must write (the writes land in the data of the
+ program: the high bits of the position are the constant of the compiler).
  
 -Options: --l0 PATH (default build L0), --only NAME, --report (print the outputs, do not compare).
 +Options: --l0 PATH (default build L0), --words W (L0 is the variant of tools/boot_call.py with the calls on the host),
 +--only NAME, --report (print the outputs, do not compare).
- Exit code 0 if every output is the expected one.
+ Exit code 0 if every probe is as expected. The proofs of the word of disjointness are tests/test_disjoint.py.
  """
  import argparse
-@@ -30,9 +31,15 @@
- SHOW = ': show 0 swap - 48 + emit ;\n'    # the code of a THROW as a digit: -9 is 9, 0 is 0
+@@ -67,9 +68,15 @@
+     return out
  
  
 -def kernel_addresses():
@@ -1288,33 +1453,31 @@ diff -ruN -x measurements -x .git -x build a/language/tests/test_isolation.py b/
      tail = b'fc-go\nbye\n'
      assert stream.endswith(tail)
      query = (b'fc-go\ns" ENTRY " type s" kn-.n" fc-lookup 3 cells + @ . 48 fc-lit-of drop . cr\nbye\n')
-@@ -63,6 +70,25 @@
-                          'error -13 at spacec@\n')
-     p['execute-kernel'] = (SHOW + f': k {entry} execute ;\n: main 65 emit [\'] k catch show 66 emit ;', 'A9B', 'A0')
-     p['catch-kernel'] = (SHOW + f': c {entry} catch show ;\n: main 65 emit [\'] c catch show 66 emit ;', 'A9B', 'A0')
-+    # --- the call on the host (18.16): the record of the request is not in the memory of the program -----
-+    # + is a call of the host (18.19: a long copy into the space of the emulator, laid by hostlayout.fth): the emulator
-+    # writes the sum to the program position that the cell HL-RET of the block names. In 18.15 that
-+    # position was copied from a constant of the program (the position of the register of the result) and the rest of
-+    # the record lay in a block in the memory of the program, both written by space! (the program half). The program
-+    # writes a place (the constant 48 of the kernel; a place of its own half) over every constant that holds the
-+    # position of a register and over the start of the scratch where the block lay, then calls + twice and prints
-+    # Y if the sum 49 is in its register, as it must: the record of the call is a part of its code (the template),
-+    # and the position that the call writes does not come from the memory. In 18.15 the sum went to the place and the
-+    # program did not end (nothing is printed). That kn-.n still adds 48 cannot be seen here: after the fix the
-+    # program cannot execute kn-.n (execute of the kernel is refused), so the place of its own half is the same test.
+@@ -130,6 +137,23 @@
+         f': f {FREE} >r ;\n: main 65 emit key 49 = if f then 66 emit ;', 'AB', None)
+     p['return forged in the data'] = (
+         f': f {entry} {FREE} space! ;\n: main 65 emit key 49 = if f then 66 emit ;', 'AB', None)
++    # the call on the host (18.16): the record of the request is not in the memory of the program. + is a call of the
++    # host (18.19: a long copy into the space of the emulator, laid by hostlayout.fth): the emulator writes the sum to
++    # the program position that the cell HL-RET of the block names. In 18.15 that position was copied from a constant
++    # of the program (the position of the register of the result) and the rest of the record lay in a block in the
++    # memory of the program, both written by space! (the program half). The attack writes a place (the constant 48 of
++    # the kernel; a place of its own half) over every constant that holds the position of a register and over the
++    # start of the scratch where the block lay, then calls + twice and prints Y if the sum 49 is in its register, as
++    # it must: the record of the call is a part of its code (the template), and the position that the call writes does
++    # not come from the memory. In 18.15 the sum went to the place and the program did not end (nothing is printed).
 +    regs, pool, scratch = (1 << 30) + 1024, (1 << 30) + 8192, (1 << 30) + (1 << 21) + (1 << 16)
-+    for name, target in (('host-call-forge-kernel', lo), ('host-call-forge-own', d)):
++    for name, target in (('host-call-forge-kernel', constant), ('host-call-forge-own', FREE)):
 +        p[name] = (
-+            f': f1 dup dup 32 + space@ {regs} - 3072 u< if {target} swap dup 32 + space! else drop then ;\n'
-+            f': f2 {target} swap dup 32 + space! ;\n'
++            f': f1 dup space@ {regs} - 3072 u< if {target} swap space! else drop then ;\n'
++            f': f2 {target} swap space! ;\n'
 +            ': g 20 29 + 49 = if 89 emit else 78 emit then ;\n'
-+            f': main 400 0 do i 64 * {pool} + f1 loop 8 0 do i 64 * {scratch} + f2 loop g g ;',
-+            'YY', '')
-     # --- what must keep working -----------------------------------------------------------------------
-     p['program-half'] = (
-         f': main 1234567 {d} {d + 32} space! {d} {d + 32} space@ 1234567 = if 89 emit else 78 emit then\n'
-@@ -127,11 +153,12 @@
++            f': main key 49 = if 400 0 do i 64 * {pool} + f1 loop 8 0 do i 64 * {scratch} + f2 loop then g g ;',
++            'YY', 'YY')
+     return p
+ 
+ 
+@@ -157,11 +181,12 @@
      parser.add_argument('--l0', default=str(paths.L0))
      parser.add_argument('--only', action='append')
      parser.add_argument('--report', action='store_true')
@@ -1322,15 +1485,15 @@ diff -ruN -x measurements -x .git -x build a/language/tests/test_isolation.py b/
      parser.add_argument('--addresses', nargs=2, type=int, metavar=('ENTRY', 'CONSTANT'),
                          help='the addresses of the kernel of --l0 if its sources are not the current ones')
      args = parser.parse_args()
-     L0 = open(args.l0, 'rb').read()
+     l0 = open(args.l0, 'rb').read()
 -    entry, constant = args.addresses or kernel_addresses()
 +    entry, constant = args.addresses or kernel_addresses(args.words.split(',') if args.words else None)
      print(f'kernel: entry of kn-.n {entry}, record of the constant 48 at {constant}', flush=True)
-     table = probes(entry, constant)
-     table.update(range_probes())
-diff -ruN -x measurements -x .git -x build a/language/tools/boot_call.py b/language/tools/boot_call.py
+     table = {k: v for k, v in probes(entry, constant).items() if not args.only or k in args.only}
+     with tempfile.TemporaryDirectory() as tmp:
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/tools/boot_call.py b/language/tools/boot_call.py
 --- a/language/tools/boot_call.py	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/tools/boot_call.py	2026-10-31 15:52:12.399585653 +0200
++++ b/language/tools/boot_call.py	2026-11-02 15:23:11.515787322 +0200
 @@ -0,0 +1,104 @@
 +#!/usr/bin/env python3
 +"""18.13, 18.15, 18.16, 18.19 (experiment): boot of the variant of the language in which `fill`, `lay-clashes?` (the clash of the
@@ -1373,9 +1536,9 @@ diff -ruN -x measurements -x .git -x build a/language/tools/boot_call.py b/langu
 +           '    over i + c!\n  loop 2drop ;\n')
 +PSTORE = ': +! ( n addr -- ) dup >r @ + r> ! ;\n'
 +PUT_TAIL = ('  rot kn-at !\n  over 3 and 0= if\n'
-+            '    dup 2 rshift 0 ?do over i cells + @ kn-at @ dup 32 + space! 32 kn-at +! loop\n'
++            '    dup 2 rshift 0 ?do over i cells + @ kn-at @ space! 32 kn-at +! loop\n'
 +            '    dup -4 and rot + swap 3 and\n  then\n'
-+            '  0 ?do dup i + c@ kn-at @ dup 8 + spacec! 8 kn-at +! loop drop ;\n')
++            '  0 ?do dup i + c@ kn-at @ spacec! 8 kn-at +! loop drop ;\n')
 +PUT_HEAD = ': kn-put ( bit-address src n -- )\n'
 +PUT_NEW = ('  begin dup 128 > while\n    2 pick 2 pick 128 %hput\n'
 +           '    rot 1024 + rot 128 + rot 128 -\n  repeat %hput ;\n')
@@ -1436,21 +1599,9 @@ diff -ruN -x measurements -x .git -x build a/language/tools/boot_call.py b/langu
 +
 +if __name__ == '__main__':
 +    main()
-diff -ruN -x measurements -x .git -x build a/language/tools/boot.py b/language/tools/boot.py
---- a/language/tools/boot.py	2026-10-31 15:52:12.267582211 +0200
-+++ b/language/tools/boot.py	2026-10-31 15:52:12.403585757 +0200
-@@ -21,7 +21,7 @@
- 
- # The sizes of fc-sizes in main.fth, set before the definition is read (the host keeps the
- # smaller defaults of the compiler, which do not suffice for the whole definition).
--SIZES = '131072 fc-text-size ! 4096 fc-max-consts ! 2048 fc-max-words ! 32768 fc-names-size ! 1024 fc-nbuckets !'
-+SIZES = '139264 fc-text-size ! 4096 fc-max-consts ! 2048 fc-max-words ! 32768 fc-names-size ! 1024 fc-nbuckets !'
- 
- 
- def boot_input():
-diff -ruN -x measurements -x .git -x build a/language/tools/host_layout.py b/language/tools/host_layout.py
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/tools/host_layout.py b/language/tools/host_layout.py
 --- a/language/tools/host_layout.py	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/tools/host_layout.py	2026-10-31 15:52:12.403585757 +0200
++++ b/language/tools/host_layout.py	2026-11-02 15:23:11.515787322 +0200
 @@ -0,0 +1,45 @@
 +#!/usr/bin/env python3
 +"""18.19: the layout of the space of the emulator for the definitions on the host is written in the language
@@ -1497,9 +1648,9 @@ diff -ruN -x measurements -x .git -x build a/language/tools/host_layout.py b/lan
 +        open(args.output, 'w').write(header)
 +    else:
 +        sys.stdout.write(header)
-diff -ruN -x measurements -x .git -x build a/language/tools/paths.py b/language/tools/paths.py
---- a/language/tools/paths.py	2026-10-31 15:52:12.267582211 +0200
-+++ b/language/tools/paths.py	2026-10-31 15:52:12.403585757 +0200
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/language/tools/paths.py b/language/tools/paths.py
+--- a/language/tools/paths.py	2026-10-30 11:27:18.000000000 +0200
++++ b/language/tools/paths.py	2026-11-02 15:23:11.515787322 +0200
 @@ -12,11 +12,11 @@
  SIZE = 1 << 31                                         # bits of the space (emulator -s), as model.SIZE
  # Order of compilation of the language definition (as KERNEL in forth/tests/test_kernel.py of the archive,
@@ -1514,3 +1665,15 @@ diff -ruN -x measurements -x .git -x build a/language/tools/paths.py b/language/
  
  sys.path[:0] = [str(REFERENCE)]
  
+diff -ruN -x measurements -x .git -x build -x __pycache__ -x Makefile.orig -x proto_gen.h -x .project-git -x .ruff_cache a/Makefile b/Makefile
+--- a/Makefile	2026-10-30 11:28:47.000000000 +0200
++++ b/Makefile	2026-11-02 15:23:11.515787322 +0200
+@@ -30,7 +30,7 @@
+ 	$(PYTHON) -B tools/check_layout.py
+ check-fast:
+ 	$(LIMIT) $(MAKE) -C emulator -j1 check checked
+-	$(MAKE) -C language -j1 check-programs check-closure check-language-md check-fast-tests
++	$(MAKE) -C language -j1 check-programs check-closure check-language-md check-host-layout check-fast-tests
+ 	$(MAKE) check-layout
+ check: check-fast
+ 	$(MAKE) -C language -j1 boot
