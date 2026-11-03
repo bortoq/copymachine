@@ -16,6 +16,12 @@ hashes of the memory at the end) says:
 The output of the attack is compared with what the probe must write (the writes land in the data of the
 program: the high bits of the position are the constant of the compiler).
 
+The long copy (18.24 step 2) has its own probes (long_probes: the request block of the data of the program, in the upper half,
+is written by the program only through long! and long@; the hash of the upper half of the data leaves it out, and the
+first byte of the header must be LONG after the run): a forged EXEC record is sent as data and runs nothing, arguments
+outside change nothing, the answer of the host is written over the stack of returns and the pair it forges goes to a point
+of return only.
+
 Options: --l0 PATH (default build L0), --only NAME, --report (print the outputs, do not compare).
 Exit code 0 if every probe is as expected. The proofs of the word of disjointness are tests/test_disjoint.py.
 """
@@ -28,6 +34,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import boot
 import check_kernel
+import check_programs
 import host
 import paths
 
@@ -44,9 +51,10 @@ PATCH = r'''
     for(a=(1u<<26);a<(1u<<27);a++) hk=(hk^space[a])*1099511628211ull;
     for(a=3*(1u<<26);a<(1u<<28);a++) hk=(hk^space[a])*1099511628211ull;
     for(a=(1u<<25);a<(1u<<26);a++) hc=(hc^space[a])*1099511628211ull;
-    for(a=(1u<<27)+(1u<<25);a<(1u<<27)+(1u<<26);a++) hd=(hd^space[a])*1099511628211ull;
-    fprintf(stderr,"kernel %016llx code-tail %016llx data-tail %016llx\n",(unsigned long long)hk,
-            (unsigned long long)hc,(unsigned long long)hd);
+    for(a=(1u<<27)+(1u<<25);a<(1u<<27)+(1u<<26);a++)
+      if(a<(1u<<27)+(1u<<25)+128 || a>=(1u<<27)+(1u<<25)+128+8211) hd=(hd^space[a])*1099511628211ull;
+    fprintf(stderr,"kernel %016llx code-tail %016llx data-tail %016llx header %02x\n",(unsigned long long)hk,
+            (unsigned long long)hc,(unsigned long long)hd,space[(1u<<27)+(1u<<25)+128]);
   }
   destroy_space();'''
 
@@ -162,6 +170,123 @@ def forged_returns():
     }
 
 
+AREA = 1 << 28                                 # HOST_AREA_BITS of proto.def: the area 1 is the first -r path
+REQ_OP = 0x60                                  # the first byte of the header of the request after the run: op 6 (LONG), numeric
+
+
+def rev8(b):
+    return int(f'{b:08b}'[::-1], 2)
+
+
+def long_probes(folder):
+    """name -> (program, [bytes of the file of the area 1], what the attack does, the check of the file and of the output).
+    The marker is a file that an EXEC would make."""
+    marker = folder / 'marker'
+    cmd = f'touch {marker}'
+    n = len(cmd)
+    forged = f'5 {FREE} spacec! {n} {FREE + 56} space!\n' + '\n'.join(
+        f'{rev8(ord(c))} {FREE + 152 + 8 * i} spacec!' for i, c in enumerate(cmd))
+    lo, hi = FREE, FREE + 152 + 8 * n
+    out = {}
+    out['long! of a forged EXEC record sends it as data'] = dict(
+        program=(f': main key 49 = if {forged}\n  {AREA} {lo} {hi} long! then 89 emit ;'), file=bytes(64),
+        exec_record=(forged, lo, hi, n), want_output='Y')
+    far = 4294967295
+    out['long! and long@ with arguments outside'] = dict(
+        program=(f': main key 49 = if {far} {FREE} {FREE + 64} long! {AREA} {FREE + 64} {FREE} long!\n'
+                 f'  {AREA} {FREE} {FREE + (1 << 27)} long! {far} {FREE} {FREE + 64} long@\n'
+                 f'  {AREA} {FREE + 64} {FREE} long@ {AREA} {FREE + 64} {FREE + 64} long@\n'
+                 f'  {AREA} {far} {far - 64} long@ {AREA} {far - 8} {far} long! {AREA} {(1 << 28) - 8} {(1 << 28) + 8} long@\n'
+                 f'  then 89 emit ;'), file=bytes(range(64)), want_output='Y')
+    # the answer of the host over the stack of returns forges the pair of the return of F: the numbers 2, 2 (the points are
+    # numbered in the order of the calls: 0 the call of %lld in F, 1 the call of F, 2 the call of P): F returns after P
+    pair = bytes([0x40, 0, 0, 0, 0x40, 0, 0, 0])
+    out['the answer of the host forges a return'] = dict(
+        program=(f': p 80 emit ;\n: f {AREA} {RSTACK + 128} {RSTACK + 192} long@ ;\n'
+                 ': main 65 emit key 49 = if f then p 66 emit ;'), file=pair, control_output='APB', want_output='AB')
+    return out
+
+
+def run_long(item):
+    emulator, l0, name, case, attack, folder = item
+    marker = folder / 'marker'
+    marker.unlink(missing_ok=True)
+    path = folder / (name.replace(' ', '_') + ('.a' if attack else '.c'))
+    path.write_bytes(case['file'])
+    data = l0 + case['program'].encode('latin-1') + b'\0' + (b'1' if attack else b'0')
+    with tempfile.TemporaryFile() as stdin, tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+        stdin.write(data)
+        stdin.seek(0)
+        subprocess.run([str(emulator), '-s', str(paths.SIZE), '-p', '8', '-r', str(path)], stdin=stdin, stdout=stdout,
+                       stderr=stderr, timeout=PROBE_SECONDS, check=False)
+        stdout.seek(0)
+        stderr.seek(0)
+        out = stdout.read().decode('latin-1')
+        hashes = dict(zip(*[iter(stderr.read().decode().split())] * 2, strict=True))
+    return name, attack, out, hashes, path.read_bytes(), marker.exists()
+
+
+def exec_sanity(emulator, folder, case):
+    """The forged record is a real EXEC: sent as a request by a program of the host (the whole space) it makes the marker."""
+    forged, lo, hi, _ = case['exec_record']
+    source = f': unused 0 0 0 long! ;\n: main {forged}\n  2147483648 2147483648 {lo} {hi} %copy ;'
+    stream = check_programs.compile_on_host(host.build(), paths.source_bytes(paths.LIBRARY_FILES), source)
+    marker = folder / 'marker'
+    marker.unlink(missing_ok=True)
+    subprocess.run([str(emulator), '-s', str(paths.SIZE), '-p', '8'], input=stream, capture_output=True, timeout=600, check=False)
+    assert marker.exists(), 'the forged record is not an EXEC: the probe proves nothing'
+    marker.unlink()
+
+
+def check_long(emulator, l0, only):
+    failed = []
+    with tempfile.TemporaryDirectory() as tmp:
+        folder = Path(tmp)
+        table = {k: v for k, v in long_probes(folder).items() if not only or k in only}
+        if not table:
+            return 0, failed
+        for case in table.values():
+            if 'exec_record' in case:
+                exec_sanity(emulator, folder, case)
+        items = [(emulator, l0, name, case, attack, folder) for name, case in table.items() for attack in (False, True)]
+        results = {}
+        for item in items:                     # one after the other: the marker is shared
+            name, attack, out, hashes, file, marker = run_long(item)
+            results[name, attack] = (out, hashes, file, marker)
+        for name, case in table.items():
+            (c_out, c_hash, c_file, c_marker), (a_out, a_hash, a_file, a_marker) = results[name, False], results[name, True]
+            problems = []
+            if c_out != case.get('control_output', case['want_output']):
+                problems.append(f'control output {c_out!r}')
+            if a_out != case['want_output']:
+                problems.append(f'attack output {a_out!r}, expected {case["want_output"]!r}')
+            if c_file != case['file']:
+                problems.append('the control run changed the file')
+            if a_marker or c_marker:
+                problems.append('THE MARKER OF AN EXEC EXISTS')
+            if 'exec_record' in case:
+                forged, lo, hi, n = case['exec_record']
+                if a_file[:2] != case['file'][:2] and a_file == case['file']:
+                    problems.append('the attack wrote nothing to the file')
+            for h in (c_hash, a_hash):
+                if h is None:
+                    problems.append('no end of the run')
+            if not problems:
+                if a_hash['kernel'] != c_hash['kernel']:
+                    problems.append('THE KERNEL CHANGED')
+                for tail in ('code-tail', 'data-tail'):
+                    if a_hash[tail] != c_hash[tail]:
+                        problems.append(f'{tail} differs from the control run')
+                if int(a_hash['header'], 16) != REQ_OP:
+                    problems.append(f'the header of the request starts with {a_hash["header"]}, not {REQ_OP:02x} (LONG)')
+            ok = not problems
+            print(f'{"PASS" if ok else "FAIL"} {name}: control {c_out!r}, attack {a_out!r}'
+                  + ('' if ok else ': ' + '; '.join(problems)), flush=True)
+            if not ok:
+                failed.append(name)
+    return len(table), failed
+
+
 def run_probe(item):
     emulator, l0, name, program, attack, ticks = item
     data = l0 + program.encode('latin-1') + b'\0' + (b'1' if attack else b'0')
@@ -202,6 +327,7 @@ def main():
         results = {}
         for name, attack, out, hashes in check_kernel.parallel(run_probe, items):
             results[name, attack] = (out, hashes)
+        nlong, failed_long = check_long(emulator, l0, args.only)
     failed = []
     for name, (_, control, attack, *_) in table.items():
         (c_out, c_hash), (a_out, a_hash) = results[name, False], results[name, True]
@@ -223,9 +349,10 @@ def main():
               flush=True)
         if not ok:
             failed.append(name)
+    failed += failed_long
     if failed and not args.report:
         sys.exit(f'isolation: {len(failed)} probes differ: {failed}')
-    print('ALL', len(table), 'probes of the isolation of the kernel' + (' (report only)' if args.report else ''))
+    print('ALL', len(table) + nlong, 'probes of the isolation of the kernel' + (' (report only)' if args.report else ''))
 
 
 if __name__ == '__main__':

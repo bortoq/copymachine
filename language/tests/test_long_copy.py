@@ -18,7 +18,10 @@ the space is numeric there: bit k of the value at position lo + k).
 4. No errors: a write to the clock, to an area that no path gives, past the end of an area, or to a path
    that cannot be opened is lost (the files stay), and a read there gives zeros; the exit code is 0 and
    nothing is written to stderr.
-5. The words of the long copy are in a program only when its source names them: the stream of another
+5. The same checks 1-4 run twice: for the program compiled on the host (the whole space) and for the program that L0
+   compiles and runs in its own space (the program of the kernel, 18.24 step 2: the request is a block of the data with
+   the header copied from a template of the code, language/doc/isolation.md).
+6. The words of the long copy are in a program only when its source names them: the stream of another
    program equals the stream of the model; the definition of the language has none of them. Their price
    is FC-FORBID (the price of the division by 0).
 """
@@ -67,7 +70,12 @@ def answer(data, numeric):
     return out
 
 
+KERNEL = False                                   # the program is given to L0 (the program of the kernel)
+
+
 def compile_language(source):
+    if KERNEL:
+        return paths.L0.read_bytes() + source.encode('latin-1') + b'\0'
     return check_programs.compile_on_host(host.build(), paths.source_bytes(paths.LIBRARY_FILES), source)
 
 
@@ -104,6 +112,24 @@ def check_file(folder):
     assert got == bytes(rev(b) for b in want) + b'\0\0', (got.hex(), want.hex())
     print(f'PASS file (area 1): long! of {len(data)} bytes at bit {pos} changed exactly these bits of '
           f'the file; long@ read back the {len(want)} bytes of the file (and zeros past its end)')
+
+
+def check_big(folder):
+    """More than the 65536 bits a request of a program of the kernel carries: long! sends them in pieces."""
+    path = folder / 'big.bin'
+    path.write_bytes(bytes(30000))
+    n = 25003
+    source = (f': main {n} 0 do i 251 * 7 + 255 and {BUF} i 8 * + spacec! loop\n'
+              f'  {AREA + 5} {BUF} {BUF + 8 * n} long! {AREA} {BUF2} {BUF2 + 8 * (n + 1)} long@ {emit_bytes(BUF2, n + 1)} ;\n')
+    got = run(compile_language(source), '-r', str(path))
+    want = bytearray(30000)
+    bits = ''.join(f'{(i * 251 + 7) % 256:08b}'[::-1] for i in range(n))
+    stream = ''.join(f'{b:08b}' for b in want)
+    stream = stream[:5] + bits + stream[5 + len(bits):]
+    want = bytes(int(stream[8 * j:8 * j + 8], 2) for j in range(len(stream) // 8))
+    assert path.read_bytes() == want, 'the file differs'
+    assert got == bytes(rev(b) for b in want[:n + 1]), got[:32].hex()
+    print(f'PASS big: long! of {8 * n} bits (in pieces of at most 65536 in the kernel) and long@ of {8 * (n + 1)} bits')
 
 
 def check_clock():
@@ -171,15 +197,21 @@ def check_only_when_named():
 
 
 def main():
+    global KERNEL
     subprocess.run(['make', '-s', '-C', str(paths.ROOT), 'space'], check=True)
-    with tempfile.TemporaryDirectory(dir=paths.BUILD) as name:
-        folder = Path(name)
-        check_file(folder)
-        check_clock()
-        check_devices(folder)
-        check_no_errors(folder)
+    for KERNEL in (False, True):
+        print('--', 'the program of the kernel (L0 compiles it)' if KERNEL else 'the program compiled on the host')
+        with tempfile.TemporaryDirectory(dir=paths.BUILD) as name:
+            folder = Path(name)
+            check_file(folder)
+            check_big(folder)
+            check_clock()
+            check_devices(folder)
+            check_no_errors(folder)
+    KERNEL = False
     check_only_when_named()
-    print('ALL long copy: file, clock, devices and no errors in the address space of the host on', SPACE_EMULATOR)
+    print('ALL long copy: file, clock, devices and no errors in the address space of the host on', SPACE_EMULATOR,
+          'for the program of the host and the program of the kernel')
 
 
 if __name__ == '__main__':

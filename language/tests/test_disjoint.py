@@ -14,6 +14,10 @@ A program is compiled in the mode of the program of the kernel (FC-GUARD 1) into
    copy of two lengths, a patch that crosses its field or writes bits above the
    block, a start of an interval in the upper half of the data, a row that is not alone in the layer of the
    position of a program, a channel that is not stdin or stdout.
+4. The long copy (18.24, rule 3): a program with long! and long@ is proved, and the violations of the request are refused:
+   the header copied from the data, from a template that does not start with 6, written in part; a row into SYS that does not
+   copy the whole request block (another start, another length, from the code); the answer of SYS into the kernel or patched
+   in 29 bits.
 """
 import runpy
 import sys
@@ -52,6 +56,11 @@ variable cap-buf variable cap-main variable cap-tab variable cap-rt
   dup if drop fc-rtab lay-cell-bit rshift dup fc-nret @ 2* + dj-prove then
   . dj-bad-rule @ . dj-bad-cell @ . lay-next-cell @ . cr ;
 '''
+
+BUF = BASE2 + (1 << 27)
+LONGP = f': main 0 {BUF} {BUF + 1024} long@ 5 {BUF} {BUF + 256} long! 65 emit ;'
+REQ = BASE2 + (1 << 28) + 1024               # the request block of the long copy (lay-req)
+REC, CAP, HDR = 152, 1 << 16, 56
 
 PROGRAM = '''variable v
 : w 5 ;
@@ -182,16 +191,65 @@ def cases(img, ncells):
     return out
 
 
+def long_cases(img, ncells):
+    """The violations of rule 3 for the program with long! and long@: name -> (changes, rule)."""
+    def sel(test):
+        found = find(img, ncells, test)
+        assert found, 'no row for the case'
+        return found[0]
+    send = sel(lambda r: r[0] == r[1] == 1 << 31 and r[2] == REQ and r[3] == REQ + REC + CAP)
+    head = sel(lambda r: r[0] == REQ and r[1] == REQ + HDR and r[2] < BASE2)
+    tpl = sel(lambda r: r == [6, 0, 0, 0])
+    answer = sel(lambda r: r == [BASE2, BASE2 + 1, 1 << 31, 1 << 31])
+    patch = sel(lambda r: r[0] == field(*answer, 0))
+    f = field
+    hr = row(img, *head)
+    out = {}
+    out['the header of the request copied from the data'] = (
+        [(f(*head, 2), BASE2 + 4096), (f(*head, 3), BASE2 + 4096 + HDR)], 3)
+    out['the header copied from a template that does not start with 6'] = ([(f(*tpl, 0), 5)], 3)
+    out['the header written in part'] = ([(f(*head, 0), hr[0] + 8), (f(*head, 1), hr[1] + 8)], 3)
+    out['a row into SYS from another place of the data'] = (
+        [(f(*send, 2), BASE2 + 4096), (f(*send, 3), BASE2 + 4096 + REC + CAP)], 3)
+    out['a row into SYS of another length'] = ([(f(*send, 3), REQ + REC + CAP + 1)], 3)
+    out['a row into SYS from the code'] = ([(f(*send, 2), 4096), (f(*send, 3), 4096 + REC + CAP)], 3)
+    out['the answer of SYS into the kernel'] = (
+        [(f(*answer, 0), 3 * BLOCK + 4096), (f(*answer, 1), 3 * BLOCK + 4097)], 2)
+    out['the patch of the answer of 29 bits instead of 28'] = (
+        [(f(*patch, 1), row(img, *patch)[1] + 1), (f(*patch, 3), row(img, *patch)[3] + 1)], 2)
+    return out
+
+
+def check_violations(program, libraries, cases_of):
+    dump = "cr .( @@IMAGE) cr cap-buf @ %d type" % ((CELLS + TABLE + RTABLE) * CELL // 8)
+    out = run_host(program, 1, dump, libraries)
+    img = image_of(out)
+    ncells = verdicts(out)[0][3]
+    table = cases_of(img, ncells)
+    tail = []
+    for changes, _ in table.values():
+        tail.append(' '.join(f'{new} {bit} cap-w' for bit, new in changes) + ' cap-prove ' +
+                    ' '.join(f'{word(img, bit)} {bit} cap-w' for bit, _ in changes))
+    out = run_host(program, 1, '\n'.join(tail), libraries)
+    got = verdicts(out)[1:]
+    assert len(got) == len(table), (len(got), len(table))
+    for (name, (_, rule)), (flag, number, cell, _) in zip(table.items(), got, strict=True):
+        assert flag == 0 and number == rule, (name, flag, number, cell, 'expected the rule', rule)
+        print(f'PASS refused, rule {number}, cell {cell}: {name}')
+    return len(table)
+
+
 def main():
     libraries = paths.source_bytes(paths.LIBRARY_FILES)
     # 1. the programs are proved
     sources = {name: source for name, (source, _) in paths.programs().items()}
     sources['positions'] = PROGRAM
+    sources['long copy'] = LONGP
     sources['replacement'] = runpy.run_path(str(Path(__file__).with_name('test_replace.py')), run_name='x')['REPLACE']
     for name, source in sources.items():
         out = run_host(source, 1, '', libraries)
         assert [v[:3] for v in verdicts(out)] == [(-1, 0, 0)], (name, verdicts(out), out[-200:])
-    print(f'PASS DJ-PROVE proves the {len(sources) - 2} programs, a program of the positions and a program of the replacement compiled for the program of the kernel')
+    print(f'PASS DJ-PROVE proves the {len(sources) - 3} programs, a program of the positions, a program of the long copy and a program of the replacement compiled for the program of the kernel')
     # 2. compiled for the whole space the return is refused
     for name in ('calls', 'execute', 'positions'):
         out = run_host(sources[name], 0, '', libraries)
@@ -199,22 +257,11 @@ def main():
         assert flag == 0 and rule == 2, (name, verdicts(out))
     print('PASS the programs compiled for the whole space (the return writes 32 bits of the link row) are refused: rule 2')
     # 3. the built violations
-    dump = "cr .( @@IMAGE) cr cap-buf @ %d type" % ((CELLS + TABLE + RTABLE) * CELL // 8)
-    out = run_host(PROGRAM, 1, dump, libraries)
-    img = image_of(out)
-    ncells = verdicts(out)[0][3]
-    table = cases(img, ncells)
-    tail = []
-    for changes, _ in table.values():
-        tail.append(' '.join(f'{new} {bit} cap-w' for bit, new in changes) + ' cap-prove ' +
-                    ' '.join(f'{word(img, bit)} {bit} cap-w' for bit, _ in changes))
-    out = run_host(PROGRAM, 1, '\n'.join(tail), libraries)
-    got = verdicts(out)[1:]
-    assert len(got) == len(table), (len(got), len(table))
-    for (name, (_, rule)), (flag, number, cell, _) in zip(table.items(), got, strict=True):
-        assert flag == 0 and number == rule, (name, flag, number, cell, 'expected the rule', rule)
-        print(f'PASS refused, rule {number}, cell {cell}: {name}')
-    print(f'ALL {len(table)} violations of the word of disjointness are refused')
+    count = check_violations(PROGRAM, libraries, cases)
+    print(f'ALL {count} violations of the word of disjointness are refused')
+    # 4. the long copy
+    count = check_violations(LONGP, libraries, long_cases)
+    print(f'ALL {count} violations of the request of the long copy are refused')
 
 
 if __name__ == '__main__':

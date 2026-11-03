@@ -26,6 +26,11 @@ lay-rev-init
 : lay-lbytes ( -- n ) lay-layer-bits 3 rshift ;
 : lay-stdin ( -- c ) lay-size @ 1+ ;
 : lay-stdout ( -- c ) lay-size @ 2 + ;
+\ The request block of the long copy of a program of the kernel (18.24): the bits LAY-REQ ... of the upper half of the data block
+\ (the positions a program computes reach 2^28 + 31 bits at most): the header of the record LONG (LAY-REC bits; its first LAY-HDR
+\ bits are op, chan, flags) and, right after it, LAY-CAP bits of the data.
+152 constant lay-rec  56 constant lay-hdr  65536 constant lay-cap
+: lay-req ( -- at ) lay-size @ 1 rshift lay-size @ 3 rshift + 1024 + ;
 : lay-bits ( u -- n ) 0 swap begin dup while 1 rshift swap 1+ swap repeat drop ;
 : lay-numeric ( value nbytes addr -- )
   swap 0 ?do
@@ -185,6 +190,9 @@ create lay-new-row 4 cells allot
 \ space (the program: code block 0, data block 2),
 \ 1. every row is a no-op, a copy of two intervals of one length each inside one block of the program, or a channel
 \    row (stdin into the data, the data into stdout);
+\ 3. the long copy (18.24): the only row into SYS copies the request block LAY-REQ (LAY-REC + LAY-CAP bits, in the upper half of the
+\    data, where no patch reaches), a row from SYS writes into the data, and the only row that writes into the header of the block
+\    (its first LAY-HDR bits: op, chan, flags) is the copy of the template from the code whose first byte is 6 (LONG);
 \ 2. a copy into the layers (the patch of a field of another row at run time) writes inside one field, and a wide one
 \    (more than DJ-NARROW bits from the start of the field) gets from the program only the low bits of the field: the
 \    bits above are the block of the constant in the row, the end of the reach lies in that block, and no other row of
@@ -196,7 +204,7 @@ variable dj-bsh variable dj-csh variable dj-ssh variable dj-fsh
 variable dj-first variable dj-end variable dj-pa variable dj-cb
 variable dj-vdl variable dj-vdh variable dj-vsl variable dj-vsh
 variable dj-tc variable dj-ts variable dj-tf variable dj-tb variable dj-tn variable dj-tk variable dj-vt
-variable dj-blk
+variable dj-blk variable dj-hb variable dj-he
 create dj-pr 32 cells allot create dj-tr 32 cells allot
 24 constant dj-narrow
 create dj-seen 64 cells allot variable dj-nseen
@@ -219,10 +227,19 @@ create dj-seen 64 cells allot variable dj-nseen
     else dj-cb @ i 0 lay-field dj-get dj-vdl ! dj-cb @ i 1 lay-field dj-get dj-vdh ! then
     i dj-row!
   loop ;
+: dj-sys? ( -- f ) \ the row into SYS: the whole request block, nothing else
+  dj-vsl @ dj-hb @ = dj-vsh @ dj-hb @ lay-rec + lay-cap + = and ;
+: dj-head? ( -- f ) \ the row that writes into the header: the copy of the template, a cell of the code that starts with 6
+  dj-vdl @ dj-hb @ = dj-vdh @ dj-he @ = and dj-vsl @ dj-blk? 0= and dj-vsh @ 1- dj-blk? 0= and
+  dj-vsh @ dj-vsl @ - lay-hdr = and dup if drop dj-vsl @ dj-get 255 and 6 = then ;
 : dj-row-ok? ( -- f )
   dj-nop? if -1 exit then
-  dj-vsl @ dj-vsh @ = if dj-vsl @ lay-stdin = dj-vdl @ dj-vdh @ dj-in? and exit then
-  dj-vdl @ dj-vdh @ = if dj-vdl @ lay-stdout = dj-vsl @ dj-vsh @ dj-in? and exit then
+  dj-vsl @ dj-vsh @ = if dj-vsl @ dup lay-stdin = swap lay-size @ = or dj-vdl @ dj-vdh @ dj-in? and exit then
+  dj-vdl @ dj-vdh @ = if
+    dj-vdl @ lay-size @ = if dj-sys? 0= if 3 dj-fail then -1 exit then
+    dj-vdl @ lay-stdout = dj-vsl @ dj-vsh @ dj-in? and exit
+  then
+  dj-vdl @ dj-he @ u< dj-hb @ dj-vdh @ u< and if dj-head? 0= if 3 dj-fail then -1 exit then
   dj-vdl @ dj-vdh @ dj-in? dj-vsl @ dj-vsh @ dj-in? and dj-vdh @ dj-vdl @ - dj-vsh @ dj-vsl @ - = and ;
 : dj-in-blk? ( lo hi -- f )
   2dup u< 0= if 2drop 0 exit then
@@ -282,7 +299,7 @@ variable dj-nn variable dj-lo variable dj-hi
     else 1 dj-fail then
   loop ;
 : dj-prove ( first end -- flag )
-  dj-end ! dj-first ! 0 dj-bad-rule ! 0 dj-nseen !
+  dj-end ! dj-first ! 0 dj-bad-rule ! 0 dj-nseen ! lay-req dj-hb ! lay-req lay-hdr + dj-he !
   lay-size @ lay-bits 3 - dj-bsh !
   lay-cell-bits @ lay-bits 1- dj-csh ! lay-inst lay-bits 1- dj-ssh ! lay-a @ lay-bits 1- dj-fsh !
   2 dj-csh @ lshift dj-lo ! lay-size @ 2 rshift dj-hi !
