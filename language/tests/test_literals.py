@@ -39,9 +39,8 @@ ERRORS = {
     'frob\n: main ;': b'frob',                  # at the top level
     ': main 2drop ;': b'2drop',                 # not in the dictionary of a program
 }
-# The host reports a compile error as the kernel does (kernel.fth: MAIN).
-HOST_REPORT = (': h.n dup 0< if 45 emit negate then dup 10 / ?dup if recurse then 10 mod 48 + emit ;\n'
-               ': try [\'] fc-go catch ?dup if ." error " h.n ."  at " fc-tok fc-tl @ type 10 emit then ;\n')
+# The host reports a compile error as the kernel does (backend.fth: FC-REJECT).
+HOST_REPORT = ': try fc-go ;\n'      # a compile error is FC-REJECT: it prints and halts the host
 # Another word LITERAL: $ and hexadecimal digits, else the decimal word of the definition.
 HEX = (': gen-hex ( -- )\n'
        '  fc-tok c@ [char] $ = if\n'

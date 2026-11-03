@@ -69,11 +69,11 @@ def build_emulator(directory):
 
 
 def kernel_addresses():
-    """(entry of kn-.n, address of the record of the constant 48) from the host pForth."""
+    """(entry of fc-.n, address of the record of the constant 48) from the host pForth."""
     stream = boot.boot_input()
     tail = b'fc-go\nbye\n'
     assert stream.endswith(tail)
-    query = (b'fc-go\ns" ENTRY " type s" kn-.n" fc-lookup 3 cells + @ . 48 fc-lit-of drop . cr\nbye\n')
+    query = (b'fc-go\ns" ENTRY " type s" fc-.n" fc-lookup 3 cells + @ . 48 fc-lit-of drop . cr\nbye\n')
     code, out, err = host.run(host.build(), stream[:-len(tail)] + query, 600)
     assert code == 0 and not err, (code, err[-300:])
     entry, constant = out[out.rindex(b'ENTRY ') + 6:].split()[:2]
@@ -125,6 +125,9 @@ def probes(entry, constant):
         ': main 65 emit key 49 = if 0 execute then 66 emit ;', 'AB', None, LOOP_TICKS)
     p['execute of -1'] = (
         ': main 65 emit key 49 = if -1 execute then 66 emit ;', 'AB', None, LOOP_TICKS)
+    # BYE (the halt of FC-REJECT) is a static jump to the halt cell: the rest of the program does not run
+    p['bye in the middle'] = (
+        ': main 65 emit key 49 = if bye then 66 emit ;', 'AB', 'A')
     p['return to the kernel'] = (
         f': f {entry} >r ;\n: main 65 emit key 49 = if f then 66 emit ;', 'AB', None)
     p['return to the data'] = (
@@ -188,7 +191,7 @@ def main():
     args = parser.parse_args()
     l0 = open(args.l0, 'rb').read()
     entry, constant = args.addresses or kernel_addresses()
-    print(f'kernel: entry of kn-.n {entry}, record of the constant 48 at {constant}', flush=True)
+    print(f'kernel: entry of fc-.n {entry}, record of the constant 48 at {constant}', flush=True)
     table = {k: v for k, v in probes(entry, constant).items() if not args.only or k in args.only}
     with tempfile.TemporaryDirectory() as tmp:
         emulator = build_emulator(Path(tmp))

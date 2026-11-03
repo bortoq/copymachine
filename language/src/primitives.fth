@@ -85,10 +85,13 @@ variable fc-lv
   fc-loop-leave fc-jump fc-end -1 fc-begin-block drop ;
 : gen-unloop ( -- ) fc-code 0 fc-noff ! fc-rp -2 fc-adjust ;
 : gen-exit ( -- ) fc-code fc-ret -1 fc-begin-block drop ;
+\ BYE (the halt of a rejected program, FC-REJECT): a jump to the halt cell, where the end of MAIN goes too. Not a word of the
+\ programs of the kernel too: a static jump to the cell the end of MAIN reaches.
+: gen-bye ( -- ) fc-code fc-spill fc-cellb fc-jump fc-end -1 fc-begin-block drop ;
 \ A call goes through the concept cell (FC-XT, 14.11); a loop, RECURSE and a call of an xt make the price by execution.
 : gen-recurse ( -- ) fc-code fc-by-execution fc-word @ dup fc-callee ! fc-xt fc-call ;
 : gen-tick ( -- )
-  fc-code fc-next! fc-find dup 0= if -13 throw then dup 2 cells + @ 1 = if fc-xtn else 3 cells + @ then
+  fc-code fc-next! fc-find dup 0= if -13 fc-reject then dup 2 cells + @ 1 = if fc-xtn else 3 cells + @ then
   fc-literal ;
 : gen-throw ( -- ) fc-code fc-throw ;
 \ Copies whose position is computed at run time (SPACE! SPACEC! SPACE@ SPACEC@, EXECUTE, CATCH, return, throw) write
@@ -117,12 +120,12 @@ variable fc-lv
   fc-word @ 6 cells + @ lay-jump lay-flush ;
 : gen-colon ( -- )
   fc-top-only fc-close-init fc-next! fc-synonym? ?dup if fc-synonym-of exit then
-  fc-guard @ if fc-nwords @ 1 fc-ebits lshift u< 0= if -8 throw then fc-nwords @ fc-etab-at
+  fc-guard @ if fc-nwords @ 1 fc-ebits lshift u< 0= if -8 fc-reject then fc-nwords @ fc-etab-at
   else fc-rt @ if 0 lay-group else 0 then then 0 lay-group 1 over fc-define fc-nwords @ 1- fc-wt@ fc-word !
   swap ?dup if fc-rt @ if fc-concept else fc-entry-cell then then
   0 fc-live ! 0 fc-n ! fc-begin-block drop fc-rt @ 0= if fc-log-begin then ;
 : gen-semicolon ( -- )
-  fc-defining? 0= if -22 throw then fc-nctl @ if -22 throw then fc-ret fc-word @ fc-price-word
+  fc-defining? 0= if -22 fc-reject then fc-nctl @ if -22 fc-reject then fc-ret fc-word @ fc-price-word
   fc-rt @ if fc-word @ fc-concept-record then 0 fc-word ! ;
 : gen-variable ( -- ) fc-top-only fc-next! 4 fc-define-data ;
 : gen-create ( -- ) fc-top-only fc-next! 0 fc-define-data ;
@@ -133,24 +136,24 @@ variable fc-lv
 : gen-backslash ( -- )
   begin fc-more? if fc-ch 10 <> else 0 then while 1 fc-pos +! repeat ;
 : gen-paren ( -- ) begin fc-next! s" )" fc-is? until ;
-: gen-char ( -- ) fc-code fc-next 0= if -16 throw then fc-raw fc-literal ;
+: gen-char ( -- ) fc-code fc-next 0= if -16 fc-reject then fc-raw fc-literal ;
 : gen-string ( -- ) fc-code fc-string-token dup >r fc-store-string fc-literal r> fc-literal ;
 \ Literals, digits, numbers (14.7). A digit 0..9 is a word of the language, a synonym of a literal (kind 0, FC-LITERAL-NAME).
 \ A number: LITERAL gets every word not found in the dictionary and builds the value from its digits modulo 2^32, else -13.
 : fc-digit@ ( addr -- d )
-  1 fc-lookup dup if dup 2 cells + @ 0= if 3 cells + @ exit then then -13 throw ;
+  1 fc-lookup dup if dup 2 cells + @ 0= if 3 cells + @ exit then then -13 fc-reject ;
 : gen-literal ( -- )
   fc-tok fc-tl @ over c@ [char] - = if 1 /string -1 else 1 then >r
-  dup 0= if -13 throw then
+  dup 0= if -13 fc-reject then
   0 -rot over + swap do 10 * i fc-digit@ + loop r> *
   fc-defining? if fc-literal else fc-ct+ then ;
 \ The mechanisms of a word (14.11, language/doc/word.md). COST ( xt -- size bits copies layers known ) and PROVED?
 \ ( xt -- f ) need the xt known at compile time (['] W just compiled), else -13. PRICE ( size bits copies layers -- n ): the sum.
-: fc-known-xt ( -- xt ) fc-lit? 0= if -13 throw then fc-pop1 drop fc-plv @ ;
+: fc-known-xt ( -- xt ) fc-lit? 0= if -13 fc-reject then fc-pop1 drop fc-plv @ ;
 : gen-cost ( -- )
   fc-known-xt fc-cost >r >r >r >r fc-literal r> fc-literal r> fc-literal r> fc-literal r> fc-literal ;
 : gen-proved? ( -- ) fc-known-xt fc-proved? fc-literal ;
-: gen-library ( -- ) -13 throw ;   \ never called: FC-LIBRARY (FC-LONG, FC-PLATFORM) defines these names
+: gen-library ( -- ) -13 fc-reject ;   \ never called: FC-LIBRARY (FC-LONG, FC-PLATFORM) defines these names
 : gen-price ( -- ) ['] gen+ gen-call ['] gen+ gen-call ['] gen+ gen-call ;
 \ Platform 1, the host (15.3, language/doc/platform.md): HOST NAME in a definition makes it the definition of NAME on the
 \ host: its text (the first : NAME of the source, words inline to the depth 16) becomes a C program (generators + - * and
@@ -162,19 +165,19 @@ variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 256 allot
 : fc-c1 ( c -- ) fc-eight c! fc-eight 1 fc-c, ;
 : fc-c-gen ( record -- )
   dup 3 cells + @ ['] gen-paren = if drop gen-paren exit then
-  fc-wt @ - 6 rshift dup 24 u< if 1 over lshift 15730631 and else 0 then 0= if -13 throw then
+  fc-wt @ - 6 rshift dup 24 u< if 1 over lshift 15730631 and else 0 then 0= if -13 fc-reject then
   s" X(1" fc-c, dup 10 / 48 + fc-c1 10 mod 48 + fc-c1 s" );" fc-c, ;
 : fc-c-body ( -- )
-  fc-cdepth @ 16 = if -8 throw then 1 fc-cdepth +!
+  fc-cdepth @ 16 = if -8 fc-reject then 1 fc-cdepth +!
   fc-tok fc-hname fc-tl @ cmove fc-tl @ fc-hn ! fc-pos @ >r 0 fc-pos !
   begin fc-next! s" :" fc-is? if fc-next! fc-hname fc-hn @ fc-is? else 0 then until
   begin fc-next! s" ;" fc-is? 0= while
     fc-find dup if dup 2 cells + @ dup 1 = if 2drop recurse 0 else 2 and if fc-c-gen 0 else drop
-      fc-tok c@ 48 - 10 u< 0= if -13 throw then -1 then then else drop -1 then
+      fc-tok c@ 48 - 10 u< 0= if -13 fc-reject then -1 then then else drop -1 then
     if s" s[++p]=" fc-c, fc-tok fc-tl @ fc-c, 59 fc-c1 then
   repeat r> fc-pos ! -1 fc-cdepth +! ;
 : gen-host ( -- )
-  fc-guard @ fc-defining? 0= or if -13 throw then fc-nhost @ 16 = if -8 throw then
+  fc-guard @ fc-defining? 0= or if -13 fc-reject then fc-nhost @ 16 = if -8 fc-reject then
   fc-next! fc-hb 32 + fc-cpos ! 0 fc-cdepth !
   s" #include <stdio.h>" fc-c, 10 fc-c1 s" #define S(x) #x" fc-c, 10 fc-c1
   s" static unsigned s[300],t;static int p=8;static unsigned r8(unsigned b){unsigned r=0;int i;" fc-c,
@@ -187,7 +190,7 @@ variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 256 allot
   s" S(r+b));if(!f||fread(b,1,4,f)!=4)return 1;s[8]=r8(b[0])|r8(b[1])<<8|r8(b[2])<<16|r8(b[3])<<24;" fc-c,
   10 fc-c1 fc-c-body 10 fc-c1 s" t=s[p];for(p=0;p<4;p++)b[p]=r8(t>>8*p&255);fseek(f,4,SEEK_SET);" fc-c,
   s" fwrite(b,1,4,f);fclose(f);return 0;}" fc-c, 10 fc-c1
-  fc-cpos @ fc-hb - 32 - dup 4194272 u> if -8 throw then 4 fc-hb lay-put-numeric
+  fc-cpos @ fc-hb - 32 - dup 4194272 u> if -8 fc-reject then 4 fc-hb lay-put-numeric
   fc-nhost @ dup 1+ fc-word @ 8 cells + ! fc-literal
   s" %host" dup fc-tl ! fc-tok swap cmove fc-word-token 1 fc-nhost +! ;
 : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
@@ -222,6 +225,7 @@ variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 256 allot
   s" do" ['] gen-do 0 fc-generator  s" ?do" ['] gen-?do 0 fc-generator
   s" loop" ['] gen-loop 0 fc-generator  s" leave" ['] gen-leave 0 fc-generator
   s" unloop" ['] gen-unloop 0 fc-generator  s" exit" ['] gen-exit 0 fc-generator
+  s" bye" ['] gen-bye 0 fc-generator
   s" recurse" ['] gen-recurse 0 fc-generator  s" execute" ['] gen-execute 0 fc-generator
   s" [']" ['] gen-tick 0 fc-generator  s" catch" ['] gen-catch 0 fc-generator
   s" throw" ['] gen-throw 0 fc-generator

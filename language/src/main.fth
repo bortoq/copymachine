@@ -1,11 +1,8 @@
-\ The compiled compiler: the source on stdin, the boot stream on stdout. Compiled last: the heap starts after
-\ all static data.
-create heap-start
-heap-start heap-ptr !
+\ The compiled compiler: the source on stdin, the boot stream on stdout.
 \ Input ends at the end of stdin or at a zero byte.
 : fc-read ( -- )
   fc-reset begin key ?dup while
-    fc-tlen @ fc-text-size @ = if -8 throw then fc-text @ fc-tlen @ + c! 1 fc-tlen +!
+    fc-tlen @ fc-text-size @ = if -8 fc-reject then fc-text @ fc-tlen @ + c! 1 fc-tlen +!
   repeat ;
 \ Room for the compiler's own source (pForth keeps the smaller defaults).
 : fc-sizes ( -- )

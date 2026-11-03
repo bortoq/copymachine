@@ -5,6 +5,13 @@
 \ to stdout (TYPE) or to the sink: the xt in lay-sink takes every put ( bit-address src n -- ) and lay-finish keeps the
 \ entry in lay-start-cell (a kernel installs code in its own space so; lay-rev is then the identity).
 decimal
+\ A rejected program (18.21): FC-REJECT prints "error N at WORD" (the last word read) and halts the machine: BYE, on the host
+\ the host's, in the compiler a generator that jumps to the halt cell. The program is not run; nothing is compiled further.
+create fc-tok 256 allot variable fc-tl
+: fc-.n ( n -- )
+  dup 0< if [char] - emit negate then
+  dup 10 / ?dup if recurse then 10 mod [char] 0 + emit ;
+: fc-reject ( code -- ) s" error " type fc-.n s"  at " type fc-tok fc-tl @ type 10 emit bye ;
 variable lay-size variable lay-a variable lay-slots variable lay-cell-bits
 variable lay-chunk variable lay-chunk-buf variable lay-lbuf variable lay-pool
 variable lay-ebuf variable lay-dest variable lay-sink variable lay-start-cell
@@ -29,7 +36,7 @@ lay-rev-init
   over 255 and lay-rev + c@ over c!  over 8 rshift 255 and lay-rev + c@ over 1+ c!
   over 16 rshift 255 and lay-rev + c@ over 2 + c!  swap 24 rshift 255 and lay-rev + c@ swap 3 + c! ;
 : lay-field-check ( value -- value )
-  lay-a @ 32 < if dup lay-a @ rshift if -24 throw then then ;
+  lay-a @ 32 < if dup lay-a @ rshift if -24 fc-reject then then ;
 : lay-encode ( rows count -- )
   lay-dest @ lay-lbytes 0 fill
   0 ?do
@@ -60,8 +67,8 @@ create lay-rows 32 cells allot
   dup lay-len ! lay-chunk-buf @ swap cmove lay-start ! ;
 : lay-put ( bit-address src n -- )
   lay-sink @ ?dup if execute exit then
-  rot dup 7 and over lay-cell-bits @ u< or if -9 throw then
-  dup 2 pick 3 lshift + lay-size @ u> if -9 throw then
+  rot dup 7 and over lay-cell-bits @ u< or if -9 fc-reject then
+  dup 2 pick 3 lshift + lay-size @ u> if -9 fc-reject then
   3 rshift -rot
   lay-start @ -1 <> if
     2 pick lay-start @ lay-len @ + -               ( byte src n gap )
@@ -87,22 +94,15 @@ variable lay-pending variable lay-head variable lay-next-cell
 variable lay-seq# variable lay-seq-first variable lay-seq-entry variable lay-seq-last
 create lay-foff 32 cells allot
 : lay-foff-init ( -- ) 8 0 do 4 0 do j lay-inst * i lay-a @ * + j 2 lshift i + cells lay-foff + ! loop loop ;
+\ The buffers are fixed (the only machine is FC-INIT's: 32-bit fields, 8 slots, 1024-bit layers, chunk 4096): the chunk, two layers, the pool.
+create lay-chunk-mem 4096 allot create lay-lbuf-mem 128 allot create lay-ebuf-mem 128 allot
+create lay-pool-mem 15872 allot
+: lay-bufs ( -- ) lay-chunk-mem lay-chunk-buf ! lay-lbuf-mem lay-lbuf ! lay-ebuf-mem lay-ebuf ! lay-pool-mem lay-pool ! ;
 : lay-machine ( size slots cell-bits chunk-bytes -- )
   >r >r >r dup lay-bits r> r> r>
   ( size a slots cell chunk )
-  2 pick 8 < 4 pick 7 and or 5 pick 7 and or if -24 throw then
-  over dup 1- and if -24 throw then
-  dup 1 < if -24 throw then
   lay-chunk ! lay-cell-bits ! lay-slots ! lay-a ! lay-size !
-  lay-size @ 5 + lay-a @ 32 < if lay-a @ rshift if -24 throw then else drop then
-  lay-cell-bits @ lay-layer-bits < if -24 throw then
-  lay-slots @ 8 > if -24 throw then
-  lay-pool @ if
-    lay-chunk-buf @ free throw lay-lbuf @ free throw lay-ebuf @ free throw lay-pool @ free throw
-  then
-  lay-chunk @ allocate throw lay-chunk-buf ! lay-lbytes allocate throw lay-lbuf !
-  lay-lbytes allocate throw lay-ebuf !
-  lay-record lay-max-layers * allocate throw lay-pool !
+  lay-bufs
   -1 lay-start ! 0 lay-len ! 0 lay-pending ! 0 lay-head ! 2 lay-next-cell ! 0 lay-seq# ! lay-foff-init ;
 : lay-field ( cell slot f -- addr ) swap 2 lshift + cells lay-foff + @ + ;
 : lay-link-row ( target -- dl dh sl sh ) >r 0 lay-layer-bits r@ dup lay-layer-bits + r> drop ;
@@ -122,7 +122,7 @@ create lay-foff 32 cells allot
 : lay-row-addr ( layer i -- addr ) 2 lshift 3 + cells + ;
 : lay-pending@ ( i -- layer ) lay-head @ + lay-max-layers 1- and lay-record * lay-pool @ + ;
 : lay-encode-layer ( layer -- )
-  dup cell+ @ -1 = if -24 throw then
+  dup cell+ @ -1 = if -24 fc-reject then
   lay-clear-rows dup 3 cells + lay-rows 2 pick lay-count 2 lshift cells cmove
   cell+ @ lay-link-row lay-slots @ 1- lay-row!
   lay-ebuf @ lay-dest ! lay-rows lay-slots @ lay-encode ;
@@ -170,11 +170,11 @@ create lay-new-row 4 cells allot
 : lay-fits? ( dl dh sl sh layer -- flag )
   lay-row-set lay-full? if 0 exit then lay-clashes? 0= ;
 : lay-row ( dl dh sl sh layer -- slot )
-  lay-row-set lay-full? if -8 throw then lay-clashes? if -9 throw then
+  lay-row-set lay-full? if -8 fc-reject then lay-clashes? if -9 fc-reject then
   lay-new-row lay-cur @ dup lay-count lay-row-addr 4 cells cmove
   lay-cur @ lay-count 1 lay-cur @ 2 cells + +! ;
 : lay-flush ( -- )
-  lay-pending @ 0 ?do i lay-pending@ cell+ @ -1 = if -24 throw then loop
+  lay-pending @ 0 ?do i lay-pending@ cell+ @ -1 = if -24 fc-reject then loop
   lay-pending @ 0 ?do i lay-pending@ lay-write loop 0 lay-pending ! 0 lay-head ! 0 lay-seq# ! ;
 : lay-finish ( entry -- )
   lay-sink @ if lay-start-cell ! exit then

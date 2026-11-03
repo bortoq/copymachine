@@ -16,13 +16,13 @@ variable lay-nitems
 : lay-item@ ( i -- addr ) dup 4 lshift swap 2* + cells lay-items + ;
 : lay-lookups-begin ( -- ) 0 lay-nitems ! ;
 : lay-item ( table s width out preset -- )
-  lay-nitems @ lay-max-items < 0= if -8 throw then
+  lay-nitems @ lay-max-items < 0= if -8 fc-reject then
   lay-nitems @ lay-item@ lay-t1 !
   lay-t1 @ 4 cells + ! lay-t1 @ 3 cells + ! lay-t1 @ 2 cells + ! lay-t1 @ cell+ ! lay-t1 @ !
   0 lay-t1 @ 5 cells + ! 1 lay-nitems +! ;
 : lay-seg ( src n off -- )
   lay-nitems @ 1- lay-item@ lay-t1 !
-  lay-t1 @ 5 cells + @ 4 < 0= if -8 throw then
+  lay-t1 @ 5 cells + @ 4 < 0= if -8 fc-reject then
   lay-t1 @ 5 cells + @ dup 2* + 6 + cells lay-t1 @ + lay-t2 !
   lay-t2 @ 2 cells + ! lay-t2 @ cell+ ! lay-t2 @ !
   1 lay-t1 @ 5 cells + +! ;
@@ -95,16 +95,18 @@ variable lay-dsrc variable lay-dk variable lay-dg variable lay-dp variable lay-d
 variable lay-table-at variable lay-table-limit variable lay-tbuf
 variable lay-tx variable lay-tbits variable lay-ts variable lay-tsize variable lay-tbase variable lay-tper
 : lay-tables ( at limit -- ) lay-table-limit ! lay-table-at ! ;
+\ The largest table is 2^16 bits (FC-M4: 12 4).
+create lay-table-mem 8192 allot
 : lay-table-area ( bits s -- buf )
   lay-ts ! lay-tbits !
   1 lay-ts @ lay-tbits @ + lshift lay-tsize !
   lay-table-at @ lay-tsize @ 1- + lay-tsize @ negate and lay-tbase !
   lay-tbase @ lay-tsize @ + lay-table-at !
-  lay-table-at @ lay-table-limit @ u> if -8 throw then
-  lay-tsize @ 3 rshift allocate throw lay-tbuf ! lay-tbuf @ lay-tsize @ 3 rshift 0 fill
+  lay-table-at @ lay-table-limit @ u> if -8 fc-reject then
+  lay-table-mem lay-tbuf ! lay-tbuf @ lay-tsize @ 3 rshift 0 fill
   1 lay-ts @ lshift 3 rshift lay-tper ! lay-tbuf @ ;
 : lay-table-done ( -- base )
-  lay-tbase @ lay-tbuf @ lay-tsize @ 3 rshift lay-put lay-tbuf @ free throw lay-tbase @ ;
+  lay-tbase @ lay-tbuf @ lay-tsize @ 3 rshift lay-put lay-tbase @ ;
 : lay-table ( xt bits s -- base )
   rot lay-tx ! lay-table-area drop
   lay-ts @ 3 < 0= if

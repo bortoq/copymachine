@@ -75,7 +75,7 @@ variable fc-cb
     if r> drop >r drop 2drop r> 64 * fc-consts + exit then
     drop r> 3 cells + @
   repeat
-  fc-nconsts @ fc-max-consts @ = if -8 throw then
+  fc-nconsts @ fc-max-consts @ = if -8 fc-reject then
   fc-nconsts @ fc-ck@ >r r@ 2 cells + ! r@ cell+ ! r@ ! fc-cb @ @ r> 3 cells + !
   fc-nconsts @ 1+ fc-cb @ ! fc-nconsts @ 64 * fc-consts + 1 fc-nconsts +! ;
 : fc-const ( value -- addr ) 0 32 fc-const2 ;
@@ -95,7 +95,7 @@ variable fc-nlinks variable fc-link-buf variable fc-nbuf
     fc-nlinks @ fc-nbuf @ - 64 * fc-links + fc-link-buf @ fc-nbuf @ 8 * lay-put 0 fc-nbuf !
   then ;
 : fc-link-pair ( lo hi -- addr )
-  fc-nlinks @ fc-max-links = if -8 throw then
+  fc-nlinks @ fc-max-links = if -8 fc-reject then
   fc-link-buf @ fc-nbuf @ 8 * + >r swap 4 r@ lay-numeric 4 r> 4 + lay-numeric
   fc-nlinks @ 64 * fc-links + 1 fc-nlinks +! 1 fc-nbuf +!
   fc-nbuf @ fc-link-chunk = if fc-put-links then ;
@@ -111,18 +111,18 @@ create fc-eight 8 allot create fc-zeros 16 allot fc-zeros 16 0 fill
 create fc-cache 64 cells allot variable fc-n
 create fc-pin 16 cells allot variable fc-npin
 : fc-c@ ( i -- r ) cells fc-cache + @ ;
-: fc-push ( r -- ) fc-n @ 64 = if -8 throw then fc-n @ cells fc-cache + ! 1 fc-n +! ;
+: fc-push ( r -- ) fc-n @ 64 = if -8 fc-reject then fc-n @ cells fc-cache + ! 1 fc-n +! ;
 : fc-pop1 ( -- r ) -1 fc-n +! fc-n @ fc-c@ ;
 : fc-in? ( r arr n -- f ) 0 swap 0 ?do 2 pick 2 pick i cells + @ = or loop nip nip ;
 : fc-reg ( -- r )
   fc-nregs 0 do
     fc-regs i 64 * + dup fc-cache fc-n @ fc-in? over fc-pin fc-npin @ fc-in? or
     0= if unloop exit then drop
-  loop -8 throw ;
+  loop -8 fc-reject ;
 : fc-reg-for-pop ( -- r ) fc-reg dup fc-npin @ cells fc-pin + ! 1 fc-npin +! ;
 variable fc-scr
 : fc-scratch ( bits align -- at )
-  fc-scr @ over 1- + swap negate and dup rot + dup fc-mem u> if -8 throw then fc-scr ! ;
+  fc-scr @ over 1- + swap negate and dup rot + dup fc-mem u> if -8 fc-reject then fc-scr ! ;
 
 create fc-offs 8 cells allot variable fc-noff variable fc-ptr
 variable fc-iw 16 fc-iw !
@@ -247,7 +247,7 @@ variable fc-nret
 \ takes FC-RBITS bits of the first into both fields of the link row, in two layers); else the cell itself.
 : fc-ret-link ( cell -- addr )
   fc-guard @ 0= if fc-link-const exit then
-  fc-nret @ 1 fc-rbits lshift u< 0= if -8 throw then
+  fc-nret @ 1 fc-rbits lshift u< 0= if -8 fc-reject then
   fc-nret @ fc-rtab-at lay-new-record lay-next!
   fc-nret @ 0 fc-link-pair 1 fc-nret +! ;
 : fc-ret-base ( -- target ) fc-guard @ if fc-rtab else fc-cellb then ;
@@ -357,7 +357,7 @@ variable fc-slen variable fc-slow
 : fc-sbegin ( -- ) fc-slen @ fc-window - 0 max fc-slow ! ;
 : fc-tabs ( t -- addr ) fc-ring 1- and 8 * cells fc-stabs @ + ;
 : fc-at ( t -- layer )
-  dup fc-slow @ - fc-ring < 0= if -8 throw then
+  dup fc-slow @ - fc-ring < 0= if -8 fc-reject then
   begin dup fc-slen @ < 0= while
     lay-layer fc-slen @ fc-ring 1- and cells fc-sl + ! 0 fc-slen @ fc-tabs ! 1 fc-slen +!
   repeat fc-ring 1- and cells fc-sl + @ ;
@@ -615,12 +615,12 @@ variable fc-sk
   lay-lookups-begin fc-t-rev8 @ 4 8 3 pick 0 lay-item fc-key 8 0 lay-seg lay-lookups
   24 over 8 + fc-zero lay-copy fc-rows1 fc-push ;
 
+create fc-text-mem 131072 allot
 variable fc-text variable fc-tlen variable fc-pos variable fc-text-size 8192 fc-text-size !
-create fc-tok 256 allot variable fc-tl
-: fc-reset ( -- ) fc-text @ 0= if fc-text-size @ allocate throw fc-text ! then 0 fc-tlen ! ;
+: fc-reset ( -- ) fc-text @ 0= if fc-text-mem fc-text ! then 0 fc-tlen ! ;
 : fc-append ( addr u -- )
   fc-text @ 0= if fc-reset then
-  dup 1+ fc-tlen @ + fc-text-size @ > if -8 throw then
+  dup 1+ fc-tlen @ + fc-text-size @ > if -8 fc-reject then
   tuck fc-text @ fc-tlen @ + swap cmove fc-tlen +! 10 fc-text @ fc-tlen @ + c! 1 fc-tlen +! ;
 : fc| ( "line" -- ) source >in @ /string fc-append source nip >in ! ;
 : fc-ch ( -- c ) fc-text @ fc-pos @ + c@ ;
@@ -630,10 +630,10 @@ create fc-tok 256 allot variable fc-tl
   fc-more? 0= if 0 exit then
   0 fc-tl !
   begin fc-more? if fc-ch 32 > else 0 then while
-    fc-tl @ 255 = if -8 throw then
+    fc-tl @ 255 = if -8 fc-reject then
     fc-ch dup [char] A [char] Z 1+ over - >r - r> u< if 32 + then fc-tok fc-tl @ + c! 1 fc-tl +! 1 fc-pos +!
   repeat -1 ;
-: fc-next! ( -- ) fc-next 0= if -16 throw then ;
+: fc-next! ( -- ) fc-next 0= if -16 fc-reject then ;
 : fc-is? ( addr u -- f )
   dup fc-tl @ <> if 2drop 0 exit then over c@ fc-tok c@ <> if 2drop 0 exit then
   fc-tok fc-tl @ compare 0= ;
@@ -641,7 +641,7 @@ create fc-tok 256 allot variable fc-tl
 : fc-string-token ( -- addr u )
   fc-pos @ 1+ fc-tlen @ min fc-pos ! fc-pos @
   begin fc-more? if fc-ch [char] " <> else 0 then while 1 fc-pos +! repeat
-  fc-more? 0= if -16 throw then
+  fc-more? 0= if -16 fc-reject then
   fc-text @ over + fc-pos @ rot - 1 fc-pos +! ;
 variable fc-names-size 4096 fc-names-size ! variable fc-max-words 256 fc-max-words !
 variable fc-names variable fc-names-used
@@ -663,7 +663,7 @@ create fc-unproved 12 allot fc-unproved 12 0 fill
 : fc-hash ( addr u -- bucket )
   0 swap 0 ?do dup 5 lshift swap - over i + c@ + loop nip fc-nbuckets @ 1- and cells fc-wbk @ + ;
 : fc-define ( kind value -- )
-  fc-nwords @ fc-max-words @ = fc-names-used @ fc-tl @ + fc-names-size @ > or if -8 throw then
+  fc-nwords @ fc-max-words @ = fc-names-used @ fc-tl @ + fc-names-size @ > or if -8 fc-reject then
   fc-nwords @ fc-wt@ >r r@ 3 cells + ! r@ 2 cells + !
   fc-names-used @ r@ ! fc-tl @ r@ cell+ ! fc-tok fc-tl @ fc-hash dup @ r@ 4 cells + ! fc-nwords @ 1+ swap !
   r> fc-mechanisms fc-tok fc-names @ fc-names-used @ + fc-tl @ cmove fc-tl @ fc-names-used +! 1 fc-nwords +! ;
@@ -691,16 +691,16 @@ variable fc-rt variable fc-rta
 create fc-ctl 96 cells allot variable fc-nctl variable fc-cleave
 : fc-ctl@ ( i -- addr ) dup 2* + cells fc-ctl + ;
 : fc-ctl+ ( kind cell -- )
-  fc-nctl @ 32 = if -8 throw then fc-nctl @ fc-ctl@ >r r@ cell+ ! r@ ! 0 r> 2 cells + ! 1 fc-nctl +! ;
+  fc-nctl @ 32 = if -8 fc-reject then fc-nctl @ fc-ctl@ >r r@ cell+ ! r@ ! 0 r> 2 cells + ! 1 fc-nctl +! ;
 : fc-ctl- ( -- kind cell )
-  fc-nctl @ 0= if -22 throw then -1 fc-nctl +! fc-nctl @ fc-ctl@ >r r@ @ r@ cell+ @ r> 2 cells + @ fc-cleave ! ;
+  fc-nctl @ 0= if -22 fc-reject then -1 fc-nctl +! fc-nctl @ fc-ctl@ >r r@ @ r@ cell+ @ r> 2 cells + @ fc-cleave ! ;
 : fc-do-entry ( -- addr )
-  fc-nctl @ 0 ?do fc-nctl @ 1- i - fc-ctl@ dup @ 5 = if unloop exit then drop loop -22 throw ;
+  fc-nctl @ 0 ?do fc-nctl @ 1- i - fc-ctl@ dup @ 5 = if unloop exit then drop loop -22 fc-reject ;
 : fc-ctl-leave ( -- cell ) fc-cleave @ ;
 : fc-ctl-leave! ( cell -- ) fc-nctl @ 1- fc-ctl@ 2 cells + ! ;
 : fc-loop-leave ( entry -- cell ) dup 2 cells + @ 0= if lay-new-cell over 2 cells + ! then 2 cells + @ ;
 : fc-align ( -- ) fc-here @ 3 + -4 and fc-here ! ;
-: fc-check-here ( -- ) fc-here @ 4 fc-mw lshift > if -8 throw then ;
+: fc-check-here ( -- ) fc-here @ 4 fc-mw lshift > if -8 fc-reject then ;
 : fc-define-data ( size -- ) fc-align 0 fc-here @ fc-define fc-here +! fc-check-here ;
 variable fc-sat
 : fc-store-string ( addr u -- at )
@@ -709,23 +709,25 @@ variable fc-sat
     fc-sat @ i + dup 2 rshift 64 * swap 3 and 8 * + fc-mem + fc-eight 1 lay-put
   loop drop fc-check-here fc-sat @ ;
 create fc-ct 64 cells allot variable fc-nct
-: fc-ct+ ( v -- ) fc-nct @ 64 = if -8 throw then fc-ct fc-nct @ cells + ! 1 fc-nct +! ;
-: fc-ct- ( -- v ) fc-nct @ 0= if -22 throw then -1 fc-nct +! fc-ct fc-nct @ cells + @ ;
+: fc-ct+ ( v -- ) fc-nct @ 64 = if -8 fc-reject then fc-ct fc-nct @ cells + ! 1 fc-nct +! ;
+: fc-ct- ( -- v ) fc-nct @ 0= if -22 fc-reject then -1 fc-nct +! fc-ct fc-nct @ cells + @ ;
 : fc-ct2 ( -- a b ) fc-ct- fc-ct- swap ;
 create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
+\ The working buffers are fixed, sized for the limits MAIN sets (FC-SIZES): 4096 constants, 1024 buckets, 2048 words,
+\ 32768 bytes of names, 64 notes. Bytes: constants 65536, ring tables 2048, buckets 4096, link chunk 4096.
+create fc-ck-mem 65536 allot create fc-stabs-mem 2048 allot create fc-cbk-mem 4096 allot create fc-link-mem 4096 allot
+create fc-wt-mem 131072 allot create fc-names-mem 32768 allot create fc-wbk-mem 4096 allot create fc-log-mem 32768 allot
+create fc-decs-mem 512 allot create fc-calls-mem 768 allot create fc-pend-mem 1024 allot
 : fc-init ( -- )
   fc-size 8 fc-cellb 4096 lay-machine fc-first @ lay-builder fc-tables
-  fc-ck @ 0= if
-    fc-max-consts @ 4 * cells allocate throw fc-ck ! fc-ring 8 * cells allocate throw fc-stabs !
-    fc-nbuckets @ cells allocate throw fc-cbk !
-  then
+  fc-ck @ 0= if fc-ck-mem fc-ck ! fc-stabs-mem fc-stabs ! fc-cbk-mem fc-cbk ! then
   fc-cbk @ fc-nbuckets @ cells 0 fill
   0 fc-nret ! 0 fc-nconsts ! 0 fc-n ! 0 fc-npin ! 0 fc-live ! 0 fc-nseg !
   0 fc-nctl ! fc-data-start fc-here ! 0 fc-word !
   0 fc-nct ! 0 fc-ninit ! 0 fc-init-open ! 0 fc-ll ! 0 fc-plit ! 0 fc-rt !
   lay-lone fc-ret-base over lay-next! lay-layer-cell fc-tramp ! lay-flush
   lay-lone fc-ex-base over lay-next! lay-layer-cell fc-ex ! lay-flush
-  0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-chunk 8 * allocate throw fc-link-buf ! then
+  0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-mem fc-link-buf ! then
   fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
 \ Before the code: the generators of the source are found and their needs collected (1: multiplication, 2: division,
 \ 4: KERNEL-LAYOUT); the generator \ (need 8) is executed too.
@@ -756,7 +758,7 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
   fc-lit? 0= if drop 0 exit then fc-plv @ dup 32 u< 0= if 2drop 0 exit then
   fc-pop1 drop fc-const-shift -1 ;
 : fc-pick-roll ( roll? -- )
-  fc-plit @ 0= fc-n @ 0= or if -13 throw then fc-n @ 1- fc-c@ fc-plr @ <> if -13 throw then
+  fc-plit @ 0= fc-n @ 0= or if -13 fc-reject then fc-n @ 1- fc-c@ fc-plr @ <> if -13 fc-reject then
   fc-pop1 drop fc-plv @ dup 1+ fc-need fc-n @ 1- swap - ( index )
   swap if
     dup fc-c@ >r fc-cache over cells + dup cell+ swap fc-n @ 3 pick - 1- cells cmove drop -1 fc-n +! r> fc-push
@@ -801,11 +803,11 @@ variable fc-ftr variable fc-stg
   fc-code 4 fc-need lay-layer lay-layer lay-layer lay-layer lay-layer drop lay-layer
   0 0 0 0 4 pick lay-row 3 fc-cp 2 fc-cp 1 fc-cp 0 fc-cp 2drop ;
 : fc-close-init ( -- )
-  fc-nct @ if -22 throw then
+  fc-nct @ if -22 fc-reject then
   fc-init-open @ if fc-ret 0 fc-init-open ! 0 fc-word ! then ;
 : fc-open-init ( -- )
   fc-init-open @ 0= if
-    fc-ninit @ 64 = if -8 throw then 0 lay-group dup fc-inits fc-ninit @ cells + ! 1 fc-ninit +!
+    fc-ninit @ 64 = if -8 fc-reject then 0 lay-group dup fc-inits fc-ninit @ cells + ! 1 fc-ninit +!
     -1 fc-init-open ! -1 fc-word ! 0 fc-live ! 0 fc-n ! fc-begin-block drop
   then
   fc-nct @ 0 ?do fc-ct i cells + @ fc-literal loop 0 fc-nct ! ;
@@ -821,10 +823,8 @@ variable fc-gens
   >r dup fc-tl ! fc-tok swap cmove 0 r> fc-define ;
 : fc-words ( -- )
   fc-wt @ 0= if
-    fc-max-words @ 4 lshift cells allocate throw fc-wt ! fc-names-size @ allocate throw fc-names !
-    fc-nbuckets @ cells allocate throw fc-wbk !
-    fc-max-log 2 lshift cells allocate throw fc-log ! fc-max-notes 2* cells allocate throw fc-decs !
-    fc-max-notes 3 * cells allocate throw fc-calls ! fc-max-notes 2 lshift cells allocate throw fc-pend !
+    fc-wt-mem fc-wt ! fc-names-mem fc-names ! fc-wbk-mem fc-wbk ! fc-log-mem fc-log ! fc-decs-mem fc-decs !
+    fc-calls-mem fc-calls ! fc-pend-mem fc-pend !
   then
   fc-wbk @ fc-nbuckets @ cells 0 fill 0 fc-nwords ! 0 fc-names-used !
   fc-gens @ ?dup if execute then ;
@@ -836,10 +836,10 @@ variable fc-gens
 : fc-code ( -- ) fc-defining? 0= if fc-open-init 0 fc-plit ! then ;
 \ True: n values are known (the generator folds them with FC-CT- FC-CT+); else FC-CODE and false (it writes code).
 : fc-fold? ( n -- f ) fc-known > if fc-code 0 else -1 then ;
-: fc-top-only ( -- ) fc-defining? if -13 throw then ;
+: fc-top-only ( -- ) fc-defining? if -13 fc-reject then ;
 
 : fc-not-found ( -- entry )
-  s" literal" fc-lookup dup if dup 2 cells + @ 2 and if exit then then -13 throw ;
+  s" literal" fc-lookup dup if dup 2 cells + @ 2 and if exit then then -13 fc-reject ;
 : fc-word-token ( -- )
   fc-find ?dup 0= if fc-not-found then
   dup 2 cells + @ dup 2 and if drop 3 cells + @ execute exit then
@@ -858,7 +858,7 @@ variable fc-sy
 \ The replacement (14.13, language/doc/replace.md): the table of the records of the program, 99 records of cells 3, 6-13, 15
 \ of the compiler's record at the offsets 0 4 8 ... 36; 32 bits of v at FC-RTA.
 : fc-concept-record ( record -- )
-  fc-rta @ fc-rt @ - 3960 = if -8 throw then
+  fc-rta @ fc-rt @ - 3960 = if -8 fc-reject then
   dup fc-xtn fc-poke 14 6 do dup i cells + @ fc-poke loop drop 4 fc-rta +! ;
 \ A text of the language compiled in the middle of the channel (14.12). FC-LIBRARY: the words CHECK-TABLE and ACCURACY
 \ need, compiled before the program when its source names them.
@@ -942,7 +942,7 @@ variable fc-nhost
 \ The long copy (15.2, emulator/src/proto.def): ( space pos lo hi -- ) to the remote space (synonym of %LST) and from it (%LLD);
 \ %LR ( space pos len dir -- ) writes the request record LONG at W = 2^30 + 2^28 to S = 2^31 by %COPY. Not in the kernel (-13).
 : fc-long ( -- )
-  fc-guard @ if -13 throw then s" %copy" ['] fc-copy-row 0 fc-generator
+  fc-guard @ if -13 fc-reject then s" %copy" ['] fc-copy-row 0 fc-generator
   s" variable %la variable %ln : %lr 1342177320 space! dup %ln ! 1342177336 space!" fc-eval
   s" 1342177368 space! 0 1342177400 space! 1342177288 space!" fc-eval
   s" 6 1342177280 spacec! ; : %lld over %la ! swap - 1 %lr 2147483648 2147483648 1342177280" fc-eval
@@ -968,8 +968,8 @@ variable fc-nhost
   fc-uses @ 64 and if fc-long then
   fc-uses @ 16 and if fc-library then
   begin fc-next while fc-token repeat
-  fc-defining? if -22 throw then fc-close-init
-  s" main" fc-tok swap dup fc-tl ! cmove fc-find dup 0= if -16 throw then >r
+  fc-defining? if -22 fc-reject then fc-close-init
+  s" main" fc-tok swap dup fc-tl ! cmove fc-find dup 0= if -16 fc-reject then >r
   0 fc-live ! 0 fc-n ! 0 lay-group fc-begin-block lay-new-cell
   dup fc-push-frame fc-ninit @ 0 ?do fc-inits i cells + @ fc-call loop
   r> fc-xt fc-call fc-cellb fc-jump lay-flush

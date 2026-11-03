@@ -29,7 +29,7 @@ POOL_BYTES = int(os.environ.get('LANGUAGE_POOL_BYTES', 16 * 1024 * 1024))
 # the code free at 14.12 (past the end pForth fails with a segmentation fault, without a message). The
 # host takes a copy of the dictionary image with larger free areas (zeros after the image); the image
 # itself and the guest are not changed.
-EXTRA_NAMES, EXTRA_CODE = 64 * 1024, 256 * 1024
+EXTRA_NAMES, EXTRA_CODE = 64 * 1024, 1024 * 1024
 
 
 def dictionary(target):
@@ -55,7 +55,7 @@ def build():
         '-m32', '-O2', '-std=c99', '-ffreestanding', '-nostdlib', '-fno-pie', '-no-pie',
         '-fno-stack-protector', '-Wl,--build-id=none', '-Wl,-e,_start', '-w',
     ] + host_flags + [str(p) for p in sources(False)] + [str(PORT / 'bootstrap/linux32.c'), '-o', str(executable)]
-    digest = hashlib.sha256(json.dumps(command).encode())
+    digest = hashlib.sha256(json.dumps([command, EXTRA_NAMES, EXTRA_CODE]).encode())
     for path in sorted(set(sources(False) + [PORT / 'bootstrap/linux32.c']) |
                        set(PORT.rglob('*.h')) | set((paths.BOOT / 'csrc').rglob('*.h'))):
         digest.update(str(path).encode() + Path(path).read_bytes())

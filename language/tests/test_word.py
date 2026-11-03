@@ -67,8 +67,7 @@ BEFORE = ''': gen-prove fc-next! fc-find fc-proved swap 14 cells + ! ;
   s" rebind" ['] gen-rebind 0 fc-generator ;
 ' word-generators fc-gens !
 '''
-HOST_REPORT = (': h.n dup 0< if 45 emit negate then dup 10 / ?dup if recurse then 10 mod 48 + emit ;\n'
-               ': try [\'] fc-go catch ?dup if ." error " h.n ."  at " fc-tok fc-tl @ type 10 emit then ;\n')
+HOST_REPORT = ': try fc-go ;\n'      # a compile error is FC-REJECT: it prints and halts the host
 PRICE = ('size', 'bits', 'copies', 'layers', 'known')
 
 

@@ -632,6 +632,7 @@ class Compiler:
             if control:raise CompileError('unbalanced control structure')
             self.ret();self.word=None;return
         if t=='exit':self.ret();self.begin_block();return
+        if t=='bye':self.flush();self.jump(self.halt);self.b.flush();self.s=None;self.begin_block();return
         if t=='recurse':self.call(self.words[self.word][1]);return
         if t=="[']":self.literal(self.words[tk.need()][1]);return
         if t=='[char]':

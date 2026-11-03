@@ -92,8 +92,8 @@ def main():
         code, out = run(language, '--update')
         assert code == 0 and 'переписано 1' in out, out
         diff = [(a, b) for a, b in zip(original.split('\n'), doc.read_text().split('\n'), strict=False) if a != b]
-        assert len(diff) == 1 and diff[0][0].startswith('код: src/prelude.fth:6 ') and diff[0][1].startswith(
-            'код: src/prelude.fth:6 '), diff
+        assert len(diff) == 1 and diff[0][0].startswith('код: src/prelude.fth:4 ') and diff[0][1].startswith(
+            'код: src/prelude.fth:4 '), diff
         code, out = run(language, '--check')
         assert code == 0, out
         print('PASS --update rewrites only the line `код:`, then --check', code)

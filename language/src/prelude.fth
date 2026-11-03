@@ -1,8 +1,6 @@
 \ Words of pForth used by the compiler libraries, defined for the
 \ direct compiler (forthc), which builds in only the primitives of
 \ its subset. Compiled before backend.fth, compute.fth, forthc.fth.
-\ ALLOCATE takes from a heap that main.fth starts after the static
-\ data; FREE gives back only the last allocation.
 : nip ( a b -- b ) swap drop ;
 : tuck ( a b -- b a b ) swap over ;
 : -rot ( a b c -- c a b ) rot rot ;
@@ -41,11 +39,6 @@ variable fill-cell
   rot 2dup swap - >r min 0 ?do
     over i + c@ over i + c@ - ?dup if 0< 2* 1+ nip nip unloop r> drop exit then
   loop 2drop r> dup if 0< 2* 1+ then ;
-variable heap-ptr variable heap-last 524288 constant heap-end
-: allocate ( u -- addr ior )
-  3 + -4 and heap-ptr @ dup heap-last ! tuck + dup heap-end u> if 2drop 0 -59 exit then
-  heap-ptr ! 0 ;
-: free ( addr -- ior ) dup heap-last @ = if heap-ptr ! else drop then 0 ;
 \ Never called here: FC| reads pForth's input line.
 : source ( -- addr u ) 0 0 ;
 variable >in

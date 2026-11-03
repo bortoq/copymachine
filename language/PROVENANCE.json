@@ -13,32 +13,32 @@
  ],
  "files": {
   "src/prelude.fth": {
-   "copy_sha256": "e6207155b692cd15e6af37bae2dfd5876f8403258eb6d4f485867aae68085554",
+   "copy_sha256": "ec8ff1badf7eedfb3daf34fc5e89ae673fa38c2309014de21293bb3163144d9c",
    "origin_in_archive": "forth/scripts/forthc/prelude.fth"
   },
   "src/backend.fth": {
-   "copy_sha256": "045928a9813f0cc63f3fe41e5b6ba6d38380e8cb3d34aa17d8914247fc6b18e6",
+   "copy_sha256": "565fc2ad9dab812f28839386dc96eaa4987ebdda2b0d4593618bbc696a7e3a54",
    "origin_in_archive": "copycode/forth/backend.fth"
   },
   "src/compute.fth": {
-   "copy_sha256": "c0991263dd229b5ac876b96ee9a04252970828b64b262fd3d93d4f3d0a4cfb30",
+   "copy_sha256": "42b9b6ac0f6bd27e10140b43b619d1afbbc3adf226733798ffc1e62067d0734c",
    "origin_in_archive": "copycode/forth/compute.fth"
   },
   "src/forthc.fth": {
-   "copy_sha256": "9e03c6b2e5639792d6ababdd8fbdc99f81c60b2c288934084cfa166c44b81f76",
+   "copy_sha256": "f0883fea8f27ebca0bf1b917b6eeccd8ab09d733c860de27f38d00b392d94ced",
    "origin_in_archive": "forth/scripts/forthc/forthc.fth"
   },
   "src/primitives.fth": {
    "item": "14.3",
    "note": "the generators of the primitives (arithmetic and logic), moved from the branches FC-IS? of src/forthc.fth",
-   "sha256": "b5b72bbf35aa3789fef4931d0ea6770b58591565b529d0b345261cb78c77c2ed"
+   "sha256": "b587ba53e876014bf5f55001fc60512e485746b00790a3df777a20c1ca3d19b0"
   },
   "src/main.fth": {
-   "copy_sha256": "40314c24d761926e02e177dca7af6f030d327fe6339153569a9a486d698cf1a4",
+   "copy_sha256": "0f76ea90e4daac2263312d4a3d5745e00c1d1f66207271fbb969f90b10f50c9d",
    "origin_in_archive": "forth/scripts/forthc/main.fth"
   },
   "src/kernel.fth": {
-   "copy_sha256": "3eff8516e58c76b64eb1253c51c6d5d1cb30d178a931a5e300d8c7233419e97a",
+   "copy_sha256": "745a0e71d5f47a37b4f022455f890ea54848bcc5bfb5587652291eb8f9d9b141",
    "origin_in_archive": "forth/scripts/forthc/kernel.fth"
   }
  }
