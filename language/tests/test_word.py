@@ -8,7 +8,7 @@
    instructions equal its copies, the copies of 13.4 (those that changed memory) are not more.
    The word with a branch is executed on both branches: its price is the largest of each counter.
    The size is the cells from the entry to the first free cell: the ticks of the word are in them.
-2. Loops, recursion, a call of an xt, CATCH, a call of a word priced by execution: by execution
+2. Loops, recursion, a call of an xt, a call of a word priced by execution: by execution
    (known 0, no counters).
 3. The words of the language COST PRICE PROVED? in a program, in a definition and at the top level,
    give the prices of the records; COST of an xt not known at compile time: -13.
@@ -41,13 +41,14 @@ FIVE = '''variable v
 : w2 ( a -- b ) dup 0= if 1+ else 1- 1- then ;
 : w3 ( addr -- ) dup @ 1+ swap ! ;
 : w4 ( -- ) 3 4 w1 drop 65 emit ;
-: w5 ( a b -- p q ) over over * >r / r> ;
+: w6 ( a b -- q ) / ;
+: w5 ( a b -- p q ) over over * >r - r> ;
 : main 1 2 w1 drop 0 w2 drop 5 w2 drop v w3 w4 7 3 w5 drop drop 10 emit ;'''
 BY_EXECUTION = ''': u1 ( n -- ) begin 1- dup 0= until drop ;
 : u2 ( n -- ) 0 do loop ;
 : u3 ( n -- ) dup if 1- recurse else drop then ;
 : u4 ( xt -- ) execute ;
-: u5 ( -- ) ['] u1 catch drop ;
+: u5 ( -- ) ['] u1 execute ;
 : u6 ( -- ) 3 u1 ;
 : k1 ( -- n ) 1 if 2 else 3 then ;
 : main 3 u1 3 u2 3 u3 ['] k1 u4 drop u6 k1 drop ;'''
@@ -149,6 +150,24 @@ def check_five():
     return records
 
 
+FORBID = 1 << 24                       # FC-FORBID: the price of the division by 0
+
+
+def check_division():
+    """A division by 0 halts the program; its price is prohibitive (known, and over FC-FORBID in every counter)."""
+    source = (': d1 ( a b -- q ) / ; : d2 ( a b -- r ) mod ; : d3 ( a -- q ) 3 / ; : s ( a b -- c ) + ;\n'
+              ': main 65 emit 7 2 d1 48 + emit 7 2 d2 48 + emit 66 emit 7 0 d1 67 emit ;')
+    stream, records, info = word_cost.compile_with_records(source)
+    assert run_checked(stream) == b'A3' b'1B', run_checked(stream)       # halts at 7 0 d1: no C
+    for name in ('d1', 'd2', 'd3'):
+        r = records[name]
+        assert r['known'] == -1 and min(r['bits'], r['copies'], r['layers']) >= FORBID, (name, r)
+    assert records['s']['known'] == -1 and records['s']['layers'] < 100, records['s']
+    assert info['div']['known'] == -1 and min(info['div'][k] for k in ('bits', 'copies', 'layers')) >= FORBID, info['div']
+    print('PASS division by 0 halts the program (no output after it); the price of / mod is prohibitive:',
+          {k: records['d1'][k] for k in PRICE})
+
+
 def check_by_execution():
     stream, records, _ = word_cost.compile_with_records(BY_EXECUTION)
     assert run_checked(stream) == b'', 'the program writes nothing'
@@ -156,7 +175,7 @@ def check_by_execution():
         r = records[name]
         assert r['known'] == 0 and r['bits'] == r['copies'] == r['layers'] == 0 and r['size'] > 0, (name, r)
     assert records['k1']['known'] == -1 and records['k1']['layers'] > 0, records['k1']
-    print('PASS by execution: begin-until, do-loop, recurse, execute, catch, a call of such a word;'
+    print('PASS by execution: begin-until, do-loop, recurse, execute, a call of such a word;'
           ' k1 (a branch) known:', {k: records['k1'][k] for k in PRICE})
 
 
@@ -224,6 +243,7 @@ def main():
     subprocess.run(['make', '-s', '-C', str(paths.EMULATOR_ROOT), '-j1', 'checked'], check=True)
     check_five()
     check_by_execution()
+    check_division()
     records, _ = check_words()
     check_record()
     check_kernel_prices(records)

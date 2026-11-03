@@ -27,9 +27,6 @@ PROGRAMS={
 'loop-sum':'variable acc\n: main 0 acc ! 101 1 do acc @ i + acc ! loop acc @ 255 and emit acc @ 256 / emit ;',
 }
 PROGRAMS['execute']=': a 65 emit ; : b 66 emit ; : main [\'] a execute [\'] b execute [\'] a dup execute execute ;'
-PROGRAMS['catch']=(': f 3 throw 65 emit ; : g 66 emit ; : h 7 f 8 ; : ok 0 throw 67 emit ;\n'
-                   ': main 65 66 [\'] f catch 48 + emit emit emit [\'] g catch 48 + emit'
-                   ' [\'] h catch 48 + emit [\'] ok catch 48 + emit 1 [\'] h catch 48 + emit 48 + emit ;')
 # J is not in the subset.
 PROGRAMS['do-loop']=': main 5 0 do i 48 + emit loop 3 0 do 2 0 do i 48 + emit loop loop ;'
 B4=': b4 ( n -- ) 4 0 do dup 255 and emit 256 / loop drop ;\n'
@@ -71,10 +68,9 @@ EXPECTED={
                  b''.join(b4(tdiv(a,b))+b4(a-b*tdiv(a,b)) for a,b in DIV)),
 'mod-signs':(': main -7 2 mod 48 + emit 7 -2 mod 48 + emit -7 -2 mod 48 + emit -7 2 / 48 + emit 7 -2 /mod 48 + emit 48 + emit ;',
              bytes([47,49,47,45,45,49])),
-'faults':(': z 7 0 / ; : zm 7 0 mod ;\n'
-          ': ok 524284 @ drop 0 524284 ! ; : c 0 swap - emit ;\n'
-          ": main ['] z catch c ['] zm catch c ['] ok catch 48 + emit 1 2 ['] z catch c 48 + emit 48 + emit ;",
-          bytes([10,10,48,10,50,49])),
+# A division by 0 halts the program (its price is prohibitive, 14.11); the next output never comes.
+'zero-mod':(': z 7 0 mod ; : main 65 emit 7 2 mod 48 + emit z 66 emit ;',b'A1'),
+'zero-divmod':(': z 7 0 /mod ; : main 65 emit z 66 emit ;',b'A'),
 # No address is checked: the cell of an address is taken modulo the memory (2^19 bytes), a byte address too.
 'address-aliasing':(': main 65 emit 7 0 ! 524288 @ 48 + emit 3 @ 48 + emit 1048576 @ 48 + emit ;',b'A777'),
 'uncaught-zero':(': main 65 emit 0 0 / 66 emit ;',b'A'),

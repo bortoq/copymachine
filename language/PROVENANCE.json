@@ -1,45 +1,45 @@
 {
- "note": "The sources of the language (src/). copy_sha256 is the digest of the file in the tree, checked by tests/test_provenance.py; the files they were copied from (kernel K) are in the tag archive-2026-10-30. A file with origin null is a new source of the language, not a copy (src/primitives.fth, 14.3).",
- "workspace_commit": "60a6f9af5e0d6366af59d35552bcf90088c47a7e",
- "branch": "language/experiment",
- "order": [
-  "prelude.fth",
-  "backend.fth",
-  "compute.fth",
-  "forthc.fth",
-  "primitives.fth",
-  "main.fth",
-  "kernel.fth"
- ],
- "files": {
-  "src/prelude.fth": {
-   "copy_sha256": "ec8ff1badf7eedfb3daf34fc5e89ae673fa38c2309014de21293bb3163144d9c",
-   "origin_in_archive": "forth/scripts/forthc/prelude.fth"
-  },
-  "src/backend.fth": {
-   "copy_sha256": "8d62eee3f7d653518f550f88ed834c2acf3b40d84bf19e0717d6abcbdf67c513",
-   "origin_in_archive": "copycode/forth/backend.fth"
-  },
-  "src/compute.fth": {
-   "copy_sha256": "42b9b6ac0f6bd27e10140b43b619d1afbbc3adf226733798ffc1e62067d0734c",
-   "origin_in_archive": "copycode/forth/compute.fth"
-  },
-  "src/forthc.fth": {
-   "copy_sha256": "396cb17b54f9b4f5310c3731e808de5678b671b908caf5ac952d06446c068686",
-   "origin_in_archive": "forth/scripts/forthc/forthc.fth"
-  },
-  "src/primitives.fth": {
-   "item": "14.3",
-   "note": "the generators of the primitives (arithmetic and logic), moved from the branches FC-IS? of src/forthc.fth",
-   "sha256": "db230ec6660e82bca501ab1258b606049a21c7ef2fda656516f44149240956f5"
-  },
-  "src/main.fth": {
-   "copy_sha256": "0f76ea90e4daac2263312d4a3d5745e00c1d1f66207271fbb969f90b10f50c9d",
-   "origin_in_archive": "forth/scripts/forthc/main.fth"
-  },
-  "src/kernel.fth": {
-   "copy_sha256": "745a0e71d5f47a37b4f022455f890ea54848bcc5bfb5587652291eb8f9d9b141",
-   "origin_in_archive": "forth/scripts/forthc/kernel.fth"
+  "note": "The sources of the language (src/). copy_sha256 is the digest of the file in the tree, checked by tests/test_provenance.py; the files they were copied from (kernel K) are in the tag archive-2026-10-30. A file with origin null is a new source of the language, not a copy (src/primitives.fth, 14.3).",
+  "workspace_commit": "60a6f9af5e0d6366af59d35552bcf90088c47a7e",
+  "branch": "language/experiment",
+  "order": [
+    "prelude.fth",
+    "backend.fth",
+    "compute.fth",
+    "forthc.fth",
+    "primitives.fth",
+    "main.fth",
+    "kernel.fth"
+  ],
+  "files": {
+    "src/prelude.fth": {
+      "copy_sha256": "ec8ff1badf7eedfb3daf34fc5e89ae673fa38c2309014de21293bb3163144d9c",
+      "origin_in_archive": "forth/scripts/forthc/prelude.fth"
+    },
+    "src/backend.fth": {
+      "copy_sha256": "8d62eee3f7d653518f550f88ed834c2acf3b40d84bf19e0717d6abcbdf67c513",
+      "origin_in_archive": "copycode/forth/backend.fth"
+    },
+    "src/compute.fth": {
+      "copy_sha256": "42b9b6ac0f6bd27e10140b43b619d1afbbc3adf226733798ffc1e62067d0734c",
+      "origin_in_archive": "copycode/forth/compute.fth"
+    },
+    "src/forthc.fth": {
+      "copy_sha256": "d3de09583cfe579c721de9ffc5e2e867d794e3729e77f7ef6523f9cd84a9c6b6",
+      "origin_in_archive": "forth/scripts/forthc/forthc.fth"
+    },
+    "src/primitives.fth": {
+      "item": "14.3",
+      "note": "the generators of the primitives (arithmetic and logic), moved from the branches FC-IS? of src/forthc.fth",
+      "sha256": "eb4d3c91f21ac3705df6bb347cf990b6c19022695bf52ce087867f2a20fcbc9b"
+    },
+    "src/main.fth": {
+      "copy_sha256": "0f76ea90e4daac2263312d4a3d5745e00c1d1f66207271fbb969f90b10f50c9d",
+      "origin_in_archive": "forth/scripts/forthc/main.fth"
+    },
+    "src/kernel.fth": {
+      "copy_sha256": "745a0e71d5f47a37b4f022455f890ea54848bcc5bfb5587652291eb8f9d9b141",
+      "origin_in_archive": "forth/scripts/forthc/kernel.fth"
+    }
   }
- }
 }

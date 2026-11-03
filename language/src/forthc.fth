@@ -18,7 +18,7 @@ variable fc-guard
 : fc-layout ( kernel? -- )
   if 3 29 lshift 1 19 lshift else 1 30 lshift 2 then fc-first ! fc-d ! ;
 : fc-d+ ( offset -- addr ) fc-d @ + ;
-: fc-sp 0 fc-d+ ;  : fc-rp 64 fc-d+ ;  : fc-handler 128 fc-d+ ;  : fc-code 192 fc-d+ ;
+: fc-sp 0 fc-d+ ;  : fc-rp 64 fc-d+ ;  : fc-code 192 fc-d+ ;
 : fc-regs 1024 fc-d+ ;  48 constant fc-nregs
 : fc-tmp 4096 fc-d+ ;  : fc-xr 4160 fc-d+ ;  : fc-z 4224 fc-d+ ;  : fc-idx 4288 fc-d+ ;
 : fc-ma 4800 fc-d+ ;  : fc-mb 4864 fc-d+ ;  : fc-mp 4928 fc-d+ ;  : fc-mq 4992 fc-d+ ;  : fc-mr 5056 fc-d+ ;
@@ -228,7 +228,7 @@ variable fc-lc variable fc-lb
   fc-ncall @ fc-call@ >r r@ 2 cells + ! r@ cell+ ! lay-last lay-layer-cell r> ! 1 fc-ncall +! ;
 variable fc-callee   \ the record of the word FC-CALL calls (0: not a word)
 
-variable fc-live variable fc-tramp variable fc-ex variable fc-thrower
+variable fc-live variable fc-tramp variable fc-ex variable fc-halt
 : fc-jump ( target -- ) lay-seq# @ 0= if lay-layer drop then lay-jump ;
 : fc-end ( -- ) lay-flush 0 fc-live ! ;
 : fc-begin-block ( cell|-1 -- cell )
@@ -268,35 +268,6 @@ variable fc-v0 variable fc-v1
   fc-xw fc-ex @ 7 2 lay-field lay-branch-bit + 2 pick fc-xoff + lay-copy fc-v0 @ lay-row drop
   fc-xw fc-ex @ 7 3 lay-field lay-branch-bit + rot fc-xoff + lay-copy fc-v1 @ lay-row drop
   fc-ex @ lay-jump fc-end r> ;
-: fc-push-frame ( thrown -- )
-  fc-ret-link fc-sp fc-srcs ! fc-handler fc-srcs cell+ ! fc-srcs 2 cells + ! 3 fc-nsrc !
-  fc-rstk fc-rp 64 fc-mem-push 64 fc-handler fc-rp lay-copy fc-rows1 ;
-: fc-link-copy ( dst src -- )
-  fc-guard @ if
-    swap lay-branch-bit + swap
-    2dup fc-rbits -rot lay-copy lay-layer lay-row drop
-    swap 32 + swap fc-rbits -rot lay-copy lay-layer lay-row drop
-  else 64 -rot lay-copy fc-rows1 then ;
-: fc-restore ( dst src -- )
-  >r >r 0 fc-off@ 7 64 r> 0 lay-item r> 8 0 lay-seg ;
-: fc-build-thrower ( -- entry )
-  0 fc-n ! -1 lay-seq 64 fc-rp fc-handler lay-copy fc-rows1 lay-entry
-  fc-rstk fc-rp 3 64 fc-mem-pop 0 fc-npin !
-  lay-lookups-begin fc-sp 0 fc-popped@ fc-restore fc-handler 1 fc-popped@ fc-restore lay-lookups
-  fc-tramp @ 7 2 lay-field 2 fc-popped@ fc-link-copy
-  lay-layer drop fc-tramp @ lay-jump fc-end ;
-: fc-throw ( -- )
-  fc-pop fc-spill 32 fc-code 2 pick lay-copy fc-rows1
-  fc-branch lay-new-record fc-thrower @ swap lay-next! lay-flush fc-begin-block drop ;
-: fc-catch ( -- )
-  fc-pop >r fc-spill lay-new-cell lay-new-cell over fc-push-frame
-  r> -1 fc-call-indirect fc-begin-block drop
-  fc-rstk fc-rp 3 64 fc-mem-pop 0 fc-npin !
-  lay-lookups-begin fc-handler 1 fc-popped@ fc-restore lay-lookups
-  0 fc-n ! 0 fc-reg dup fc-push >r fc-lit-of r> fc-load fc-spill
-  dup lay-jump fc-end
-  swap fc-begin-block drop fc-reg dup >r 32 swap fc-code lay-copy fc-rows1 0 fc-n ! r> fc-push fc-spill
-  dup lay-jump fc-end fc-begin-block drop ;
 variable fc-ret-p variable fc-ret-l variable fc-rs0 variable fc-rs1 variable fc-ret-m variable fc-ret-t
 : fc-ret-patch ( slot f j -- )
   8 * fc-idx + >r fc-ret-t @ lay-layer-cell -rot lay-field 7 + 8 swap r> lay-copy fc-ret-p @ lay-row drop ;
@@ -471,7 +442,7 @@ variable fc-w variable fc-lo variable fc-tlo variable fc-t0 variable fc-t1 varia
   1 fc-q @ fc-k @ + fc-qr @ fc-tqk @ fc-scopy fc-tq @ max fc-tq ! ;
 : fc-build-div ( -- entry exit )
   -1 lay-seq lay-layer drop lay-entry fc-mb fc-nonzero 1 lay-decide 1 fc-log-decision fc-end
-  dup lay-new-record >r 32 fc-code -10 fc-const lay-copy r@ lay-row drop fc-thrower @ r> lay-next!
+  dup lay-new-record fc-halt @ swap lay-next!
   lay-branch-step + fc-sinit
   3 0 do ['] lay-sub-entry 9 3 lay-table i cells fc-sub + ! loop
   ['] fc-qsel-entry 3 2 lay-table fc-qsel !
@@ -508,7 +479,9 @@ variable fc-s1 variable fc-s2 variable fc-r1
 
 \ --- the longest path (14.11) ---
 \ The price of a word without loops and recursion (such a path goes only to later layers; a loop or a call of an xt:
-\ by execution): per counter the longest path from entry to exit; a path to the thrower is not counted.
+\ by execution): per counter the longest path from entry to exit; the path to the halt cell (the division by 0) costs FC-FORBID of everything.
+\ The price of the division by 0 (halt): the bound of every counter; a division costs it, however it is cheapened later.
+16777216 constant fc-forbid
 variable fc-pexit variable fc-ptramp variable fc-pd variable fc-pc variable fc-ends
 variable fc-pb variable fc-pcp variable fc-pln variable fc-pk variable fc-pcall
 create fc-best 12 allot
@@ -535,7 +508,7 @@ create fc-best 12 allot
   -1 fc-ends ! ;
 : fc-to ( cell -- )
   dup fc-pexit @ = if drop fc-pb @ fc-pcp @ fc-pln @ fc-end-path exit then
-  dup fc-thrower @ = if drop exit then
+  dup fc-halt @ = if drop fc-forbid dup dup fc-end-path exit then
   >r fc-pb @ fc-pcp @ fc-pln @ r> fc-reach ;
 : fc-node ( entry -- )
   -1 fc-pk ! 0 fc-pcall !
@@ -729,7 +702,8 @@ create fc-decs-mem 512 allot create fc-calls-mem 768 allot create fc-pend-mem 10
   lay-lone fc-ret-base over lay-next! lay-layer-cell fc-tramp ! lay-flush
   lay-lone fc-ex-base over lay-next! lay-layer-cell fc-ex ! lay-flush
   0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-mem fc-link-buf ! then
-  fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
+  fc-scr0 fc-scr !
+  lay-lone fc-cellb over lay-next! lay-layer-cell fc-halt ! lay-flush ;
 \ Before the code: the generators of the source are found and their needs collected (1: multiplication, 2: division,
 \ 4: KERNEL-LAYOUT); the generator \ (need 8) is executed too.
 : fc-scan-uses ( -- )
@@ -974,10 +948,9 @@ variable fc-nhost
   begin fc-next while fc-token repeat
   fc-defining? if -22 fc-reject then fc-close-init
   s" main" fc-tok swap dup fc-tl ! cmove fc-find dup 0= if -16 fc-reject then >r
-  0 fc-live ! 0 fc-n ! 0 lay-group fc-begin-block lay-new-cell
-  dup fc-push-frame fc-ninit @ 0 ?do fc-inits i cells + @ fc-call loop
+  0 fc-live ! 0 fc-n ! 0 lay-group fc-begin-block
+  fc-ninit @ 0 ?do fc-inits i cells + @ fc-call loop
   r> fc-xt fc-call fc-cellb fc-jump lay-flush
-  lay-new-record fc-cellb swap lay-next! lay-flush
-  fc-sp fc-zeros 8 lay-put fc-rp fc-zeros 8 lay-put fc-handler fc-zeros 8 lay-put
+  fc-sp fc-zeros 8 lay-put fc-rp fc-zeros 8 lay-put
   fc-zero fc-zeros 16 lay-put fc-put-consts fc-put-links lay-finish ;
 : fc-go ( -- ) fc-text @ 0= if fc-reset then fc-compile ;

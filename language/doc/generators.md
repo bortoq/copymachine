@@ -114,13 +114,11 @@ fc-need fc-reg`, переменная `fc-n` и `fc-c@` — регистр эл�
 ## Генераторы 14.5: управление
 
 Ветви `fc-is?` слов `if else then begin until while repeat again do ?do loop
-leave unloop exit recurse execute ['] catch throw` перенесены из
+leave unloop exit recurse execute [']` перенесены из
 `fc-control-token`, `fc-word-token` и `fc-primitive` (`unloop`) в
 `src/primitives.fth` без изменения алгоритмов; тела `fc-qdo`, `fc-loop`,
 `fc-leave` (с переменными `fc-di fc-dl fc-lv`) стали генераторами `gen-?do`,
-`gen-loop`, `gen-leave`. `fc-catch` и `fc-throw` остались построителями в
-`forthc.fth` (они пишут в ячейку кода `fc-code` — адрес данных, который
-слово `fc-code` 14.3 перекрывает). Каждый генератор начинается с `fc-code`:
+`gen-loop`, `gen-leave`. Каждый генератор начинается с `fc-code`:
 на верхнем уровне так же, как прежний путь `fc-open-init 0 fc-plit !
 fc-word-token`.
 
@@ -139,7 +137,6 @@ fc-noff`), вызовы (`fc-ret fc-call fc-call-indirect fc-word`), слова�
 | `begin until while repeat again` | `gen-begin gen-until gen-while gen-repeat gen-again` |
 | `do ?do loop leave unloop` | `gen-do gen-?do gen-loop gen-leave gen-unloop` |
 | `exit recurse execute [']` | `gen-exit gen-recurse gen-execute gen-tick` |
-| `catch throw` | `gen-catch gen-throw` |
 
 Побочное отличие, как в 14.3 и
 14.4: генератор найден `fc-find`, поэтому программа может переопределить
@@ -241,8 +238,8 @@ kernel-layout`, из `fc-word-token` — `; [char]` и `s"` (его провер
 | Слово языка | Что в программе ядра |
 |---|---|
 | `space! spacec! space@ spacec@` | `fc-space-store`, `fc-space-fetch`: младшие 28 бит lo и 29 бит конца, начало данных программы — постоянная строки |
-| `execute catch` | `fc-call-indirect`: `fc-jw` — 29 бит xt (код программы) |
-| возврат, `throw`, вызов умножения и деления | `fc-ret-masked`, `fc-link-copy`: номер точки возврата (`fc-rbits` бит, `fc-ret-link`) двумя строками в двух слоях в бит `lay-branch-bit` обоих полей ссылки из одного слова; слой `fc-rtab-at` ведёт в ячейку после вызова |
+| `execute` | `fc-call-indirect`: `fc-jw` — 29 бит xt (код программы) |
+| возврат, вызов умножения и деления | `fc-ret-masked`: номер точки возврата (`fc-rbits` бит, `fc-ret-link`) двумя строками в двух слоях в бит `lay-branch-bit` обоих полей ссылки из одного слова; слой `fc-rtab-at` ведёт в ячейку после вызова |
 
 `space! spacec! ( x lo -- )` и `space@ spacec@ ( lo -- x )` берут только начало интервала: ширину
 задаёт слово, конец lo + n делает сумматор (`fc-space-end`). Слово непересечения `dj-prove`
@@ -254,7 +251,7 @@ kernel-layout`, из `fc-word-token` — `; [char]` и `s"` (его провер
 ( size bits copies layers -- n ): `gen-cost`, `gen-proved?` (xt — литерал, только что
 скомпилированный, `fc-known-xt`; иначе -13; компилируют литералы из записи слова) и `gen-price`
 (сумма: три вызова `gen+` через `gen-call`). Регистраций в `fc-generators` теперь 77 (76
-генераторов). Генераторы `begin do ?do recurse execute catch` вызывают `fc-by-execution` (цена слова —
+генераторов). Генераторы `begin do ?do recurse execute` вызывают `fc-by-execution` (цена слова —
 по исполнению), `:` начинает журнал цены, `;` записывает цену (`fc-price-word`), `[']` и `recurse`
 берут xt из ячейки понятия (`fc-xt`). Подробности — `doc/word.md`.
 

@@ -3,7 +3,7 @@
 
 L0 compiles a program from stdin into the lower half of its own space (the code block 0 and the data block 2
 of the four blocks of 2^29 bits) and runs it. The program is built so that it cannot leave its half
-(doc/isolation.md): the copies whose position it computes (SPACE! SPACEC! SPACE@ SPACEC@, EXECUTE, CATCH, the
+(doc/isolation.md): the copies whose position it computes (SPACE! SPACEC! SPACE@ SPACEC@, EXECUTE, the
 return) take only the low bits of the position. Every probe is a program given to L0 (as check-kernel does)
 that does an attack when its input is 1 and nothing when it is 0, the same text both times, so L0 compiles
 it to the same state. After the run the emulator (a copy of emulator/src, built here, that prints the
@@ -36,7 +36,6 @@ RSTACK = (1 << 30) + (1 << 21) + (1 << 15)      # the stack of returns of the pr
 FREE = (1 << 30) + (1 << 27)                   # a place of the data of the program that nothing uses
 PROBE_SECONDS = 900
 LOOP_TICKS = 400_000_000                       # the probes that may not end are cut here
-SHOW = ': show 0 swap - 48 + emit ;\n'          # the code of a THROW as a digit
 
 PATCH = r'''
   fflush(stdout);
@@ -115,8 +114,9 @@ def probes(entry, constant):
     # the jumps and the returns that name the kernel or the data go only to the code of the program
     p['execute of the kernel'] = (
         f': main 65 emit key 49 = if {entry} execute then 66 emit ;', 'AB', None)
-    p['catch of the kernel'] = (
-        f': main 65 emit key 49 = if {entry} catch drop then 66 emit ;', 'AB', None)
+    # the division by 0 halts the program, the kernel stays
+    p['division by 0 halts'] = (
+        ': main 65 emit key 49 = if 7 0 / drop then 66 emit ;', 'AB', 'A')
     # a jump to a cell of the code of the program that is not an entry may not end (it runs what is there:
     # cell 0 is the processors themselves): the run is cut at LOOP_TICKS, the kernel is still the same
     p['execute of the data'] = (
@@ -135,16 +135,16 @@ def probes(entry, constant):
     p['return forged in the data'] = (
         f': f {entry} {FREE} space! ;\n: main 65 emit key 49 = if f then 66 emit ;', 'AB', None)
     # the return by the number of a point of return (18.22): the program writes the pair of its own return in the stack
-    # of returns (the data of the program: the frame of the catch of the start takes elements 0-2, MAIN 3, F 4)
+    # of returns (the data of the program: MAIN is element 0, F element 1)
     p.update(forged_returns())
     return p
 
 
 def forged_returns():
-    """The program forges the return of F (element 4 of the stack of returns, a pair of two words) and returns.
+    """The program forges the return of F (element 1 of the stack of returns, a pair of two words) and returns.
     The points of return are numbered in the order of the calls: 0 the call of F, 1 the call of P in MAIN, 2 the
-    frame of the start (the end), 3 the call of MAIN (the end); a number without a point is an empty layer."""
-    top = RSTACK + 4 * 128
+    call of MAIN (the end); a number without a point is an empty layer."""
+    top = RSTACK + 128
     MID = 23 * 1024                        # a cell in the middle of the word P (before 18.22 the pair of an address went there)
 
     def probe(lo, hi):
@@ -153,11 +153,11 @@ def forged_returns():
     return {
         'return forged to the number of a point (the call of F)': (probe(0, 0), 'APB', 'APB'),
         'return forged to the number of a point (the call of P)': (probe(1, 1), 'APB', 'AB'),
-        'return forged to the number of the end': (probe(3, 3), 'APB', 'A'),
+        'return forged to the number of the end': (probe(2, 2), 'APB', 'A'),
         'return forged to a number without a point': (probe(5000, 5000), 'APB', 'A'),
         'return forged to the address of a cell of the code': (probe(MID, MID), 'APB', 'A'),
         # two different numbers: both fields of the link take the first word, the second is not read
-        'return forged to a pair of two numbers': (probe(0, 3), 'APB', 'APB'),
+        'return forged to a pair of two numbers': (probe(0, 2), 'APB', 'APB'),
         'return forged to the old pair of the address of a cell': (probe(MID, MID + 1024), 'APB', 'A', LOOP_TICKS),
     }
 

@@ -5,9 +5,9 @@ A program is compiled in the mode of the program of the kernel (FC-GUARD 1) into
 (a sink of LAY-PUT, as the kernel has) and DJ-PROVE reads the layers from the image.
 
 1. The 37 programs of check-programs and a program with every word that computes a position (SPACE! SPACEC!
-   SPACE@ SPACEC@ EXECUTE CATCH THROW, the call and the return, * and /) and the program of the replacement
+   SPACE@ SPACEC@ EXECUTE, the call and the return, * and /) and the program of the replacement
    (the concept cells that take the entry from the record of the word) are proved; so are the table of entries and the table of returns.
-2. The same programs compiled for the whole space (FC-GUARD 0: the return and the throw write all 32 bits of the
+2. The same programs compiled for the whole space (FC-GUARD 0: the return writes all 32 bits of the
    link row) are refused, rule 2.
 3. Violations built in the image of the program (a field of a row is changed in the image, then DJ-PROVE
    again, then the field is restored) are refused with the number of the rule: a row of the kernel block, a
@@ -57,7 +57,7 @@ PROGRAM = '''variable v
 : w 5 ;
 : a 7 v @ + ;
 : main 7 1207959552 space! 9 1207959553 spacec! 1207959552 space@ drop 1207959553 spacec@ drop
-  ['] w execute drop ['] a catch drop 3 4 * 7 / drop 65 emit 5 throw ;'''
+  ['] w execute drop ['] a execute drop 3 4 * 7 / drop 65 emit ;'''
 
 
 def run_host(source, guard, tail, libraries):
@@ -192,8 +192,8 @@ def main():
         out = run_host(source, 1, '', libraries)
         assert [v[:3] for v in verdicts(out)] == [(-1, 0, 0)], (name, verdicts(out), out[-200:])
     print(f'PASS DJ-PROVE proves the {len(sources) - 2} programs, a program of the positions and a program of the replacement compiled for the program of the kernel')
-    # 2. compiled for the whole space the return and the throw are refused
-    for name in ('calls', 'catch', 'positions'):
+    # 2. compiled for the whole space the return is refused
+    for name in ('calls', 'execute', 'positions'):
         out = run_host(sources[name], 0, '', libraries)
         flag, rule, cell = verdicts(out)[0][:3]
         assert flag == 0 and rule == 2, (name, verdicts(out))

@@ -6,7 +6,7 @@ FC-GO, as check-programs) and then prints the records of the dictionary: for eve
 its name, the cell of its index definition, the price (size, bits, copies, layers, known), whether
 its concept cell is its own and holds the index definition, the definitions of the copy and the
 host space, the proof (proved, unproved with the checked set, other) and the stack of definitions;
-then the trampoline, the thrower and the price of the helpers of * and / (if built).
+then the trampoline, the halt cell and the price of the helpers of * and / (if built).
 
 Usage: word_cost.py [FILE]     a program (default: the definition of the language, src/ in the
                                order of the kernel): a summary of the prices of its words.
@@ -34,7 +34,7 @@ DUMP = r'''
   dup wd.checked 15 cells + @ wd.n ;
 : wd.helper 4 0 do dup i cells + @ wd.n loop drop cr ;
 : wd.all fc-nwords @ 0 ?do i fc-wt@ dup 2 cells + @ 1 = if ." W " wd.rec cr else drop then loop
-  ." T " fc-tramp @ wd.n fc-thrower @ wd.n cr
+  ." T " fc-tramp @ wd.n fc-halt @ wd.n cr
   fc-uses @ 1 and if ." H mul " fc-mul-cost wd.helper then
   fc-uses @ 2 and if ." H div " fc-div-cost wd.helper then ;
 '''
@@ -45,7 +45,7 @@ FIELDS = ('entry', 'size', 'bits', 'copies', 'layers', 'known', 'own_concept', '
 
 def compile_with_records(source, before='', sizes='', libraries=None):
     """(stream, records, info): records {name: dict(FIELDS)} of the newest record of each name, in the
-    order of definition; info: dict(tramp, thrower, mul, div, versions) (a helper: bits copies layers
+    order of definition; info: dict(tramp, halt, mul, div, versions) (a helper: bits copies layers
     known; versions: {(name, n): record} of every record, n-th definition of the name).
     LIBRARIES: the bytes of the compiler the host loads (default: src/ of this component; another
     language, 14.14, gives its own)."""
@@ -69,7 +69,7 @@ def compile_with_records(source, before='', sizes='', libraries=None):
             version = 1 + sum(1 for name, _ in info['versions'] if name == parts[1])
             info['versions'][(parts[1], version)] = record
         elif parts[0] == 'T':
-            info['tramp'], info['thrower'] = int(parts[1]), int(parts[2])
+            info['tramp'], info['halt'] = int(parts[1]), int(parts[2])
         elif parts[0] == 'H':
             info[parts[1]] = dict(zip(('bits', 'copies', 'layers', 'known'), map(int, parts[2:]), strict=False))
     return stream, records, info

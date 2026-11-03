@@ -93,8 +93,7 @@ variable fc-lv
 : gen-tick ( -- )
   fc-code fc-next! fc-find dup 0= if -13 fc-reject then dup 2 cells + @ 1 = if fc-xtn else 3 cells + @ then
   fc-literal ;
-: gen-throw ( -- ) fc-code fc-throw ;
-\ Copies whose position is computed at run time (SPACE! SPACEC! SPACE@ SPACEC@, EXECUTE, CATCH, return, throw) write
+\ Copies whose position is computed at run time (SPACE! SPACEC! SPACE@ SPACEC@, EXECUTE, return) write
 \ into their row only the low bits of the position in the kernel (FC-GUARD, language/doc/isolation.md).
 \ A generator is called as the loop of FC-COMPILE calls it (the previous literal is seen).
 : gen-call ( xt -- ) fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! execute ;
@@ -103,7 +102,6 @@ variable fc-lv
 : gen-space@ ( -- ) fc-code 32 fc-space-fetch ;
 : gen-spacec@ ( -- ) fc-code 8 fc-space-fetch ;
 : gen-execute ( -- ) fc-code fc-by-execution fc-pop -1 fc-call-indirect fc-begin-block drop ;
-: gen-catch ( -- ) fc-code fc-by-execution fc-catch ;
 \ Defining words and the channel (14.6). : VARIABLE CREATE CONSTANT ALLOT KERNEL-LAYOUT belong to the top level
 \ (FC-TOP-ONLY: else -13); ; to a definition (else -22). ( [CHAR] S" read the channel.
 \ The replacement (14.13, language/doc/replace.md): in a program that names it each word has a concept cell in the code,
@@ -227,8 +225,7 @@ variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 4096 allot
   s" unloop" ['] gen-unloop 0 fc-generator  s" exit" ['] gen-exit 0 fc-generator
   s" bye" ['] gen-bye 0 fc-generator
   s" recurse" ['] gen-recurse 0 fc-generator  s" execute" ['] gen-execute 0 fc-generator
-  s" [']" ['] gen-tick 0 fc-generator  s" catch" ['] gen-catch 0 fc-generator
-  s" throw" ['] gen-throw 0 fc-generator
+  s" [']" ['] gen-tick 0 fc-generator
   s" :" ['] gen-colon 0 fc-generator  s" ;" ['] gen-semicolon 0 fc-generator
   s" variable" ['] gen-variable 0 fc-generator  s" create" ['] gen-create 0 fc-generator
   s" allot" ['] gen-allot 0 fc-generator  s" constant" ['] gen-constant 0 fc-generator

@@ -14,17 +14,15 @@ call pushes the continuation's link fields (ret and ret+layer, 64 bits, from
 the link pool) on the return stack; a return copies them straight into the
 link fields of the return trampoline. Data addresses are byte addresses;
 cells are 32-bit, at a 64-bit stride in the space, so a patched word address
-never carries. @ and ! check the address: outside the 2^17 data cells
-THROW -9, unaligned THROW -23.
+never carries.
 
 * / MOD /MOD call shared straight-line subroutines placed by a list scheduler
 (Sched); the stack cache stays in registers across them. Division truncates
-toward zero (C semantics, as pForth's /); a zero divisor throws -10. An
-uncaught THROW halts.
+toward zero (C semantics, as pForth's /); a zero divisor halts.
 
 Supported: decimal literals, : ; EXIT RECURSE, VARIABLE CONSTANT, + - * / MOD
 /MOD AND OR XOR = < 0= DUP DROP SWAP OVER ROT >R R> R@ @ ! EMIT, IF ELSE THEN,
-BEGIN UNTIL WHILE REPEAT AGAIN, DO LOOP I, EXECUTE ['] CATCH THROW. Output
+BEGIN UNTIL WHILE REPEAT AGAIN, DO LOOP I, EXECUTE ['].  Output
 goes to stdout.
 
 A source with KERNEL-LAYOUT is compiled to the upper half of the space (code
@@ -46,7 +44,7 @@ def layout(d):
     """Addresses of the data region based at d (cells, tables, stacks, memory)."""
     return dict(
         SP=d,RP=d+64,                       # 8 copies of an 8-bit index each
-        HANDLER=d+128,CODE=d+192,           # CATCH frame pointer (RP copies), THROW code
+        CODE=d+192,
         REGS=d+1024,                        # cache registers, 64-bit stride
         TMP=d+4096,XR=d+4160,Z=d+4224,IDX=d+4288,  # IDX: 16 index registers, 16 bits
         MA=d+4800,MB=d+4864,MP=d+4928,MQ=d+4992,MR=d+5056,  # subroutine operands
@@ -174,7 +172,7 @@ class Compiler:
         ex=Seq(self.b);ex.rows([]).next=0;self.ex=ex.entry();self.b.flush()
         self.scr=self.SCR;self.helpers={};self.htables=compute.Tables(self.st,self.HTAB,M.size)
         self.nlinks=0;self.link_buf=[]
-        self.thrower=self.build_thrower()
+        hc=Seq(self.b);hc.rows([]).next=self.halt;self.zhalt=hc.entry();self.b.flush()  # the cell of the division by 0
     def scratch(self,bits,align=64):
         at=-(-self.scr//align)*align;self.scr=at+bits
         if self.scr>self.MEM:raise CompileError('scratch registers exhausted')
@@ -286,40 +284,6 @@ class Compiler:
         p0.add(copy(A-BB,M.field(self.ex,7,2)+BB,xt+BB));p1.add(copy(A-BB,M.field(self.ex,7,3)+BB,xt+BB))
         s.jump(self.ex);self.b.flush();self.s=None
         return cont
-    def catch(self):
-        """Frame on the return stack: data stack pointer, previous handler,
-        link to the throw continuation; HANDLER then points above it."""
-        xt=self.pop();self.flush()
-        thrown=self.b.new_cell();join=self.b.new_cell()
-        # Entries are 64 bits (below the 128-bit stride); pointers are restored
-        # from their first copy by the identity table, which replicates it.
-        self.push_frame(thrown)
-        normal=self.call_indirect(xt)
-        self.begin_block(normal)
-        _,prev,_=self.mem_pop(self.RSTK,self.RP,3,64);self.pinned=()
-        self.s.lookups([(self.T['off',0],7,64,self.HANDLER,[(prev,8,0)],0)]);self.cache=[];self.literal(0);self.flush()
-        self.s.jump(join);self.b.flush();self.s=None
-        self.begin_block(thrown);r=self.reg();self.s.rows([copy(32,r,self.CODE)]);self.cache=[r];self.flush()
-        self.s.jump(join);self.b.flush();self.s=None
-        self.begin_block(join)
-    def build_thrower(self):
-        """Shared nonzero THROW, code in CODE: the frame at HANDLER restores
-        both stacks and the handler, then its link continues at the catch."""
-        self.cache=[];self.s=Seq(self.b);self.s.rows([copy(64,self.RP,self.HANDLER)]);entry=self.s.entry()
-        saved,prev,link=self.mem_pop(self.RSTK,self.RP,3,64);self.pinned=()
-        self.s.lookups([(self.T['off',0],7,64,self.SP,[(saved,8,0)],0),(self.T['off',0],7,64,self.HANDLER,[(prev,8,0)],0)])
-        self.s.rows([copy(64,M.field(self.tramp,7,2),link)])
-        self.s.layer();self.s.jump(self.tramp);self.b.flush();self.s=None
-        return entry
-    def throw(self):
-        code=self.pop();self.flush()
-        self.s.rows([copy(32,self.CODE,code)])
-        zero,thrown=self.branch(code)
-        Seq(self.b,thrown).rows([]).next=self.thrower;self.b.flush()
-        self.begin_block(zero)
-    def push_frame(self,thrown):
-        self.mem_push(self.RSTK,self.RP,[self.SP,self.HANDLER,self.link(thrown)],64)
-        self.s.rows([copy(64,self.HANDLER,self.RP)])
     def ret(self):
         self.flush()
         self.adjust(self.RP,[-1],-1)
@@ -378,7 +342,7 @@ class Compiler:
     def build_div(self):
         """MQ, MR = MA / MB truncated, MA mod MB with the sign of MA.
 
-        A zero MB throws -10. Absolute values are selected from 128-bit
+        A zero MB halts. Absolute values are selected from 128-bit
         windows (value, negation) by the sign bit. 32 restoring steps divide
         them: t = rem*2 + bit and t - d by carry select: the low 16 bits in
         one sub chain, the high 16 bits in two chains for carry-in 0 and 1,
@@ -388,7 +352,7 @@ class Compiler:
         the results are applied as for the operands."""
         T=self.T;s=self.s=Seq(self.b);s.layer();entry=s.entry()
         e=self.nonzero(self.MB);g=s.decide(e,1);self.b.flush();self.s=None
-        Seq(self.b,g).rows([copy(32,self.CODE,self.const(-10))]).next=self.thrower
+        Seq(self.b,g).rows([]).next=self.zhalt
         S=Sched(self.b,g+STEP)
         sub=self.copies(3,9,3,[compute.sub_entry(i) for i in range(512)])
         qsel=self.htables.table(3,2,[((i>>2 if i&1 else i>>1)&1)*3 for i in range(8)])
@@ -577,17 +541,14 @@ class Compiler:
         if self.word is not None and not self.init_open:raise CompileError('unfinished definition')
         self.close_init()
         if main not in self.words:raise CompileError('no main word')
-        # Entry: a frame for an uncaught THROW (it halts), the top-level code,
-        # main, halt. It is aligned as a word entry: a kernel that installs
+        # Entry: the top-level code, main, halt. It is aligned as a word entry: a kernel that installs
         # the program in its own space starts it with EXECUTE.
-        self.s=None;self.cache=[];start=self.begin_block(self.b.group(0));uncaught=self.b.new_cell()
-        self.push_frame(uncaught)
+        self.s=None;self.cache=[];start=self.begin_block(self.b.group(0))
         for entry in self.init:self.call(entry)
         self.call(self.words[main][1])
         self.jump(self.halt);self.b.flush()
-        Seq(self.b,uncaught).rows([]).next=self.halt;self.b.flush()
         st=self.st
-        st.put(self.SP,numeric(0,8));st.put(self.RP,numeric(0,8));st.put(self.HANDLER,numeric(0,8));st.put(self.ZERO,bytes(16))
+        st.put(self.SP,numeric(0,8));st.put(self.RP,numeric(0,8));st.put(self.ZERO,bytes(16))
         for (value,bits),at in self.consts.items():st.put(at,numeric(value,(bits+7)//8))
         self.put_links()
         self.entry=start;return st.finish(start)
@@ -655,8 +616,6 @@ class Compiler:
             return
         if t=='execute':
             xt=self.pop();self.begin_block(self.call_indirect(xt));return
-        if t=='catch':self.catch();return
-        if t=='throw':self.throw();return
         if t=='if':
             f=self.pop();self.flush();zero,yes=self.branch(f)
             control.append(['if',zero]);self.begin_block(yes);return

@@ -20,7 +20,7 @@ definition of a generator replaced by hand (Language.replaced: no check of the p
    dearer in one word and cheaper in the sum: refused by the rule 'words' (no word dearer), accepted
    by the rule 'total'.
 4. Artifacts and errors: a language whose 1+ adds -1 (the same price) is refused (artifacts); a
-   language that cannot compile the program (CELLS throws) is refused (error); the code stays.
+   language that cannot compile the program (CELLS rejects) is refused (error); the code stays.
 5. The language boots: the language of src/ gives L0 of the build, the one with the dear CELLS another.
    The tool on the command line (add, recompile, show). PRICE of the tool is the language word PRICE.
 """
