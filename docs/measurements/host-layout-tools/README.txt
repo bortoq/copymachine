@@ -7,3 +7,5 @@ Tools of 18.19 (host-layout.md). From the root of a working copy (WORK), in a sc
   t/ (README.txt), wordticks.py                                    the ticks of a word
   python3 -B WORK/language/tools/host_layout.py [-o FILE]          the table of the layout (host_layout.h) from src/hostlayout.fth
 Tables: all37-1816.txt, all37-1819.txt (name, ticks, hash of the program, md5 of the output, seconds, code), words-1816.txt, words-1819.txt.
+18.23: prof_patch.py (after counter_patch.py: HW_PROF=FILE, the ticks of each cell), wordmap.py WORDS OUT.json WORK (the cell of every word), wordprof.py MAP.json DIR N (the ticks of the words);
+  noproof.py WORDS OUT.call WORK (L0 without dj-prove: the ticks of the proof by difference). Tables: words-1823.txt, all37-1823*.txt.

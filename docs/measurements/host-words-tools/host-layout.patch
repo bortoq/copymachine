@@ -1,6 +1,6 @@
-diff -ruN a/emulator/Makefile b/emulator/Makefile
---- a/emulator/Makefile	2026-11-03 15:27:18.008778798 +0200
-+++ b/emulator/Makefile	2026-11-03 15:27:56.846194060 +0200
+diff -ruN -x docs a/emulator/Makefile b/emulator/Makefile
+--- a/emulator/Makefile	2026-11-03 16:56:37.833416819 +0200
++++ b/emulator/Makefile	2026-11-03 16:32:08.000000000 +0200
 @@ -10,11 +10,11 @@
  
  # One emulator: four-index runtime, bitcopy, the long copy LONG (-r) and SYS.
@@ -35,10 +35,10 @@ diff -ruN a/emulator/Makefile b/emulator/Makefile
 +# (make -C language check-host-layout, 7.2.25).
 +host-layout:
 +	python3 -B ../language/tools/host_layout.py -o src/host_layout.h
-diff -ruN a/emulator/src/host_layout.h b/emulator/src/host_layout.h
+diff -ruN -x docs a/emulator/src/host_layout.h b/emulator/src/host_layout.h
 --- a/emulator/src/host_layout.h	1970-01-01 02:00:00.000000000 +0200
-+++ b/emulator/src/host_layout.h	2026-11-03 15:27:56.846194060 +0200
-@@ -0,0 +1,60 @@
++++ b/emulator/src/host_layout.h	2026-11-03 16:47:10.000000000 +0200
+@@ -0,0 +1,69 @@
 +/* generated from language/src/hostlayout.fth by language/tools/host_layout.py; do not edit.
 + * The layout of the space of the emulator for the definitions on the host: laid by the language. */
 +#ifndef HOST_LAYOUT_H_
@@ -63,6 +63,7 @@ diff -ruN a/emulator/src/host_layout.h b/emulator/src/host_layout.h
 +#define HL_PUT_N 12
 +#define HL_CMOVE_N 13
 +#define HL_NUM_N 14
++#define HL_SCAN_N 15
 +#define HL_RET 32
 +#define HL_IMG 64
 +#define HL_ARGS 96
@@ -97,11 +98,19 @@ diff -ruN a/emulator/src/host_layout.h b/emulator/src/host_layout.h
 +#define HL_NUM_RD 160
 +#define HL_NUM_END 192
 +#define HL_NUM_CELLS 6
++#define HL_SCAN_SIZE 96
++#define HL_SCAN_SLOTS 128
++#define HL_SCAN_LO 160
++#define HL_SCAN_HI 224
++#define HL_SCAN_MODE 256
++#define HL_SCAN_LAYER 288
++#define HL_SCAN_END 1312
++#define HL_SCAN_CELLS 23
 +
 +#endif
-diff -ruN a/emulator/src/proto.def b/emulator/src/proto.def
---- a/emulator/src/proto.def	2026-11-03 15:27:18.008778798 +0200
-+++ b/emulator/src/proto.def	2026-11-03 15:27:56.846194060 +0200
+diff -ruN -x docs a/emulator/src/proto.def b/emulator/src/proto.def
+--- a/emulator/src/proto.def	2026-11-03 16:56:37.833416819 +0200
++++ b/emulator/src/proto.def	2026-11-03 16:32:08.000000000 +0200
 @@ -44,6 +44,15 @@
   * Spaces 2.. are the host files given at startup (-r path, in order), bit
   * addressed (position 0 is the high bit of byte 0); a read past the end
@@ -118,9 +127,9 @@ diff -ruN a/emulator/src/proto.def b/emulator/src/proto.def
   */
  XOP(LONG,  6)
  /* reserve: SPAWN, POLL, MMAP, ... */
-diff -ruN a/emulator/src/runtime.c b/emulator/src/runtime.c
---- a/emulator/src/runtime.c	2026-11-03 15:27:18.008778798 +0200
-+++ b/emulator/src/runtime.c	2026-11-03 15:27:56.846194060 +0200
+diff -ruN -x docs a/emulator/src/runtime.c b/emulator/src/runtime.c
+--- a/emulator/src/runtime.c	2026-11-03 16:56:37.833416819 +0200
++++ b/emulator/src/runtime.c	2026-11-03 16:32:08.000000000 +0200
 @@ -6,7 +6,7 @@
  #include <signal.h>
  
@@ -138,9 +147,9 @@ diff -ruN a/emulator/src/runtime.c b/emulator/src/runtime.c
    return 1;
  }
  #ifndef VM1_NO_MAIN
-diff -ruN a/emulator/src/space.h b/emulator/src/space.h
---- a/emulator/src/space.h	2026-11-03 15:27:18.008778798 +0200
-+++ b/emulator/src/space.h	2026-11-03 15:27:56.846194060 +0200
+diff -ruN -x docs a/emulator/src/space.h b/emulator/src/space.h
+--- a/emulator/src/space.h	2026-11-03 16:56:37.833416819 +0200
++++ b/emulator/src/space.h	2026-11-03 16:32:08.000000000 +0200
 @@ -12,9 +12,10 @@
  #include <string.h>
  typedef uint64_t size;
@@ -153,9 +162,9 @@ diff -ruN a/emulator/src/space.h b/emulator/src/space.h
  extern size address_bits, nfield_bits, instruction_size;
  extern unsigned char *space;
  /* Decoded four-field processor snapshot; never fetched again during a tick. */
-diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
---- a/emulator/src/sys_ctrl.c	2026-11-03 15:27:18.008778798 +0200
-+++ b/emulator/src/sys_ctrl.c	2026-11-03 15:27:56.846194060 +0200
+diff -ruN -x docs a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
+--- a/emulator/src/sys_ctrl.c	2026-11-03 16:56:37.833416819 +0200
++++ b/emulator/src/sys_ctrl.c	2026-11-03 16:41:35.000000000 +0200
 @@ -17,6 +17,7 @@
   */
  #include "sys_ctrl.h"
@@ -164,7 +173,7 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
  #include <errno.h>
  #include <fcntl.h>
  #include <unistd.h>
-@@ -318,6 +319,276 @@
+@@ -318,6 +319,305 @@
  }
  
  /*
@@ -192,7 +201,7 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
 +static unsigned char hv[HV_BITS / 8];
 +_Static_assert(HL_PROC % 8 == 0 && HL_RET % 8 == 0 && HL_IMG % 8 == 0 && HL_IN <= HL_OUT && HL_OUT % 8 == 0 &&
 +               HL_PROC + HL_ARGS <= HL_IN && HL_PROC + HL_CLASH_END <= HL_IN && HL_PROC + HL_ENC_END <= HL_IN &&
-+               HL_PROC + HL_MV_END <= HL_IN, "host layout");
++               HL_PROC + HL_MV_END <= HL_IN && HL_PROC + HL_SCAN_END <= HL_IN, "host layout");
 +static unsigned char hv_rev[256];   /* the byte with its bits reversed: the bytes of numeric fields */
 +static void hv_init(void)
 +{
@@ -298,6 +307,35 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
 +    }
 +  return 0;
 +}
++/* HL_SCAN_N, scan ( size, slots, lo, hi, mode, a layer ): the layer (slots rows of four 32-bit fields dl dh sl sh, 128 bits
++ * apart: the bits of the space of the program) from HL_SCAN_LAYER; size at HL_SCAN_SIZE, slots at HL_SCAN_SLOTS, the bounds
++ * lo, hi of the headers at HL_SCAN_LO, HL_SCAN_HI, the mode at HL_SCAN_MODE. The rows that are not no-ops (sl = sh < size)
++ * are the image, in the order of the layer, as the cells of the memory (4 per row, the bytes of the field in the first
++ * 32 bits of each 64); in the mode 1 only the rows with dl < hi, dh >= lo (unsigned) and dl != dh (the writers that
++ * may reach a header, the second pass of the proof). The return value is the number of rows. */
++static int hd_scan(size *out, size *ret, size *disp)
++{
++  size slots = hv_cell(HL_SCAN_SLOTS), n = 0, i, k;
++  unsigned long sz = hv_cell(HL_SCAN_SIZE), lo = hv_cell(HL_SCAN_LO), hi = hv_cell(HL_SCAN_HI);
++  unsigned char *img = hv + HL_OUT / 8;
++  (void)disp;
++  if(!slots || slots > 8) return EINVAL;
++  for(i = 0; i < slots; ++i)
++  {
++    unsigned long f[4];
++    for(k = 0; k < 4; ++k) f[k] = hv_cell(HL_SCAN_LAYER + 128 * i + 32 * k);
++    if(f[2] == f[3] && f[2] < sz) continue;
++    if(hv_cell(HL_SCAN_MODE) && !(f[0] < hi && f[1] >= lo && f[0] != f[1])) continue;
++    for(k = 0; k < 4; ++k)
++    {
++      memcpy(img + 8 * (4 * n + k), hv + (HL_PROC + HL_SCAN_LAYER + 128 * i + 32 * k) / 8, 4);
++      memset(img + 8 * (4 * n + k) + 4, 0, 4);
++    }
++    ++n;
++  }
++  *out = 256 * n; *ret = (unsigned)n;
++  return 0;
++}
 +/* HL_ADD_N .. HL_ULT_N, the binary words + - and or xor = < u< ( a b -- r ): a at HL_BIN_A, b at HL_BIN_B (32 bits,
 + * numeric); no image; the return value is the result (the flags are -1 and 0, as in the words). */
 +#define HD_BIN(name, expr) \
@@ -378,7 +416,7 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
 +  { HL_ADD_N, HL_BIN_END, hd_add }, { HL_SUB_N, HL_BIN_END, hd_sub }, { HL_AND_N, HL_BIN_END, hd_and },
 +  { HL_OR_N, HL_BIN_END, hd_or }, { HL_XOR_N, HL_BIN_END, hd_xor }, { HL_EQ_N, HL_BIN_END, hd_eq },
 +  { HL_LT_N, HL_BIN_END, hd_lt }, { HL_ULT_N, HL_BIN_END, hd_ult }, { HL_PUT_N, HL_MV_END, hd_put },
-+  { HL_CMOVE_N, HL_MV_END, hd_cmove }, { HL_NUM_N, HL_NUM_END, hd_numeric } };
++  { HL_CMOVE_N, HL_MV_END, hd_cmove }, { HL_NUM_N, HL_NUM_END, hd_numeric }, { HL_SCAN_N, HL_SCAN_END, hd_scan } };
 +#define HOST_NDEFS (sizeof host_defs / sizeof host_defs[0])
 +#define HW_FITS(at, n) ((n) <= (size)space_nbits && (at) <= (size)space_nbits - (n))
 +/* The intervals [lo, hi) written by the calls of the last tick: the image and the 32-bit return value
@@ -441,7 +479,7 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
   * serve one control request decoded into v (REQ_NFIELDS values). cidx is
   * the SYS entry; the answer is stored there. CLOSE may close SYS itself.
   */
-@@ -437,30 +708,36 @@
+@@ -437,30 +737,36 @@
  }
  
  /* the bytes [b0, b0+nb) of remote file k into t (zeros past its end) */
@@ -483,7 +521,7 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
      free(long_data);
      long_data = calloc((size_t)(len / CHAR_BIT + 1), 1);
      if(long_data == NULL)
-@@ -481,6 +758,8 @@
+@@ -481,6 +787,8 @@
          buf_put(rec, rsp_off[i], rsp_w[i], f[i]);
        long_take(rec, rsp_bits, pos, len);
      }
@@ -492,7 +530,7 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
      else if(sp == 1)                  /* the clock: monotonic ns */
      {
        unsigned char t[8] = {0};
-@@ -489,53 +768,77 @@
+@@ -489,53 +797,77 @@
        buf_put(t, 0, 64, (size)ts.tv_sec * 1000000000u + (size)ts.tv_nsec);
        long_take(t, 64, pos, len);
      }
@@ -588,7 +626,7 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
  }
  
  /* bytes moved by a data copy of n bits (whole bytes; program aligns) */
-@@ -548,6 +851,7 @@
+@@ -548,6 +880,7 @@
  void sys_tick(void)
  {
    size i;
@@ -596,7 +634,7 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
    if(nchan == 0)
      return;
    /* Read the response committed before this tick. A concurrent request
-@@ -574,7 +878,10 @@
+@@ -574,7 +907,10 @@
        size v[REQ_NFIELDS];
        decode_req(processor[i][2], v);
        if(v[0] == (size)OP_LONG)
@@ -608,7 +646,7 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
        else
        {
          long_pending = 0;
-@@ -612,6 +919,20 @@
+@@ -612,6 +948,20 @@
      for(j = 0; j < RSP_NFIELDS; ++j)
        rsp_bits = (size)(rsp_bits + rsp_w[j]);
    }
@@ -629,7 +667,7 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
    nchan = 0;
    need_channel(0);                    /* SYS is always present */
    if(nchan == 0)
-@@ -657,6 +978,24 @@
+@@ -657,6 +1007,24 @@
  void sys_shutdown(void)
  {
    size i;
@@ -654,9 +692,9 @@ diff -ruN a/emulator/src/sys_ctrl.c b/emulator/src/sys_ctrl.c
    for(i = 0; i < nchan; ++i)
      if(channels[i].owned && channels[i].f != NULL)
      {
-diff -ruN a/emulator/src/sys_ctrl.h b/emulator/src/sys_ctrl.h
---- a/emulator/src/sys_ctrl.h	2026-11-03 15:27:18.008778798 +0200
-+++ b/emulator/src/sys_ctrl.h	2026-11-03 15:27:56.846194060 +0200
+diff -ruN -x docs a/emulator/src/sys_ctrl.h b/emulator/src/sys_ctrl.h
+--- a/emulator/src/sys_ctrl.h	2026-11-03 16:56:37.833416819 +0200
++++ b/emulator/src/sys_ctrl.h	2026-11-03 16:32:08.000000000 +0200
 @@ -48,6 +48,9 @@
  void sys_tick(void);                 /* service channel instructions */
  size sys_req_bits(void);             /* bits in a request record */
@@ -667,9 +705,9 @@ diff -ruN a/emulator/src/sys_ctrl.h b/emulator/src/sys_ctrl.h
  /* encode/decode a record at a bit address (host side, tests and tools) */
  void sys_encode_req(size base, const size *v);  /* v[REQ_NFIELDS] */
  void sys_decode_rsp(size base, size *v);        /* v[RSP_NFIELDS] */
-diff -ruN a/emulator/tests/checked_vm1.c b/emulator/tests/checked_vm1.c
---- a/emulator/tests/checked_vm1.c	2026-11-03 15:27:18.008778798 +0200
-+++ b/emulator/tests/checked_vm1.c	2026-11-03 15:27:56.846194060 +0200
+diff -ruN -x docs a/emulator/tests/checked_vm1.c b/emulator/tests/checked_vm1.c
+--- a/emulator/tests/checked_vm1.c	2026-11-03 16:56:37.833416819 +0200
++++ b/emulator/tests/checked_vm1.c	2026-11-03 16:32:08.000000000 +0200
 @@ -1,5 +1,6 @@
  /* Independent audit of the actual emulator execution; test-only, never installed. */
  #include "space.h"
@@ -728,9 +766,9 @@ diff -ruN a/emulator/tests/checked_vm1.c b/emulator/tests/checked_vm1.c
 -  destroy_space();return 0;
 +  free(all);destroy_space();return 0;
  }
-diff -ruN a/emulator/tests/test_runtime_cli.py b/emulator/tests/test_runtime_cli.py
---- a/emulator/tests/test_runtime_cli.py	2026-11-03 15:27:18.008778798 +0200
-+++ b/emulator/tests/test_runtime_cli.py	2026-11-03 15:27:56.850194206 +0200
+diff -ruN -x docs a/emulator/tests/test_runtime_cli.py b/emulator/tests/test_runtime_cli.py
+--- a/emulator/tests/test_runtime_cli.py	2026-11-03 16:56:37.833416819 +0200
++++ b/emulator/tests/test_runtime_cli.py	2026-11-03 16:32:08.000000000 +0200
 @@ -1,7 +1,9 @@
  #!/usr/bin/env python3
  """Real subprocess tests of the emulator contract."""
@@ -861,57 +899,63 @@ diff -ruN a/emulator/tests/test_runtime_cli.py b/emulator/tests/test_runtime_cli
  # The keys of the usage line: -r (a host file, the remote space 2) and the joined form -sN.
  with tempfile.TemporaryDirectory(prefix='emulator-r-') as directory:
      remote = Path(directory)/'remote'
-diff -ruN a/language/hostcall/cmove.fth b/language/hostcall/cmove.fth
+diff -ruN -x docs a/language/hostcall/cmove.fth b/language/hostcall/cmove.fth
 --- a/language/hostcall/cmove.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/cmove.fth	2026-11-03 15:27:56.850194206 +0200
++++ b/language/hostcall/cmove.fth	2026-11-03 16:32:08.000000000 +0200
 @@ -0,0 +1,2 @@
 +\ 18.16 (experiment): the block of the call of cmove ( src dst u -- ), a generator (%hb4: the record, three values, 33 slots).
 +create %hb4 hl-mv-cells cells allot
-diff -ruN a/language/hostcall/common.fth b/language/hostcall/common.fth
+diff -ruN -x docs a/language/hostcall/common.fth b/language/hostcall/common.fth
 --- a/language/hostcall/common.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/common.fth	2026-11-03 15:27:56.850194206 +0200
++++ b/language/hostcall/common.fth	2026-11-03 16:32:08.000000000 +0200
 @@ -0,0 +1,2 @@
 +\ 18.15, 18.16 (experiment): the cell of the return value of a call on the host that has no result (fill, put, cmove, lay-numeric).
 +create %hs 1 cells allot
-diff -ruN a/language/hostcall/encode.fth b/language/hostcall/encode.fth
+diff -ruN -x docs a/language/hostcall/encode.fth b/language/hostcall/encode.fth
 --- a/language/hostcall/encode.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/encode.fth	2026-11-03 15:27:56.850194206 +0200
++++ b/language/hostcall/encode.fth	2026-11-03 16:32:08.000000000 +0200
 @@ -0,0 +1,4 @@
 +\ 18.15 (experiment): the block of the call of the encoding of a layer, lay-encode ( rows count -- ) (a generator): the record and
 +\ three values, then the rows lay-rows, contiguous. Only for rows = lay-rows (the only argument of the callers).
 +create %hb2 hl-enc-cells cells allot
 +create lay-rows 32 cells allot
-diff -ruN a/language/hostcall/fill.fth b/language/hostcall/fill.fth
+diff -ruN -x docs a/language/hostcall/fill.fth b/language/hostcall/fill.fth
 --- a/language/hostcall/fill.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/fill.fth	2026-11-03 15:27:56.850194206 +0200
++++ b/language/hostcall/fill.fth	2026-11-03 16:32:08.000000000 +0200
 @@ -0,0 +1,2 @@
 +\ 18.15 (experiment): the block of the call of fill ( addr u c -- ), a generator (%hb1: the record and three values).
 +create %hb1 hl-fill-cells cells allot
-diff -ruN a/language/hostcall/numeric.fth b/language/hostcall/numeric.fth
+diff -ruN -x docs a/language/hostcall/numeric.fth b/language/hostcall/numeric.fth
 --- a/language/hostcall/numeric.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/numeric.fth	2026-11-03 15:27:56.850194206 +0200
++++ b/language/hostcall/numeric.fth	2026-11-03 16:32:08.000000000 +0200
 @@ -0,0 +1,2 @@
 +\ 18.16 (experiment): the block of the call of lay-numeric ( value nbytes addr -- ), a generator (%hb5: the record and three values).
 +create %hb5 hl-num-cells cells allot
-diff -ruN a/language/hostcall/put.fth b/language/hostcall/put.fth
+diff -ruN -x docs a/language/hostcall/put.fth b/language/hostcall/put.fth
 --- a/language/hostcall/put.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/put.fth	2026-11-03 15:27:56.850194206 +0200
++++ b/language/hostcall/put.fth	2026-11-03 16:32:08.000000000 +0200
 @@ -0,0 +1,3 @@
 +\ 18.16 (experiment): the block of the call of %hput ( bit-address src n -- ), a generator (%hb3: the record, the three
 +\ values and 33 slots of the memory of the source).
 +create %hb3 hl-mv-cells cells allot
-diff -ruN a/language/hostcall/rowclash.fth b/language/hostcall/rowclash.fth
+diff -ruN -x docs a/language/hostcall/rowclash.fth b/language/hostcall/rowclash.fth
 --- a/language/hostcall/rowclash.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/hostcall/rowclash.fth	2026-11-03 15:27:56.850194206 +0200
++++ b/language/hostcall/rowclash.fth	2026-11-03 16:32:08.000000000 +0200
 @@ -0,0 +1,5 @@
 +\ 18.15 (experiment): the block of the call of lay-clashes? (a generator): the record and the size, then lay-new-row (the
 +\ row of every call) and the place of the record of the layer lay-cur (31 cells: the count and the rows), contiguous.
 +create %hb0 hl-clash-cells cells allot
 +create lay-new-row 4 cells allot
 +create %hr2 31 cells allot
-diff -ruN a/language/Makefile b/language/Makefile
---- a/language/Makefile	2026-11-03 15:27:18.008778798 +0200
-+++ b/language/Makefile	2026-11-03 15:27:56.850194206 +0200
+diff -ruN -x docs a/language/hostcall/scan.fth b/language/hostcall/scan.fth
+--- a/language/hostcall/scan.fth	1970-01-01 02:00:00.000000000 +0200
++++ b/language/hostcall/scan.fth	2026-11-03 16:47:10.000000000 +0200
+@@ -0,0 +1,2 @@
++create %hb6 hl-scan-cells cells allot
++: dj-scan ( -- ) dj-cb @ 0 %hscan dj-nn ! ;
+diff -ruN -x docs a/language/Makefile b/language/Makefile
+--- a/language/Makefile	2026-11-03 16:56:37.825416672 +0200
++++ b/language/Makefile	2026-11-03 16:32:08.000000000 +0200
 @@ -50,7 +50,7 @@
  endif
  SOURCES = $(wildcard src/*.fth)
@@ -943,9 +987,9 @@ diff -ruN a/language/Makefile b/language/Makefile
 +check: check-programs check-closure check-tests check-language-md check-host-layout
  clean:
  	rm -rf "$(BUILD_DIR)"
-diff -ruN a/language/src/backend.fth b/language/src/backend.fth
---- a/language/src/backend.fth	2026-11-03 15:27:18.016779089 +0200
-+++ b/language/src/backend.fth	2026-11-03 15:40:44.529205717 +0200
+diff -ruN -x docs a/language/src/backend.fth b/language/src/backend.fth
+--- a/language/src/backend.fth	2026-11-03 16:56:37.833416819 +0200
++++ b/language/src/backend.fth	2026-11-03 16:32:08.000000000 +0200
 @@ -189,6 +189,11 @@
  \    (more than DJ-NARROW bits from the start of the field) gets from the program only the low bits of the field: the
  \    bits above are the block of the constant in the row, the end of the reach lies in that block, and no other row of
@@ -1057,9 +1101,9 @@ diff -ruN a/language/src/backend.fth b/language/src/backend.fth
 -  loop -1 ;
 +  loop
 +  dj-nh @ if dj-heads then dj-bad-rule @ 0= ;
-diff -ruN a/language/src/forthc.fth b/language/src/forthc.fth
---- a/language/src/forthc.fth	2026-11-03 15:27:18.020779236 +0200
-+++ b/language/src/forthc.fth	2026-11-03 15:27:56.850194206 +0200
+diff -ruN -x docs a/language/src/forthc.fth b/language/src/forthc.fth
+--- a/language/src/forthc.fth	2026-11-03 16:56:37.833416819 +0200
++++ b/language/src/forthc.fth	2026-11-03 16:32:08.000000000 +0200
 @@ -120,7 +120,9 @@
      0= if unloop exit then drop
    loop -8 throw ;
@@ -1081,10 +1125,10 @@ diff -ruN a/language/src/forthc.fth b/language/src/forthc.fth
  \ Before the code: the generators of the source are found and their needs collected (1: multiplication, 2: division,
  \ 4: KERNEL-LAYOUT); the generator \ (need 8) is executed too.
  : fc-scan-uses ( -- )
-diff -ruN a/language/src/hostlayout.fth b/language/src/hostlayout.fth
+diff -ruN -x docs a/language/src/hostlayout.fth b/language/src/hostlayout.fth
 --- a/language/src/hostlayout.fth	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/src/hostlayout.fth	2026-11-03 15:27:56.850194206 +0200
-@@ -0,0 +1,70 @@
++++ b/language/src/hostlayout.fth	2026-11-03 16:47:10.000000000 +0200
+@@ -0,0 +1,79 @@
 +\ The layout of the space of the emulator for the definitions on the host (18.19; design 7.2.15, 7.2.17, 7.2.24).
 +\ The language lays everything the emulator does for a definition on the host: where the number of a definition goes (the
 +\ "processor" of the host), where the arguments lie, where the program positions of the results are given. This text
@@ -1109,7 +1153,7 @@ diff -ruN a/language/src/hostlayout.fth b/language/src/hostlayout.fth
 +1 constant hl-clash-n   2 constant hl-fill-n    3 constant hl-enc-n
 +4 constant hl-add-n     5 constant hl-sub-n     6 constant hl-and-n     7 constant hl-or-n
 +8 constant hl-xor-n     9 constant hl-eq-n     10 constant hl-lt-n     11 constant hl-ult-n
-+12 constant hl-put-n   13 constant hl-cmove-n  14 constant hl-num-n
++12 constant hl-put-n   13 constant hl-cmove-n  14 constant hl-num-n   15 constant hl-scan-n
 +\ The results: the cells the call gives (32 bits numeric, the position in the space of the program, in bits), then
 +\ the arguments from HL-ARGS (the number of the definition is the cell at 0). A block of the call is in the memory of the program: the record and the cells; an
 +\ array of the memory that the call carries lies right after the block, at a slot of 64 bits.
@@ -1155,10 +1199,19 @@ diff -ruN a/language/src/hostlayout.fth b/language/src/hostlayout.fth
 +hl-args 64 + constant hl-num-rd
 +hl-num-rd 32 + constant hl-num-end
 +hl-num-end hl-rec + 63 + 6 rshift constant hl-num-cells
-diff -ruN a/language/src/primitives.fth b/language/src/primitives.fth
---- a/language/src/primitives.fth	2026-11-03 15:27:18.020779236 +0200
-+++ b/language/src/primitives.fth	2026-11-03 15:27:56.850194206 +0200
-@@ -1,24 +1,113 @@
++\ scan ( size, slots, lo, hi, mode, layer of 1024 bits )
++hl-args constant hl-scan-size
++hl-args 32 + constant hl-scan-slots
++hl-args 64 + constant hl-scan-lo
++hl-args 128 + constant hl-scan-hi
++hl-args 160 + constant hl-scan-mode
++hl-args 192 + constant hl-scan-layer
++hl-scan-layer 1024 + constant hl-scan-end
++hl-scan-end hl-rec + 63 + 6 rshift constant hl-scan-cells
+diff -ruN -x docs a/language/src/primitives.fth b/language/src/primitives.fth
+--- a/language/src/primitives.fth	2026-11-03 16:56:37.833416819 +0200
++++ b/language/src/primitives.fth	2026-11-03 16:47:10.000000000 +0200
+@@ -1,24 +1,115 @@
  \ Primitives as generators (14.3-14.7): words of the compiler, executed when the source names the word of the language,
  \ that write its copycode or define a word. Compiled after forthc.fth, before main.fth. A generator folds the values
  \ known at the top level (FC-FOLD?) or writes code. The names of the language are in FC-GENERATORS.
@@ -1207,6 +1260,8 @@ diff -ruN a/language/src/primitives.fth b/language/src/primitives.fth
 +hl-mv-n hl-rec + constant hc-omn      hl-mv-rs hl-rec + constant hc-ors     hl-mv-rd hl-rec + constant hc-ord
 +hl-mv-src hl-rec + constant hc-osrc
 +hl-num-v hl-rec + constant hc-onv     hl-num-nb hl-rec + constant hc-onb    hl-num-rd hl-rec + constant hc-onr
++hl-scan-size hl-rec + constant hc-ossz    hl-scan-slots hl-rec + constant hc-osls   hl-scan-lo hl-rec + constant hc-oslo
++hl-scan-mode hl-rec + constant hc-osmd    hl-scan-layer hl-rec + constant hc-osly
 +: hc-memb ( addr u -- bit ) fc-lookup dup 0= if -13 throw then 3 cells + @ 4 lshift fc-mem + ;
 +: hc-rec1 ( addr -- ) \ the record of the long copy and the number of the definition into the stream at addr (the zero bits are not written)
 +  >r 6 1 r@ lay-put-numeric  hl-space 4 r@ 8 + lay-put-numeric  hc-e @ 4 r@ 56 + lay-put-numeric
@@ -1284,7 +1339,7 @@ diff -ruN a/language/src/primitives.fth b/language/src/primitives.fth
  : gen* ( -- )
    2 fc-fold? if fc-ct2 * fc-ct+ exit then fc-mul-lit? if exit then
    fc-mul-entry @ fc-mul-exit @ fc-call-helper fc-mp fc-result1 ;
-@@ -190,6 +279,81 @@
+@@ -190,6 +281,93 @@
    fc-cpos @ fc-hb - 32 - dup 4194272 u> if -8 throw then 4 fc-hb lay-put-numeric
    fc-nhost @ dup 1+ fc-word @ 8 cells + ! fc-literal
    s" %host" dup fc-tl ! fc-tok swap cmove fc-word-token 1 fc-nhost +! ;
@@ -1361,12 +1416,24 @@ diff -ruN a/language/src/primitives.fth b/language/src/primitives.fth
 +  fc-code s" %hb5" hl-num-n hl-num-end 1 hc-block 3 hc-pops
 +  0 32 hc-onv 0 hc-arg 1 32 hc-onb 0 hc-arg 2 2 hc-onr 0 hc-arg 2 17 hc-oim6 2 hc-arg
 +  hc-request ;
++\ %HSCAN ( cb mode -- n ): the rows of the layer at cb by the host into dj-pr (dj-hhi follows dj-hlo).
++: gen-hscan ( -- )
++  fc-guard @ if -13 throw then fc-code gen-over 1024 fc-literal gen+
++  s" %hb6" hl-scan-n hl-scan-end 1 hc-block 3 hc-pops
++  s" dj-pr" hc-memb 4 hc-b @ hc-oimg + lay-put-numeric
++  1 32 hc-osmd 0 hc-arg
++  2 hc-layer drop
++  hc-b @ hc-osly + dup 1024 + 0 0 2 hc-layer lay-row hc-s2 !
++  21 2 hc-layer lay-layer-cell hc-s2 @ 2 lay-field 10 + 0 hc-r@ 10 + lay-copy 0 hc-layer lay-row drop
++  21 2 hc-layer lay-layer-cell hc-s2 @ 3 lay-field 10 + 2 hc-r@ 10 + lay-copy 0 hc-layer lay-row drop
++  32 hc-ossz s" lay-size" hc-var 32 hc-osls s" lay-slots" hc-var 96 hc-oslo s" dj-hlo" hc-var
++  hc-ret >r hc-request r> fc-push ;
 +\ +! ( n addr -- ): in place, @ + ! with the + of the host.
 +: gen+! ( -- ) fc-code gen-dup gen-@ gen-rot gen+ gen-swap gen-! ;
  : fc-name2 ( c1 c2 -- addr u ) fc-tok 1+ c! fc-tok c! fc-tok 2 ;
  \ Language name, generator, needs (1 multiplication, 2 division, 4 kernel layout, 8 comment, 16 proof words and FC-LIBRARY,
  \ 32 the replacement, 64 the long copy, 128 the platforms); the digits: name, value.
-@@ -239,6 +403,10 @@
+@@ -239,6 +417,11 @@
    s" long!" ['] gen-library 64 fc-generator  s" long@" ['] gen-library 64 fc-generator
    s" host" ['] gen-host 243 fc-generator  s" time" ['] gen-library 243 fc-generator
    s" platform" ['] gen-library 243 fc-generator  s" platform-of" ['] gen-library 243 fc-generator
@@ -1374,12 +1441,13 @@ diff -ruN a/language/src/primitives.fth b/language/src/primitives.fth
 +  s" lay-encode" ['] gen-henc 0 fc-generator
 +  s" %hput" ['] gen-hput 0 fc-generator  s" cmove" ['] gen-hmove 0 fc-generator
 +  s" lay-numeric" ['] gen-hnum 0 fc-generator  s" +!" ['] gen+! 0 fc-generator
++  s" %hscan" ['] gen-hscan 0 fc-generator
    s" 0" 0 fc-literal-name  s" 1" 1 fc-literal-name  s" 2" 2 fc-literal-name  s" 3" 3 fc-literal-name
    s" 4" 4 fc-literal-name  s" 5" 5 fc-literal-name  s" 6" 6 fc-literal-name  s" 7" 7 fc-literal-name
    s" 8" 8 fc-literal-name  s" 9" 9 fc-literal-name ;
-diff -ruN a/language/tests/test_disjoint.py b/language/tests/test_disjoint.py
---- a/language/tests/test_disjoint.py	2026-11-03 15:27:18.020779236 +0200
-+++ b/language/tests/test_disjoint.py	2026-11-03 15:32:46.444746324 +0200
+diff -ruN -x docs a/language/tests/test_disjoint.py b/language/tests/test_disjoint.py
+--- a/language/tests/test_disjoint.py	2026-11-03 16:56:37.825416672 +0200
++++ b/language/tests/test_disjoint.py	2026-11-03 16:32:08.000000000 +0200
 @@ -32,6 +32,9 @@
  RTABLE = 1 << 14
  ETAB = 1 << 18                      # the first cell of the table of entries (fc-etab)
@@ -1443,9 +1511,9 @@ diff -ruN a/language/tests/test_disjoint.py b/language/tests/test_disjoint.py
  def main():
      libraries = paths.source_bytes(paths.LIBRARY_FILES)
      # 1. the programs are proved
-diff -ruN a/language/tests/test_isolation.py b/language/tests/test_isolation.py
---- a/language/tests/test_isolation.py	2026-11-03 15:27:18.020779236 +0200
-+++ b/language/tests/test_isolation.py	2026-11-03 15:32:46.444746324 +0200
+diff -ruN -x docs a/language/tests/test_isolation.py b/language/tests/test_isolation.py
+--- a/language/tests/test_isolation.py	2026-11-03 16:56:37.825416672 +0200
++++ b/language/tests/test_isolation.py	2026-11-03 16:32:08.000000000 +0200
 @@ -16,7 +16,8 @@
  The output of the attack is compared with what the probe must write (the writes land in the data of the
  program: the high bits of the position are the constant of the compiler).
@@ -1559,10 +1627,10 @@ diff -ruN a/language/tests/test_isolation.py b/language/tests/test_isolation.py
      with tempfile.TemporaryDirectory() as tmp:
          emulator = build_emulator(Path(tmp))
          items = []
-diff -ruN a/language/tools/boot_call.py b/language/tools/boot_call.py
+diff -ruN -x docs a/language/tools/boot_call.py b/language/tools/boot_call.py
 --- a/language/tools/boot_call.py	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/tools/boot_call.py	2026-11-03 15:27:56.850194206 +0200
-@@ -0,0 +1,104 @@
++++ b/language/tools/boot_call.py	2026-11-03 16:47:10.000000000 +0200
+@@ -0,0 +1,118 @@
 +#!/usr/bin/env python3
 +"""18.13, 18.15, 18.16, 18.19 (experiment): boot of the variant of the language in which `fill`, `lay-clashes?` (the clash of the
 +new row with the rows of a layer), the encoding of a layer (`lay-encode`), the sink of the kernel (`kn-put`: `put`), `cmove`,
@@ -1570,7 +1638,7 @@ diff -ruN a/language/tools/boot_call.py b/language/tools/boot_call.py
 +names in primitives.fth: the call is put in the place of use; 18.19: a call is a long copy into the space of the emulator,
 +whose layout the language lays: src/hostlayout.fth). The host pForth loads the compiler natively with the
 +ordinary definitions of all words; only the text that the compiler compiles into L0 (the kernel) has the definitions
-+replaced. Usage: boot_call.py -o L0.call [--words fill,row,enc,put,cmove,numeric,pstore]"""
++replaced. Usage: boot_call.py -o L0.call [--words fill,row,enc,put,cmove,numeric,pstore,scan]"""
 +import argparse
 +import hashlib
 +import subprocess
@@ -1602,6 +1670,17 @@ diff -ruN a/language/tools/boot_call.py b/language/tools/boot_call.py
 +NUMERIC = (': lay-numeric ( value nbytes addr -- )\n  swap 0 ?do\n'
 +           '    over i 4 < if i 3 lshift rshift 255 and lay-rev + c@ else drop 0 then\n'
 +           '    over i + c!\n  loop 2drop ;\n')
++DJSCAN = (': dj-scan ( -- )\n  0 dj-nn !\n  lay-slots @ 0 ?do\n'
++          '    dj-cb @ i 7 lshift + 64 + dup dj-get dj-vsl ! 32 + dj-get dj-vsh !\n    dj-nop? 0= if\n'
++          '      dj-cb @ i 7 lshift + dup dj-get dj-vdl ! 32 + dj-get dj-vdh !\n'
++          '      dj-nn @ dj-row! 1 dj-nn +!\n    then\n  loop ;\n')
++DJHSCAN = (': dj-hscan ( -- ) \\ the rows of the layer at DJ-CB that may write into a header\n  lay-slots @ 0 ?do\n'
++           '    dj-cb @ i 7 lshift + dj-ro !\n    dj-ro @ dj-get dup dj-vdl ! dj-hhi @ u< if\n'
++           '      dj-ro @ 32 + dj-get dup dj-vdh ! dj-hlo @ u< 0= if\n'
++           '        dj-ro @ 64 + dj-get dj-vsl ! dj-ro @ 96 + dj-get dj-vsh !\n'
++           '        dj-vdl @ dj-vdh @ = 0= dj-nop? 0= and if dj-hits then\n      then\n    then\n  loop ;\n')
++DJHSCAN_NEW = (': dj-hscan ( -- ) \\ the rows of the layer at DJ-CB that may write into a header \n'
++               '  dj-cb @ 1 %hscan 0 ?do i dj-pr dj-row@ dj-hits loop ;\n')
 +PSTORE = ': +! ( n addr -- ) dup >r @ + r> ! ;\n'
 +PUT_TAIL = ('  rot kn-at !\n  over 3 and 0= if\n'
 +            '    dup 2 rshift 0 ?do over i cells + @ kn-at @ space! 32 kn-at +! loop\n'
@@ -1634,6 +1713,9 @@ diff -ruN a/language/tools/boot_call.py b/language/tools/boot_call.py
 +    if 'pstore' in words:
 +        assert PSTORE in text
 +        text = text.replace(PSTORE, '')
++    if 'scan' in words:
++        assert DJSCAN in text and DJHSCAN in text
++        text = text.replace(DJSCAN, (HC / 'scan.fth').read_text()).replace(DJHSCAN, DJHSCAN_NEW)
 +    if 'put' in words:
 +        assert PUT_TAIL in text and PUT_HEAD in text
 +        text = text.replace(PUT_TAIL, PUT_NEW).replace(PUT_HEAD, (HC / 'put.fth').read_text() + PUT_HEAD)
@@ -1643,7 +1725,7 @@ diff -ruN a/language/tools/boot_call.py b/language/tools/boot_call.py
 +def main():
 +    parser = argparse.ArgumentParser(description=__doc__)
 +    parser.add_argument('-o', '--output', required=True)
-+    parser.add_argument('--words', default='fill,row,enc,put,cmove,numeric,pstore')
++    parser.add_argument('--words', default='fill,row,enc,put,cmove,numeric,pstore,scan')
 +    parser.add_argument('--extra', help='a text inserted before the heap (measurements)')
 +    args = parser.parse_args()
 +    words = [w for w in args.words.split(',') if w]
@@ -1667,9 +1749,9 @@ diff -ruN a/language/tools/boot_call.py b/language/tools/boot_call.py
 +
 +if __name__ == '__main__':
 +    main()
-diff -ruN a/language/tools/host_layout.py b/language/tools/host_layout.py
+diff -ruN -x docs a/language/tools/host_layout.py b/language/tools/host_layout.py
 --- a/language/tools/host_layout.py	1970-01-01 02:00:00.000000000 +0200
-+++ b/language/tools/host_layout.py	2026-11-03 15:27:56.850194206 +0200
++++ b/language/tools/host_layout.py	2026-11-03 16:32:08.000000000 +0200
 @@ -0,0 +1,45 @@
 +#!/usr/bin/env python3
 +"""18.19: the layout of the space of the emulator for the definitions on the host is written in the language
@@ -1716,9 +1798,9 @@ diff -ruN a/language/tools/host_layout.py b/language/tools/host_layout.py
 +        open(args.output, 'w').write(header)
 +    else:
 +        sys.stdout.write(header)
-diff -ruN a/language/tools/paths.py b/language/tools/paths.py
---- a/language/tools/paths.py	2026-11-03 15:27:18.024779382 +0200
-+++ b/language/tools/paths.py	2026-11-03 15:27:56.850194206 +0200
+diff -ruN -x docs a/language/tools/paths.py b/language/tools/paths.py
+--- a/language/tools/paths.py	2026-11-03 16:56:37.829416745 +0200
++++ b/language/tools/paths.py	2026-11-03 16:32:08.000000000 +0200
 @@ -12,11 +12,11 @@
  SIZE = 1 << 31                                         # bits of the space (emulator -s), as model.SIZE
  # Order of compilation of the language definition (as KERNEL in forth/tests/test_kernel.py of the archive,
@@ -1733,9 +1815,9 @@ diff -ruN a/language/tools/paths.py b/language/tools/paths.py
  
  sys.path[:0] = [str(REFERENCE)]
  
-diff -ruN a/Makefile b/Makefile
---- a/Makefile	2026-11-03 15:27:17.992778216 +0200
-+++ b/Makefile	2026-11-03 15:27:56.850194206 +0200
+diff -ruN -x docs a/Makefile b/Makefile
+--- a/Makefile	2026-11-03 16:56:37.825416672 +0200
++++ b/Makefile	2026-11-03 16:32:08.000000000 +0200
 @@ -30,7 +30,7 @@
  	$(PYTHON) -B tools/check_layout.py
  check-fast:

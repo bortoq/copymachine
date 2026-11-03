@@ -1,0 +1,12 @@
+# ticks (self) of the words of the proof in the 37 programs, L0 of 18.22 (before) and 18.23 (after); total before 627386701, after 468524139
+kn-get          43026390       12744
+dj-scan         50722621      728364
+dj-hscan        27421857      900751
+dj-get          20716410        6136
+dj-in?          17696844    17696844
+dj-row-ok?      15091793    15091793
+dj-rows         12556689    12560167
+dj-nop?         11701633     2765201
+dj-patch         8856064     8856064
+dj-blk?          8744256     8744256
+dj-*+kn-get    243768669    87513479
