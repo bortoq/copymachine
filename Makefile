@@ -22,6 +22,7 @@ coverage:
 	$(MAKE) -C emulator -j1 coverage
 	rm -rf "$(COVLANG)"
 	$(MAKE) -C language -j1 space OUT="$(COVLANG)" CFLAGS="-std=c11 -O0 -g --coverage"
+	$(MAKE) -C language -j1 boot OUT="$(COVLANG)"
 	LANGUAGE_OUT="$(COVLANG)" $(PYTHON) -B language/tests/test_long_copy.py > /dev/null
 	@echo "== coverage of emulator/src: emulator check + language test_long_copy =="
 	cd emulator && $(PYTHON) -B ../tools/gcov_summary.py "$(CURDIR)/emulator/build/cov:$(COVLANG)" src/runtime.c src/sys_ctrl.c src/bitcopy.c src/backend_bitcopy.c
