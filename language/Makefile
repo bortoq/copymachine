@@ -91,7 +91,7 @@ check-fast-tests:
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_disjoint.py
 # coverage.py of tools/ under the goals of the root check-fast (17.9), except test_platform (it compares wall-clock times, tracing breaks it); needs `pip install coverage`.
 PYCOV = COVERAGE_FILE=$(abspath $(BUILD_DIR))/cov/.coverage $(PYTHON) -B -m coverage run --parallel-mode --source=tools
-coverage-python:
+coverage-python: $(L0)
 	rm -rf "$(BUILD_DIR)/cov/.coverage"*
 	mkdir -p "$(BUILD_DIR)/cov"
 	$(MAKE) -C "$(EMULATOR_ROOT)" -j1 checked
