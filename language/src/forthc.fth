@@ -26,7 +26,7 @@ variable fc-guard
 : fc-sw 5376 fc-d+ ;  : fc-su 5440 fc-d+ ;  : fc-key 5504 fc-d+ ;  : fc-bp 5568 fc-d+ ;
 : fc-tab 1 19 lshift fc-d+ ;  : fc-stk 1 21 lshift fc-d+ ;
 : fc-rstk 1 21 lshift 1 15 lshift + fc-d+ ;  : fc-scr0 1 21 lshift 1 16 lshift + fc-d+ ;
-: fc-links 1 22 lshift fc-d+ ;  1 15 lshift constant fc-max-links  512 constant fc-link-chunk
+: fc-links 1 22 lshift fc-d+ ;  1 16 lshift constant fc-max-links  512 constant fc-link-chunk
 : fc-mem 1 23 lshift fc-d+ ;  17 constant fc-mw  : fc-htab 1 24 lshift fc-d+ ;
 256 constant fc-data-start
 
@@ -630,7 +630,7 @@ variable fc-text variable fc-tlen variable fc-pos variable fc-text-size 8192 fc-
   fc-more? 0= if 0 exit then
   0 fc-tl !
   begin fc-more? if fc-ch 32 > else 0 then while
-    fc-tl @ 255 = if -8 fc-reject then
+    fc-tl @ 4095 = if -8 fc-reject then
     fc-ch dup [char] A [char] Z 1+ over - >r - r> u< if 32 + then fc-tok fc-tl @ + c! 1 fc-tl +! 1 fc-pos +!
   repeat -1 ;
 : fc-next! ( -- ) fc-next 0= if -16 fc-reject then ;
@@ -688,10 +688,10 @@ create fc-unproved 12 allot fc-unproved 12 0 fill
 
 variable fc-here variable fc-word variable fc-uses
 variable fc-rt variable fc-rta
-create fc-ctl 96 cells allot variable fc-nctl variable fc-cleave
+create fc-ctl 3072 cells allot variable fc-nctl variable fc-cleave
 : fc-ctl@ ( i -- addr ) dup 2* + cells fc-ctl + ;
 : fc-ctl+ ( kind cell -- )
-  fc-nctl @ 32 = if -8 fc-reject then fc-nctl @ fc-ctl@ >r r@ cell+ ! r@ ! 0 r> 2 cells + ! 1 fc-nctl +! ;
+  fc-nctl @ 1024 = if -8 fc-reject then fc-nctl @ fc-ctl@ >r r@ cell+ ! r@ ! 0 r> 2 cells + ! 1 fc-nctl +! ;
 : fc-ctl- ( -- kind cell )
   fc-nctl @ 0= if -22 fc-reject then -1 fc-nctl +! fc-nctl @ fc-ctl@ >r r@ @ r@ cell+ @ r> 2 cells + @ fc-cleave ! ;
 : fc-do-entry ( -- addr )
@@ -708,13 +708,14 @@ variable fc-sat
     dup i + c@ lay-rev + c@ fc-eight c!
     fc-sat @ i + dup 2 rshift 64 * swap 3 and 8 * + fc-mem + fc-eight 1 lay-put
   loop drop fc-check-here fc-sat @ ;
-create fc-ct 64 cells allot variable fc-nct
-: fc-ct+ ( v -- ) fc-nct @ 64 = if -8 fc-reject then fc-ct fc-nct @ cells + ! 1 fc-nct +! ;
+create fc-ct 1024 cells allot variable fc-nct
+: fc-ct+ ( v -- ) fc-nct @ 1024 = if -8 fc-reject then fc-ct fc-nct @ cells + ! 1 fc-nct +! ;
 : fc-ct- ( -- v ) fc-nct @ 0= if -22 fc-reject then -1 fc-nct +! fc-ct fc-nct @ cells + @ ;
 : fc-ct2 ( -- a b ) fc-ct- fc-ct- swap ;
-create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
+create fc-inits 1024 cells allot variable fc-ninit variable fc-init-open
 \ The working buffers are fixed, sized for the limits MAIN sets (FC-SIZES): 4096 constants, 1024 buckets, 2048 words,
-\ 32768 bytes of names, 64 notes. Bytes: constants 65536, ring tables 2048, buckets 4096, link chunk 4096.
+\ 32768 bytes of names, 64 notes. Bytes: constants 65536, ring tables 2048, buckets 4096, link chunk 4096. The data space of the
+\ compiler as a program is 4 FC-MW bytes (512 KiB); about 480 KiB are used, so the stacks below are not sized by the text.
 create fc-ck-mem 65536 allot create fc-stabs-mem 2048 allot create fc-cbk-mem 4096 allot create fc-link-mem 4096 allot
 create fc-wt-mem 131072 allot create fc-names-mem 32768 allot create fc-wbk-mem 4096 allot create fc-log-mem 32768 allot
 create fc-decs-mem 512 allot create fc-calls-mem 768 allot create fc-pend-mem 1024 allot
@@ -807,7 +808,7 @@ variable fc-ftr variable fc-stg
   fc-init-open @ if fc-ret 0 fc-init-open ! 0 fc-word ! then ;
 : fc-open-init ( -- )
   fc-init-open @ 0= if
-    fc-ninit @ 64 = if -8 fc-reject then 0 lay-group dup fc-inits fc-ninit @ cells + ! 1 fc-ninit +!
+    fc-ninit @ 1024 = if -8 fc-reject then 0 lay-group dup fc-inits fc-ninit @ cells + ! 1 fc-ninit +!
     -1 fc-init-open ! -1 fc-word ! 0 fc-live ! 0 fc-n ! fc-begin-block drop
   then
   fc-nct @ 0 ?do fc-ct i cells + @ fc-literal loop 0 fc-nct ! ;
@@ -858,7 +859,7 @@ variable fc-sy
 \ The replacement (14.13, language/doc/replace.md): the table of the records of the program, 99 records of cells 3, 6-13, 15
 \ of the compiler's record at the offsets 0 4 8 ... 36; 32 bits of v at FC-RTA.
 : fc-concept-record ( record -- )
-  fc-rta @ fc-rt @ - 3960 = if -8 fc-reject then
+  fc-rta @ fc-rt @ - 1 fc-ebits lshift 40 * = if -8 fc-reject then
   dup fc-xtn fc-poke 14 6 do dup i cells + @ fc-poke loop drop 4 fc-rta +! ;
 \ A text of the language compiled in the middle of the channel (14.12). FC-LIBRARY: the words CHECK-TABLE and ACCURACY
 \ need, compiled before the program when its source names them.
@@ -867,7 +868,7 @@ variable fc-sy
   begin fc-next while fc-token repeat
   r> r> r> fc-pos ! fc-tlen ! fc-text ! ;
 : fc-concepts ( -- )
-  s" create %w 4000 allot create %ds 1280 allot variable %nd" fc-eval
+  s" create %w" fc-eval 1 fc-ebits lshift 1+ 40 * fc-ct+ s" allot create %ds 1280 allot variable %nd" fc-eval
   s" %w" fc-lookup 3 cells + @ dup fc-rt ! fc-rta ! ;
 \ The platforms (15.3, language/doc/platform.md), before the replacement. %RUN, %TIME ( xt -- ns err ), %BOTH, %ST: the
 \ time by the clock (remote space 1), one run, then 7. %HOST ( x k -- r ) runs the host program K (GEN-HOST: text at HB + 32,
@@ -917,17 +918,20 @@ variable fc-nhost
   s" : %replace dup %rec %k ! over %rec %q ! %k @ 0= %q @ 0= or if drop drop 0 exit then %slot %y !" fc-eval
   s" %y @ 12 + @ 0= if drop 1 exit then dup %y @ 8 + @ %y @ 20 + @ %y @ 24 + @ %check 0= if" fc-eval
   s" drop 1 exit then dup %acc %k @ @ %acc < if drop 2 exit then dup %k @ @ %better 0= if" fc-eval
-  s" drop 3 exit then %nd @ 32 = if -8 throw then" fc-eval
+  s" drop 3 exit then %nd @ 32 = if %full then" fc-eval
   s" %nd @ 40 * %ds + %z ! %nd @ 1+ %nd ! 10 0 do %k @ i cells + @ %z @ i cells + ! loop" fc-eval
   s" %z @ %k @ 36 + ! 9 1 do %q @ i cells + @ %k @ i cells + ! loop " fc-eval
   s" %slot dup 4 + @ %y @ 4 + ! 16 + @ %y @ 16 + ! -1 ;" fc-eval
   s" cost" s" %cost" fc-synonym s" replace" s" %replace" fc-synonym ;
 : fc-library ( -- )
   fc-uses @ 32 and if fc-concepts then
-  s" variable %n create %e 1024 allot create %proved 4 allot 1 %proved ! variable %x" fc-eval
+  s" : %full 101 emit 114 emit 114 emit 111 emit 114 emit 32 emit 45 emit 56 emit 10 emit bye ;" fc-eval
+  s" variable %n variable %cap create %e" fc-eval 1 fc-ebits 5 + lshift fc-ct+ s" allot" fc-eval
+  1 fc-ebits lshift fc-ct+ s" %cap !" fc-eval
+  s" create %proved 4 allot 1 %proved ! variable %x" fc-eval
   s" variable %m variable %t variable %v variable %c variable %o" fc-eval
   s" : %slot %n @ 0 ?do dup i 5 lshift %e + @ = if drop i 5 lshift %e + unloop exit then loop" fc-eval
-  s" %n @ 32 = if -8 throw then %n @ 5 lshift %e + swap over ! %n @ 1+ %n ! ;" fc-eval
+  s" %n @ %cap @ = if %full then %n @ 5 lshift %e + swap over ! %n @ 1+ %n ! ;" fc-eval
   s" : %check %t ! dup %o ! dup 1- 32 u< swap 32 swap - -1 swap rshift %m ! over 32 u< and %v !" fc-eval
   s" swap %slot %x ! %o @ %x @ 20 + ! %t @ %x @ 24 + !" fc-eval
   s" dup 1 swap lshift %v @ and swap %v @ and %x @ 8 + ! 0 %c !" fc-eval

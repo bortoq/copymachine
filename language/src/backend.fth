@@ -7,7 +7,7 @@
 decimal
 \ A rejected program (18.21): FC-REJECT prints "error N at WORD" (the last word read) and halts the machine: BYE, on the host
 \ the host's, in the compiler a generator that jumps to the halt cell. The program is not run; nothing is compiled further.
-create fc-tok 256 allot variable fc-tl
+create fc-tok 4096 allot variable fc-tl
 : fc-.n ( n -- )
   dup 0< if [char] - emit negate then
   dup 10 / ?dup if recurse then 10 mod [char] 0 + emit ;

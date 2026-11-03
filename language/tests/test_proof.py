@@ -15,7 +15,8 @@ on checked-emulator; the expected output is computed here, not by the definition
 3. Arguments that are not valid (in-bits above 31, out-bits 0 or above 32): not ok, nothing checked
    (accuracy 0); only the low out-bits are compared (out-bits 4 for a 5-bit sum). A 12-bit word spoiled
    at one input: accuracy below 1000000 (the count is cut to 11 bits for the product in 32 bits).
-4. The registry has 32 words: the 33rd throws -8 (caught).
+4. The registry has a record for every word the compiler can number (2^FC-EBITS, 2048): 33 words fit; a key past the end of
+   the registry prints error -8 and stops the program (no throw; not tested: the search is quadratic).
 5. The words of the proof are in the program only when its source names them: the stream of a program
    that does not equals the stream of the model; the definition of the language has none of them.
 6. The kernel L0 on the emulator compiles and runs the program of 1 and writes the same output.
@@ -87,7 +88,7 @@ FULL = 32
 def registry_source():
     words = '\n'.join(f': g{i} ;' for i in range(FULL + 1))
     checks = '\n'.join(f"['] g{i} 0 1 t check-table drop" for i in range(FULL + 1))
-    return PRINT + f'create t 4 allot\n{words}\n: all\n{checks} ;\n: main [\'] all catch n. 10 emit ;\n'
+    return PRINT + f'create t 4 allot\n{words}\n: all\n{checks} ;\n: main all 1 n. 10 emit ;\n'
 
 
 def run_checked(stream):
@@ -121,8 +122,8 @@ def check_adders():
 
 def check_registry():
     got = compile_run(registry_source())
-    assert got == b'-8 \n', got
-    print('PASS the registry has 32 words: the 33rd word throws -8')
+    assert got == b'1 \n', got
+    print('PASS the registry holds the 33 words (it was 32 and threw -8)')
 
 
 def check_library_only_when_named():

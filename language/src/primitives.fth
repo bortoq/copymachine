@@ -159,7 +159,7 @@ variable fc-lv
 \ host: its text (the first : NAME of the source, words inline to the depth 16) becomes a C program (generators + - * and
 \ or xor lshift rshift dup drop swap over, numbers, digits, else -13) in the stream at HB + 32, its length in bits at
 \ HB = 2^30 + 2^29 + 2^22 K (K at most 16); K+1 goes to the cell 8 of the record.
-variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 256 allot
+variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 4096 allot
 : fc-hb ( -- at ) fc-nhost @ 22 lshift 1610612736 + ;
 : fc-c, ( addr u -- ) >r >r fc-cpos @ r> r@ lay-put r> 8 * fc-cpos +! ;
 : fc-c1 ( c -- ) fc-eight c! fc-eight 1 fc-c, ;
@@ -168,7 +168,7 @@ variable fc-cpos variable fc-hn variable fc-cdepth create fc-hname 256 allot
   fc-wt @ - 6 rshift dup 24 u< if 1 over lshift 15730631 and else 0 then 0= if -13 fc-reject then
   s" X(1" fc-c, dup 10 / 48 + fc-c1 10 mod 48 + fc-c1 s" );" fc-c, ;
 : fc-c-body ( -- )
-  fc-cdepth @ 16 = if -8 fc-reject then 1 fc-cdepth +!
+  fc-cdepth @ 64 = if -8 fc-reject then 1 fc-cdepth +!
   fc-tok fc-hname fc-tl @ cmove fc-tl @ fc-hn ! fc-pos @ >r 0 fc-pos !
   begin fc-next! s" :" fc-is? if fc-next! fc-hname fc-hn @ fc-is? else 0 then until
   begin fc-next! s" ;" fc-is? 0= while
