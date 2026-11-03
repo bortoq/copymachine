@@ -6,7 +6,7 @@ A program is compiled in the mode of the program of the kernel (FC-GUARD 1) into
 
 1. The 37 programs of check-programs and a program with every word that computes a position (SPACE! SPACEC!
    SPACE@ SPACEC@ EXECUTE CATCH THROW, the call and the return, * and /) and the program of the replacement
-   (the concept cells that take the entry from the record of the word) are proved; so is the table of entries.
+   (the concept cells that take the entry from the record of the word) are proved; so are the table of entries and the table of returns.
 2. The same programs compiled for the whole space (FC-GUARD 0: the return and the throw write all 32 bits of the
    link row) are refused, rule 2.
 3. Violations built in the image of the program (a field of a row is changed in the image, then DJ-PROVE
@@ -28,22 +28,28 @@ SLOT = 128
 BASE2 = 1 << 30                     # the data block of the program (block 2)
 BLOCK = 1 << 29
 CELLS = 1 << 15                     # the image holds the cells below this, then the cells of the table of entries
-TABLE = 1 << 12
+TABLE = 1 << 12                     # and of the table of returns
+RTABLE = 1 << 14
 ETAB = 1 << 18                      # the first cell of the table of entries (fc-etab)
+RTAB = ETAB + (1 << 14)             # the first cell of the table of returns (fc-rtab)
 
 HARNESS = r'''
-variable cap-buf variable cap-main variable cap-tab
-: cap-init ( main-bytes table-bytes -- )
-  cap-tab ! cap-main ! cap-main @ cap-tab @ + allocate throw cap-buf ! cap-buf @ cap-main @ cap-tab @ + 0 fill ;
-: cap-base ( byte-address -- offset|-1 ) \ the cells of the program, then the table of entries
+variable cap-buf variable cap-main variable cap-tab variable cap-rt
+: cap-init ( main-bytes table-bytes returns-bytes -- )
+  cap-rt ! cap-tab ! cap-main ! cap-main @ cap-tab @ + cap-rt @ + allocate throw cap-buf !
+  cap-buf @ cap-main @ cap-tab @ + cap-rt @ + 0 fill ;
+: cap-base ( byte-address -- offset|-1 ) \ the cells of the program, the table of entries, the table of returns
   dup fc-etab 3 rshift u< if dup cap-main @ u< 0= if drop -1 then exit then
-  fc-etab 3 rshift - dup cap-tab @ u< 0= if drop -1 exit then cap-main @ + ;
+  dup fc-rtab 3 rshift u< if
+    fc-etab 3 rshift - dup cap-tab @ u< 0= if drop -1 exit then cap-main @ + exit then
+  fc-rtab 3 rshift - dup cap-rt @ u< 0= if drop -1 exit then cap-main @ + cap-tab @ + ;
 : cap-put ( bit-address src n -- ) rot 3 rshift cap-base dup 0< if drop 2drop exit then cap-buf @ + swap cmove ;
 : cap-read ( bit-address -- x ) 3 rshift cap-base dup 0< if drop 0 exit then cap-buf @ + @ ;
 : cap-w ( x bit-address -- ) 3 rshift cap-base cap-buf @ + ! ;
 : cap-order 256 0 do i lay-rev i + c! loop ;
 : cap-prove ( -- ) ." @@ " fc-first @ lay-next-cell @ dj-prove
   dup if drop fc-etab lay-cell-bit rshift dup fc-nwords @ 2* + dj-prove then
+  dup if drop fc-rtab lay-cell-bit rshift dup fc-nret @ 2* + dj-prove then
   . dj-bad-rule @ . dj-bad-cell @ . lay-next-cell @ . cr ;
 '''
 
@@ -55,7 +61,7 @@ PROGRAM = '''variable v
 
 
 def run_host(source, guard, tail, libraries):
-    task = [HARNESS, f"{CELLS * CELL // 8} {TABLE * CELL // 8} cap-init cap-order {guard} fc-guard ! ' cap-put lay-sink ! "
+    task = [HARNESS, f"{CELLS * CELL // 8} {TABLE * CELL // 8} {RTABLE * CELL // 8} cap-init cap-order {guard} fc-guard ! ' cap-put lay-sink ! "
                      "' cap-read dj-reader !"]
     task += ['fc| ' + line for line in source.split('\n')]
     task += ['fc-go', 'cap-prove', tail, 'bye']
@@ -70,11 +76,13 @@ def verdicts(out):
 
 def image_of(out):
     mark = out.index(b'@@IMAGE\n') + 8
-    return out[mark:mark + (CELLS + TABLE) * CELL // 8]
+    return out[mark:mark + (CELLS + TABLE + RTABLE) * CELL // 8]
 
 
 def index(bit):
     byte = bit // 8
+    if byte >= RTAB * CELL // 8:
+        return (CELLS + TABLE) * CELL // 8 + byte - RTAB * CELL // 8
     return CELLS * CELL // 8 + byte - ETAB * CELL // 8 if byte >= ETAB * CELL // 8 else byte
 
 
@@ -104,6 +112,15 @@ def sel_table(img):
     raise AssertionError('no layer in the table of entries')
 
 
+def sel_rtable(img):
+    """The link row of the first layer of the table of returns."""
+    for c in range(RTAB, RTAB + 2 * RTABLE, 2):
+        r = row(img, c, 7)
+        if r[1] == CELL and r[3] - r[2] == CELL and r[2] >= 2 * CELL:
+            return c, 7
+    raise AssertionError('no layer in the table of returns')
+
+
 def cases(img, ncells):
     """Name -> (changes [(bit address of a field, new value)], rule). The rows are found in the image."""
     def sel(test):
@@ -118,6 +135,8 @@ def cases(img, ncells):
     dl_patch = sel(lambda r: r[0] == fld(*store, 0))
     # a patch of the target of EXECUTE (the number of the word, 11 bits, to the bit 11 of a field of a link row)
     ex = sel(lambda r: r[1] - r[0] == 11 and r[0] % 32 == 11 and r[0] >= 2 * CELL)
+    # a patch of the target of the return (the number of the point, 13 bits, to the bit 11 of a field of a link row)
+    ret = sel(lambda r: r[1] - r[0] == 13 and r[0] % 32 == 11 and r[0] >= 2 * CELL)
     # the link row of a layer, a layer with two rows of data, the row of stdout
     link = sel(lambda r: r[0] == 0 and r[1] == CELL and r[3] - r[2] == CELL and r[2] >= 2 * CELL)
     two = None
@@ -146,6 +165,11 @@ def cases(img, ncells):
         [(fld(*dl_patch, 1), row(img, *dl_patch)[1] + 1), (fld(*dl_patch, 3), row(img, *dl_patch)[3] + 1)], 2)
     out['patch of the number of a word of 21 bits instead of 11 (to the end of the field)'] = (
         [(fld(*ex, 1), row(img, *ex)[1] + 10), (fld(*ex, 3), row(img, *ex)[3] + 10)], 2)
+    out['patch of the number of a return of 21 bits instead of 13 (to the end of the field)'] = (
+        [(fld(*ret, 1), row(img, *ret)[1] + 8), (fld(*ret, 3), row(img, *ret)[3] + 8)], 2)
+    rtab = sel_rtable(img)
+    out['a table of returns layer that jumps into the kernel'] = (
+        [(fld(*rtab, 2), BLOCK + word(img, fld(*rtab, 2))), (fld(*rtab, 3), BLOCK + word(img, fld(*rtab, 3)))], 1)
     tab = sel_table(img)
     out['a table of entries layer that jumps into the kernel'] = (
         [(fld(*tab, 2), BLOCK + word(img, fld(*tab, 2))), (fld(*tab, 3), BLOCK + word(img, fld(*tab, 3)))], 1)
@@ -175,7 +199,7 @@ def main():
         assert flag == 0 and rule == 2, (name, verdicts(out))
     print('PASS the programs compiled for the whole space (the return writes 32 bits of the link row) are refused: rule 2')
     # 3. the built violations
-    dump = "cr .( @@IMAGE) cr cap-buf @ %d type" % ((CELLS + TABLE) * CELL // 8)
+    dump = "cr .( @@IMAGE) cr cap-buf @ %d type" % ((CELLS + TABLE + RTABLE) * CELL // 8)
     out = run_host(PROGRAM, 1, dump, libraries)
     img = image_of(out)
     ncells = verdicts(out)[0][3]

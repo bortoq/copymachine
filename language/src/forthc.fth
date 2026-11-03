@@ -10,8 +10,11 @@ variable fc-d variable fc-first
 variable fc-guard
 \ Layout of a program of the kernel: a block of the space has 2^FC-BBITS bits (code 0, kernel code 1, data 2, kernel
 \ data 3); a data address takes FC-ABITS bits, a code address FC-BBITS. The xt of a word is its number, FC-EBITS bits:
-\ the layer of the table of entries FC-ETAB that jumps to its entry.
+\ the layer of the table of entries FC-ETAB that jumps to its entry. A return is by the number of the point of return,
+\ FC-RBITS bits: the layer n of the table of returns FC-RTAB jumps to the cell after the n-th call (FC-RTAB is 2^24 bits
+\ above FC-ETAB: the table of entries takes 2^22 bits, the table of returns 2^24).
 29 constant fc-bbits  fc-bbits 1- constant fc-abits  11 constant fc-ebits  1 fc-bbits 1- lshift constant fc-etab
+13 constant fc-rbits  fc-etab 1 fc-bbits 5 - lshift + constant fc-rtab
 : fc-layout ( kernel? -- )
   if 3 29 lshift 1 19 lshift else 1 30 lshift 2 then fc-first ! fc-d ! ;
 : fc-d+ ( offset -- addr ) fc-d @ + ;
@@ -91,11 +94,12 @@ variable fc-nlinks variable fc-link-buf variable fc-nbuf
   fc-nbuf @ if
     fc-nlinks @ fc-nbuf @ - 64 * fc-links + fc-link-buf @ fc-nbuf @ 8 * lay-put 0 fc-nbuf !
   then ;
-: fc-link-const ( cell -- addr )
+: fc-link-pair ( lo hi -- addr )
   fc-nlinks @ fc-max-links = if -8 throw then
-  fc-link-buf @ fc-nbuf @ 8 * + >r dup 4 r@ lay-numeric fc-l + 4 r> 4 + lay-numeric
+  fc-link-buf @ fc-nbuf @ 8 * + >r swap 4 r@ lay-numeric 4 r> 4 + lay-numeric
   fc-nlinks @ 64 * fc-links + 1 fc-nlinks +! 1 fc-nbuf +!
   fc-nbuf @ fc-link-chunk = if fc-put-links then ;
+: fc-link-const ( cell -- addr ) dup fc-l + fc-link-pair ;
 create fc-eight 8 allot create fc-zeros 16 allot fc-zeros 16 0 fill
 : fc-put-consts ( -- )
   fc-nconsts @ 0 ?do
@@ -197,6 +201,7 @@ variable fc-lc variable fc-lb
 : fc-row-n ( addr -- n ) dup cell+ @ over @ - swap dup 3 cells + @ swap 2 cells + @ - max ;
 : fc-mem-row? ( addr -- f ) dup @ lay-size @ u< swap 2 cells + @ lay-size @ u< and ;
 : fc-log-layer ( layer -- )
+  fc-guard @ if dup lay-layer-cell fc-rtab u< 0= if drop exit then then
   fc-nlog @ fc-max-log = if drop -1 fc-unknown ! exit then
   1 fc-lc ! lay-layer-bits fc-lb !
   dup lay-count 0 ?do
@@ -235,8 +240,19 @@ variable fc-live variable fc-tramp variable fc-ex variable fc-thrower
   lay-lookups-begin fc-z swap 0 32 lay-or-chunks lay-lookups
   lay-lookups-begin fc-t-nz2 @ 2 2 fc-xr 0 lay-item fc-z 4 0 lay-seg lay-lookups fc-xr ;
 : fc-branch ( flag -- zero yes ) fc-nonzero 1 lay-decide 1 fc-log-decision fc-end dup lay-branch-step + ;
+: fc-rtab-at ( n -- bit-address ) lay-branch-bit lshift fc-rtab + ;
+variable fc-nret
+\ What a call puts on the stack of returns for the cell after it. The program of the kernel: the number of a layer of the
+\ table of returns that jumps to the cell (the first word of the pair of a link, the second is not read: the return
+\ takes FC-RBITS bits of the first into both fields of the link row, in two layers); else the cell itself.
+: fc-ret-link ( cell -- addr )
+  fc-guard @ 0= if fc-link-const exit then
+  fc-nret @ 1 fc-rbits lshift u< 0= if -8 throw then
+  fc-nret @ fc-rtab-at lay-new-record lay-next!
+  fc-nret @ 0 fc-link-pair 1 fc-nret +! ;
+: fc-ret-base ( -- target ) fc-guard @ if fc-rtab else fc-cellb then ;
 : fc-call ( entry -- )
-  fc-spill lay-new-cell >r r@ fc-link-const fc-src1 fc-rstk fc-rp 64 fc-mem-push
+  fc-spill lay-new-cell >r r@ fc-ret-link fc-src1 fc-rstk fc-rp 64 fc-mem-push
   lay-jump fc-callee @ ?dup if r@ swap 10 cells + fc-log-call then 0 fc-callee !
   fc-end r> fc-begin-block drop ;
 variable fc-v0 variable fc-v1
@@ -247,18 +263,19 @@ variable fc-v0 variable fc-v1
 : fc-ex-base ( -- target ) fc-guard @ if fc-etab else 0 then ;
 : fc-call-indirect ( xt cont|-1 -- cont )
   fc-spill dup -1 = if drop lay-new-cell then >r
-  r@ fc-link-const fc-src1 fc-rstk fc-rp 64 fc-mem-push
+  r@ fc-ret-link fc-src1 fc-rstk fc-rp 64 fc-mem-push
   lay-layer fc-v0 ! lay-layer fc-v1 ! lay-layer drop
   fc-xw fc-ex @ 7 2 lay-field lay-branch-bit + 2 pick fc-xoff + lay-copy fc-v0 @ lay-row drop
   fc-xw fc-ex @ 7 3 lay-field lay-branch-bit + rot fc-xoff + lay-copy fc-v1 @ lay-row drop
   fc-ex @ lay-jump fc-end r> ;
 : fc-push-frame ( thrown -- )
-  fc-link-const fc-sp fc-srcs ! fc-handler fc-srcs cell+ ! fc-srcs 2 cells + ! 3 fc-nsrc !
+  fc-ret-link fc-sp fc-srcs ! fc-handler fc-srcs cell+ ! fc-srcs 2 cells + ! 3 fc-nsrc !
   fc-rstk fc-rp 64 fc-mem-push 64 fc-handler fc-rp lay-copy fc-rows1 ;
 : fc-link-copy ( dst src -- )
   fc-guard @ if
-    2dup fc-bbits -rot lay-copy lay-layer dup >r lay-row drop
-    32 + swap 32 + swap fc-bbits -rot lay-copy r> lay-row drop
+    swap lay-branch-bit + swap
+    2dup fc-rbits -rot lay-copy lay-layer lay-row drop
+    swap 32 + swap fc-rbits -rot lay-copy lay-layer lay-row drop
   else 64 -rot lay-copy fc-rows1 then ;
 : fc-restore ( dst src -- )
   >r >r 0 fc-off@ 7 64 r> 0 lay-item r> 8 0 lay-seg ;
@@ -280,13 +297,15 @@ variable fc-v0 variable fc-v1
   dup lay-jump fc-end
   swap fc-begin-block drop fc-reg dup >r 32 swap fc-code lay-copy fc-rows1 0 fc-n ! r> fc-push fc-spill
   dup lay-jump fc-end fc-begin-block drop ;
-variable fc-ret-p variable fc-ret-l variable fc-rs0 variable fc-rs1
+variable fc-ret-p variable fc-ret-l variable fc-rs0 variable fc-rs1 variable fc-ret-m variable fc-ret-t
 : fc-ret-patch ( slot f j -- )
-  8 * fc-idx + >r fc-ret-l @ lay-layer-cell -rot lay-field 7 + 8 swap r> lay-copy fc-ret-p @ lay-row drop ;
+  8 * fc-idx + >r fc-ret-t @ lay-layer-cell -rot lay-field 7 + 8 swap r> lay-copy fc-ret-p @ lay-row drop ;
 : fc-ret-masked ( -- )
-  fc-bbits fc-tramp @ 7 2 lay-field fc-rstk lay-copy fc-ret-l @ lay-row fc-rs0 !
-  fc-bbits fc-tramp @ 7 2 lay-field 32 + fc-rstk 32 + lay-copy fc-ret-l @ lay-row fc-rs1 !
-  fc-rs0 @ 2 0 fc-ret-patch fc-rs0 @ 3 1 fc-ret-patch fc-rs1 @ 2 2 fc-ret-patch fc-rs1 @ 3 3 fc-ret-patch ;
+  lay-layer fc-ret-m !
+  fc-rbits fc-tramp @ 7 2 lay-field lay-branch-bit + fc-rstk lay-copy fc-ret-l @ lay-row fc-rs0 !
+  fc-rbits fc-tramp @ 7 3 lay-field lay-branch-bit + fc-rstk lay-copy fc-ret-m @ lay-row fc-rs1 !
+  fc-ret-l @ fc-ret-t ! fc-rs0 @ 2 0 fc-ret-patch fc-rs0 @ 3 1 fc-ret-patch
+  fc-ret-m @ fc-ret-t ! fc-rs1 @ 2 2 fc-ret-patch fc-rs1 @ 3 3 fc-ret-patch ;
 : fc-ret ( -- )
   fc-spill -1 fc-offs ! 1 fc-noff ! fc-guard @ if 32 fc-iw ! then fc-rp -1 fc-adjust 16 fc-iw !
   lay-layer fc-ret-p ! lay-layer drop lay-layer fc-ret-l !
@@ -394,7 +413,7 @@ variable fc-gw variable fc-gs variable fc-gs2 variable fc-gts variable fc-gdst
   2dup 32 fc-gw @ 2swap fc-scopy fc-gts @ max fc-gts !
   r> fc-gw @ 64 + 2swap fc-negate-chain fc-gts @ max fc-gts !
   fc-gs @ fc-gs2 @ 1 6 fc-gts @ fc-seg+ fc-gw @ 0 32 fc-gdst @ 0 fc-slookup ;
-: fc-sfinish ( -- exit ) fc-slen @ 1- fc-at dup fc-cellb swap lay-next! lay-layer-cell ;
+: fc-sfinish ( -- exit ) fc-slen @ 1- fc-at dup fc-ret-base swap lay-next! lay-layer-cell ;
 
 \ --- multiplication and division ---
 create fc-pr 128 cells allot create fc-xs 128 cells allot
@@ -473,9 +492,10 @@ create fc-mul-cost 16 allot create fc-div-cost 16 allot
   2over 2over fc-hl @ lay-fits? if fc-hl @ lay-row drop else lay-layer dup fc-hl ! lay-row drop then ;
 : fc-call-helper ( entry exit -- )
   2 fc-need fc-pop1 fc-pop1 2swap lay-new-cell fc-hcont !
-  7 2 lay-field fc-hcont @ fc-link-const fc-guard @ if
-    2dup fc-bbits -rot lay-copy lay-layer dup fc-hl ! lay-row drop
-    32 + swap 32 + swap fc-bbits -rot lay-copy fc-hl @ lay-row drop
+  7 2 lay-field fc-hcont @ fc-ret-link fc-guard @ if
+    swap lay-branch-bit + swap
+    2dup fc-rbits -rot lay-copy lay-layer lay-row drop
+    swap 32 + swap fc-rbits -rot lay-copy lay-layer dup fc-hl ! lay-row drop
   else 64 -rot lay-copy lay-layer dup fc-hl ! lay-row drop then
   ( b a entry ) >r 32 fc-ma rot lay-copy fc-row-or-new 32 fc-mb rot lay-copy fc-row-or-new
   r> dup lay-jump fc-mul-entry @ = if fc-mul-cost else fc-div-cost then fc-hcont @ swap fc-log-call
@@ -700,10 +720,10 @@ create fc-inits 64 cells allot variable fc-ninit variable fc-init-open
     fc-nbuckets @ cells allocate throw fc-cbk !
   then
   fc-cbk @ fc-nbuckets @ cells 0 fill
-  0 fc-nconsts ! 0 fc-n ! 0 fc-npin ! 0 fc-live ! 0 fc-nseg !
+  0 fc-nret ! 0 fc-nconsts ! 0 fc-n ! 0 fc-npin ! 0 fc-live ! 0 fc-nseg !
   0 fc-nctl ! fc-data-start fc-here ! 0 fc-word !
   0 fc-nct ! 0 fc-ninit ! 0 fc-init-open ! 0 fc-ll ! 0 fc-plit ! 0 fc-rt !
-  lay-lone fc-cellb over lay-next! lay-layer-cell fc-tramp ! lay-flush
+  lay-lone fc-ret-base over lay-next! lay-layer-cell fc-tramp ! lay-flush
   lay-lone fc-ex-base over lay-next! lay-layer-cell fc-ex ! lay-flush
   0 fc-nlinks ! 0 fc-nbuf ! fc-link-buf @ 0= if fc-link-chunk 8 * allocate throw fc-link-buf ! then
   fc-scr0 fc-scr ! fc-build-thrower fc-thrower ! ;
@@ -931,8 +951,8 @@ variable fc-nhost
   s" long!" s" %lst" fc-synonym s" long@" s" %lld" fc-synonym ;
 : fc-helpers-cost ( -- )
   lay-pending @ 0 ?do i lay-pending@ fc-log-layer loop
-  fc-uses @ 1 and if fc-mul-entry @ fc-cellb 0 fc-path fc-mul-cost fc-cost! then
-  fc-uses @ 2 and if fc-div-entry @ fc-cellb 0 fc-path fc-div-cost fc-cost! then
+  fc-uses @ 1 and if fc-mul-entry @ fc-ret-base 0 fc-path fc-mul-cost fc-cost! then
+  fc-uses @ 2 and if fc-div-entry @ fc-ret-base 0 fc-path fc-div-cost fc-cost! then
   fc-log-end ;
 \ The price of the word just defined (14.11): its size, the cells from its entry to the first free one; the bits, copies,
 \ layers of its longest path if known at compile time.

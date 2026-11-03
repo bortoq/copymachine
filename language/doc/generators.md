@@ -242,7 +242,7 @@ kernel-layout`, из `fc-word-token` — `; [char]` и `s"` (его провер
 |---|---|
 | `space! spacec! space@ spacec@` | `fc-space-store`, `fc-space-fetch`: младшие 28 бит lo и 29 бит конца, начало данных программы — постоянная строки |
 | `execute catch` | `fc-call-indirect`: `fc-jw` — 29 бит xt (код программы) |
-| возврат, `throw`, вызов умножения и деления | `fc-ret-masked`, `fc-link-copy`: пары ссылок двумя строками по 29 бит |
+| возврат, `throw`, вызов умножения и деления | `fc-ret-masked`, `fc-link-copy`: номер точки возврата (`fc-rbits` бит, `fc-ret-link`) двумя строками в двух слоях в бит `lay-branch-bit` обоих полей ссылки из одного слова; слой `fc-rtab-at` ведёт в ячейку после вызова |
 
 `space! spacec! ( x lo -- )` и `space@ spacec@ ( lo -- x )` берут только начало интервала: ширину
 задаёт слово, конец lo + n делает сумматор (`fc-space-end`). Слово непересечения `dj-prove`

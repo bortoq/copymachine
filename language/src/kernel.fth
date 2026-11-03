@@ -14,12 +14,13 @@ variable kn-at
   then
   0 ?do dup i + c@ kn-at @ spacec! 8 kn-at +! loop drop ;
 : kn-order ( -- ) 256 0 do i lay-rev i + c! loop ;
-\ Before the program runs, its layers and the table of entries are proved by DJ-PROVE (backend.fth), else -9.
+\ Before the program runs, its layers, the table of entries and the table of returns are proved by DJ-PROVE (backend.fth), else -9.
 : kn-get ( bit-address -- x ) space@ ;
 : kn-compile ( -- )
   fc-sizes kn-order 1 fc-guard ! ['] kn-put lay-sink ! ['] kn-get dj-reader ! fc-read fc-go
   fc-first @ lay-next-cell @ dj-prove 0= if -9 throw then
-  fc-etab lay-cell-bit rshift dup fc-nwords @ 2* + dj-prove 0= if -9 throw then ;
+  fc-etab lay-cell-bit rshift dup fc-nwords @ 2* + dj-prove 0= if -9 throw then
+  fc-rtab lay-cell-bit rshift dup fc-nret @ 2* + dj-prove 0= if -9 throw then ;
 : kn-.n ( n -- )
   dup 0< if [char] - emit negate then
   dup 10 / ?dup if recurse then 10 mod [char] 0 + emit ;

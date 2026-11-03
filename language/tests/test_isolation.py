@@ -32,6 +32,7 @@ import host
 import paths
 
 B = 1 << 29                                    # a block
+RSTACK = (1 << 30) + (1 << 21) + (1 << 15)      # the stack of returns of the program (fc-rstk)
 FREE = (1 << 30) + (1 << 27)                   # a place of the data of the program that nothing uses
 PROBE_SECONDS = 900
 LOOP_TICKS = 400_000_000                       # the probes that may not end are cut here
@@ -130,7 +131,32 @@ def probes(entry, constant):
         f': f {FREE} >r ;\n: main 65 emit key 49 = if f then 66 emit ;', 'AB', None)
     p['return forged in the data'] = (
         f': f {entry} {FREE} space! ;\n: main 65 emit key 49 = if f then 66 emit ;', 'AB', None)
+    # the return by the number of a point of return (18.22): the program writes the pair of its own return in the stack
+    # of returns (the data of the program: the frame of the catch of the start takes elements 0-2, MAIN 3, F 4)
+    p.update(forged_returns())
     return p
+
+
+def forged_returns():
+    """The program forges the return of F (element 4 of the stack of returns, a pair of two words) and returns.
+    The points of return are numbered in the order of the calls: 0 the call of F, 1 the call of P in MAIN, 2 the
+    frame of the start (the end), 3 the call of MAIN (the end); a number without a point is an empty layer."""
+    top = RSTACK + 4 * 128
+    MID = 23 * 1024                        # a cell in the middle of the word P (before 18.22 the pair of an address went there)
+
+    def probe(lo, hi):
+        return (f': p 80 emit ;\n: f {lo} {top} space! {hi} {top + 32} space! ;\n'
+                ': main 65 emit key 49 = if f then p 66 emit ;')
+    return {
+        'return forged to the number of a point (the call of F)': (probe(0, 0), 'APB', 'APB'),
+        'return forged to the number of a point (the call of P)': (probe(1, 1), 'APB', 'AB'),
+        'return forged to the number of the end': (probe(3, 3), 'APB', 'A'),
+        'return forged to a number without a point': (probe(5000, 5000), 'APB', 'A'),
+        'return forged to the address of a cell of the code': (probe(MID, MID), 'APB', 'A'),
+        # two different numbers: both fields of the link take the first word, the second is not read
+        'return forged to a pair of two numbers': (probe(0, 3), 'APB', 'APB'),
+        'return forged to the old pair of the address of a cell': (probe(MID, MID + 1024), 'APB', 'A', LOOP_TICKS),
+    }
 
 
 def run_probe(item):
