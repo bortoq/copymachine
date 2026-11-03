@@ -18,7 +18,8 @@
    the concept cell (another xt in it: the word calls that definition).
 5. The kernel L0 on the emulator gives the same prices to the program it compiles, plus the return
    of the program of the kernel (18.18: two rows of 29 bits and four patches instead of one row of 64 bits
-   and two patches: 3 copies and 26 bits more for the return that ends a word).
+   and two patches, and since 18.22 the table of returns: 1 layer, 1 cell, 4 copies and 1018 bits more
+   for the return that ends a word).
 6. The words of the definition of the language get prices too (summary printed); the prices of the
    colon definitions of the core in doc/language.md are those the compiler gives them.
 """
@@ -83,20 +84,21 @@ def host_compile(source, before=''):
     return check_programs.run_host(host.build(), paths.source_bytes(paths.LIBRARY_FILES) + task.encode('latin-1'))
 
 
-RETURN_COPIES, RETURN_BITS = 3, 26     # the return of the program of the kernel over that of the host
+# the return of the program of the kernel over that of the host (18.22: through the table of returns)
+RETURN_LAYERS, RETURN_SIZE, RETURN_COPIES, RETURN_BITS = 1, 1, 4, 1018
 
 
 def printed(record, kernel=False):
     """What C. prints for a record (known first); KERNEL: with the return of the program of the kernel."""
     r = 1 if kernel and record['known'] else 0
-    return (f'{record["known"]} {record["layers"]} {record["copies"] + r * RETURN_COPIES} '
-            f'{record["bits"] + r * RETURN_BITS} {record["size"]} ')
+    return (f'{record["known"]} {record["layers"] + r * RETURN_LAYERS} {record["copies"] + r * RETURN_COPIES} '
+            f'{record["bits"] + r * RETURN_BITS} {record["size"] + kernel * RETURN_SIZE} ')
 
 
 def price_of(record, kernel=False):
     r = 1 if kernel and record['known'] else 0
-    return (record['size'] + record['bits'] + r * RETURN_BITS + record['copies'] + r * RETURN_COPIES
-            + record['layers'])
+    return (record['size'] + kernel * RETURN_SIZE + record['bits'] + r * RETURN_BITS + record['copies']
+            + r * RETURN_COPIES + record['layers'] + r * RETURN_LAYERS)
 
 
 def check_five():
@@ -203,7 +205,7 @@ def check_kernel_prices(records):
             + str(price_of(w1, True)) + ' 0 0 10 \n').encode()
     got, seconds = check_kernel.run(paths.L0.read_bytes() + WORDS.encode() + b'\0', 1800)
     assert got == want, (got, want)
-    print(f'PASS kernel L0: the same prices, plus the return (3 copies, 26 bits) ({seconds:.0f} s):',
+    print(f'PASS kernel L0: the same prices, plus the return (1 layer, 1 cell, 4 copies, 1018 bits) ({seconds:.0f} s):',
           got.decode().split('\n')[1])
 
 
