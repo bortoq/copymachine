@@ -101,7 +101,7 @@ for binary in BINS:
         result = subprocess.run([str(binary), *args], capture_output=True, check=False)
         assert result.returncode == 2, (binary, args, result.returncode)
         checks += 1
-# The keys of the usage line: -r (a host file, the remote space 2) and the joined form -sN.
+# The keys of the usage line: -r (a host file or device, the host area 1) and the joined form -sN.
 with tempfile.TemporaryDirectory(prefix='emulator-r-') as directory:
     remote = Path(directory)/'remote'
     remote.write_bytes(b'remote')

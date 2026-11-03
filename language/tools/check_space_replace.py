@@ -2,15 +2,15 @@
 """check-space-replace (15.4, 3.5.1 on the small value): replacing the word "space" by its definition.
 
 Python only prepares files: the streams of the programs of check-programs (compiled by the definition on the
-host pForth), their expected outputs, the empty files of the remote spaces 2 (out) and 3 (exp). The rest is ONE
+host pForth), their expected outputs, the empty files of the areas 1 (out) and 2 (exp) of the address space of the host. The rest is ONE
 program of the language, running in the guest on the emulator built by `make space` (the first executor of
 the word; it has the long copy):
 
-1. through EXEC (the remote space 0) it builds the emulator NEW from the text of the definition, emulator/src/*.c,
+1. through EXEC (the request record copied to SYS by %copy) it builds the emulator NEW from the text of the definition, emulator/src/*.c,
    with the C compiler of the host (`cc`, the flags of the Makefile). The text of the definition already is
    files of the host; copying its 44 KiB through long! would give the same files for more time;
 2. for each program k through EXEC it runs NEW on the stream: `NEW -s .. -p 8 < sK > out && cp eK exp`;
-3. it reads out and exp by long@ (the remote spaces 2 and 3), compares them word by word and writes P (equal)
+3. it reads out and exp by long@ (the areas 1 and 2 of the host), compares them word by word and writes P (equal)
    or F (different, or a command failed). Python only prints and requires P for every program.
 """
 import os
@@ -59,13 +59,14 @@ def guest_source(build, workdir, count, words):
     return f''': rv ( b -- b' ) dup 1 and 7 lshift over 2 and 5 lshift or over 4 and 3 lshift or over 8 and 1 lshift or
   over 16 and 1 rshift or over 32 and 3 rshift or over 64 and 5 rshift or swap 128 and 7 rshift or ;
 : exec ( n -- status ) 5 {B} spacec! dup {B + 56} space!
-  8 * 152 + {B} + >r 0 0 {B} r> long! 0 0 {R} {R + 136} long@ {R + 8} {R + 16} spacec@ ;
+  8 * 152 + {B} + >r 2147483648 2147483648 {B} r> %copy {R} {R + 136} 2147483648 2147483648 %copy
+  {R + 8} {R + 16} spacec@ ;
 : same? ( -- f ) -1 {words} 0 do {X} i 32 * + space@ {Y} i 32 * + space@ xor 0= and loop ;
 : pat ( ch off -- ) 8 * {C} + swap rv swap spacec! ;
 variable po
 : put ( addr u off -- ) po ! 0 do dup i + c@ rv po @ i + 8 * {C} + spacec! loop drop ;
 : step ( k -- f ) dup 10 / 48 + dup {s} pat {e} pat 10 mod 48 + dup {s + 1} pat {e + 1} pat
-  {len(run)} exec if 0 exit then 2 0 {X} {X + 32 * words} long@ 3 0 {Y} {Y + 32 * words} long@ same? ;
+  {len(run)} exec if 0 exit then 268435456 {X} {X + 32 * words} long@ 536870912 {Y} {Y + 32 * words} long@ same? ;
 : main ( -- ) {text(cc)} {len(cc)} exec if 70 emit 10 emit exit then
   {text(run)}
   {count} 0 do i step if 80 else 70 then emit loop 10 emit ;

@@ -4,7 +4,8 @@
 Usage: proto_gen.py <proto.def> <out.h>
 
 The generated header carries: operation codes, request/response field
-tables (name, literal-or-symbolic width), and the device table. The
+tables (name, literal-or-symbolic width), the device table and the
+constants (XCONST). The
 emulator (sys_ctrl.c) computes offsets and REQ_BITS/RSP_BITS from these
 tables at run time, so widths may depend on the space size (ADDR, NF).
 """
@@ -13,6 +14,7 @@ import sys
 
 OP = re.compile(r'^XOP\(\s*([A-Za-z_]\w*)\s*,\s*(\d+)\s*\)$')
 FIELD = re.compile(r'^XFIELD\(\s*(req|rsp)\s*,\s*([A-Za-z_]\w*)\s*,\s*(\d+|[A-Za-z_]\w*)\s*\)$')
+CONST = re.compile(r'^XCONST\(\s*([A-Za-z_]\w*)\s*,\s*(\d+)\s*\)$')
 DEV = re.compile(r'^XDEV\(\s*(\d+)\s*,\s*([A-Za-z_]\w*)\s*,\s*"([rw])"\s*\)$')
 
 KNOWN_WIDTHS = {"ADDR": "PK_ADDR", "NF": "PK_NF"}
@@ -24,7 +26,7 @@ def fail(path, lineno, text, why):
 
 
 def parse(path):
-    ops, req, rsp, devs = [], [], [], []
+    ops, req, rsp, devs, consts = [], [], [], [], []
     with open(path, "r", encoding="utf-8") as f:
         text = f.read()
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
@@ -47,6 +49,10 @@ def parse(path):
                     fail(path, lineno, line, "unknown width %r" % width)
                 (req if kind == "req" else rsp).append(entry)
                 continue
+            m = CONST.match(line)
+            if m:
+                consts.append((m.group(1), int(m.group(2))))
+                continue
             m = DEV.match(line)
             if m:
                 devs.append((int(m.group(1)), m.group(2), m.group(3)))
@@ -63,7 +69,7 @@ def parse(path):
         if name in seen:
             fail(path, 0, name, "duplicate op")
         seen.add(name)
-    return ops, req, rsp, devs
+    return ops, req, rsp, devs, consts
 
 
 def emit(fields, name):
@@ -79,7 +85,7 @@ def main():
     if len(sys.argv) != 3:
         sys.stderr.write("usage: proto_gen.py <proto.def> <out.h>\n")
         return 2
-    ops, req, rsp, devs = parse(sys.argv[1])
+    ops, req, rsp, devs, consts = parse(sys.argv[1])
     L = []
     L.append("/* generated from %s by tools/proto_gen.py; do not edit */" % sys.argv[1])
     L.append("#ifndef PROTO_GEN_H_")
@@ -103,6 +109,8 @@ def main():
         L.append('  {%d, "%s", "%s"},' % (did, dname, mode))
     L.append("};")
     L.append("#define PROTO_NDEVS %d" % len(devs))
+    for name, value in consts:
+        L.append("#define %s %d" % (name, value))
     L.append("")
     L.append("#endif /* PROTO_GEN_H_ */")
     with open(sys.argv[2], "w", encoding="utf-8") as f:

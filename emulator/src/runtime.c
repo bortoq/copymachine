@@ -15,7 +15,7 @@ FILE *channel_in,*channel_out;
 static unsigned char *shadow;
 static size_t record_bytes;
 static int shadow_valid;
-const char **remote_paths; size_t nremote; /* -r path: remote spaces 2.. (15.2) */
+const char **remote_paths; size_t nremote; /* -r path: host areas 1.. (15.2) */
 
 /* Bit-reversed byte: stream bytes are MSB-first, numeric fields LSB-first. */
 static const unsigned char reverse8[256]={
@@ -92,7 +92,7 @@ void parse_config(int argc,char **argv)
     if(arg[0]!='-'||(arg[1]!='s'&&arg[1]!='p'&&arg[1]!='t'&&arg[1]!='r')) usage();
     v=arg+2;
     if(!*v) { if(++i==argc) usage(); v=argv[i]; }
-    if(arg[1]=='r') {   /* a host file, the remote space 2+k of the long copy */
+    if(arg[1]=='r') {   /* a host file, the host area 1+k of the long copy */
       const char **grown=realloc(remote_paths,(nremote+1)*sizeof *remote_paths);
       if(!grown) { fputs("emulator: out of memory\n",stderr); exit(EXIT_MEMORY); }
       remote_paths=grown; remote_paths[nremote++]=v;

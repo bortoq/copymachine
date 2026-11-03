@@ -30,21 +30,26 @@ XOP(IOCTL, 4)
 XOP(EXEC,  5)
 /*
  * LONG (15.2, the definition of the word "space"): the long copy, a copy to
- * or from a remote space (isolated, with its own addressing). The request
- * record is the same: chan = the number of the remote space, flags bit 0 =
- * the direction (0: to the remote space, 1: from it), arg = the length in
- * bits, off = the position (bits) in the remote space. To: the data is the
- * arg bits written to SYS right after the record (as the command of EXEC).
- * From: the data is the answer, the next answer reads of SYS get these bits
- * (taken at the tick of the request) instead of the answer record. Remote
- * space 0 is the old SYS: the request record (and EXEC command) written to
- * its position 0 is the old request, a read gives the bits of the old
- * answer record. Space 1 is the clock: a read gives the 64-bit monotonic
- * time of the host in nanoseconds (numeric, least significant bit first).
- * Spaces 2.. are the host files given at startup (-r path, in order), bit
- * addressed (position 0 is the high bit of byte 0); a read past the end
- * gives zeros, a write past the end extends the file.
+ * or from the address space of the host. The request record is the same;
+ * chan is not used (0), flags bit 0 = the direction (0: to the host, 1:
+ * from it), arg = the length in bits, off = the position (bits) in the
+ * address space of the host. To: the data is the arg bits written to SYS
+ * right after the record. From: the data is the answer, the next answer
+ * reads of SYS get these bits (taken at the tick of the request) instead
+ * of the answer record.
+ * The address space of the host is divided into areas of 2^HOST_AREA_BITS
+ * bits: off = area * 2^HOST_AREA_BITS + the position in the area. Area 0 is
+ * the clock: a read gives the 64-bit monotonic time of the host in
+ * nanoseconds (numeric, least significant bit first; zeros past 64 bits),
+ * a write is lost. Areas 1.. are the host files and devices given at
+ * startup (-r path, in order), bit addressed (position 0 is the high bit
+ * of byte 0). There are no errors: a read past the end of a file or
+ * device, outside an area, from an unknown area or an unopenable file gives
+ * zeros; a write there is lost; the emulator never exits with an error on
+ * LONG. The 32-bit cell of the language holds the position, so
+ * HOST_AREA_BITS = 28 gives 16 areas of 32 MiB.
  */
+XCONST(HOST_AREA_BITS, 28)
 XOP(LONG,  6)
 /* reserve: SPAWN, POLL, MMAP, ... */
 

@@ -10,10 +10,10 @@
  * REQ fields: op(0) chan(1) flags(2) arg(3) off(4).
  * RSP fields: op(0) status(1) flags(2) size(3) moved(4) eof(5).
  *
- * LONG (15.2) is the long copy: chan = remote space, flags bit 0 = from
- * it, arg = bits, off = position (proto.def). It keeps the old answer of
- * SYS; a copy from a remote space makes the following answer reads give
- * its bits. Remote space 0 is the old SYS, 1 the clock, 2.. the -r files.
+ * LONG (15.2) is the long copy: flags bit 0 = from the address space of
+ * the host, arg = bits, off = position (proto.def; chan is not used). A
+ * copy from it makes the following answer reads give its bits. Area 0 of
+ * the host is the clock, areas 1.. the -r files and devices; no errors.
  */
 #include "sys_ctrl.h"
 #include "proto_gen.h"
@@ -46,7 +46,7 @@ static size capacity;                 /* channel positions incl. SYS */
 static channel *channels = NULL;      /* channel c sits at space_nbits + c */
 static size nchan = 0;                /* positions in use (SYS included) */
 
-/* the long copy (15.2): the bits of the last copy from a remote space,
+/* the long copy (15.2): the bits of the last copy from the host,
  * given to the answer reads while long_pending; the -r files */
 static unsigned char *long_data = NULL;
 static size long_bits = 0;
@@ -449,57 +449,43 @@ static void file_read(int fd, unsigned char *t, size b0, size nb)
 }
 
 /*
- * serve a LONG request at bit address base (n bits written to SYS). From a
- * remote space: its bits [pos, pos+len) go to long_data for the answer
- * reads. To it: the len bits after the record; space 0 serves them as an
- * old request at its position 0. Errors are not reported (unknown space,
- * short request, host IO): the copy does nothing, a read gives zeros.
+ * serve a LONG request at bit address base (n bits written to SYS) in the
+ * address space of the host (proto.def): off = area * 2^HOST_AREA_BITS +
+ * position. From it: the bits go to long_data for the answer reads; to it:
+ * the len bits after the record. There are no errors: what is outside an
+ * area, in an unknown area, in a file that is not open, or past the end of
+ * a file reads as zeros and is lost on write; no exit, no message.
  */
 static void long_copy(size base, size n, const size *v)
 {
-  size sp = v[1], from = v[2] & 1u, len = v[3], pos = v[4];
+  size from = v[2] & 1u, len = v[3], off = v[4];
+  size area = off >> HOST_AREA_BITS, pos = off & (((size)1 << HOST_AREA_BITS) - 1);
   size data = (size)(base + req_bits);
+  size in = len < ((size)1 << HOST_AREA_BITS) - pos ? len : ((size)1 << HOST_AREA_BITS) - pos;
   if(from)
   {
     free(long_data);
     long_data = calloc((size_t)(len / CHAR_BIT + 1), 1);
-    if(long_data == NULL)
-    {
-      fprintf(stderr, "emulator: out of memory\n");
-      exit(EXIT_MEMORY);
-    }
-    long_bits = len;
+    long_bits = long_data == NULL ? 0 : len;
     long_pending = 1;
-    if(sp == 0)                       /* the old answer record */
-    {
-      unsigned char rec[64] = {0};
-      size f[RSP_NFIELDS];
-      unsigned i;
-      f[0] = channels[0].op; f[1] = channels[0].status; f[2] = channels[0].flags;
-      f[3] = channels[0].size; f[4] = channels[0].moved; f[5] = channels[0].eof;
-      for(i = 0; i < RSP_NFIELDS; ++i)
-        buf_put(rec, rsp_off[i], rsp_w[i], f[i]);
-      long_take(rec, rsp_bits, pos, len);
-    }
-    else if(sp == 1)                  /* the clock: monotonic ns */
+    if(long_data == NULL)
+      return;
+    if(area == 0)                     /* the clock: monotonic ns */
     {
       unsigned char t[8] = {0};
       struct timespec ts;
       clock_gettime(CLOCK_MONOTONIC, &ts);
       buf_put(t, 0, 64, (size)ts.tv_sec * 1000000000u + (size)ts.tv_nsec);
-      long_take(t, 64, pos, len);
+      long_take(t, 64, pos, in);
     }
-    else if(sp - 2 < (size)nremote && len)
+    else if(area - 1 < (size)nremote && in)
     {
-      size nb = (size)((pos % CHAR_BIT + len + CHAR_BIT - 1) / CHAR_BIT);
+      size nb = (size)((pos % CHAR_BIT + in + CHAR_BIT - 1) / CHAR_BIT);
       unsigned char *t = calloc((size_t)nb, 1);
       if(t == NULL)
-      {
-        fprintf(stderr, "emulator: out of memory\n");
-        exit(EXIT_MEMORY);
-      }
-      file_read(remote_fd[sp - 2], t, pos / CHAR_BIT, nb);
-      bitcpy((size_t)len, t, (size_t)(pos % CHAR_BIT), long_data, 0);
+        return;
+      file_read(remote_fd[area - 1], t, pos / CHAR_BIT, nb);
+      bitcpy((size_t)in, t, (size_t)(pos % CHAR_BIT), long_data, 0);
       free(t);
     }
     return;
@@ -507,27 +493,15 @@ static void long_copy(size base, size n, const size *v)
   long_pending = 0;
   if(n < (size)(req_bits + len))
     return;
-  if(sp == 0)                         /* the old request at position 0 */
+  if(area >= 1 && area - 1 < (size)nremote && in && remote_fd[area - 1] >= 0)
   {
-    size w[REQ_NFIELDS];
-    if(pos != 0 || len < req_bits)
-      return;
-    decode_req(data, w);
-    if(w[0] != (size)OP_LONG)
-      service(0, data, len, w);
-  }
-  else if(sp >= 2 && sp - 2 < (size)nremote && len && remote_fd[sp - 2] >= 0)
-  {
-    int fd = remote_fd[sp - 2];
-    size b0 = pos / CHAR_BIT, nb = (size)((pos % CHAR_BIT + len + CHAR_BIT - 1) / CHAR_BIT), put = 0;
+    int fd = remote_fd[area - 1];
+    size b0 = pos / CHAR_BIT, nb = (size)((pos % CHAR_BIT + in + CHAR_BIT - 1) / CHAR_BIT), put = 0;
     unsigned char *t = calloc((size_t)nb, 1);
     if(t == NULL)
-    {
-      fprintf(stderr, "emulator: out of memory\n");
-      exit(EXIT_MEMORY);
-    }
+      return;
     file_read(fd, t, b0, nb);         /* the bits around the copy stay */
-    bitcpy((size_t)len, space, (size_t)data, t, (size_t)(pos % CHAR_BIT));
+    bitcpy((size_t)in, space, (size_t)data, t, (size_t)(pos % CHAR_BIT));
     while(put < nb)
     {
       ssize_t w = pwrite(fd, t + put, (size_t)(nb - put), (off_t)(b0 + put));
@@ -619,7 +593,7 @@ void sys_init(void)
     fprintf(stderr, "emulator: no room for the SYS channel (-s)\n");
     exit(EXIT_USAGE);
   }
-  if(nremote)                         /* the remote spaces 2.. (15.2) */
+  if(nremote)                         /* the host areas 1.. (15.2) */
   {
     size k;
     remote_fd = malloc(nremote * sizeof *remote_fd);

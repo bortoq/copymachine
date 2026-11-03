@@ -43,5 +43,6 @@ static const proto_dev proto_devs[] = {
   {4, "snapshot", "w"},
 };
 #define PROTO_NDEVS 5
+#define HOST_AREA_BITS 28
 
 #endif /* PROTO_GEN_H_ */

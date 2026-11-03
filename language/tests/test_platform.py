@@ -1,8 +1,8 @@
 """Platforms, time and definitions on the host (15.3, language/doc/platform.md).
 
 The programs are compiled by the definition on the host pForth and run on the emulator built from the
-definition of the word "space" (`make space`) in a temporary directory, with the remote spaces 2 = host.c
-(the C text) and 3 = host.io (the argument and the result).
+definition of the word "space" (`make space`) in a temporary directory, with the areas 1 = host.c
+(the C text) and 2 = host.io of the address space of the host (the argument and the result).
 
 1. Tables: `host f` makes the definition of f on the host (C, built by cc through EXEC); the table of
    f on the host over all 256 inputs is the table of f in the guest and of f in Python; check-table of

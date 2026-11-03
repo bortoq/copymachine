@@ -47,7 +47,7 @@ python3 examples/write-byte.py --write A > /tmp/emulator-a.boot
 
 Runtime sizes and slot counts are limited only by representation and available
 memory; 64/256 MiB image budgets are tested. Besides SYS there is the long copy LONG
-(remote spaces: `-r path` gives host files as spaces 2, 3, ...; see `src/proto.def`).
+(the address space of the host: `-r path` gives host files and devices as areas 1, 2, ...; area 0 is the clock; see `src/proto.def`).
 
 **Security.** The SYS request EXEC runs a host command through `system()`. Run
 images from others only in a container or VM.

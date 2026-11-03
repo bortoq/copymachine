@@ -25,7 +25,7 @@
       "origin_in_archive": "copycode/forth/compute.fth"
     },
     "src/forthc.fth": {
-      "copy_sha256": "d3de09583cfe579c721de9ffc5e2e867d794e3729e77f7ef6523f9cd84a9c6b6",
+      "copy_sha256": "55a8bfdf3d1e3aa970ff59a86b48e8cca504306345973666965396a0a447dbea",
       "origin_in_archive": "forth/scripts/forthc/forthc.fth"
     },
     "src/primitives.fth": {
