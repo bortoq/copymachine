@@ -1,30 +1,34 @@
 """Tests of the tower seed: levels 1, 2, 3 on the emulator in checked mode (no network).
-Run: python3 -m pytest docs/measurements/tower  or  python3 docs/measurements/tower/test_tower.py"""
+Run: make check-tower  or  python3 -m pytest tower  or  python3 -B tower/tests/test_tower.py"""
 import os
 import sys
 
 sys.dont_write_bytecode = True
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import common
 import l1
 import l2
 import l3
 import progs
-from common import Alloc, Mem, run, bytes_value
+from common import Alloc, Mem, bytes_value, run, stream
 
 
-def go(build, plain=True):
+def go(build, plain=True, stdin=b''):
     p = l3.compile_program(build)
+    return p, once(p, plain, stdin)
+
+
+def once(p, plain=False, stdin=b''):
     st = p.stats
-    r = run(st['image'], st['A'], st['P'], checked=True)
+    r = run(st['image'], st['A'], st['P'], checked=True, stdin=stdin)
     assert r.rc == 0, (r.rc, r.err)
     assert r.ticks < 200000, 'tick limit reached'
     if plain:                                  # the production emulator gives the same output
-        q = run(st['image'], st['A'], st['P'], checked=False)
+        q = run(st['image'], st['A'], st['P'], checked=False, stdin=stdin)
         assert q.out == r.out
-    return p, r
+    return r
 
 
 def intervals(p):
@@ -42,6 +46,23 @@ def intervals(p):
         for i in range(len(iv)):
             for j in range(i + 1, len(iv)):
                 assert iv[i][1] <= iv[j][0] or iv[j][1] <= iv[i][0], (iv[i], iv[j])
+
+
+def setUpModule():
+    common.ensure_built()
+
+
+def arith_want(n, ka, kb, a, b):
+    m, h = (1 << n) - 1, n // 4
+    return ('%0*x%x%x%0*x%0*x%0*x%0*x' % (h, (a - b) & m, int(a < b), int(a == b), h, a << 1 & m, h, a >> 1,
+                                           h, a << ka & m, h, a >> kb)).encode()
+
+
+def fibs(n):
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
 
 
 class Level1(unittest.TestCase):
@@ -156,9 +177,73 @@ class Level3(unittest.TestCase):
             a, b = rnd.randrange(65536), rnd.randrange(65536)
             self.assertEqual(go(progs.add16_hex(a, b), plain=False)[1].out, b'%04x' % ((a + b) & 0xffff))
 
+    def test_array(self):
+        """8 stores by a computed index (3i mod 8), 8 reads by a counted-down index, bytes out."""
+        import random
+        rnd = random.Random(232)
+        sets = [[65, 10, 255, 0, 128, 127, 19, 196]] + [[rnd.randrange(256) for _ in range(8)] for _ in range(3)]
+        for k, vals in enumerate(sets):
+            p, r = go(progs.array_rev(vals), plain=(k == 0))
+            a = [0] * 8
+            for i in range(8):
+                a[3 * i % 8] = vals[i]
+            self.assertEqual(r.out, bytes(a[j] for j in range(7, -1, -1)) + b'\n', vals)
+            self.assertEqual(p.stores, 1)
+            intervals(p)
+
+    def test_arith(self):
+        """sub, eq, shl, shr on 8 and 16 bits, edge and seeded random operands read from stdin."""
+        import random
+        rnd = random.Random(2322)
+        for n, ka, kb in ((8, 3, 5), (16, 7, 9)):
+            p = l3.compile_program(progs.arith(n, ka, kb))
+            m = (1 << n) - 1
+            edge = [0, 1, 2, m, m - 1, 1 << (n - 1), (1 << (n - 1)) - 1, 0x55 * (m // 0xff), 0xa5 * (m // 0xff)]
+            cases = [(a, b) for a in edge for b in edge]
+            cases += [(rnd.randrange(m + 1), rnd.randrange(m + 1)) for _ in range(12)]
+            for k, (a, b) in enumerate(cases):
+                r = once(p, plain=(k == 0), stdin=stream(a, n) + stream(b, n))
+                self.assertEqual(r.out, arith_want(n, ka, kb, a, b), (n, a, b))
+            self.assertEqual(sum(1 for a, b in cases if a == b) > 8, True)
+            intervals(p)
+
+    def test_echo(self):
+        """stdin to stdout up to a zero byte: bytes of any value, empty input, text after the zero stays."""
+        p = l3.compile_program(progs.echo())
+        for k, text in enumerate((b'hello, world\n', b'', b'a\xff\x01\x80z', bytes(range(1, 256)))):
+            r = once(p, plain=(k == 0), stdin=text + b'\x00tail')
+            self.assertEqual(r.out, text)
+        intervals(p)
+
+    def test_recursion(self):
+        """Fibonacci by double recursion: return links and saved values in two stacks."""
+        p = l3.compile_program(progs.fib())
+        for k, n in enumerate((10, 0, 1, 2, 3, 7, 11)):
+            r = once(p, plain=(k == 0), stdin=stream(n, 8))
+            self.assertEqual(r.out, b'%03d\n' % fibs(n), n)
+        intervals(p)
+
+    def test_grammar(self):
+        """Built right by construction: what has no meaning cannot be written."""
+        def shift_in_place(p):
+            a = p.var('a', 8)
+            p.block('main'); p.shl(a, a, 1)
+        with self.assertRaises(AssertionError):
+            l3.compile_program(shift_in_place)
+        def odd_key(p):
+            p.block('main'); p.key(p.var('k', 4))
+        with self.assertRaises(AssertionError):
+            l3.compile_program(odd_key)
+        def wide_index(p):
+            arr = p.array('arr', (3,), 8)
+            p.block('main'); p.store(arr, [p.var('i', 4)], p.var('v', 8))
+        with self.assertRaises(AssertionError):
+            l3.compile_program(wide_index)
+
     def test_serial(self):
         """Without packing (one row per layer) the same programs give the same output."""
-        for build, out in ((progs.loop_sum(), b'055\n'), (progs.calls(), b'3ac3\n'), (progs.branch(2, 1), b'N\n')):
+        for build, out in ((progs.loop_sum(), b'055\n'), (progs.calls(), b'3ac3\n'), (progs.branch(2, 1), b'N\n'),
+                           (progs.array_rev([1, 2, 3, 4, 5, 6, 7, 8]), bytes([6, 3, 8, 5, 2, 7, 4, 1]) + b'\n')):
             p = l3.compile_program(build, serial=True)
             r = run(p.stats['image'], p.stats['A'], p.stats['P'])
             self.assertEqual((r.rc, r.out), (0, out))

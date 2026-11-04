@@ -33,6 +33,10 @@ class Ref:
         return Ref(self.region, self.off + lo, (self.n if k.stop is None else k.stop) - lo)
 
 
+def norm(x):
+    return x.ref() if isinstance(x, Data) else x
+
+
 def copy(n, dst, src):
     d, s = dst.addr, src.addr
     r = l1.row(d, lambda: d() + n, s, lambda: s() + n)

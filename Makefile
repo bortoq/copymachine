@@ -6,7 +6,7 @@ PYTHON ?= python3
 RUFF ?= ruff
 LIMIT = $(PYTHON) -B tools/limited_run.py --seconds 600 --memory-mib 768
 LONG = check-kernel check-self check-isolation check-proof check-replace check-user-programs
-.PHONY: all emulator language check-fast check check-full check-layout lint coverage clean
+.PHONY: all emulator language check-fast check check-full check-layout check-tower lint coverage clean
 all: emulator language
 emulator:
 	$(LIMIT) $(MAKE) -C emulator -j1
@@ -29,9 +29,13 @@ coverage:
 	@if $(PYTHON) -c 'import coverage' 2>/dev/null; then echo "== coverage.py of language/tools under check-fast =="; $(MAKE) -C language -j1 coverage-python; else echo "coverage.py of language/tools: not installed, skipped (gcov only)"; fi
 check-layout:
 	$(PYTHON) -B tools/check_layout.py
+# The chain of languages 1-3 (tower/): its tests run the emulator in the checked mode.
+check-tower:
+	$(LIMIT) $(PYTHON) -B -m unittest discover -s tower/tests -p 'test_*.py'
 check-fast:
 	$(LIMIT) $(MAKE) -C emulator -j1 check checked
 	$(MAKE) -C language -j1 check-programs check-closure check-language-md check-fast-tests
+	$(MAKE) check-tower
 	$(MAKE) check-layout
 check: check-fast
 	$(MAKE) -C language -j1 boot

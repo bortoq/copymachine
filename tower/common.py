@@ -4,7 +4,7 @@ import re
 import subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.normpath(os.path.join(HERE, '..', '..', '..'))
+ROOT = os.path.normpath(os.path.join(HERE, '..'))
 EMU = os.path.join(ROOT, 'emulator', 'build', 'bitcopy', 'emulator')
 CHK = os.path.join(ROOT, 'emulator', 'build', 'checked-emulator')
 
@@ -88,12 +88,17 @@ class Result:
     pass
 
 
-def run(image, A, P, checked=True, limit=200000):
+def run(image, A, P, checked=True, limit=200000, stdin=b''):
     S = 2 ** A - 6
     r = subprocess.run([CHK if checked else EMU, '-s', str(S), '-p', str(P), '-t', str(limit)], check=False,
-                       input=image, capture_output=True, timeout=120)
+                       input=image + stdin, capture_output=True, timeout=120)
     res = Result()
     res.out, res.rc, res.err = r.stdout, r.returncode, r.stderr.decode(errors='replace')
     m = re.search(r'VM1_AUDIT_TICKS=(\d+)', res.err)
     res.ticks = int(m.group(1)) if m else None
     return res
+
+
+def stream(v, nbits):
+    """Bytes of stdin which a `key` chain stores as the nbits-bit number v (LSB first in space)."""
+    return bytes(rev(v >> 8 * i & 255, 8) for i in range(nbits // 8))

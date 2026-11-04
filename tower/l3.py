@@ -1,12 +1,16 @@
-"""Language 3: lookup tables. Words: table, lut (value of a function from a table), block,
-goto, if, call, ret, halt, emit, copy; library: add, band, lt (chains over 4-bit tables).
-No stack, no registers: data are named parts of space. The compiler lays rows out into
-layers so that nothing intersects in a tick (including source with source)."""
+"""Language 3: lookup tables. Words: table, lut (value of a function from a table), array (a table
+whose entries are written), store (write an entry by a computed index), block, goto, if, call, ret,
+halt, emit (stdout), key (stdin), copy. The library over language 3 (lib.py: add, sub, band, lt, eq,
+stack, push, pop, rec; shl, shr over language 2) is a mixin of Program. No registers: data are named
+parts of space. The compiler lays rows out into layers so that nothing intersects in a tick
+(including source with source)."""
 import l1
 import l2
 from common import Alloc, Mem
+from lib import Lib
 
 STDOUT = object()                 # pseudo region: one stdout transfer per tick, order preserved
+STDIN = object()                  # pseudo region: one stdin transfer per tick, order preserved
 
 
 class Table:
@@ -72,11 +76,13 @@ class Block:
         self.layers = []
 
 
-class Program:
+class Program(Lib):
     def __init__(self, A, serial=False):
         self.A, self.S, self.RB, self.serial = A, 2 ** A - 6, 4 * A, serial
         self.datas, self.blocks, self.cur, self.words, self.links = [], {}, None, {}, {}
         self.tables, self.lookups, self.P, self.keep = {}, 0, None, set()
+        self.recs, self.stores, self.keys = {}, 0, 0
+        self._zeros = self._one = None
         self.zero = self.var('zero', 1)
 
     # --- named parts of space
@@ -90,6 +96,30 @@ class Program:
             self.tables[name] = Table(name, ins, out, f)
             self.datas.append(self.tables[name].data)
         return self.tables[name]
+
+    def array(self, name, ins, out, values=None):
+        """A table whose entries are written: entry i (all args packed, first arg lowest) starts as
+        values[i] (default 0). Read by lut, written by store; an index of the given bits cannot leave it."""
+        n = 1 << sum(ins)
+        assert name not in self.tables and (values is None or len(values) == n), name
+        vals = values or [0] * n
+        T = Table(name, ins, out, init=lambda mem, addr: [mem.put(addr + (i << T.j), v, out)
+                                                          for i, v in enumerate(vals)])
+        self.tables[name] = T
+        self.datas.append(T.data)
+        return T
+
+    def zeros(self, k):
+        """k bits which are always 0 (one shared part of space)."""
+        if self._zeros is None:
+            self._zeros = self.var('zeros', k)
+        self._zeros.bits = max(self._zeros.bits, k)
+        return l2.Ref(self._zeros, 0, k)
+
+    def one(self):
+        if self._one is None:
+            self._one = self.var('one1', 1, 1)
+        return self._one.ref()
 
     # --- blocks and rows
     def block(self, name, word=None):
@@ -105,7 +135,8 @@ class Program:
         return self.words[name]
 
     def word(self, name):
-        self.rl(name)
+        if name not in self.recs:
+            self.rl(name)
         self.block(name, name)
 
     def _op(self, row, reads=None, writes=None):
@@ -114,6 +145,9 @@ class Program:
 
     def copy(self, dst, src):
         dst, src = norm(dst), norm(src)
+        assert dst.n == src.n, 'copy of different lengths'
+        assert not (dst.region is src.region and dst.off < src.off + src.n and src.off < dst.off + dst.n), \
+            'copy of a part of space onto itself'
         self._op(l2.copy(dst.n, dst, src))
 
     def emit(self, src):
@@ -121,6 +155,15 @@ class Program:
         s = src.addr
         r = l1.row(self.S + 2, self.S + 2, s, lambda: s() + src.n)
         self._op(r, ivs([src]), [(STDOUT, 0, 1)])
+
+    def key(self, dst):
+        """A byte (bytes) of stdin into dst: the stdin channel is the source of a row."""
+        dst = norm(dst)
+        assert dst.n % 8 == 0, 'stdin transfers whole bytes'
+        d = dst.addr
+        r = l1.row(d, lambda: d() + dst.n, self.S + 1, self.S + 1)
+        self._op(r, [(STDIN, 0, 1)], ivs([dst]) + [(STDIN, 0, 1)])
+        self.keys += 1
 
     def lut(self, T, args, out):
         """Value of function T at args -> out: patch the index bits into the source fields
@@ -137,6 +180,21 @@ class Program:
         self._op(R, [(base, 0, T.span)], ivs([out]))
         self.lookups += 1
 
+    def store(self, T, args, src):
+        """T[args] = src: the same indirection on the destination side; the index bits are patched
+        into the destination fields dl and dh of a row that copies src into one entry of the array."""
+        args, src = [norm(a) for a in args], norm(src)
+        assert tuple(a.n for a in args) == T.ins and src.n == T.out, T.name
+        A, base = self.A, T.data
+        R = l2.copy(T.out, Ref0(base, T.out), src)
+        off = 0
+        for a, k in zip(args, T.ins, strict=True):
+            for fld in (0, A):                           # destination fields dl, dh
+                self.copy(l2.Ref(R, fld + T.j + off, k), a)
+            off += k
+        self._op(R, ivs([src]), [(base, 0, T.span)])
+        self.stores += 1
+
     # --- control: the terminator is the jump row of the last layer
     def goto(self, name):
         self.cur.end = ('goto', name)
@@ -146,11 +204,18 @@ class Program:
 
     def ret(self):
         b = self.cur
-        self.copy(l2.Ref(b.last.jump, 2 * self.A, 2 * self.A), self.rl(b.word).ref())
+        fields = l2.Ref(b.last.jump, 2 * self.A, 2 * self.A)
+        if b.word in self.recs:
+            self.pop(self.recs[b.word], fields)          # the link comes from the stack
+        else:
+            self.copy(fields, self.rl(b.word).ref())
         b.end = ('patched',)
 
     def call(self, word, back):
-        self.copy(self.rl(word).ref(), self.link(back).ref())
+        if word in self.recs:
+            self.push(self.recs[word], self.link(back))  # the link goes to the stack
+        else:
+            self.copy(self.rl(word).ref(), self.link(back).ref())
         self.cur.end = ('goto', word)
 
     def _pair(self, name):
@@ -177,32 +242,6 @@ class Program:
             self.links[name] = self.var('lk_' + name, 2 * self.A, self._pair(name))
             self.keep.add(name)
         return self.links[name]
-
-    # --- library: n-nibble chains over 4-bit tables
-    def t_add(self):
-        return self.table('add4', (4, 4, 1), 5, lambda a, b, c: a + b + c)
-
-    def add(self, a, b, r):
-        a, b, r = norm(a), norm(b), norm(r)
-        n = a.n // 4
-        assert b.n == a.n and r.n == 4 * n + 1
-        t = self.t_add()
-        self.lut(t, [a[0:4], b[0:4], self.zero.ref()], r[0:5])
-        for i in range(1, n):
-            self.lut(t, [a[4*i:4*i+4], b[4*i:4*i+4], r[4*i:4*i+1]], r[4*i:4*i+5])
-
-    def band(self, a, b, r):
-        a, b, r = norm(a), norm(b), norm(r)
-        t = self.table('and4', (4, 4), 4, lambda a, b: a & b)
-        for i in range(a.n // 4):
-            self.lut(t, [a[4*i:4*i+4], b[4*i:4*i+4]], r[4*i:4*i+4])
-
-    def lt(self, a, b, c):
-        """c has n+1 bits, c[0] stays 0; c[n] = (a < b)."""
-        a, b, c = norm(a), norm(b), norm(c)
-        t = self.table('lt4c', (4, 4, 1), 1, lambda a, b, c: int(a < b or (a == b and c)))
-        for i in range(a.n // 4):
-            self.lut(t, [a[4*i:4*i+4], b[4*i:4*i+4], c[i:i+1]], c[i+1:i+2])
 
     # --- assembly
     def assemble(self):
@@ -241,8 +280,7 @@ class Program:
         return img
 
 
-def norm(x):
-    return x.ref() if isinstance(x, l2.Data) else x
+norm = l2.norm
 
 
 def Ref0(data, n):
