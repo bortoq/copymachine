@@ -1,0 +1,186 @@
+"""Tests of the tower seed: levels 1, 2, 3 on the emulator in checked mode (no network).
+Run: python3 -m pytest docs/measurements/tower  or  python3 docs/measurements/tower/test_tower.py"""
+import os
+import sys
+
+sys.dont_write_bytecode = True
+import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import common
+import l1
+import l2
+import l3
+import progs
+from common import Alloc, Mem, run, bytes_value
+
+
+def go(build, plain=True):
+    p = l3.compile_program(build)
+    st = p.stats
+    r = run(st['image'], st['A'], st['P'], checked=True)
+    assert r.rc == 0, (r.rc, r.err)
+    assert r.ticks < 200000, 'tick limit reached'
+    if plain:                                  # the production emulator gives the same output
+        q = run(st['image'], st['A'], st['P'], checked=False)
+        assert q.out == r.out
+    return p, r
+
+
+def intervals(p):
+    """Independent host audit: absolute intervals of every stored layer are pairwise disjoint."""
+    for l in p.layers:
+        iv = []
+        for r in l.rows:
+            f = [l1.val(x) for x in r.f]
+            if f[0] == f[1] and f[0] >= p.S:
+                iv.append((f[2], f[3]))
+            elif f[2] == f[3] and f[2] >= p.S:
+                iv.append((f[0], f[1]))
+            elif f[2] != f[3]:
+                iv += [(f[0], f[1]), (f[2], f[3])]
+        for i in range(len(iv)):
+            for j in range(i + 1, len(iv)):
+                assert iv[i][1] <= iv[j][0] or iv[j][1] <= iv[i][0], (iv[i], iv[j])
+
+
+class Level1(unittest.TestCase):
+    def test_write_byte(self):
+        """Two layers by hand: print 'H', then halt (a layer of NOPs)."""
+        common.ensure_built()
+        A = 12
+        S = 2 ** A - 6
+        buf = 2000
+        mem, alloc = Mem(), Alloc(S)
+        layers = [l1.Layer([l1.row(S + 2, S + 2, buf, buf + 8)], to='halt', entry=True)]
+        P = l1.widths(A, layers)
+        alloc.take(0, P * 4 * A)
+        alloc.take(buf, 8)
+        l1.place(A, layers, alloc)
+        l1.encode(A, layers, alloc, mem, P)
+        mem.put(buf, bytes_value(b'H'), 8)
+        img, _ = l1.image(A, P, mem)
+        r = run(img, A, P)
+        self.assertEqual((r.rc, r.out), (0, b'H'))
+        self.assertEqual(r.ticks, 3)           # seed, snapshot loader, print+halt... then all-NOP stop
+
+    def test_indirection(self):
+        """A row patches a field of another row: select a byte by value (the base of lookups)."""
+        common.ensure_built()
+        A = 12
+        S = 2 ** A - 6
+        mem, alloc = Mem(), Alloc(S)
+        tab, x = 1024, 1500            # two bytes at stride 16 from 1024, selector bits at 1500, 1501
+        R = l1.row(S + 2, S + 2, tab, tab + 8)    # prints the byte at tab (+16 if patched)
+        for sel in (0, 1):
+            mem, alloc = Mem(), Alloc(S)
+            patch = l1.row(lambda: R.addr + 2 * A + 4, lambda: R.addr + 2 * A + 5, x, x + 1)
+            patch2 = l1.row(lambda: R.addr + 3 * A + 4, lambda: R.addr + 3 * A + 5, x + 1, x + 2)
+            layers = [l1.Layer([patch], entry=True), l1.Layer([patch2]), l1.Layer([]),
+                      l1.Layer([R], to='halt')]
+            P = l1.widths(A, layers)
+            alloc.take(0, P * 4 * A)
+            for lo, n in ((tab, 32), (x, 2)):
+                alloc.take(lo, n)
+            l1.place(A, layers, alloc)
+            l1.encode(A, layers, alloc, mem, P)
+            mem.put(tab, bytes_value(b'A'), 8); mem.put(tab + 16, bytes_value(b'B'), 8)
+            mem.put(x, sel, 1); mem.put(x + 1, sel, 1)
+            # entries are 8 bits at stride 16: the selector is bit 4 of sl and of sh = sl + 8 (bit 3 set)
+            img, _ = l1.image(A, P, mem)
+            r = run(img, A, P)
+            self.assertEqual(r.out, b'AB'[sel:sel + 1])
+
+
+class Level2(unittest.TestCase):
+    def test_copy_is_row(self):
+        r = l2.copy(5, l2.Ref(_D(100), 0, 5), l2.Ref(_D(200), 0, 5))
+        self.assertEqual([l1.val(x) for x in r.f], [100, 105, 200, 205])
+
+    def test_saving(self):
+        p, _ = go(progs.add_print(1, 2), plain=False)
+        one, two = l2.text_bits(p.A, p.layers)
+        self.assertLess(two, one)
+        self.assertGreater(1 - two / one, 0.20)
+
+
+class _D:
+    def __init__(self, a): self.addr = a
+
+
+class Level3(unittest.TestCase):
+    def test_add_print(self):
+        for a, b in ((200, 100), (0, 0), (255, 255), (7, 9), (128, 127), (15, 1), (240, 16)):
+            p, r = go(progs.add_print(a, b), plain=(a == 200))
+            self.assertEqual(r.out, b'%03d\n' % (a + b), (a, b))
+        intervals(p)
+
+    def test_branch(self):
+        for a, b in ((3, 9), (9, 3), (5, 5), (16, 15), (15, 16), (0, 255), (255, 0), (0x80, 0x7f)):
+            p, r = go(progs.branch(a, b), plain=False)
+            self.assertEqual(r.out, (b'Y' if a < b else b'N') + b'\n', (a, b))
+
+    def test_and(self):
+        for a, b in ((0xac, 0x3f), (0xff, 0x0f), (0, 0xff)):
+            p, r = go(progs.and_hex(a, b), plain=False)
+            self.assertEqual(r.out, b'%02x' % (a & b))
+
+    def test_add16(self):
+        for a, b in ((0x1234, 0x0fff), (0xffff, 1), (40000, 25000), (0, 0)):
+            p, r = go(progs.add16_hex(a, b), plain=False)
+            self.assertEqual(r.out, b'%04x' % ((a + b) & 0xffff), (a, b))
+
+    def test_loop_digits(self):
+        p, r = go(progs.loop_digits())
+        self.assertEqual(r.out, b'0123456789\n')
+        intervals(p)
+
+    def test_loop_sum(self):
+        p, r = go(progs.loop_sum())
+        self.assertEqual(r.out, b'055\n')
+
+    def test_calls(self):
+        p, r = go(progs.calls())
+        self.assertEqual(r.out, b'3ac3\n')
+        intervals(p)
+
+    def test_random(self):
+        """Seeded random operands: add, compare, 16-bit add (each compiled once per value: constants differ)."""
+        import random
+        rnd = random.Random(23)
+        for _ in range(12):
+            a, b = rnd.randrange(256), rnd.randrange(256)
+            self.assertEqual(go(progs.add_print(a, b), plain=False)[1].out, b'%03d\n' % (a + b))
+            self.assertEqual(go(progs.branch(a, b), plain=False)[1].out, (b'Y' if a < b else b'N') + b'\n')
+        for _ in range(6):
+            a, b = rnd.randrange(65536), rnd.randrange(65536)
+            self.assertEqual(go(progs.add16_hex(a, b), plain=False)[1].out, b'%04x' % ((a + b) & 0xffff))
+
+    def test_serial(self):
+        """Without packing (one row per layer) the same programs give the same output."""
+        for build, out in ((progs.loop_sum(), b'055\n'), (progs.calls(), b'3ac3\n'), (progs.branch(2, 1), b'N\n')):
+            p = l3.compile_program(build, serial=True)
+            r = run(p.stats['image'], p.stats['A'], p.stats['P'])
+            self.assertEqual((r.rc, r.out), (0, out))
+
+    def test_checked_catches_overlap(self):
+        """Control: the audit really fires on an intersecting layer."""
+        common.ensure_built()
+        A = 12
+        S = 2 ** A - 6
+        mem, alloc = Mem(), Alloc(S)
+        layers = [l1.Layer([l1.row(1000, 1008, 2000, 2008), l1.Layer and l1.row(1004, 1012, 2100, 2108)],
+                           to='halt', entry=True)]
+        P = l1.widths(A, layers)
+        alloc.take(0, P * 4 * A)
+        l1.place(A, layers, alloc)
+        l1.encode(A, layers, alloc, mem, P)
+        img, _ = l1.image(A, P, mem)
+        r = run(img, A, P)
+        self.assertNotEqual(r.rc, 0)
+        self.assertIn('AUDIT', r.err)
+
+
+if __name__ == '__main__':
+    common.ensure_built()
+    unittest.main()
