@@ -7,6 +7,7 @@ parts of space. The compiler lays rows out into layers so that nothing intersect
 import l1
 import l2
 from common import Alloc, Mem
+from l4 import Long
 from lib import Lib
 
 STDOUT = object()                 # pseudo region: one stdout transfer per tick, order preserved
@@ -114,7 +115,7 @@ class Block:
         self.layers = []
 
 
-class Program(Lib):
+class Program(Lib, Long):
     def __init__(self, A, serial=False, plan=None, direct=True):
         self.A, self.S, self.RB, self.serial, self.plan, self.direct = A, 2 ** A - 6, 4 * A, serial, plan or {}, direct
         self.datas, self.blocks, self.cur, self.words, self.links = [], {}, None, {}, {}

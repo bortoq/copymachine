@@ -1,5 +1,6 @@
 """Check programs written in language 3 (builders over a Program)."""
 from common import bytes_value, rev
+from l4 import host_pos
 from l2 import norm
 
 
@@ -234,4 +235,56 @@ def fib():
         p.pop(ds, t.ref())
         p.add(r, t, s); p.copy(r.ref(), s[0:8])
         p.ret()
+    return build
+
+
+# --- 23.4: the long copy to and from the files `-r` and the clock of the host
+
+def long_rw(wpos, data, rpos, n=None):
+    """long! of the bytes `data` at the position wpos (if data), long@ of len(data) (or n) bytes at rpos into a
+    part of space which starts as 0xff bytes; the bytes read are written to stdout."""
+    def build(p):
+        m = n if n is not None else len(data)
+        got = p.var('got', 8 * m, bytes_value(b'\xff' * m))
+        p.block('main')
+        if data:
+            p.long_put(p.var('wpos', 128, wpos), p.var('out', 8 * len(data), bytes_value(data)))
+        p.long_get(p.var('rpos', 128, rpos), got.ref())
+        p.emit(got.ref())
+        p.halt()
+    return build
+
+
+def long_clock():
+    """Two reads of the clock (area 0, 64 bits) one after the other; both are written to stdout."""
+    def build(p):
+        t1, t2 = p.var('t1', 64), p.var('t2', 64)
+        pos = p.var('pos', 128, host_pos(0, 0))
+        p.block('main')
+        p.long_get(pos, t1.ref())
+        p.long_get(pos, t2.ref())
+        p.emit(t1.ref())
+        p.emit(t2.ref())
+        p.halt()
+    return build
+
+
+def long_cat(area, chunks, nbytes, start=0):
+    """cat: a loop reads the file (area `area`) in chunks of nbytes bytes from the bit `start`, the position
+    is added to by a 128-bit chain of `add`, every chunk goes to stdout; `chunks` (<= 15) times."""
+    def build(p):
+        pos, step = p.var('pos', 128, host_pos(area, start)), p.var('step', 128, 8 * nbytes)
+        nxt, buf = p.var('nxt', 129), p.var('buf', 8 * nbytes, bytes_value(b'?' * nbytes))
+        i, one, c = p.var('i', 5), p.var('one', 4, 1), p.var('c', 1)
+        lim = p.table('lt%d' % chunks, (4,), 1, lambda x: int(x < chunks))
+        p.block('main'); p.goto('loop')
+        p.block('loop')
+        p.long_get(pos, buf.ref())
+        p.emit(buf.ref())
+        p.add(pos, step, nxt)
+        p.copy(pos.ref(), nxt[0:128])
+        p.lut(p.t_add(), [i[0:4], one.ref(), p.zero.ref()], i.ref())
+        p.lut(lim, [i[0:4]], c.ref())
+        p.if_(c.ref(), 'loop', 'done')
+        p.block('done'); p.halt()
     return build

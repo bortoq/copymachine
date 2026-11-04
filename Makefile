@@ -29,9 +29,10 @@ coverage:
 	@if $(PYTHON) -c 'import coverage' 2>/dev/null; then echo "== coverage.py of language/tools under check-fast =="; $(MAKE) -C language -j1 coverage-python; else echo "coverage.py of language/tools: not installed, skipped (gcov only)"; fi
 check-layout:
 	$(PYTHON) -B tools/check_layout.py
-# The chain of languages 1-3 (tower/): its tests run the emulator in the checked mode.
+# The chain of languages 1-4 (tower/): its tests run the emulator in the checked mode; language 4 tests
+# long copies into sparse files of 1.5 GiB (positions over 2^32 bits), hence --file-mib 2048.
 check-tower:
-	$(LIMIT) $(PYTHON) -B -m unittest discover -s tower/tests -p 'test_*.py'
+	$(LIMIT) --file-mib 2048 $(PYTHON) -B -m unittest discover -s tower/tests -p 'test_*.py'
 check-fast:
 	$(LIMIT) $(MAKE) -C emulator -j1 check checked
 	$(MAKE) -C language -j1 check-programs check-closure check-language-md check-fast-tests

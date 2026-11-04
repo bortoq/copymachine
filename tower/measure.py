@@ -1,6 +1,8 @@
 """Numbers for docs/measurements/tower.md: python3 -B tower/measure.py"""
 import os
+import shutil
 import sys
+import tempfile
 
 sys.dont_write_bytecode = True
 
@@ -9,6 +11,7 @@ import common
 import l2
 import l3
 import progs
+from l4 import host_pos
 
 PROGS = [
     ('add 200+100, decimal', progs.add_print(200, 100), b''),
@@ -70,7 +73,50 @@ def main():
         print('| %s | %d / %d | %d | %d / %d | %d / %d |' % (name, len(p.layers), len(q.layers), sum(len(l.rows) for l in p.layers),
               rp.ticks, rq.ticks, len(p.stats['image']), len(q.stats['image'])))
     print('\nL2 text / L1 text over all programs: %.4f' % (tot2 / tot1))
-    print('\nlines of code (no blanks/comments):', {f: loc(f) for f in ('common.py', 'l1.py', 'l2.py', 'l3.py', 'lib.py', 'progs.py', 'tests/test_tower.py')})
+    print('\nlines of code (no blanks/comments):', {f: loc(f) for f in ('common.py', 'l1.py', 'l2.py', 'l3.py', 'l4.py', 'lib.py', 'progs.py', 'tests/test_tower.py', 'tests/test_long.py')})
+
+
+def minimal(build):
+    def b(p):
+        p.block('main')
+        build(p)
+        p.halt()
+    return b
+
+
+def main_long():
+    """23.4: language 4. One long! / long@ alone, the position chain, cat, the clock."""
+    d = tempfile.mkdtemp(prefix='tower-measure-')
+    f = os.path.join(d, 'f')
+    with open(f, 'wb') as h:
+        h.write(bytes(range(1, 65)))
+    pos, pos2 = host_pos(1, 8), host_pos(1, 1 << 40)
+    big = [
+        ('empty main + halt', minimal(lambda p: None)),
+        ('long! 48 bits', minimal(lambda p: p.long_put(p.var('pos', 128, pos), p.var('d', 48, 7)))),
+        ('long! 1024 bits', minimal(lambda p: p.long_put(p.var('pos', 128, pos), p.var('d', 1024, 7)))),
+        ('long@ 48 bits (through the answer buffer)', minimal(lambda p: p.long_get(p.var('pos', 128, pos), p.var('d', 48)))),
+        ('long@ 128 bits (direct)', minimal(lambda p: p.long_get(p.var('pos', 128, pos), p.var('d', 128)))),
+        ('long@ 1024 bits (direct)', minimal(lambda p: p.long_get(p.var('pos', 128, pos), p.var('d', 1024)))),
+        ('long! then long@ 48 bits', minimal(lambda p: (p.long_put(p.var('pos', 128, pos), p.var('d', 48, 7)),
+                                                         p.long_get(p.var('pos2', 128, pos2), p.var('e', 48))))),
+        ('128-bit add alone (position + step)', minimal(lambda p: p.add(p.var('a', 128, pos), p.var('b', 128, 64), p.var('r', 129)))),
+        ('clock twice, written to stdout', progs.long_clock()),
+        ('cat, 5 chunks of 8 bytes', progs.long_cat(1, 5, 8)),
+        ('cat, 3 chunks of 16 bytes', progs.long_cat(1, 3, 16)),
+    ]
+    print('\n| program | A | P | layers | rows | lookups | tables bits | data bits | image B (boot+snap) | ticks |\n|---|---|---|---|---|---|---|---|---|---|')
+    for name, b in big:
+        p = l3.compile_program(b)
+        st = p.stats
+        r = common.run(st['image'], st['A'], st['P'], files=[f])
+        assert r.rc == 0, r.err
+        views = {id(t.data) for t in p.tables.values()}
+        print('| %s | %d | %d | %d | %d | %d | %d | %d | %d (%d+%d) | %d |' % (
+            name, p.A, st['P'], len(p.layers), sum(len(x.rows) for x in p.layers), p.lookups, sum(x.bits for x in p.gdatas),
+            sum(x.bits for x in p.datas if id(x) not in views), len(st['image']), st['boot_bytes'], st['snapshot_bytes'], r.ticks))
+    shutil.rmtree(d, True)
 
 
 main()
+main_long()

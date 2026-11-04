@@ -109,9 +109,11 @@ class Result:
     pass
 
 
-def run(image, A, P, checked=True, limit=200000, stdin=b''):
+def run(image, A, P, checked=True, limit=200000, stdin=b'', files=()):
+    """files: host files (-r), the areas 1.. of the long copy, in order."""
     S = 2 ** A - 6
-    r = subprocess.run([CHK if checked else EMU, '-s', str(S), '-p', str(P), '-t', str(limit)], check=False,
+    cmd = [CHK if checked else EMU, '-s', str(S), '-p', str(P), '-t', str(limit)]
+    r = subprocess.run(cmd + [x for f in files for x in ('-r', f)], check=False,
                        input=image + stdin, capture_output=True, timeout=120)
     res = Result()
     res.out, res.rc, res.err = r.stdout, r.returncode, r.stderr.decode(errors='replace')
