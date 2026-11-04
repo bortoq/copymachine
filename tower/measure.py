@@ -47,12 +47,13 @@ def main():
         r = common.run(st['image'], st['A'], st['P'], stdin=inp)
         assert r.rc == 0
         rows = sum(len(l.rows) for l in p.layers)
-        tb = sum(t.span for t in p.tables.values())
+        tb = sum(d.bits for d in p.gdatas)
         live = sum((1 << sum(t.ins)) * t.out for t in p.tables.values())
-        db = sum(d.bits for d in p.datas) - tb
+        views = {id(t.data) for t in p.tables.values()}
+        db = sum(d.bits for d in p.datas if id(d) not in views)
         one, two = l2.text_bits(p.A, p.layers)
         slots = sum(l.u for l in p.layers)
-        used = sum(len(l.rows) + 1 for l in p.layers)
+        used = sum(len(l.rows) + len(l.jumps) for l in p.layers)
         tot1 += one; tot2 += two
         print('| %s | %d | %d | %d | %d | %d | %d | %d (%d live) | %d | %d | %d (%d+%d) | %d | %.3f |' % (
             name, p.A, st['P'], len(p.blocks), len(p.layers), rows, p.lookups, tb, live, db, one,

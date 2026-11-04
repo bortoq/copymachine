@@ -8,8 +8,8 @@ from l2 import norm
 class Stack:
     """An array of 2**k entries of w bits and a pointer of k bits (named parts of space)."""
 
-    def __init__(self, arr, sp, inc, dec):
-        self.arr, self.sp, self.inc, self.dec = arr, sp, inc, dec
+    def __init__(self, arr, sp, inc, dec, d=1):
+        self.arr, self.sp, self.inc, self.dec, self.d = arr, sp, inc, dec, d
 
 
 class Lib:
@@ -82,19 +82,27 @@ class Lib:
         return c[n-1:n]
 
     # --- stack as data: an array and a pointer; no bounds (the pointer wraps in its k bits)
-    def stack(self, name, k, w):
+    def stack(self, name, k, w, dup=True):
+        """The pointer is kept twice (dup): [p][p] in 2k bits, both copies are sources of the patches
+        of one layer; the tables inc, dec give both copies at once."""
         m = (1 << k) - 1
-        return Stack(self.array(name, (k,), w), self.var(name + '_sp', k),
-                     self.table('inc%d' % k, (k,), k, lambda x: (x + 1) & m),
-                     self.table('dec%d' % k, (k,), k, lambda x: (x - 1) & m))
+        d = 2 if dup else 1
+        return Stack(self.array(name, (k,), w), self.var(name + '_sp', d * k),
+                     self.table('inc%d_%d' % (k, d), (k,), d * k, lambda x: ((x + 1) & m) * (1 + (d - 1 << k))),
+                     self.table('dec%d_%d' % (k, d), (k,), d * k, lambda x: ((x - 1) & m) * (1 + (d - 1 << k))), d)
+
+    @staticmethod
+    def _p(s):
+        k = s.sp.bits // s.d
+        return (s.sp[0:k], s.sp[k:2 * k]) if s.d == 2 else s.sp[0:k]
 
     def push(self, s, src):
-        self.store(s.arr, [s.sp.ref()], src)
-        self.lut(s.inc, [s.sp.ref()], s.sp.ref())
+        self.store(s.arr, [self._p(s)], src)
+        self.lut(s.inc, [self._p(s)], s.sp.ref())
 
     def pop(self, s, dst):
-        self.lut(s.dec, [s.sp.ref()], s.sp.ref())
-        self.lut(s.arr, [s.sp.ref()], dst)
+        self.lut(s.dec, [self._p(s)], s.sp.ref())
+        self.lut(s.arr, [self._p(s)], dst)
 
     def rec(self, name, s):
         """Declare the word `name` recursive: call pushes the return link on s, ret pops it from s."""

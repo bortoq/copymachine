@@ -6,8 +6,9 @@ import l1
 class Data:
     """A named part of space: bits, initial value (int or fn(mem, addr)), alignment."""
 
-    def __init__(self, name, bits, init=0, align=1):
+    def __init__(self, name, bits, init=0, align=1, gaps=None):
         self.name, self.bits, self.init, self.align, self.addr = name, bits, init, align, None
+        self.gaps = gaps                      # fn() -> [(off, n)] parts of it which are free for others
 
     def __getitem__(self, k):
         if isinstance(k, slice):
@@ -24,9 +25,10 @@ class Ref:
 
     def __init__(self, region, off, n):
         self.region, self.off, self.n = region, off, n
+        self.direct = False         # a field of a row of the next layer, written in the processor itself
 
     def addr(self):
-        return self.region.addr + self.off
+        return (self.region.paddr if self.direct else self.region.addr) + self.off
 
     def __getitem__(self, k):
         lo = k.start or 0
@@ -48,6 +50,8 @@ def place(alloc, datas):
     """Tables (big alignment) first, then the rest by size."""
     for d in sorted(datas, key=lambda d: (-d.align, -d.bits)):
         d.addr = alloc.alloc(d.bits, d.align)
+        if d.gaps:
+            alloc.release([(d.addr + o, n) for o, n in d.gaps()])
 
 
 def write(mem, datas):
@@ -63,7 +67,7 @@ def text_bits(A, layers):
     one = two = 0
     for l in layers:
         slots = l.u
-        rows = l.rows + [l.jump]
+        rows = l.rows + l.jumps
         for r in rows:
             one += 4 * A
             two += 3 * A if r.kind in ('copy', 'jump') else 4 * A

@@ -35,7 +35,7 @@ def intervals(p):
     """Independent host audit: absolute intervals of every stored layer are pairwise disjoint."""
     for l in p.layers:
         iv = []
-        for r in l.rows:
+        for r in l.rows + l.jumps:
             f = [l1.val(x) for x in r.f]
             if f[0] == f[1] and f[0] >= p.S:
                 iv.append((f[2], f[3]))
@@ -247,6 +247,38 @@ class Level3(unittest.TestCase):
             p = l3.compile_program(build, serial=True)
             r = run(p.stats['image'], p.stats['A'], p.stats['P'])
             self.assertEqual((r.rc, r.out), (0, out))
+
+    def test_variants(self):
+        """The three savings of 23.3 are switches: without them the same programs give the same output,
+        with them there are fewer layers (writes into the processor), shared strides, a pair of sources."""
+        for build, out, inp in ((progs.loop_sum(), b'055\n', b''), (progs.calls(), b'3ac3\n', b''),
+                                (progs.array_rev([1, 2, 3, 4, 5, 6, 7, 8]), bytes([6, 3, 8, 5, 2, 7, 4, 1]) + b'\n', b''),
+                                (progs.fib(), b'055\n', stream(10, 8))):
+            by = {}
+            for plan in (False, True):
+                for direct in (False, True):
+                    p = l3.compile_program(build, plan=plan, direct=direct)
+                    r = run(p.stats['image'], p.stats['A'], p.stats['P'], stdin=inp)
+                    self.assertEqual((r.rc, r.out), (0, out), (plan, direct))
+                    intervals(p)
+                    by[plan, direct] = (len(p.layers), r.ticks, len(p.stats['image']))
+            self.assertLess(by[False, True][0], by[False, False][0])      # a write into the next layer: fewer layers
+            self.assertLess(by[False, True][1], by[False, False][1])
+            self.assertLessEqual(by[True, False][2], by[False, False][2])  # shared strides never add bits
+
+    def test_shared_stride_and_holes(self):
+        """Tables with their widths summing to less than the stride share it; the jump before a row
+        patched in the processor is split around the patch (holes), and the audit covers every jump row."""
+        p, r = go(progs.arith(8, 3, 5), stdin=stream(200, 8) + stream(77, 8))
+        groups = {}
+        for t in p.tables.values():
+            groups.setdefault(t.gid, []).append(t)
+        self.assertTrue(any(len(g) > 1 for g in groups.values()))
+        for g in groups.values():                                   # entries of one stride do not overlap
+            self.assertLess(sum(t.out for t in g), 1 << g[0].j)
+        self.assertTrue(any(len(l.jumps) > 1 for l in p.layers))
+        self.assertTrue(all(l.jumps[0].kind == 'jump' for l in p.layers))
+        intervals(p)
 
     def test_checked_catches_overlap(self):
         """Control: the audit really fires on an intersecting layer."""

@@ -63,25 +63,46 @@ def rev(v, n):
 
 
 class Alloc:
-    """First-fit allocator of bit intervals with alignment."""
+    """First-fit allocator of bit intervals with alignment (a sorted list of free intervals);
+    release() gives back a part (for example the gaps between the entries of a table)."""
 
     def __init__(self, size):
-        self.size, self.taken = size, []
+        self.size, self.free, self.top = size, [(0, size)], 0
 
     def take(self, lo, bits):
-        self.taken.append((lo, lo + bits))
+        hi, out = lo + bits, []
+        for a, b in self.free:
+            if b <= lo or hi <= a:
+                out.append((a, b))
+            else:
+                if a < lo:
+                    out.append((a, lo))
+                if hi < b:
+                    out.append((hi, b))
+        self.free = out
+        self.top = max(self.top, hi)
+
+    def release(self, pieces):
+        """Give back parts [(lo, bits), ...] (they must have been taken)."""
+        iv = sorted(self.free + [(lo, lo + n) for lo, n in pieces])
+        out = [iv[0]]
+        for a, b in iv[1:]:
+            if a <= out[-1][1]:
+                out[-1] = (out[-1][0], max(out[-1][1], b))
+            else:
+                out.append((a, b))
+        self.free = out
 
     def alloc(self, bits, align=1):
-        starts = {0} | {h for _, h in self.taken}
-        for c in sorted(starts):
-            c = -(-c // align) * align
-            if c + bits <= self.size and all(c + bits <= l or h <= c for l, h in self.taken):
-                self.taken.append((c, c + bits))
+        for a, b in self.free:
+            c = -(-a // align) * align
+            if c + bits <= b:
+                self.take(c, bits)
                 return c
         raise MemoryError('no room for %d bits' % bits)
 
     def end(self):
-        return max([h for _, h in self.taken] + [0])
+        return self.top
 
 
 class Result:
