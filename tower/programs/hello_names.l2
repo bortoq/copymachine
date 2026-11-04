@@ -1,0 +1,27 @@
+# hello_names (23.9, part 1): the program hello.l2 with names of labels (tower/l2ltext.py) in place of one letter, and a reference
+# forward: the jump of layer 0 names layer 1, which comes after it. The tool l2l reads this text twice (the first pass finds the
+# labels) and gives the text of language 1 which l2c gives for hello.l2: the same image (A = 10, prints "Hi" and a line break).
+w a
+# the boot packet: slot 0 copies the rest of the image (1c0 bits) over the snapshot, three slots are empty
+r 0 1c0 3fb 3fb
+z 78
+o
+# layer 0 at 0: the jump copies layer 1 (a0 bits at d0) over the processor; layer 1 is defined below
+:layer_0 c a0 0 &layer_1
+z 78
+# the data (a0 = 160): the buffer and the bytes H, i and a line break (every bit of a byte in the order of the stream)
+:buffer d 18 0
+:byte_h d 8 12
+:byte_i d 8 96
+:byte_nl d 8 50
+# layer 1: three copies into the buffer, then the jump to layer 2
+:layer_1
+c 8 &buffer &byte_h
+c 8 &buffer+8 &byte_i
+c 8 &buffer+10 &byte_nl
+c a0 0 &layer_2
+# layer 2: the buffer goes to stdout, then the jump copies a layer of NOPs (50 bits after the end of the image): halt
+:layer_2
+r 3fc 3fc a0 b8
+c a0 0 &image_end+50
+:image_end
