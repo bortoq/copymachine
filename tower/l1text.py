@@ -8,7 +8,7 @@ reference of it. The text is lines, a line starts with a command letter (blanks 
 The image is the bits in the order of the text; the text ends with a zero byte. Nothing else is in the text:
 no addresses (a layer is at the place where its rows stand), no names. A wrong text is reported and cut at that place
 (an unknown command or a wrong character, a wrong number of numbers, a row before w, bits which are not whole bytes).
-Not checked, but defined: a number over 4 digits (the older digits fall out), a value over A bits (dropped), w and z
+Not checked, but defined: a number over 5 digits (the older digits fall out), a value over A bits (dropped), w and z
 over ff (modulo 256).
 Run: python3 tower/l1text.py prog.tw > prog.l1     (the program of language 3 and up -> the text of its image)
      python3 tower/l1text.py -e < prog.l1 > image  (the reference encoder; the seed does the same on the emulator)"""
@@ -65,7 +65,7 @@ def encode(src):
                 r = line_end(c)
         elif st['N']:
             if hexd:
-                st['V'] = (st['V'] << 4 | val) & 0xffff
+                st['V'] = (st['V'] << 4 | val) & 0xfffff
                 st['num'] = 1
             elif not sep:
                 return bytes(out), 'bad'
@@ -78,7 +78,7 @@ def encode(src):
                     V = st['V']
                     if st['R']:
                         for i in range(st['A']):
-                            put(V >> i & 1 if i < 16 else 0)
+                            put(V >> i & 1 if i < 20 else 0)
                     elif st['Z']:
                         for _ in range(V & 255):
                             put(0)

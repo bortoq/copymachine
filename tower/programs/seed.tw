@@ -6,11 +6,11 @@
 #   z N      N zero bits (hex, at most ff)
 #   s 0101   raw bits, in the order of memory (the first bit is the 0x80 bit of a byte); blanks between them are free
 #   # ...    a comment up to the end of the line
-# A number has at most 4 hex digits (the older digits fall out), a bit above A is dropped. Bits go out as they come, a
+# A number has at most 5 hex digits (the older digits fall out), a bit above A is dropped. Bits go out as they come, a
 # byte is written when eight bits are ready. A wrong text is reported to stderr and the encoder halts (7.2.28; the
 # image is cut at that place, so it is rejected): an unknown command or a wrong character, a wrong number of numbers
 # in a line, a row before w (A = 0), a number of bits which is not whole bytes at the end. What is not checked is
-# written as "defined, dearer than useful": a number over 4 digits, a value over A bits, w and z over ff.
+# written as "defined, dearer than useful": a number over 5 digits, a value over A bits, w and z over ff.
 # The only table with a purpose of its own is add4 (the nibble sum with carry; counters and the sum of the chain are
 # made of it); cls turns a character into its class.
 # stdin ends with a zero byte (the end of the text, an empty stdin repeats its last byte).
@@ -53,8 +53,8 @@
 :ok data 1 0
 :e data 1 0
 :e8 data 2 0
-:V data 16 0
-:V2 data 16 0
+:V data 20 0
+:V2 data 20 0
 :A data 8 0
 :K data 8 0
 :kr data 9 0
@@ -71,7 +71,7 @@
 :one1 data 1 1
 :z4 data 4 0
 :z8 data 8 0
-:z16 data 16 0
+:z20 data 20 0
 :one4 data 4 1
 :four4 data 4 4
 :ff data 8 255
@@ -117,7 +117,7 @@ if &inN &nch &linestart
 :nch block
 if &cl[1] &ndigit &nother
 :ndigit block
-copy &V2[4:16] &V[0:12]
+copy &V2[4:20] &V[0:16]
 copy &V2[0:4] &cl[4:8]
 copy &V &V2
 copy &innum &one1
@@ -148,13 +148,13 @@ copy &A &V[0:8]
 goto &nback
 :nz block
 copy &K &V[0:8]
-copy &V &z16
+copy &V &z20
 call &putn &nback
 :nrow block
 copy &K &A
 call &putn &nback
 :nback block
-copy &V &z16
+copy &V &z20
 goto &nafter
 
 # the end of a line: the kinds of lines are cleared; a zero byte ends the text

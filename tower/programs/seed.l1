@@ -28,49 +28,58 @@ z 2
 # data lk_putn, 32 bits
 s 01111011 11101011 01111001 10011011 01111001 01011100 01111010 001111
 z 2
-# data V, 16 bits
-z 10
-# data V2, 16 bits
-z 10
+# data V, 20 bits
+z 14
+# data kr, 9 bits
+z 9
+# data e8, 2 bits
+z 2
+# data zero, 1 bits
+z 1
 # tables if3 (32-bit entries at +0, step 64)
 s 01111010 00000010 01111000 0100001
 z 1
-# data z16, 16 bits
-z 10
-# data kr, 9 bits
-z 9
-# data nr, 5 bits
-z 5
-# data e8, 2 bits
-s 00011110 00110000 01011110 11001000 01
+# data V2, 20 bits
+z 14
 # data ch, 8 bits
 z 8
+# data na, 4 bits
+s 00000111 10001100 00010111 10110010 0001
+# data z20, 20 bits
+z 14
 # data cl, 8 bits
 z 8
+# data need, 4 bits
+s 1
+z 3
+# tables if4 (32-bit entries at +0, step 64)
+s 01111000 10101111 01111011 01101111
 # data A, 8 bits
 z 8
 # data K, 8 bits
 z 8
-# tables if4 (32-bit entries at +0, step 64)
-s 01111000 10101111 01111011 01101111
 # data acc, 8 bits
 z 8
 # data acc2, 8 bits
-z 8
+s 00000000 01111010 10001100 01111000 110011
+z 2
 # data z8, 8 bits
 z 8
 # data ff, 8 bits
-s 11111111 01111010 10001100 01111000 110011
-z 2
+s 11111111
+# data nr, 5 bits
+z 5
 # data cr, 5 bits
 z 5
-# data na, 4 bits
-z 4
-# data need, 4 bits
-s 1
-z 3
 # data ctr, 4 bits
 z 4
+# data inS, 1 bits
+z 1
+# data inC, 1 bits
+z 1
+# tables if5 (32-bit entries at +0, step 64)
+s 01111010 00110010 01111000 0111001
+z 1
 # data z4, 4 bits
 z 4
 # data one4, 4 bits
@@ -78,15 +87,6 @@ s 1
 z 3
 # data four4, 4 bits
 s 001
-z 1
-# data zero, 1 bits
-z 1
-# data inS, 1 bits
-z 1
-# data inC, 1 bits
-z 1
-# tables if5 (32-bit entries at +0, step 64)
-s 01111010 00110010 01111000 0111001
 z 1
 # data k1, 4 bits
 s 1
@@ -101,7 +101,7 @@ z 2
 s 001
 z 1
 # data k5, 4 bits
-s 101
+s 10100111 10100001 00100111 10000101 001
 z 1
 # data k6, 4 bits
 s 011
@@ -121,14 +121,13 @@ z 1
 # data e, 1 bits
 z 1
 # data bit, 1 bits
-s 00111101 00001001 00111100 00101001
 z 1
 # data one1, 1 bits
 s 1
 # data one1, 1 bits
 s 1
 # data zeros, 1 bits
-z 1e
+z 12
 # tables if6 (32-bit entries at +0, step 64)
 s 01111010 10001100 01111000 110011
 z 23
@@ -381,33 +380,33 @@ s 01101100 00110001 00111010 00100000 01100010 01100001 01100100 00100000
 s 01110100 01100101 01111000 01110100 0000101
 z 1
 # layer 0 of read
-r 360 368 fffb fffb
+r 334 33c fffb fffb
 r 3484 3485 3fe 3ff
 r 0 100 331e 341e
 z ff
 z 1
 # layer 1 of read
-r 3582 358a 360 368
+r 3582 358a 334 33c
 r 76 77 3fe 3ff
 r 0 76 341e 3494
 r 77 140 3495 355e
 # layer 2 of read
-r 34 3c 360 368
+r 34 3c 334 33c
 r 60 80 200 220
 r 0 34 355e 3592
 r 3c 60 359a 35be
 r 80 140 35de 369e
 # layer 3 of read
-r 368 370 1000 1008
+r 374 37c 1000 1008
 r 0 1c0 fa5e fc1e
 z c0
 # layer 0 of sch
-r 3944 3945 368 369
+r 3944 3945 374 375
 r 0 c0 385e 391e
 z ff
 z 41
 # layer 1 of sch
-r 36 37 368 369
+r 36 37 374 375
 r 0 36 391e 3954
 r 37 c0 3955 39de
 # layer 2 of sch
@@ -418,18 +417,18 @@ r 40 c0 3a1e 3a9e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of sbit
-r 43f 440 36c 36d
+r 46b 46c 378 379
 r 1c0 1e0 1e0 200
 r 0 1c0 e79e e95e
 z ff
 z 1
 # layer 0 of sother
-r 3f04 3f05 36b 36c
+r 3f04 3f05 377 378
 r 0 c0 3e1e 3ede
 z ff
 z 41
 # layer 1 of sother
-r 36 37 36b 36c
+r 36 37 377 378
 r 0 36 3ede 3f14
 r 37 c0 3f15 3f9e
 # layer 2 of sother
@@ -440,12 +439,12 @@ r 40 c0 3fde 405e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of sblank
-r 4304 4305 36a 36b
+r 4304 4305 376 377
 r 0 c0 421e 42de
 z ff
 z 41
 # layer 1 of sblank
-r 36 37 36a 36b
+r 36 37 376 377
 r 0 36 42de 4314
 r 37 c0 4315 439e
 # layer 2 of sblank
@@ -472,12 +471,12 @@ r 40 c0 47de 485e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of cch
-r 4b04 4b05 36b 36c
+r 4b04 4b05 377 378
 r 0 c0 4a1e 4ade
 z ff
 z 41
 # layer 1 of cch
-r 36 37 36b 36c
+r 36 37 377 378
 r 0 36 4ade 4b14
 r 37 c0 4b15 4b9e
 # layer 2 of cch
@@ -488,12 +487,12 @@ r 40 c0 4bde 4c5e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of notc
-r 4f04 4f05 438 439
+r 4f04 4f05 464 465
 r 0 c0 4e1e 4ede
 z ff
 z 41
 # layer 1 of notc
-r 36 37 438 439
+r 36 37 464 465
 r 0 36 4ede 4f14
 r 37 c0 4f15 4f9e
 # layer 2 of notc
@@ -504,12 +503,12 @@ r 40 c0 4fde 505e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of nch
-r 5304 5305 369 36a
+r 5304 5305 375 376
 r 0 c0 521e 52de
 z ff
 z 41
 # layer 1 of nch
-r 36 37 369 36a
+r 36 37 375 376
 r 0 36 52de 5314
 r 37 c0 5315 539e
 # layer 2 of nch
@@ -520,22 +519,22 @@ r 40 c0 53de 545e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of ndigit
-r 2f4 300 2e0 2ec
-r 2f0 2f4 36c 370
-r 43b 43c 460 461
+r 324 334 2e0 2f0
+r 320 324 378 37c
+r 467 468 46c 46d
 r 0 100 561e 571e
 z c0
 # layer 1 of ndigit
-r 2e0 2f0 2f0 300
+r 2e0 2f4 320 334
 r 0 1c0 315e 331e
 z 80
 # layer 0 of nother
-r 59c4 59c5 36a 36b
+r 59c4 59c5 376 377
 r 0 c0 58de 599e
 z ff
 z 41
 # layer 1 of nother
-r 36 37 36a 36b
+r 36 37 376 377
 r 0 36 599e 59d4
 r 37 c0 59d5 5a5e
 # layer 2 of nother
@@ -546,12 +545,12 @@ r 40 c0 5a9e 5b1e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of nsep
-r 5dc4 5dc5 43b 43c
+r 5dc4 5dc5 467 468
 r 0 c0 5cde 5d9e
 z ff
 z 41
 # layer 1 of nsep
-r 36 37 43b 43c
+r 36 37 467 468
 r 0 36 5d9e 5dd4
 r 37 c0 5dd5 5e5e
 # layer 2 of nsep
@@ -562,12 +561,12 @@ r 40 c0 5e9e 5f1e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of nafter
-r 61c4 61c5 36b 36c
+r 61c4 61c5 377 378
 r 0 c0 60de 619e
 z ff
 z 41
 # layer 1 of nafter
-r 36 37 36b 36c
+r 36 37 377 378
 r 0 36 619e 61d4
 r 37 c0 61d5 625e
 # layer 2 of nafter
@@ -578,26 +577,26 @@ r 40 c0 629e 631e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of neol
-r 6641 6645 3e5 3e9
-r 6645 6649 3e9 3ed
-r 6649 664a 461 462
+r 6641 6645 33c 340
+r 6645 6649 37c 380
+r 6649 664a 46d 46e
 r 0 140 64de 661e
 z c0
 # layer 1 of neol
-r 33 37 3e5 3e9
-r 37 3b 3e9 3ed
-r 3b 3c 461 462
+r 33 37 33c 340
+r 37 3b 37c 380
+r 3b 3c 46d 46e
 r 0 33 661e 6651
 r 3c 140 665a 675e
 # layer 2 of neol
-r 43d 43e 2005 2006
+r 469 46a 2005 2006
 r 0 80 675e 67de
 z c0
 # layer 3 of neol
-r 68c4 68c5 43d 43e
+r 68c4 68c5 469 46a
 r 0 c0 67de 689e
 # layer 4 of neol
-r 36 37 43d 43e
+r 36 37 469 46a
 r 0 36 689e 68d4
 r 37 c0 68d5 695e
 # layer 5 of neol
@@ -608,26 +607,26 @@ r 40 c0 699e 6a1e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of ndone
-r 6d41 6d45 3e5 3e9
-r 6d45 6d49 3e9 3ed
-r 6d49 6d4a 461 462
+r 6d41 6d45 33c 340
+r 6d45 6d49 37c 380
+r 6d49 6d4a 46d 46e
 r 0 140 6bde 6d1e
 z c0
 # layer 1 of ndone
-r 33 37 3e5 3e9
-r 37 3b 3e9 3ed
-r 3b 3c 461 462
+r 33 37 33c 340
+r 37 3b 37c 380
+r 3b 3c 46d 46e
 r 0 33 6d1e 6d51
 r 3c 140 6d5a 6e5e
 # layer 2 of ndone
-r 43c 43d 2005 2006
+r 468 469 2005 2006
 r 0 80 6e5e 6ede
 z c0
 # layer 3 of ndone
-r 6fc4 6fc5 43c 43d
+r 6fc4 6fc5 468 469
 r 0 c0 6ede 6f9e
 # layer 4 of ndone
-r 36 37 43c 43d
+r 36 37 468 469
 r 0 36 6f9e 6fd4
 r 37 c0 6fd5 705e
 # layer 5 of ndone
@@ -638,39 +637,39 @@ r 40 c0 709e 711e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of nok
-r 43b 43c 3fd 3fe
-r 7601 7605 3e5 3e9
-r 7605 7609 3f5 3f9
-r 74c4 74c5 439 43a
+r 467 468 2ff 300
+r 7601 7605 33c 340
+r 7605 7609 424 428
+r 74c4 74c5 465 466
 r 0 180 72de 745e
 z 80
 # layer 1 of nok
-r 7611 7615 3e5 3e9
-r 7615 7619 3f5 3f9
-r 7609 760a 3fd 3fe
-r 76 77 439 43a
+r 7611 7615 33c 340
+r 7615 7619 424 428
+r 7609 760a 2ff 300
+r 76 77 465 466
 r 0 76 745e 74d4
 r 77 180 74d5 75de
 # layer 2 of nok
-r 3b 3c 3fd 3fe
+r 3b 3c 2ff 300
 r 773e 775e 880 8a0
 r 0 3b 75de 7619
 r 3c 100 761a 76de
 z 80
 # layer 3 of nok
-r 339 33e 2000 2005
+r 3f0 3f5 2000 2005
 r 0 80 76de 775e
 z 80
 # layer 4 of nok
-r 3e5 3e9 339 33d
+r 33c 340 3f0 3f4
 r 0 1c0 fa5e fc1e
 # layer 0 of nnr
-r 7a04 7a05 43a 43b
+r 7a04 7a05 466 467
 r 0 c0 791e 79de
 z ff
 z 41
 # layer 1 of nnr
-r 36 37 43a 43b
+r 36 37 466 467
 r 0 36 79de 7a14
 r 37 c0 7a15 7a9e
 # layer 2 of nnr
@@ -681,56 +680,56 @@ r 40 c0 7ade 7b5e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of nw
-r 370 378 2e0 2e8
+r 3a0 3a8 2e0 2e8
 r 0 1c0 815e 831e
 z ff
 z 41
 # layer 0 of nz
-r 378 380 2e0 2e8
+r 3a8 3b0 2e0 2e8
 r 220 240 260 280
 r 0 c0 7ede 7f9e
 z ff
 z 1
 # layer 1 of nz
-r 2e0 2f0 320 330
+r 2e0 2f4 360 374
 r 0 1c0 d7de d99e
 z 40
 # layer 0 of nrow
-r 378 380 370 378
+r 3a8 3b0 3a0 3a8
 r 220 240 260 280
 r 0 1c0 d7de d99e
 z ff
 z 1
 # layer 0 of nback
-r 2e0 2f0 320 330
+r 2e0 2f4 360 374
 r 0 1c0 5f1e 60de
 z ff
 z 41
 # layer 0 of endline
-r 3fe 3ff 3fd 3fe
-r 86c1 86c5 36c 370
-r 86c5 86c9 434 438
-r 86c9 86ca 461 462
+r 3fe 3ff 2ff 300
+r 86c1 86c5 378 37c
+r 86c5 86c9 460 464
+r 86c9 86ca 46d 46e
 r 0 180 84de 865e
 z 80
 # layer 1 of endline
-r 3ff 400 3fd 3fe
-r 73 77 36c 370
-r 77 7b 434 438
-r 7b 7c 461 462
+r 3ff 400 2ff 300
+r 73 77 378 37c
+r 77 7b 460 464
+r 7b 7c 46d 46e
 r 0 73 865e 86d1
 r 7c 180 86da 87de
 # layer 2 of endline
-r 438 439 3fd 3fe
-r 43e 43f 2005 2006
+r 464 465 2ff 300
+r 46a 46b 2005 2006
 r 0 c0 87de 889e
 z c0
 # layer 3 of endline
-r 8984 8985 43e 43f
+r 8984 8985 46a 46b
 r 0 c0 889e 895e
 z 40
 # layer 4 of endline
-r 36 37 43e 43f
+r 36 37 46a 46b
 r 0 36 895e 8994
 r 37 c0 8995 8a1e
 # layer 5 of endline
@@ -741,26 +740,26 @@ r 40 c0 8a5e 8ade
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of finish
-r 8e01 8e05 3ed 3f1
-r 8e05 8e09 3f1 3f5
-r 8e09 8e0a 461 462
+r 8e01 8e05 3fa 3fe
+r 8e05 8e09 420 424
+r 8e09 8e0a 46d 46e
 r 0 140 8c9e 8dde
 z c0
 # layer 1 of finish
-r 33 37 3ed 3f1
-r 37 3b 3f1 3f5
-r 3b 3c 461 462
+r 33 37 3fa 3fe
+r 37 3b 420 424
+r 3b 3c 46d 46e
 r 0 33 8dde 8e11
 r 3c 140 8e1a 8f1e
 # layer 2 of finish
-r 43d 43e 2005 2006
+r 469 46a 2005 2006
 r 0 80 8f1e 8f9e
 z c0
 # layer 3 of finish
-r 9084 9085 43d 43e
+r 9084 9085 469 46a
 r 0 c0 8f9e 905e
 # layer 4 of finish
-r 36 37 43d 43e
+r 36 37 469 46a
 r 0 36 905e 9094
 r 37 c0 9095 911e
 # layer 5 of finish
@@ -775,12 +774,12 @@ r 0 1c0 fa5e fc1e
 z ff
 z 81
 # layer 0 of linestart
-r 9644 9645 36b 36c
+r 9644 9645 377 378
 r 0 c0 955e 961e
 z ff
 z 41
 # layer 1 of linestart
-r 36 37 36b 36c
+r 36 37 377 378
 r 0 36 961e 9654
 r 37 c0 9655 96de
 # layer 2 of linestart
@@ -791,12 +790,12 @@ r 40 c0 971e 979e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of ls2
-r 9a44 9a45 36a 36b
+r 9a44 9a45 376 377
 r 0 c0 995e 9a1e
 z ff
 z 41
 # layer 1 of ls2
-r 36 37 36a 36b
+r 36 37 376 377
 r 0 36 9a1e 9a54
 r 37 c0 9a55 9ade
 # layer 2 of ls2
@@ -807,12 +806,12 @@ r 40 c0 9b1e 9b9e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of ls3
-r 9e44 9e45 369 36a
+r 9e44 9e45 375 376
 r 0 c0 9d5e 9e1e
 z ff
 z 41
 # layer 1 of ls3
-r 36 37 369 36a
+r 36 37 375 376
 r 0 36 9e1e 9e54
 r 37 c0 9e55 9ede
 # layer 2 of ls3
@@ -823,26 +822,26 @@ r 40 c0 9f1e 9f9e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of ls4
-r a2c1 a2c5 36c 370
-r a2c5 a2c9 42c 430
-r a2c9 a2ca 461 462
+r a2c1 a2c5 378 37c
+r a2c5 a2c9 438 43c
+r a2c9 a2ca 46d 46e
 r 0 140 a15e a29e
 z c0
 # layer 1 of ls4
-r 33 37 36c 370
-r 37 3b 42c 430
-r 3b 3c 461 462
+r 33 37 378 37c
+r 37 3b 438 43c
+r 3b 3c 46d 46e
 r 0 33 a29e a2d1
 r 3c 140 a2da a3de
 # layer 2 of ls4
-r 43e 43f 2005 2006
+r 46a 46b 2005 2006
 r 0 80 a3de a45e
 z c0
 # layer 3 of ls4
-r a544 a545 43e 43f
+r a544 a545 46a 46b
 r 0 c0 a45e a51e
 # layer 4 of ls4
-r 36 37 43e 43f
+r 36 37 46a 46b
 r 0 36 a51e a554
 r 37 c0 a555 a5de
 # layer 5 of ls4
@@ -853,31 +852,31 @@ r 40 c0 a61e a69e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of cmds
-r 3fe 3ff 460 461
+r 3fe 3ff 46c 46d
 r 0 1c0 315e 331e
 z ff
 z 41
 # layer 0 of ls5
-r ab81 ab85 36c 370
-r ab85 ab89 430 434
-r ab89 ab8a 461 462
+r ab81 ab85 378 37c
+r ab85 ab89 43c 440
+r ab89 ab8a 46d 46e
 r 0 140 aa1e ab5e
 z c0
 # layer 1 of ls5
-r 33 37 36c 370
-r 37 3b 430 434
-r 3b 3c 461 462
+r 33 37 378 37c
+r 37 3b 43c 440
+r 3b 3c 46d 46e
 r 0 33 ab5e ab91
 r 3c 140 ab9a ac9e
 # layer 2 of ls5
-r 43e 43f 2005 2006
+r 46a 46b 2005 2006
 r 0 80 ac9e ad1e
 z c0
 # layer 3 of ls5
-r ae04 ae05 43e 43f
+r ae04 ae05 46a 46b
 r 0 c0 ad1e adde
 # layer 4 of ls5
-r 36 37 43e 43f
+r 36 37 46a 46b
 r 0 36 adde ae14
 r 37 c0 ae15 ae9e
 # layer 5 of ls5
@@ -888,31 +887,31 @@ r 40 c0 aede af5e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of cmdc
-r 3ff 400 460 461
+r 3ff 400 46c 46d
 r 0 1c0 315e 331e
 z ff
 z 41
 # layer 0 of ls6
-r b441 b445 36c 370
-r b445 b449 420 424
-r b449 b44a 461 462
+r b441 b445 378 37c
+r b445 b449 42c 430
+r b449 b44a 46d 46e
 r 0 140 b2de b41e
 z c0
 # layer 1 of ls6
-r 33 37 36c 370
-r 37 3b 420 424
-r 3b 3c 461 462
+r 33 37 378 37c
+r 37 3b 42c 430
+r 3b 3c 46d 46e
 r 0 33 b41e b451
 r 3c 140 b45a b55e
 # layer 2 of ls6
-r 43e 43f 2005 2006
+r 46a 46b 2005 2006
 r 0 80 b55e b5de
 z c0
 # layer 3 of ls6
-r b6c4 b6c5 43e 43f
+r b6c4 b6c5 46a 46b
 r 0 c0 b5de b69e
 # layer 4 of ls6
-r 36 37 43e 43f
+r 36 37 46a 46b
 r 0 36 b69e b6d4
 r 37 c0 b6d5 b75e
 # layer 5 of ls6
@@ -923,36 +922,36 @@ r 40 c0 b79e b81e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of cmdw
-r 439 43a 3fd 3fe
-r 3e9 3ed 3f5 3f9
+r 465 466 2ff 300
+r 37c 380 424 428
 r 0 c0 b9de ba9e
 z ff
 z 1
 # layer 1 of cmdw
-r 43a 43b 3fd 3fe
+r 466 467 2ff 300
 r 0 1c0 d61e d7de
 z 40
 # layer 0 of ls7
-r bdc1 bdc5 36c 370
-r bdc5 bdc9 424 428
-r bdc9 bdca 461 462
+r bdc1 bdc5 378 37c
+r bdc5 bdc9 430 434
+r bdc9 bdca 46d 46e
 r 0 140 bc5e bd9e
 z c0
 # layer 1 of ls7
-r 33 37 36c 370
-r 37 3b 424 428
-r 3b 3c 461 462
+r 33 37 378 37c
+r 37 3b 430 434
+r 3b 3c 46d 46e
 r 0 33 bd9e bdd1
 r 3c 140 bdda bede
 # layer 2 of ls7
-r 43e 43f 2005 2006
+r 46a 46b 2005 2006
 r 0 80 bede bf5e
 z c0
 # layer 3 of ls7
-r c044 c045 43e 43f
+r c044 c045 46a 46b
 r 0 c0 bf5e c01e
 # layer 4 of ls7
-r 36 37 43e 43f
+r 36 37 46a 46b
 r 0 36 c01e c054
 r 37 c0 c055 c0de
 # layer 5 of ls7
@@ -963,42 +962,42 @@ r 40 c0 c11e c19e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of cmdr
-r c541 c545 370 374
-r c545 c549 3b0 3b4
-r c549 c54a 461 462
-r c841 c845 374 378
-r c845 c849 3b4 3b8
+r c541 c545 3a0 3a4
+r c545 c549 3e0 3e4
+r c549 c54a 46d 46e
+r c841 c845 3a4 3a8
+r c845 c849 3e4 3e8
 r 0 1c0 c35e c51e
 z 40
 # layer 1 of cmdr
-r 33 37 370 374
-r 37 3b 3b0 3b4
-r 3b 3c 461 462
-r c851 c855 374 378
-r c855 c859 3b4 3b8
+r 33 37 3a0 3a4
+r 37 3b 3e0 3e4
+r 3b 3c 46d 46e
+r c851 c855 3a4 3a8
+r c855 c859 3e4 3e8
 r 0 33 c51e c551
 r 3c 1c0 c55a c6de
 # layer 2 of cmdr
-r 33e 33f 2005 2006
+r 2fd 2fe 2005 2006
 r 0 80 c6de c75e
 z ff
 z 41
 # layer 3 of cmdr
-r c849 c84a 33e 33f
+r c849 c84a 2fd 2fe
 r 0 c0 c75e c81e
 # layer 4 of cmdr
-r 3b 3c 33e 33f
+r 3b 3c 2fd 2fe
 r 0 3b c81e c859
 r 3c c0 c85a c8de
 # layer 5 of cmdr
-r 33f 340 2005 2006
+r 2fe 2ff 2005 2006
 r 0 80 c8de c95e
 z 40
 # layer 6 of cmdr
-r ca44 ca45 33f 340
+r ca44 ca45 2fe 2ff
 r 0 c0 c95e ca1e
 # layer 7 of cmdr
-r 36 37 33f 340
+r 36 37 2fe 2ff
 r 0 36 ca1e ca54
 r 37 c0 ca55 cade
 # layer 8 of cmdr
@@ -1009,32 +1008,32 @@ r 40 c0 cb1e cb9e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of cmdr2
-r 439 43a 460 461
-r 43a 43b 3fd 3fe
-r 3e9 3ed 3f9 3fd
+r 465 466 46c 46d
+r 466 467 2ff 300
+r 37c 380 428 42c
 r 0 1c0 d61e d7de
 z c0
 # layer 0 of ls8
-r d081 d085 36c 370
-r d085 d089 428 42c
-r d089 d08a 461 462
+r d081 d085 378 37c
+r d085 d089 434 438
+r d089 d08a 46d 46e
 r 0 140 cf1e d05e
 z c0
 # layer 1 of ls8
-r 33 37 36c 370
-r 37 3b 428 42c
-r 3b 3c 461 462
+r 33 37 378 37c
+r 37 3b 434 438
+r 3b 3c 46d 46e
 r 0 33 d05e d091
 r 3c 140 d09a d19e
 # layer 2 of ls8
-r 43e 43f 2005 2006
+r 46a 46b 2005 2006
 r 0 80 d19e d21e
 z c0
 # layer 3 of ls8
-r d304 d305 43e 43f
+r d304 d305 46a 46b
 r 0 c0 d21e d2de
 # layer 4 of ls8
-r 36 37 43e 43f
+r 36 37 46a 46b
 r 0 36 d2de d314
 r 37 c0 d315 d39e
 # layer 5 of ls8
@@ -1045,54 +1044,54 @@ r 40 c0 d3de d45e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of cmdz
-r 439 43a 3fd 3fe
-r 43a 43b 460 461
-r 3e9 3ed 3f5 3f9
+r 465 466 2ff 300
+r 466 467 46c 46d
+r 37c 380 424 428
 r 0 1c0 d61e d7de
 z c0
 # layer 0 of numline
-r 438 439 460 461
-r 3e5 3e9 3f1 3f5
-r 43b 43c 3fd 3fe
+r 464 465 46c 46d
+r 33c 340 420 424
+r 467 468 2ff 300
 r 0 1c0 315e 331e
 z c0
 # layer 0 of putn
-r db81 db85 378 37c
-r db85 db89 3b8 3bc
-r db89 db8a 3fd 3fe
-r de81 de85 37c 380
-r de85 de89 3bc 3c0
+r db81 db85 3a8 3ac
+r db85 db89 3e8 3ec
+r db89 db8a 2ff 300
+r de81 de85 3ac 3b0
+r de85 de89 3ec 3f0
 r 0 1c0 d99e db5e
 z 40
 # layer 1 of putn
-r 33 37 378 37c
-r 37 3b 3b8 3bc
-r 3b 3c 3fd 3fe
-r de91 de95 37c 380
-r de95 de99 3bc 3c0
+r 33 37 3a8 3ac
+r 37 3b 3e8 3ec
+r 3b 3c 2ff 300
+r de91 de95 3ac 3b0
+r de95 de99 3ec 3f0
 r 0 33 db5e db91
 r 3c 1c0 db9a dd1e
 # layer 2 of putn
-r 330 335 2000 2005
+r 2f4 2f9 2000 2005
 r 0 80 dd1e dd9e
 z ff
 z 41
 # layer 3 of putn
-r de89 de8a 334 335
+r de89 de8a 2f8 2f9
 r 0 c0 dd9e de5e
 # layer 4 of putn
-r 3b 3c 334 335
+r 3b 3c 2f8 2f9
 r 0 3b de5e de99
 r 3c c0 de9a df1e
 # layer 5 of putn
-r 334 339 2000 2005
+r 2f8 2fd 2000 2005
 r 0 80 df1e df9e
 z 40
 # layer 6 of putn
-r e084 e085 338 339
+r e084 e085 2fc 2fd
 r 0 c0 df9e e05e
 # layer 7 of putn
-r 36 37 338 339
+r 36 37 2fc 2fd
 r 0 36 e05e e094
 r 37 c0 e095 e11e
 # layer 8 of putn
@@ -1103,15 +1102,15 @@ r 40 c0 e15e e1de
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of pnbody
-r 378 380 330 338
-r 43f 440 2e0 2e1
-r 2f0 2ff 2e1 2f0
-r 2ff 300 462 463
+r 3a8 3b0 2f4 2fc
+r 46b 46c 2e0 2e1
+r 320 333 2e1 2f4
+r 333 334 46e 46f
 r 1c0 1e0 2a0 2c0
 r 0 180 e39e e51e
 z 40
 # layer 1 of pnbody
-r 2e0 2f0 2f0 300
+r 2e0 2f4 320 334
 r 0 1c0 e79e e95e
 z ff
 z 1
@@ -1125,33 +1124,33 @@ z 1
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of putbit
-r 3a8 3af 3a1 3a8
-r 3af 3b0 43f 440
-r eb01 eb05 3ed 3f1
-r eb05 eb09 3f5 3f9
-r eb09 eb0a 3fd 3fe
+r 3b8 3bf 3b1 3b8
+r 3bf 3c0 46b 46c
+r eb01 eb05 3fa 3fe
+r eb05 eb09 424 428
+r eb09 eb0a 2ff 300
 r 0 180 e95e eade
 z 40
 # layer 1 of putbit
-r 3a0 3a8 3a8 3b0
-r 33 37 3ed 3f1
-r 37 3b 3f5 3f9
-r 3b 3c 3fd 3fe
+r 3b0 3b8 3b8 3c0
+r 33 37 3fa 3fe
+r 37 3b 424 428
+r 3b 3c 2ff 300
 r 0 33 eade eb11
 r 3c 180 eb1a ec5e
 # layer 2 of putbit
-r 3e0 3e5 2000 2005
+r 3f5 3fa 2000 2005
 r 0 80 ec5e ecde
 z ff
 z 1
 # layer 3 of putbit
-r 3ed 3f1 3e0 3e4
+r 3fa 3fe 3f5 3f9
 r 0 80 ecde ed5e
 # layer 4 of putbit
-r ee44 ee45 3e3 3e4
+r ee44 ee45 3f8 3f9
 r 0 c0 ed5e ee1e
 # layer 5 of putbit
-r 36 37 3e3 3e4
+r 36 37 3f8 3f9
 r 0 36 ee1e ee54
 r 37 c0 ee55 eede
 # layer 6 of putbit
@@ -1162,8 +1161,8 @@ r 40 c0 ef1e ef9e
 r 0 1c0 fa5e fc1e
 z 80
 # layer 0 of flush
-r fffc fffc 3a0 3a8
-r 3ed 3f1 3f1 3f5
+r fffc fffc 3b0 3b8
+r 3fa 3fe 420 424
 r 20 40 1c0 1e0
 r 0 20 f15e f17e
 r 40 140 f19e f29e

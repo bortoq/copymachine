@@ -379,7 +379,7 @@ def Ref0(data, n):
     return l2.Ref(data, 0, n)
 
 
-def compile_program(build, lo=10, hi=17, serial=False, plan=True, direct=True):
+def compile_program(build, lo=10, hi=19, serial=False, plan=True, direct=True):
     """Try the smallest address width A in which the program fits (two runs of the builder at every
     A: the first collects the tables, the second lays them out into shared strides)."""
     last = None

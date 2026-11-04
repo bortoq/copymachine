@@ -138,7 +138,7 @@ class Seed(unittest.TestCase):
         """The words of the text: w, r, z, s, comments, blanks and tabs; bits are written in the order of memory."""
         for src in ('w 10\nr 1 2 3 4\n', 'w 8\nr ff 0 1 80\n', 'z 8\n', 's 11110000\n', 's 1 0 1 0 1 0 1 0\n',
                     'w 4\nr 1 2 3 4\n', '# nothing\n\n  \t w 3\n z 3\ns 01\n', 'w 10\nr 1 2 3 4\nz 18\ns 1\nz 6\n',
-                    'w 10\nr 1 2 3 4', 'w 10\nr 12345 2 3 4\n', 'w 0\n', 'z 100\n', 'w 100\nz ff\n', '', 'w 5 \n z 3 \n',
+                    'w 10\nr 1 2 3 4', 'w 10\nr 12345 2 3 4\n', 'w 10\nr 123456 2 3 4\n', 'w 12\nr 3fffa 3fffb 2 3\n', 'w 0\n', 'z 100\n', 'w 100\nz ff\n', '', 'w 5 \n z 3 \n',
                     'w 10\r\nr 1 2 3 4\r\n'):
             with self.subTest(src):
                 self.check_text(src)

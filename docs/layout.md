@@ -7,7 +7,7 @@
 | `language/tools/`, `language/tests/` | инструменты и тесты; `tests/reference/` — независимые эталоны (модель K0 и др.) |
 | `language/doc/` | документация языка (справочник; перечень — в `docs/README.md`) |
 | `language/boot/` | хостовый pForth32 для первой компиляции (нужен `cc -m32`) |
-| `tower/` | цепочка вложенных языков 1–5 снизу вверх (опыт этапа 23: зерно на хосте `*.py`, `tests/`, тексты программ `programs/*.tw`, зерно `programs/seed.l1`, `README.md`; замеры — `docs/measurements/tower.md`); проверка — `make check-tower` |
+| `tower/` | цепочка вложенных языков 1–5 снизу вверх (опыт этапа 23: зерно на хосте `*.py`, `tests/`, тексты программ `programs/*.tw`, зерно `programs/seed.l1`, компилятор языка 2 `programs/l2c.tw` (+ `l2c.l1`, `l2c.l2`), `README.md`; замеры — `docs/measurements/tower.md`); проверка — `make check-tower` |
 | `tools/` | `limited_run.py`, `check_layout.py`, `gcov_summary.py`, `ci/*.sh` |
 | `docs/` | [`README.md`](README.md) — указатель двух частей документации; изучение: `guide/` (руководство по шагам), `dictionary.md`, `layout.md`; сопровождение разработки: `journal/` (журнал плана), `design/` (журнал дизайна), `measurements/` (замеры), `research/` |
 | `build/` | результаты сборки; в Git не входят |

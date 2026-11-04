@@ -1,0 +1,24 @@
+# hello (23.8): a program of language 2 that prints "Hi" and a line break. A = 10 (the channels are at 3fb, 3fc), a layer has
+# P = 4 slots of 4A = 40 bits. Labels count the bits from `o`, the start of space; they are defined before they are used,
+# so layer 0 (the first thing in space) only jumps to layer 1 by a number. The rows of the channels are rows of language 1.
+w a
+# the boot packet: slot 0 copies the rest of the image (1c0 bits) over the snapshot, three slots are empty
+r 0 1c0 3fb 3fb
+z 78
+o
+# layer 0 at 0: the jump copies layer 1 (at d0 = 208) over the processor
+c a0 0 d0
+z 78
+# the data at a0 = 160: the buffer b; the bytes H, i and a line break (every bit of a byte in the order of the stream)
+:b d 18 0
+:x d 8 12
+:y d 8 96
+:n d 8 50
+# layer 1 at d0: three copies into the buffer, then the jump to layer 2 (at 170 = 368)
+c 8 &b &x
+c 8 &b+8 &y
+c 8 &b+10 &n
+c a0 0 170
+# layer 2 at 170: the buffer goes to stdout, then the jump copies a layer of NOPs (at 210 = 528): halt
+r 3fc 3fc a0 b8
+c a0 0 210
