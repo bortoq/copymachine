@@ -2,7 +2,7 @@
 \ Computation by copies; control: copycode.vm1.compute. Requires backend.fth. A lookup reads a table entry whose index
 \ bits are copied into both source endpoints of the read row: patches of the lower endpoint, of the upper, one gap
 \ layer, then the reads (the entry stride exceeds the width, so both share the index bits). Layers and rows are created
-\ in the host model's order (identical streams). Not reentrant. THROW -8: capacity.
+\ in the host model's order (identical streams). Not reentrant. Error (FC-REJECT) -8: capacity.
 decimal
 variable lay-t1 variable lay-t2 variable lay-t3 variable lay-t4 variable lay-t5
 variable lay-lo variable lay-hi

@@ -13,11 +13,15 @@ A program is compiled in the mode of the program of the kernel (FC-GUARD 1) into
    again, then the field is restored) are refused with the number of the rule: a row of the kernel block, a
    copy of two lengths, a patch that crosses its field or writes bits above the
    block, a start of an interval in the upper half of the data, a row that is not alone in the layer of the
-   position of a program, a channel that is not stdin or stdout.
-4. The long copy (18.24, rule 3): a program with long! and long@ is proved, and the violations of the request are refused:
+   position of a program, a channel that is not stdin or stdout; a narrow patch (an index, up to 24 bits) whose reach leaves the
+   block (18.26: the word reads the target of every patch), or meets the request block.
+4. The long copy (18.24, 18.26, rule 3): a program with long! and long@ is proved, and the violations of the request are refused:
    the header copied from the data, from a template that does not start with 6, written in part; a row into SYS that does not
    copy the whole request block (another start, another length, from the code); the answer of SYS into the kernel or patched
-   in 29 bits.
+   in 29 bits; the request block written by anything but the template, the values of arg and off and the window (a value from
+   the code, of 33 bits, not in a cell; the window moved; a patch of the destination whose length reaches the
+   block, a patch aimed at a value row); the row into SYS without the copy of the template before it in the cells, or after a
+   layer that does not link to the next cell.
 """
 import runpy
 import sys
@@ -36,6 +40,7 @@ TABLE = 1 << 12                     # and of the table of returns
 RTABLE = 1 << 14
 ETAB = 1 << 18                      # the first cell of the table of entries (fc-etab)
 RTAB = ETAB + (1 << 14)             # the first cell of the table of returns (fc-rtab)
+dj_narrow = 24                      # DJ-NARROW
 
 HARNESS = r'''
 variable cap-buf variable cap-main variable cap-tab variable cap-rt
@@ -188,7 +193,33 @@ def cases(img, ncells):
     out['a row of data in the layer of a position of the program'] = (
         [(fld(store[0], free, 0), BASE2 + 4096), (fld(store[0], free, 1), BASE2 + 4128),
          (fld(store[0], free, 2), BASE2 + 8192), (fld(store[0], free, 3), BASE2 + 8224)], 2)
+    # 18.26: a narrow patch (an index) is read as a wide one: the reach of its low bits stays in the block and out of the request block
+    src = next(p for p in patches(img, ncells) if p[4] == 2 and 4 <= p[6] <= 20)
+    free_field = fld(ncells + 3, 0, 2)      # a field of a cell the program does not have: the word reads it, the cells of the program it never scanned
+    out['a narrow patch of a field whose constant names the kernel (outside the layers of the program)'] = (
+        [(fld(src[0], src[1], 0), free_field + src[5]), (fld(src[0], src[1], 1), free_field + src[5] + src[6]),
+         (free_field, 3 * BLOCK + 4096)], 2)
+    dst = next(p for p in patches(img, ncells) if p[4] == 0 and 4 <= p[6] <= 20)
+    n = row(img, dst[2], dst[3])[1] - row(img, dst[2], dst[3])[0]
+    out['a narrow patch of a destination whose reach meets the request block'] = (
+        [(fld(dst[2], dst[3], 0), REQ - n - 8), (fld(dst[2], dst[3], 1), REQ - 8)], 3)
     return out
+
+
+def patches(img, ncells, wide=False):
+    """The rows that patch a field of another row of the data (narrow: up to 24 bits from the start of the field):
+    (cell, slot, tc, ts, tf, tb, tn) of the row and of the target."""
+    found = []
+    for c, s in find(img, ncells, lambda r: 2 * CELL <= r[0] < BLOCK and 0 < r[1] - r[0] <= 32 and r[2] >= BASE2 and r[2] < 3 * BLOCK
+                     and r[0] // 32 == (r[1] - 1) // 32):
+        r = row(img, c, s)
+        tc, rest = divmod(r[0], CELL)
+        ts, rest = divmod(rest, SLOT)
+        tf, tb = divmod(rest, 32)
+        tn = r[1] - r[0]
+        if tc < ncells and (tb + tn > dj_narrow) == wide and row(img, tc, ts)[tf] >= BASE2:
+            found.append((c, s, tc, ts, tf, tb, tn))
+    return found
 
 
 def long_cases(img, ncells):
@@ -204,6 +235,8 @@ def long_cases(img, ncells):
     patch = sel(lambda r: r[0] == field(*answer, 0))
     f = field
     hr = row(img, *head)
+    val = sel(lambda r: r[0] == REQ + 88 and r[1] == REQ + 120 and r[2] >= BASE2)
+    win = sel(lambda r: r[0] == REQ + REC and r[1] == REQ + REC + CAP)
     out = {}
     out['the header of the request copied from the data'] = (
         [(f(*head, 2), BASE2 + 4096), (f(*head, 3), BASE2 + 4096 + HDR)], 3)
@@ -217,6 +250,21 @@ def long_cases(img, ncells):
         [(f(*answer, 0), 3 * BLOCK + 4096), (f(*answer, 1), 3 * BLOCK + 4097)], 2)
     out['the patch of the answer of 29 bits instead of 28'] = (
         [(f(*patch, 1), row(img, *patch)[1] + 1), (f(*patch, 3), row(img, *patch)[3] + 1)], 2)
+    # 18.26: the request block is written by the template, the values of arg and off and the window, and nothing computed reaches it
+    out['a value of arg or off copied from the code'] = ([(f(*val, 2), 4096), (f(*val, 3), 4096 + 32)], 3)
+    out['a value of arg or off of 33 bits'] = ([(f(*val, 1), REQ + 121), (f(*val, 3), row(img, *val)[3] + 1)], 3)
+    out['a value row not in a cell of arg or off'] = ([(f(*val, 0), REQ + 96), (f(*val, 1), REQ + 128)], 3)
+    out['the window of the data moved by 8 bits (a copy that is neither the window nor a value)'] = (
+        [(f(*win, 0), REQ + REC + 8), (f(*win, 1), REQ + REC + CAP + 8)], 3)
+    out['the answer of a patch of the destination whose length reaches the request block'] = (
+        [(f(*answer, 1), BASE2 + 2000)], 3)
+    narrow = patches(img, ncells)[0]
+    out['a narrow patch aimed at the destination of a value row'] = (
+        [(f(*narrow[:2], 0), f(*val, 0) + narrow[5]), (f(*narrow[:2], 1), f(*val, 0) + narrow[5] + narrow[6])], 3)
+    out['the copy of the template removed: the row into SYS has none before it'] = (
+        [(f(*head, 0), 0), (f(*head, 1), 0), (f(*head, 2), 0), (f(*head, 3), 0)], 3)
+    out['a layer between the template and the row into SYS that does not link to the next cell'] = (
+        [(f(win[0], 7, 2), row(img, win[0], 7)[2] + CELL), (f(win[0], 7, 3), row(img, win[0], 7)[3] + CELL)], 3)
     return out
 
 

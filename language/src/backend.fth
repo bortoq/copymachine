@@ -1,7 +1,7 @@
 \ SPDX-License-Identifier: MIT
 \ Index-code layers and the emulator boot stream; control: copycode.vm1.backend. Address fields are byte-sized, slots >= 8.
 \ A cell is a power-of-two bit range holding one layer (cell 0: the entry); a layer has slots-1 work rows and a link row;
-\ a row is dl dh sl sh. THROW -24: invalid machine/field/unlinked; -9: overlap or put outside; -8: capacity. Output goes
+\ a row is dl dh sl sh. Errors are FC-REJECT codes (no exceptions): -24 invalid machine/field/unlinked; -9 overlap or put outside; -8 capacity. Output goes
 \ to stdout (TYPE) or to the sink: the xt in lay-sink takes every put ( bit-address src n -- ) and lay-finish keeps the
 \ entry in lay-start-cell (a kernel installs code in its own space so; lay-rev is then the identity).
 decimal
@@ -193,13 +193,21 @@ create lay-new-row 4 cells allot
 \ space (the program: code block 0, data block 2),
 \ 1. every row is a no-op, a copy of two intervals of one length each inside one block of the program, or a channel
 \    row (stdin into the data, the data into stdout);
-\ 3. the long copy (18.24): the only row into SYS copies the request block LAY-REQ (LAY-REC + LAY-CAP bits, in the upper half of the
-\    data, where no patch reaches), a row from SYS writes into the data, and the only row that writes into the header of the block
-\    (its first LAY-HDR bits: op, chan, flags) is the copy of the template from the code whose first byte is 6 (LONG);
-\ 2. a copy into the layers (the patch of a field of another row at run time) writes inside one field, and a wide one
-\    (more than DJ-NARROW bits from the start of the field) gets from the program only the low bits of the field: the
-\    bits above are the block of the constant in the row, the end of the reach lies in that block, and no other row of
-\    the layer has a position in it (DJ-SCAN, DJ-LOAD).
+\ 2. a copy into the layers (the patch of a field of another row at run time) writes inside one field, reads the field
+\    it patches and shows, for any value of the low bits it writes (DJ-REACH), that the position stays in the block of
+\    the constant above them (the block 0 or 2; the end of the reach lies in that block, and for a wide start, whose end
+\    the program makes of it and the length, with the length of the row). A wide patch (more than DJ-NARROW bits from the start of the field: the program gives the
+\    position, not an index of a table, stack or memory) gets from the program only the low bits of the field and stands
+\    alone: no other row of its layer has a position in that block (DJ-WIDE). A narrow patch needs no more: its reach is
+\    under 2^24 bits and an index only, and the place of rows in a layer is the scheduler's (it would reject programs);
+\ 3. the long copy (18.24, 18.26): the request block LAY-REQ (LAY-REC + LAY-CAP bits, in the upper half of the data, where no
+\    patch reaches) is written only by (a) the copy of the template from the code, a cell whose first byte is 6 (LONG), into
+\    the header (its first LAY-HDR bits: op, chan, flags), (b) the rows of a value of 32 bits from the data below the block
+\    into a cell of arg or off, (c) the copy into the window of the data after the record; their destinations are not
+\    patched (DJ-DEST-OK?: no patch of a destination meets the block before or after it), nothing else (stdin, the
+\    answer of SYS, another row) writes into the block; the only row into SYS copies the whole block and its layer follows,
+\    in the cells, the layer of a copy of the template through layers that link to the next cell (DJ-CHAIN?); a row from SYS
+\    writes into the data. The header holds zeros or the template whatever path is taken (nothing else writes it).
 \ That the rows of a layer do not meet is kept by the scheduler (LAY-ROW, 3.7.2). On failure DJ-BAD-RULE is the number
 \ of the rule and DJ-BAD-CELL the cell.
 variable dj-reader variable dj-bad-cell variable dj-bad-rule
@@ -207,7 +215,8 @@ variable dj-bsh variable dj-csh variable dj-ssh variable dj-fsh
 variable dj-first variable dj-end variable dj-pa variable dj-cb
 variable dj-vdl variable dj-vdh variable dj-vsl variable dj-vsh
 variable dj-tc variable dj-ts variable dj-tf variable dj-tb variable dj-tn variable dj-tk variable dj-vt
-variable dj-blk variable dj-hb variable dj-he
+variable dj-blk variable dj-hb variable dj-he variable dj-hw variable dj-hz
+variable dj-cur variable dj-hc variable dj-wb variable dj-we
 create dj-pr 32 cells allot create dj-tr 32 cells allot
 24 constant dj-narrow
 create dj-seen 64 cells allot variable dj-nseen
@@ -217,6 +226,8 @@ create dj-seen 64 cells allot variable dj-nseen
 : dj-in? ( lo hi -- f )
   2dup u< 0= if 2drop 0 exit then
   1- dj-blk? swap dj-blk? over = >r dup 0= swap 2 = or r> and ;
+: dj-meets? ( lo hi -- f ) \ [lo, hi) and the request block (the record and the window) have a bit in common
+  dj-hb @ over u< 0= if 2drop 0 exit then drop dj-hz @ u< ;
 : dj-row! ( slot -- ) \ the row in DJ-V.. into the array DJ-PA
   2 lshift cells dj-pa @ + >r dj-vdl @ r@ ! dj-vdh @ r@ cell+ ! dj-vsl @ r@ 2 cells + ! dj-vsh @ r> 3 cells + ! ;
 : dj-row@ ( slot array -- ) \ the row of the array into DJ-V..
@@ -231,18 +242,39 @@ create dj-seen 64 cells allot variable dj-nseen
     i dj-row!
   loop ;
 : dj-sys? ( -- f ) \ the row into SYS: the whole request block, nothing else
-  dj-vsl @ dj-hb @ = dj-vsh @ dj-hb @ lay-rec + lay-cap + = and ;
+  dj-vsl @ dj-hb @ = dj-vsh @ dj-hz @ = and ;
+: dj-chain? ( -- f ) \ the layer in DJ-CUR follows the layer of the last copy of the template (DJ-HC) in the cells
+  dj-hc @ 0= if 0 exit then
+  dj-hc @ dj-cur @ u< 0= if 0 exit then
+  -1 dj-cur @ dj-hc @ ?do
+    i dj-csh @ lshift lay-slots @ 1- 2 lay-field dj-get i 1+ dj-csh @ lshift = and
+  loop ;
 : dj-head? ( -- f ) \ the row that writes into the header: the copy of the template, a cell of the code that starts with 6
   dj-vdl @ dj-hb @ = dj-vdh @ dj-he @ = and dj-vsl @ dj-blk? 0= and dj-vsh @ 1- dj-blk? 0= and
   dj-vsh @ dj-vsl @ - lay-hdr = and dup if drop dj-vsl @ dj-get 255 and 6 = then ;
+: dj-req-ok? ( -- f ) \ the other row that writes into the request block: a value (a cell of arg or off) or the window
+  dj-vsl @ dj-blk? 2 = dj-vsh @ 1- dj-blk? 2 = and 0= if 0 exit then
+  dj-vdh @ dj-vdl @ - dj-vsh @ dj-vsl @ - = 0= if 0 exit then
+  dj-vdl @ dj-hw @ = dj-vdh @ dj-hz @ = and if -1 exit then
+  dj-vdh @ dj-vdl @ - 32 = dj-vdl @ dj-he @ - 31 and 0= and
+  dj-vdl @ dj-he @ u< 0= and dj-hw @ dj-vdh @ u< 0= and dj-hb @ dj-vsh @ u< 0= and ;
 : dj-row-ok? ( -- f )
   dj-nop? if -1 exit then
-  dj-vsl @ dj-vsh @ = if dj-vsl @ dup lay-stdin = swap lay-size @ = or dj-vdl @ dj-vdh @ dj-in? and exit then
+  dj-vsl @ dj-vsh @ = if
+    dj-vsl @ dup lay-stdin = swap lay-size @ = or dj-vdl @ dj-vdh @ dj-in? and
+    dj-vdl @ dj-vdh @ dj-meets? 0= and
+    exit
+  then
   dj-vdl @ dj-vdh @ = if
-    dj-vdl @ lay-size @ = if dj-sys? 0= if 3 dj-fail then -1 exit then
+    dj-vdl @ lay-size @ = if dj-sys? dj-chain? and 0= if 3 dj-fail then -1 exit then
     dj-vdl @ lay-stdout = dj-vsl @ dj-vsh @ dj-in? and exit
   then
-  dj-vdl @ dj-he @ u< dj-hb @ dj-vdh @ u< and if dj-head? 0= if 3 dj-fail then -1 exit then
+  dj-vdl @ dj-vdh @ dj-meets? if
+    dj-vdl @ dj-he @ u< dj-hb @ dj-vdh @ u< and
+    if dj-head? if dj-cur @ dj-hc ! else 3 dj-fail then
+    else dj-req-ok? 0= if 3 dj-fail then then
+    -1 exit
+  then
   dj-vdl @ dj-vdh @ dj-in? dj-vsl @ dj-vsh @ dj-in? and dj-vdh @ dj-vdl @ - dj-vsh @ dj-vsl @ - = and ;
 : dj-in-blk? ( lo hi -- f )
   2dup u< 0= if 2drop 0 exit then
@@ -258,22 +290,34 @@ create dj-seen 64 cells allot variable dj-nseen
   dj-nseen @ 16 = if 0 dj-nseen ! then
   dj-nseen @ 2 lshift cells dj-seen + >r dj-tc @ r@ ! dj-ts @ r@ cell+ ! dj-tf @ r@ 2 cells + ! dj-tk @ r> 3 cells + !
   1 dj-nseen +! ;
+: dj-field ( f -- x ) \ field f of the row DJ-TS of the cell DJ-TC
+  >r dj-tc @ dj-csh @ lshift dj-ts @ r> lay-field dj-get ;
+: dj-dest-ok? ( -- f ) \ the patch of the destination (DJ-TF 0, 1) stays out of the request block: the row before it, and
+  \ the reach of its start or, for a narrow patch of its end, of its end (a wide end is the sum of the start and the length)
+  dj-tf @ 0= if dj-vt @ 1 dj-field else 0 dj-field dj-vt @ then 2dup dj-meets? if 2drop 0 exit then drop
+  dj-tf @ 0= if drop dj-wb @ else dj-tk @ dj-narrow u> if drop -1 exit then then
+  dj-we @ dj-meets? 0= ;
+: dj-reach ( -- f ) \ the block of the field to patch and the end of the reach of its low DJ-TK bits; failed: rule 2
+  dj-tf @ dj-field dj-vt !
+  dj-vt @ dj-blk? dup dj-blk ! dup 0= swap 2 = or 0= if 2 dj-fail 0 exit then
+  dj-vt @ 1 dj-tk @ lshift 1- invert and dup dj-wb ! 1 dj-tk @ lshift +
+  dj-tk @ dj-narrow u> dj-blk @ and dj-tf @ 1 and 0= and if dj-tf @ 1+ dj-field dj-vt @ - + then
+  dup dj-we ! dj-blk @ 1+ dj-bsh @ lshift swap u< if 2 dj-fail 0 exit then
+  dj-tf @ 2 u< if dj-dest-ok? 0= if 3 dj-fail 0 exit then then
+  -1 ;
 : dj-wide ( -- )
   dj-seen? if exit then
-  dj-tc @ dj-csh @ lshift dj-ts @ dj-tf @ lay-field dj-get dj-vt !
-  dj-tk @ lay-a @ = if 2 dj-fail exit then
-  dj-vt @ dj-blk? dup dj-blk ! dup 0= swap 2 = or 0= if 2 dj-fail exit then
-  dj-vt @ 1 dj-tk @ lshift 1- invert and 1 dj-tk @ lshift +        ( the end of the reach )
+  dj-reach 0= if exit then
   dj-tc @ dj-csh @ lshift dj-tr dj-load
-  dj-ts @ dj-tr dj-row@
-  dj-blk @ dj-tf @ 1 and 0= and if dj-vdh @ dj-vdl @ - dj-vsh @ dj-vsl @ - max + then
-  dj-blk @ 1+ dj-bsh @ lshift swap u< if 2 dj-fail exit then
   lay-slots @ 0 ?do
     i dj-ts @ = 0= if
       i dj-tr dj-row@ dj-nop? 0= if dj-touches? if 2 dj-fail then then
     then
   loop
   dj-seen! ;
+: dj-near ( -- ) \ a narrow patch: its window of 2^DJ-NARROW bits at most is aligned, so it stays in the block of the constant above it
+  dj-tf @ 2 u< if dj-reach drop exit then
+  dj-tc @ dj-csh @ lshift dj-ts @ dj-tf @ lay-field dj-get dj-blk? dup 0= swap 2 = or 0= if 2 dj-fail then ;
 : dj-patch ( -- )
   dj-vdl @ dup dj-csh @ rshift dj-tc !
   lay-cell-bits @ 1- and dup dj-ssh @ rshift dj-ts !
@@ -281,7 +325,8 @@ create dj-seen 64 cells allot variable dj-nseen
   lay-a @ 1- and dj-tb !
   dj-vdh @ dj-vdl @ - dj-tn !
   dj-tb @ dj-tn @ + dup dj-tk ! lay-a @ u> if 2 dj-fail exit then
-  dj-tk @ dj-narrow u> if dj-wide then ;
+  dj-tk @ lay-a @ = if 2 dj-fail exit then
+  dj-tk @ dj-narrow u> if dj-wide else dj-near then ;
 \ The rows of the layer at DJ-CB that are not no-ops, into DJ-PR (DJ-NN of them); the fields of a slot are 128 bits
 \ apart, a field has 32 bits (lay-foff).
 variable dj-nn variable dj-lo variable dj-hi
@@ -302,11 +347,12 @@ variable dj-nn variable dj-lo variable dj-hi
     else 1 dj-fail then
   loop ;
 : dj-prove ( first end -- flag )
-  dj-end ! dj-first ! 0 dj-bad-rule ! 0 dj-nseen ! lay-req dj-hb ! lay-req lay-hdr + dj-he !
+  dj-end ! dj-first ! 0 dj-bad-rule ! 0 dj-nseen ! 0 dj-hc !
+  lay-req dj-hb ! lay-req lay-hdr + dj-he ! lay-req lay-rec + dj-hw ! lay-req lay-rec + lay-cap + dj-hz !
   lay-size @ lay-bits 3 - dj-bsh !
   lay-cell-bits @ lay-bits 1- dj-csh ! lay-inst lay-bits 1- dj-ssh ! lay-a @ lay-bits 1- dj-fsh !
   2 dj-csh @ lshift dj-lo ! lay-size @ 2 rshift dj-hi !
   dj-end @ dj-first @ ?do
-    i dj-csh @ lshift dj-cb ! dj-pr dj-pa ! dj-scan dj-rows
+    i dj-cur ! i dj-csh @ lshift dj-cb ! dj-pr dj-pa ! dj-scan dj-rows
     dj-bad-rule @ if i dj-bad-cell ! unloop 0 exit then
   loop -1 ;

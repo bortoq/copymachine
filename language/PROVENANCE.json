@@ -17,15 +17,15 @@
       "origin_in_archive": "forth/scripts/forthc/prelude.fth"
     },
     "src/backend.fth": {
-      "copy_sha256": "75356bd060ed22ec0109a616168e61912f46823b5715e78927d7353e63e915d2",
+      "copy_sha256": "23c86a2ca636d8a51185ab46a2ce7fa1b7d572e91756c708e8c685fcf34e3de8",
       "origin_in_archive": "copycode/forth/backend.fth"
     },
     "src/compute.fth": {
-      "copy_sha256": "42b9b6ac0f6bd27e10140b43b619d1afbbc3adf226733798ffc1e62067d0734c",
+      "copy_sha256": "e3aafe03b4937c81422dbbe5cb32d824203a836749767235fcdfd0b59146d8b9",
       "origin_in_archive": "copycode/forth/compute.fth"
     },
     "src/forthc.fth": {
-      "copy_sha256": "6a2ead16053dd048076379bbfcb5eb0bb290ab45a4669a9f9839f2fb4db64d31",
+      "copy_sha256": "e5f5fc56ad8f691454a6a1b15589a99e7f10f2aea82bca7fcba4c221cd4ea33a",
       "origin_in_archive": "forth/scripts/forthc/forthc.fth"
     },
     "src/primitives.fth": {

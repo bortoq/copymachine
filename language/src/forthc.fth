@@ -1,7 +1,7 @@
 \ Direct Forth compiler (9.5): Forth source to emulator index code, in Forth. Requires backend.fth and compute.fth.
 \ Control: scripts/forthc/model.py (same source, same boot stream). FC| <line> appends a source line, FC-GO compiles
-\ and types the stream, FC-RESET clears. Not reentrant. THROW -8: capacity, -13: unknown word, -22: control
-\ structure, -16: missing word.
+\ and types the stream, FC-RESET clears. Not reentrant. Errors are FC-REJECT codes (error N at WORD): -8 capacity, -13 unknown word, -22 control
+\ structure, -16 missing word.
 decimal
 1 31 lshift constant fc-size  1024 constant fc-cellb  1024 constant fc-l  32 constant fc-a
 \ The data region at fc-d and the first code cell: a program at 2^30 and 2, a kernel in the upper half.
