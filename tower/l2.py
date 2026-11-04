@@ -62,15 +62,3 @@ def write(mem, datas):
             mem.put(d.addr, d.init, d.bits)
 
 
-def text_bits(A, layers):
-    """Bits of stored layer texts in L1 form (4A per row) and in L2 form (3A per copy row)."""
-    one = two = 0
-    for l in layers:
-        slots = l.u
-        rows = l.rows + l.jumps
-        for r in rows:
-            one += 4 * A
-            two += 3 * A if r.kind in ('copy', 'jump') else 4 * A
-        one += (slots - len(rows)) * 4 * A
-        two += (slots - len(rows)) * 3 * A     # NOP padding is `copy 0 0 0`
-    return one, two

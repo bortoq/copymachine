@@ -151,7 +151,7 @@ python3 emulator/examples/write-byte.py --write A > /tmp/a.boot
 | Цель | Что делает |
 |---|---|
 | `make` | эмулятор и L0 |
-| `make check-fast` | тесты эмулятора (с режимом `checked`), 37 программ на хосте, замкнутость, сверка `language.md`, `make check-tower` (цепочка языков 1–4) |
+| `make check-fast` | тесты эмулятора (с режимом `checked`), 37 программ на хосте, замкнутость, сверка `language.md`, `make check-tower` (цепочка языков 1–5) |
 | `make check` | + бут и `make -C language check` (около 10 минут) |
 | `make check-full` | + долгие цели: ядро, самосборка `check-self`, изоляция, доказательство, замена, программы пользователя (часы) |
 | `make lint`, `make coverage` | ruff; покрытие эмулятора gcov |
@@ -169,7 +169,7 @@ CI (`.github/workflows/`): `check.yml` — быстрый набор, эмуля
 | `language/tools/`, `language/tests/` | бут, проверки, тесты; `tests/reference/` — независимые эталоны (модель K0) |
 | `language/doc/` | подробные документы о языке (список — в [указателе](docs/README.md)) |
 | `language/boot/` | хостовый pForth для первой компиляции |
-| `tower/` | цепочка вложенных языков 1–4 снизу вверх (опыт этапа 23, `make check-tower`; замеры — [tower.md](docs/measurements/tower.md)) |
+| `tower/` | цепочка вложенных языков 1–5 снизу вверх (опыт этапа 23, `make check-tower`; замеры — [tower.md](docs/measurements/tower.md)) |
 | `tools/` | `limited_run.py`, `check_layout.py`, `gcov_summary.py`, `ci/*.sh` |
 | `docs/guide/` | пошаговое руководство |
 | `docs/dictionary.md`, `docs/layout.md` | словарь низкоуровневых терминов, раскладка |

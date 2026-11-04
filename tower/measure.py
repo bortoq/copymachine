@@ -8,8 +8,9 @@ sys.dont_write_bytecode = True
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common
-import l2
+import l1
 import l3
+import l5
 import progs
 from l4 import host_pos
 
@@ -54,7 +55,8 @@ def main():
         live = sum((1 << sum(t.ins)) * t.out for t in p.tables.values())
         views = {id(t.data) for t in p.tables.values()}
         db = sum(d.bits for d in p.datas if id(d) not in views)
-        one, two = l2.text_bits(p.A, p.layers)
+        two = l5.text_bits(p.A, p.layers)
+        one = sum(l.u for l in p.layers) * 4 * p.A
         slots = sum(l.u for l in p.layers)
         used = sum(len(l.rows) + len(l.jumps) for l in p.layers)
         tot1 += one; tot2 += two
@@ -73,7 +75,7 @@ def main():
         print('| %s | %d / %d | %d | %d / %d | %d / %d |' % (name, len(p.layers), len(q.layers), sum(len(l.rows) for l in p.layers),
               rp.ticks, rq.ticks, len(p.stats['image']), len(q.stats['image'])))
     print('\nL2 text / L1 text over all programs: %.4f' % (tot2 / tot1))
-    print('\nlines of code (no blanks/comments):', {f: loc(f) for f in ('common.py', 'l1.py', 'l2.py', 'l3.py', 'l4.py', 'lib.py', 'progs.py', 'tests/test_tower.py', 'tests/test_long.py')})
+    print('\nlines of code (no blanks/comments):', {f: loc(f) for f in ('common.py', 'l1.py', 'l2.py', 'l3.py', 'l4.py', 'l5.py', 'lib.py', 'progs.py', 'tests/test_tower.py', 'tests/test_long.py', 'tests/test_price.py')})
 
 
 def minimal(build):
@@ -118,5 +120,52 @@ def main_long():
     shutil.rmtree(d, True)
 
 
+def main_price():
+    """23.5: language 5. The price of every word of languages 1-4 (one word + halt, less the empty main)."""
+    sys.path.insert(0, os.path.join(common.HERE, 'tests'))
+    import test_price as tp
+    pos = host_pos(1, 8)
+    ctx = [
+        ('1', 'row (one raw row)', minimal(lambda p: p._op(l1.row(0, 0, 0, 0), [], []))),
+        ('2', 'copy 8 bits', minimal(lambda p: p.copy(p.var('d', 8), p.var('s', 8, 5)))),
+        ('2', 'data (a named part of space)', minimal(lambda p: p.var('d', 64))),
+        ('3', 'table + lut, 1 arg', tp.CONSTRUCTS['lut, 1 arg'][0]),
+        ('3', 'lut add4, 3 args', tp.CONSTRUCTS['lut add4, 3 args'][0]),
+        ('3', 'array + store', tp.CONSTRUCTS['store'][0]),
+        ('3', 'block, goto (empty block)', lambda p: (p.block('main'), p.goto('b'), p.block('b'), p.halt())),
+        ('3', 'if', tp.CONSTRUCTS['if'][0]),
+        ('3', 'word, call, ret', tp.CONSTRUCTS['call + ret'][0]),
+        ('3', 'emit 8 bits', minimal(lambda p: p.emit(p.var('d', 8, 5)))),
+        ('3', 'key 8 bits', minimal(lambda p: p.key(p.var('d', 8)))),
+        ('lib', 'shl 8 bits by 1', minimal(lambda p: p.shl(p.var('a', 8), p.var('r', 8), 1))),
+        ('lib', 'shr 8 bits by 3', minimal(lambda p: p.shr(p.var('a', 8), p.var('r', 8), 3))),
+        ('lib', 'add 4 bits', minimal(lambda p: p.add(p.var('a', 4), p.var('b', 4), p.var('r', 5)))),
+        ('lib', 'add 8 bits', minimal(lambda p: p.add(p.var('a', 8), p.var('b', 8), p.var('r', 9)))),
+        ('lib', 'add 16 bits', minimal(lambda p: p.add(p.var('a', 16), p.var('b', 16), p.var('r', 17)))),
+        ('lib', 'add 32 bits', minimal(lambda p: p.add(p.var('a', 32), p.var('b', 32), p.var('r', 33)))),
+        ('lib', 'sub 8 bits', minimal(lambda p: p.sub(p.var('a', 8), p.var('b', 8), p.var('r', 9)))),
+        ('lib', 'band 8 bits', minimal(lambda p: p.band(p.var('a', 8), p.var('b', 8), p.var('r', 8)))),
+        ('lib', 'lt 8 bits', minimal(lambda p: p.lt(p.var('a', 8), p.var('b', 8), p.var('c', 3)))),
+        ('lib', 'eq 8 bits', minimal(lambda p: p.eq(p.var('a', 8), p.var('b', 8), p.var('c', 2)))),
+        ('lib', 'push', tp.CONSTRUCTS['push'][0]),
+        ('lib', 'pop', tp.CONSTRUCTS['pop'][0]),
+        ('lib', 'rec: call + ret (recursive word)', tp.call_prog(True)),
+        ('4', 'long! 48 bits', tp.CONSTRUCTS['long! 48'][0]),
+        ('4', 'long@ 48 bits (buffer)', tp.CONSTRUCTS['long@ 48 (buffer)'][0]),
+        ('4', 'long@ 128 bits (direct)', tp.CONSTRUCTS['long@ 128 (direct)'][0]),
+        ('4', 'position + step, add 128 bits', minimal(lambda p: p.add(p.var('a', 128, pos), p.var('b', 128, 64), p.var('r', 129)))),
+    ]
+    e = l5.cost(l3.compile_program(minimal(lambda p: None)))
+    print('\n| lang | word (program: one word + halt) | rows | layers | text bits | ticks | price |\n|---|---|---|---|---|---|---|')
+    for lang, name, b in ctx:
+        p = l3.compile_program(b)
+        c = l5.cost(p)
+        d = l5.Cost(c.rows - e.rows, c.layers - e.layers, c.bits, c.ticks - e.ticks if c.ticks < l5.FORBID else l5.FORBID)
+        print('| %s | %s | %+d | %+d | %d | %s | %s |' % (lang, name, d.rows, d.layers, c.bits,
+              ('%+d' % d.ticks) if d.ticks < l5.FORBID else 'FORBID', l5.price(c) if d.ticks < l5.FORBID else 'FORBID'))
+    print('\nempty main + halt: rows %d, layers %d, text bits %d (A=10), ticks %d, price %d' % (*e, l5.price(e)))
+
+
 main()
 main_long()
+main_price()

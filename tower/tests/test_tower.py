@@ -11,6 +11,7 @@ import common
 import l1
 import l2
 import l3
+import l5
 import progs
 from common import Alloc, Mem, bytes_value, run, stream
 
@@ -120,7 +121,8 @@ class Level2(unittest.TestCase):
 
     def test_saving(self):
         p, _ = go(progs.add_print(1, 2), plain=False)
-        one, two = l2.text_bits(p.A, p.layers)
+        two = l5.text_bits(p.A, p.layers)
+        one = sum(l.u for l in p.layers) * 4 * p.A
         self.assertLess(two, one)
         self.assertGreater(1 - two / one, 0.20)
 
