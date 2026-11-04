@@ -35,8 +35,7 @@ Terminology: copycode is the logical triple `[n,dst,src]`. A emulator four-index
 record is a **pseudo-instruction**, describing a signal-transfer channel
 between half-open memory intervals. This information-flow meaning is separate
 from the stdin/stdout/SYS device channels. Existing instruction names in the
-CLI and C API refer to pseudo-instructions. Direct vm2 compilation uses a new
-target ABI; emulator does not decode logical triples or monitor their updates.
+CLI and C API refer to pseudo-instructions. The emulator does not decode logical triples or monitor their updates.
 
 A = bit_length(S). One pseudo-instruction is **4A bits**, in order:
 
@@ -172,10 +171,7 @@ No SPAWN, dynamic open or runtime version handshake is implemented.
 
 ## Consumer boundary
 
-vm2 must implement its own three-field memory/processor, guest tick boundary,
-address mapping and SYS record/channel conversion on copycode. Static endpoint
-expansion alone cannot preserve arbitrary self-modifying vm2 programs. Existing
-copy-space generators also need repairs for shared sources and channel timing.
-Their old images/checkpoints are not silently compatible with this runtime.
-Common guest boot/monitor/checkpoint libraries will be extracted later. Minimal
-independent local fixtures remain with emulator so its tests are standalone.
+Producers of images (the compiler of the language in `language/`) implement their own memory layout, address
+mapping and conversion of SYS records on top of this contract; the emulator does not decode logical triples,
+monitor their updates or keep any image, trace or checkpoint format. The earlier vm2 consumer and its generators
+are in the tag `archive-2026-10-30`.
