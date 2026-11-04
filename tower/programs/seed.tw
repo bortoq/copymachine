@@ -1,0 +1,262 @@
+# The seed (23.7): the encoder of language 1, a program of the chain (languages 1-3), as hex0 of stage0 is a program of
+# its own language. stdin: the text of language 1 (tower/l1text.py) and a zero byte; stdout: the image of the emulator.
+# The text is lines; a line starts with a command letter (a blank before it is allowed):
+#   w N      the width A of a field of a row, in bits (hex number, at most ff)
+#   r a b c d  a row: four hex numbers, each is written as A bits, the least significant bit first
+#   z N      N zero bits (hex, at most ff)
+#   s 0101   raw bits, in the order of memory (the first bit is the 0x80 bit of a byte); blanks between them are free
+#   # ...    a comment up to the end of the line
+# A number has at most 4 hex digits (the older digits fall out), a bit above A is dropped. Bits go out as they come, a
+# byte is written when eight bits are ready. A wrong text is reported to stderr and the encoder halts (7.2.28; the
+# image is cut at that place, so it is rejected): an unknown command or a wrong character, a wrong number of numbers
+# in a line, a row before w (A = 0), a number of bits which is not whole bytes at the end. What is not checked is
+# written as "defined, dearer than useful": a number over 4 digits, a value over A bits, w and z over ff.
+# The only table with a purpose of its own is add4 (the nibble sum with carry; counters and the sum of the chain are
+# made of it); cls turns a character into its class.
+# stdin ends with a zero byte (the end of the text, an empty stdin repeats its last byte).
+
+# --- cls: the byte of the stream as a number (the first bit is the lowest) -> flags and value:
+#   bit 0 a character 0 or 1, bit 1 a hex digit, bit 2 a separator (blank, tab, line break, zero), bit 3 a line break
+#   or the zero byte, bits 4-7 the value of the digit; for the letters w r z s # (1 2 3 4 5) and for the zero byte (6)
+:cls table 8 8
+  108 0 0 0 4 0 0 0 0 0 0 0 3 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 130 0 0 0
+  0 0 0 0 0 0 210 0 0 0 0 0 66 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 178 0 0 0 0 0 34 0 32 0
+  12 0 0 0 0 0 0 0 0 0 0 0 0 0 48 0
+  0 0 0 0 0 0 242 0 0 0 0 0 98 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 162 0 0 0 0 0 19 0 0 0
+  4 0 0 0 0 0 0 0 0 0 0 0 146 0 0 0
+  0 0 0 0 0 0 226 0 0 0 0 0 82 0 0 0
+  4 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 80 0 194 0 0 0 0 0 50 0 64 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 114 0 16 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+# --- the character
+:ch data 8 0
+:cl data 8 0
+
+# --- the state: the kind of the line, the numbers of a line
+:inS data 1 0
+:inC data 1 0
+:inN data 1 0
+:cmdR data 1 0
+:cmdZ data 1 0
+:innum data 1 0
+:na data 4 0
+:need data 4 1
+:ex data 1 0
+:ok data 1 0
+:e data 1 0
+:e8 data 2 0
+:V data 16 0
+:V2 data 16 0
+:A data 8 0
+:K data 8 0
+:kr data 9 0
+:nr data 5 0
+
+# --- the sink: eight bits make a byte
+:bit data 1 0
+:acc data 8 0
+:acc2 data 8 0
+:ctr data 4 0
+:cr data 5 0
+
+# --- constants
+:one1 data 1 1
+:z4 data 4 0
+:z8 data 8 0
+:z16 data 16 0
+:one4 data 4 1
+:four4 data 4 4
+:ff data 8 255
+:k1 data 4 1
+:k2 data 4 2
+:k3 data 4 3
+:k4 data 4 4
+:k5 data 4 5
+:k6 data 4 6
+:msg_bad data 104 "l1: bad text\n"
+:msg_cnt data 112 "l1: bad count\n"
+:msg_end data 136 "l1: bad end byte\n"
+
+:main block
+goto &read
+
+# --- a character: the class, then the kind of the line
+:read block
+key &ch
+lut &cls &ch &cl
+if &inS &sch &nots
+
+# raw bits: 0 and 1 are bits, blanks are skipped, a line break ends the line
+:sch block
+if &cl[0] &sbit &sother
+:sbit block
+copy &bit &cl[4]
+call &putbit &read
+:sother block
+if &cl[3] &endline &sblank
+:sblank block
+if &cl[2] &read &bad
+
+# a comment
+:nots block
+if &inC &cch &notc
+:cch block
+if &cl[3] &endline &read
+
+# numbers: w, r, z
+:notc block
+if &inN &nch &linestart
+:nch block
+if &cl[1] &ndigit &nother
+:ndigit block
+copy &V2[4:16] &V[0:12]
+copy &V2[0:4] &cl[4:8]
+copy &V &V2
+copy &innum &one1
+goto &read
+:nother block
+if &cl[2] &nsep &bad
+:nsep block
+if &innum &ndone &nafter
+:nafter block
+if &cl[3] &neol &read
+:neol block
+eq &na &need &ok
+if &ok &endline &badn
+
+# a number is complete: one number too many is an error; w sets A, r writes A bits, z writes V zeros
+:ndone block
+eq &na &need &ex
+if &ex &badn &nok
+:nok block
+copy &innum &zero
+lut &add4 &na &one4 &zero &nr
+copy &na &nr[0:4]
+if &cmdR &nrow &nnr
+:nnr block
+if &cmdZ &nz &nw
+:nw block
+copy &A &V[0:8]
+goto &nback
+:nz block
+copy &K &V[0:8]
+copy &V &z16
+call &putn &nback
+:nrow block
+copy &K &A
+call &putn &nback
+:nback block
+copy &V &z16
+goto &nafter
+
+# the end of a line: the kinds of lines are cleared; a zero byte ends the text
+:endline block
+copy &inS &zero
+copy &inC &zero
+copy &inN &zero
+eq &cl[4:8] &k6 &e
+if &e &finish &read
+:finish block
+eq &ctr &z4 &ok
+if &ok &stop &bade
+:stop block
+halt
+
+# the start of a line: the command letter
+:linestart block
+if &cl[3] &endline &ls2
+:ls2 block
+if &cl[2] &read &ls3
+:ls3 block
+if &cl[1] &bad &ls4
+:ls4 block
+eq &cl[4:8] &k4 &e
+if &e &cmds &ls5
+:cmds block
+copy &inS &one1
+goto &read
+:ls5 block
+eq &cl[4:8] &k5 &e
+if &e &cmdc &ls6
+:cmdc block
+copy &inC &one1
+goto &read
+:ls6 block
+eq &cl[4:8] &k1 &e
+if &e &cmdw &ls7
+:cmdw block
+copy &cmdR &zero
+copy &cmdZ &zero
+copy &need &one4
+goto &numline
+:ls7 block
+eq &cl[4:8] &k2 &e
+if &e &cmdr &ls8
+:cmdr block
+eq &A &z8 &e8
+if &e8[1] &bad &cmdr2
+:cmdr2 block
+copy &cmdR &one1
+copy &cmdZ &zero
+copy &need &four4
+goto &numline
+:ls8 block
+eq &cl[4:8] &k3 &e
+if &e &cmdz &bad
+:cmdz block
+copy &cmdR &zero
+copy &cmdZ &one1
+copy &need &one4
+goto &numline
+:numline block
+copy &inN &one1
+copy &na &z4
+copy &innum &zero
+goto &read
+
+# --- K bits of V, the lowest first, to the sink (K is counted down by adding ff: the carry says K was not 0)
+:putn word
+add &K &ff &kr
+if &kr[8] &pnbody &pnend
+:pnbody block
+copy &K &kr[0:8]
+copy &bit &V[0]
+shr &V &V2 1
+copy &V &V2
+call &putbit &putn
+:pnend block
+ret
+
+# --- the sink: the bit comes into the high end of acc, a byte is out when the counter reaches 8
+:putbit word
+copy &acc2[0:7] &acc[1:8]
+copy &acc2[7] &bit
+copy &acc &acc2
+lut &add4 &ctr &one4 &zero &cr
+copy &ctr &cr[0:4]
+if &cr[3] &flush &noflush
+:flush block
+emit &acc
+copy &ctr &z4
+ret
+:noflush block
+ret
+
+# --- reports
+:bad block
+warn &msg_bad
+halt
+:badn block
+warn &msg_cnt
+halt
+:bade block
+warn &msg_end
+halt

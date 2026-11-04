@@ -1,6 +1,6 @@
 """Language 3: lookup tables. Words: table, lut (value of a function from a table), array (a table
 whose entries are written), store (write an entry by a computed index), block, goto, if, call, ret,
-halt, emit (stdout), key (stdin), copy. The library over language 3 (lib.py: add, sub, band, lt, eq,
+halt, emit (stdout), warn (stderr), key (stdin), copy. The library over language 3 (lib.py: add, sub, band, lt, eq,
 stack, push, pop, rec; shl, shr over language 2) is a mixin of Program. No registers: data are named
 parts of space. The compiler lays rows out into layers so that nothing intersects in a tick
 (including source with source)."""
@@ -12,6 +12,7 @@ from lib import Lib
 
 STDOUT = object()                 # pseudo region: one stdout transfer per tick, order preserved
 STDIN = object()                  # pseudo region: one stdin transfer per tick, order preserved
+STDERR = object()                 # pseudo region: one stderr transfer per tick, order preserved
 
 
 class Table:
@@ -190,10 +191,17 @@ class Program(Lib, Long):
         self._op(l2.copy(dst.n, dst, src))
 
     def emit(self, src):
+        self._out(src, 2, STDOUT)
+
+    def warn(self, src):
+        """A message to stderr (the channel S+3): how a program reports a wrong input text (7.2.28)."""
+        self._out(src, 3, STDERR)
+
+    def _out(self, src, chan, region):
         src = norm(src)
         s = src.addr
-        r = l1.row(self.S + 2, self.S + 2, s, lambda: s() + src.n)
-        self._op(r, ivs([src]), [(STDOUT, 0, 1)])
+        r = l1.row(self.S + chan, self.S + chan, s, lambda: s() + src.n)
+        self._op(r, ivs([src]), [(region, 0, 1)])
 
     def key(self, dst):
         """A byte (bytes) of stdin into dst: the stdin channel is the source of a row."""

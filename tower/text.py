@@ -8,7 +8,7 @@ the lower language cannot write are reported at parse time and the program is re
 is turned into calls of the constructors of the same languages (Parsed.build), which cannot fail
 (the names are only here: the image has none). The words:
   2 (copy, data): data copy shl shr
-  3 (tables, blocks, library): table array lut store block word goto if call ret halt emit key
+  3 (tables, blocks, library): table array lut store block word goto if call ret halt emit warn key
     add sub band lt eq stack push pop rec
   4 (long copy): long! long@
 Run: python3 -m tower.text [-l LEVEL] < prog.tw > image   (A and P of the image go to stderr)."""
@@ -329,6 +329,11 @@ def w_emit(c, t, a):
         c.steps.append(lambda p, e: p.emit(R(a[0])(e)))
 
 
+def w_warn(c, t, a):
+    if c.inblock(t):
+        c.steps.append(lambda p, e: p.warn(R(a[0])(e)))
+
+
 def w_key(c, t, a):
     if c.inblock(t):
         c.write(t, a[0])
@@ -491,6 +496,7 @@ WORDS = {
     'ret': (3, fixed(), w_ret),
     'halt': (3, fixed(), w_halt),
     'emit': (3, fixed('ref'), w_emit),
+    'warn': (3, fixed('ref'), w_warn),
     'key': (3, fixed('ref'), w_key),
     'stack': (3, fixed('num:1:8', 'wid'), w_stack),
     'push': (3, fixed('stk', 'ref'), w_push),
