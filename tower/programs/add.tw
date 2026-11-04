@@ -1,0 +1,16 @@
+# 200 + 100 in 8 bits, printed as three decimal digits (progs.add_print(200, 100)).
+# Names exist only in this text: the compiler takes them away, the image has none.
+:a data 8 200
+:b data 8 100
+:r data 9 0
+:main block
+add &a &b &r
+# a decimal number: dec9 gives three digits (4 bits each), they go into the text "000\n"
+:dig data 12 0
+:buf data 32 "000\n"
+lut &dec9 &r &dig
+copy &buf[4:8] &dig[0:4]
+copy &buf[12:16] &dig[4:8]
+copy &buf[20:24] &dig[8:12]
+emit &buf
+halt

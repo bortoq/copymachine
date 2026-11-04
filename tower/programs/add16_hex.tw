@@ -1,0 +1,19 @@
+# 0x1234 + 0xfff in 16 bits, four hex digits (progs.add16_hex(0x1234, 0xfff)).
+:a data 16 0x1234
+:b data 16 0xfff
+:r data 17 0
+:ch0 data 8 0
+:ch1 data 8 0
+:ch2 data 8 0
+:ch3 data 8 0
+:main block
+add &a &b &r
+lut &hex4 &r[12:16] &ch0
+lut &hex4 &r[8:12] &ch1
+lut &hex4 &r[4:8] &ch2
+lut &hex4 &r[0:4] &ch3
+emit &ch0
+emit &ch1
+emit &ch2
+emit &ch3
+halt

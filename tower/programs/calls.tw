@@ -1,0 +1,31 @@
+# The word show prints a hex digit of x; it is called from four places, two directly and two through pair
+# (progs.calls()). The return link of a word is one part of space: no stack below.
+:x data 4 0
+:ch data 8 0
+:k3 data 4 3
+:k10 data 4 10
+:k12 data 4 12
+:nl data 8 "\n"
+:main block
+copy &x &k3
+call &show &m1
+:m1 block
+copy &x &k10
+call &show &m2
+:m2 block
+call &pair &m3
+:m3 block
+emit &nl
+halt
+:show word
+lut &hex4 &x &ch
+emit &ch
+ret
+:pair word
+copy &x &k12
+call &show &p1
+:p1 block
+copy &x &k3
+call &show &p2
+:p2 block
+ret

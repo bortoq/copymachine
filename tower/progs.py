@@ -5,13 +5,11 @@ from l2 import norm
 
 
 def hexch(p):
-    return p.table('hex4', (4,), 8, lambda x: rev(ord('0123456789abcdef'[x]), 8))
+    return p.t_hex()
 
 
 def dec9(p, n=9):
-    def f(x):
-        return rev(x // 100, 4) | rev(x // 10 % 10, 4) << 4 | rev(x % 10, 4) << 8
-    return p.table('dec%d' % n, (n,), 12, f)
+    return p.t_dec(n)
 
 
 def print3(p, val9):

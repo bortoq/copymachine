@@ -1,0 +1,24 @@
+# 1 + 2 + ... + 10 in a loop, in decimal (progs.loop_sum()).
+:i data 8 1
+:s data 9 0
+:r data 9 0
+:c data 1 0
+:one data 4 1
+:lt11 table 4 1  1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0
+:main block
+goto &loop
+:loop block
+add &s[0:8] &i &r
+copy &s[0:8] &r[0:8]
+lut &add4 &i[0:4] &one &zero &i[0:5]
+lut &lt11 &i[0:4] &c
+if &c &loop &done
+:done block
+:dig data 12 0
+:buf data 32 "000\n"
+lut &dec9 &s &dig
+copy &buf[4:8] &dig[0:4]
+copy &buf[12:16] &dig[4:8]
+copy &buf[20:24] &dig[8:12]
+emit &buf
+halt

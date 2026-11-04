@@ -1,0 +1,15 @@
+# stdin to stdout up to a zero byte (progs.echo()); eq leaves "equal" in the last bit of c.
+:b data 8 0
+:z data 8 0
+:c data 2 0
+:main block
+goto &loop
+:loop block
+key &b
+eq &b &z &c
+if &c[1] &done &out
+:out block
+emit &b
+goto &loop
+:done block
+halt

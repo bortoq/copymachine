@@ -1,0 +1,12 @@
+# long! writes "hello" to the area 1 (the file -r) at the bit 8, long@ reads 5 bytes back from the same place,
+# stdout gets them (progs.long_rw(host_pos(1, 8), b"hello", host_pos(1, 8))). The position is 128 bits:
+# the area in the high 32 bits, the bit in the low 96: 1 << 96 | 8.
+:got data 40 "\xff\xff\xff\xff\xff"
+:main block
+:wpos data 128 0x1000000000000000000000008
+:out data 40 "hello"
+long! &wpos &out
+:rpos data 128 0x1000000000000000000000008
+long@ &rpos &got
+emit &got
+halt

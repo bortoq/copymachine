@@ -1,0 +1,19 @@
+# If 3 < 9 print Y, otherwise N (progs.branch(3, 9)).
+:a data 8 3
+:b data 8 9
+:c data 3 0
+:y data 8 "Y"
+:n data 8 "N"
+:nl data 8 "\n"
+:main block
+lt &a &b &c
+if &c[2] &yes &no
+:yes block
+emit &y
+goto &end
+:no block
+emit &n
+goto &end
+:end block
+emit &nl
+halt

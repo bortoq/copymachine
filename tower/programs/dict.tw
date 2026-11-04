@@ -1,0 +1,151 @@
+# A step to the self-description (23.8, 23.9): the chain reads words from stdin, looks every word up in
+# a dictionary and prints its number, or turns a decimal number into binary. Everything is language 3,
+# nothing but lookups, copies, eq and add.
+# stdin: words separated by spaces, tabs and line breaks (any byte below 33), the text ends with a zero byte.
+# stdout, a line for every word: its number in the dictionary as three decimal digits (000..015),
+# "?" when there is no such word, "#" and four hex digits for a decimal number (16 bits, modulo 2^16).
+# The dictionary: 16 names of a fixed length, 7 bytes, a name is right-aligned and padded with zero bytes on
+# the left (a word of 7 or more bytes can never be found). The word being read moves into a 7-byte buffer
+# from the high end, byte after byte; so a word and its dictionary name are compared by eq in 14 nibbles.
+
+# --- the dictionary: the words of the languages 2-4, number 0..15
+:dict table 4 56
+  "\0\0\0copy" "\0\0\0data" "\0\0\0\0lut" "\0\0table" "\0\0array" "\0\0store" "\0\0block" "\0\0\0word"
+  "\0\0\0goto" "\0\0\0\0\0if" "\0\0\0call" "\0\0\0\0ret" "\0\0\0halt" "\0\0\0emit" "\0\0\0\0key" "\0\0stack"
+
+# --- the character: the byte as it comes (ch, the first bit is the lowest), and as a number (c)
+:rev4 table 4 4  0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:ch data 8 0
+:hi data 4 0
+:lo data 4 0
+:c data 8 0
+:k33 data 8 33
+:k48 data 8 48
+:k10 data 8 10
+:k0 data 8 0
+:t1 data 3 0
+:t2 data 2 0
+:t3 data 3 0
+:d9 data 9 0
+
+# --- the state of the word being read
+:has data 1 0
+:bad data 1 0
+:endf data 1 0
+:one1 data 1 1
+:buf data 56 0
+:tmp data 56 0
+:v data 16 0
+:v3 data 16 0
+:v1 data 16 0
+:d16 data 16 0
+:s17 data 17 0
+:s17b data 17 0
+:zb data 56 0
+:z16 data 16 0
+:z5 data 5 0
+
+# --- the search
+:ent data 56 0
+:m data 14 0
+:j data 5 0
+:one4 data 4 1
+
+# --- the answer
+:dd data 12 0
+:out data 32 "000\n"
+:qnl data 16 "?\n"
+:hash data 8 "#"
+:nl data 8 "\n"
+:hx3 data 8 0
+:hx2 data 8 0
+:hx1 data 8 0
+:hx0 data 8 0
+
+:main block
+goto &read
+
+# a byte: the number c from the two nibbles (rev4 turns a nibble of the stream into a number)
+:read block
+key &ch
+lut &rev4 &ch[0:4] &hi
+lut &rev4 &ch[4:8] &lo
+copy &c[0:4] &lo
+copy &c[4:8] &hi
+lt &c &k33 &t1
+if &t1[2] &sep &chr
+
+# a separator: the word is complete (if there is one); c == 0 ends the text
+:sep block
+eq &c &k0 &t2
+copy &endf &t2[1]
+if &has &tok &fin
+
+# a letter: into the buffer from the high end; a digit adds to v = 10 v + digit, any other byte makes bad
+:chr block
+copy &has &one1
+copy &tmp[0:48] &buf[8:56]
+copy &tmp[48:56] &ch
+copy &buf &tmp
+sub &c &k48 &d9
+if &d9[8] &nodigit &below
+:below block
+lt &d9[0:8] &k10 &t3
+if &t3[2] &digit &nodigit
+:nodigit block
+copy &bad &one1
+goto &read
+:digit block
+shl &v &v3 3
+shl &v &v1 1
+add &v3 &v1 &s17
+copy &d16[0:8] &d9[0:8]
+add &s17[0:16] &d16 &s17b
+copy &v &s17b[0:16]
+goto &read
+
+# the word is complete: not only digits, then the search; only digits, then the number
+:tok block
+if &bad &first &number
+:first block
+copy &j &z5
+goto &look
+:look block
+lut &dict &j[0:4] &ent
+eq &buf &ent &m
+if &m[13] &found &next
+:next block
+lut &add4 &j[0:4] &one4 &zero &j
+if &j[4] &miss &look
+:found block
+lut &dec4 &j[0:4] &dd
+copy &out[4:8] &dd[0:4]
+copy &out[12:16] &dd[4:8]
+copy &out[20:24] &dd[8:12]
+emit &out
+goto &fin
+:miss block
+emit &qnl
+goto &fin
+:number block
+lut &hex4 &v[12:16] &hx3
+lut &hex4 &v[8:12] &hx2
+lut &hex4 &v[4:8] &hx1
+lut &hex4 &v[0:4] &hx0
+emit &hash
+emit &hx3
+emit &hx2
+emit &hx1
+emit &hx0
+emit &nl
+goto &fin
+
+# the state is cleared for the next word; the end of the text stops
+:fin block
+copy &has &zero
+copy &bad &zero
+copy &buf &zb
+copy &v &z16
+if &endf &done &read
+:done block
+halt

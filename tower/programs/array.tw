@@ -1,0 +1,34 @@
+# An array of 8 bytes: write the bytes 65 10 255 0 128 127 19 196 at the index 3i mod 8, then read the indexes
+# 7..0 in a loop with a borrow, print the bytes (progs.array_rev). The values of vals are in the order of
+# space (the first bit of a byte is the lowest bit of the number): 130 80 255 0 1 254 200 35.
+:arr array 3 8
+:vals table 3 8  130 80 255 0 1 254 200 35
+:perm table 3 3  0 3 6 1 4 7 2 5
+:lt8 table 4 1  1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0
+:i data 5 0
+:v data 8 0
+:ix data 3 0
+:c data 1 0
+:j data 4 7
+:jr data 5 0
+:o data 8 0
+:one data 4 1
+:nl data 8 "\n"
+:main block
+goto &wr
+:wr block
+lut &vals &i[0:3] &v
+lut &perm &i[0:3] &ix
+store &arr &ix &v
+lut &add4 &i[0:4] &one &zero &i
+lut &lt8 &i[0:4] &c
+if &c &wr &rd
+:rd block
+lut &arr &j[0:3] &o
+emit &o
+sub &j &one &jr
+copy &j &jr[0:4]
+if &jr[4] &done &rd
+:done block
+emit &nl
+halt

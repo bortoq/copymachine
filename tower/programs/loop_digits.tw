@@ -1,0 +1,19 @@
+# The digits 0..9 in a loop (progs.loop_digits()).
+:i data 5 0
+:ch data 8 0
+:c data 1 0
+:one data 4 1
+:nl data 8 "\n"
+# lt10: 1 while the digit is below 10
+:lt10 table 4 1  1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0
+:main block
+goto &loop
+:loop block
+lut &hex4 &i[0:4] &ch
+emit &ch
+lut &add4 &i[0:4] &one &zero &i
+lut &lt10 &i[0:4] &c
+if &c &loop &done
+:done block
+emit &nl
+halt

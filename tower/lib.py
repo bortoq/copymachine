@@ -1,7 +1,8 @@
 """Library over languages 2 and 3 (a mixin of l3.Program; it adds no row of its own).
-Over language 2 (copy, data): shl, shr. Over language 3 (lut, array, store): add, sub, band, lt, eq
+Over language 2 (copy, data): shl, shr. Over language 3 (lut, array, store): hex and decimal tables, add, sub, band, lt, eq
 (chains over 4-bit tables with carry), stack, push, pop, rec (recursive words keep return links in a stack).
 Numbers are any number of nibbles, the least significant bit first."""
+from common import rev
 from l2 import norm
 
 
@@ -40,6 +41,16 @@ class Lib:
 
     def t_sub(self):
         return self.table('sub4', (4, 4, 1), 5, lambda a, b, c: (a - b - c) & 31)
+
+    def t_hex(self):
+        """Hex digit of a nibble as a character (a byte in the order of the stream)."""
+        return self.table('hex4', (4,), 8, lambda x: rev(ord('0123456789abcdef'[x]), 8))
+
+    def t_dec(self, n):
+        """Three decimal digits of an n-bit number (n <= 10), 4 bits each, in the order of the stream."""
+        def f(x):
+            return rev(x // 100, 4) | rev(x // 10 % 10, 4) << 4 | rev(x % 10, 4) << 8
+        return self.table('dec%d' % n, (n,), 12, f)
 
     def _chain(self, t, a, b, r):
         """r[4i:4i+5] = t(a_i, b_i, r[4i]); the first carry is 0, r[n] is the last carry."""

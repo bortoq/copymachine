@@ -12,6 +12,7 @@ import l1
 import l3
 import l5
 import progs
+import text
 from l4 import host_pos
 
 PROGS = [
@@ -75,7 +76,7 @@ def main():
         print('| %s | %d / %d | %d | %d / %d | %d / %d |' % (name, len(p.layers), len(q.layers), sum(len(l.rows) for l in p.layers),
               rp.ticks, rq.ticks, len(p.stats['image']), len(q.stats['image'])))
     print('\nL2 text / L1 text over all programs: %.4f' % (tot2 / tot1))
-    print('\nlines of code (no blanks/comments):', {f: loc(f) for f in ('common.py', 'l1.py', 'l2.py', 'l3.py', 'l4.py', 'l5.py', 'lib.py', 'progs.py', 'tests/test_tower.py', 'tests/test_long.py', 'tests/test_price.py')})
+    print('\nlines of code (no blanks/comments):', {f: loc(f) for f in ('common.py', 'l1.py', 'l2.py', 'l3.py', 'l4.py', 'l5.py', 'lib.py', 'progs.py', 'tests/test_tower.py', 'tests/test_long.py', 'tests/test_price.py', 'text.py', 'tests/test_text.py')})
 
 
 def minimal(build):
@@ -166,6 +167,49 @@ def main_price():
     print('\nempty main + halt: rows %d, layers %d, text bits %d (A=10), ticks %d, price %d' % (*e, l5.price(e)))
 
 
+def main_text():
+    """23.6: the text of programs. Words per level, the lines of every program, the dictionary on the chain."""
+    levels = {}
+    for w, (lv, _, _) in text.WORDS.items():
+        levels.setdefault(lv, []).append(w)
+    print('\nwords by language:', {lv: len(ws) for lv, ws in sorted(levels.items())}, 'total', len(text.WORDS))
+    print('\n| program | lines of text (no blanks, no comments) | tokens | image B | same image as the builder |\n|---|---|---|---|---|')
+    pdir = os.path.join(common.HERE, 'programs')
+    for f in sorted(os.listdir(pdir)):
+        src = open(os.path.join(pdir, f), encoding='utf-8').read()
+        n = sum(1 for x in src.split('\n') if x.strip() and not x.strip().startswith('#'))
+        p = text.compile_text(src)[0]
+        print('| %s | %d | %d | %d | %s |' % (f, n, len(list(text.tokens(src))), len(p.stats['image']), 'yes' if f[:-3] in progs_by_name() else 'no builder: text only'))
+    src = open(os.path.join(pdir, 'dict.tw'), encoding='utf-8').read()
+    p = text.compile_text(src, level=3)[0]
+    st = p.stats
+    views = {id(t.data) for t in p.tables.values()}
+    print('\ndict.tw: A %d, P %d, layers %d, rows %d, lookups %d, tables bits %d, data bits %d, image %d B (boot %d + snapshot %d)' % (
+        p.A, st['P'], len(p.layers), sum(len(x.rows) for x in p.layers), p.lookups, sum(x.bits for x in p.gdatas),
+        sum(x.bits for x in p.datas if id(x) not in views), len(st['image']), st['boot_bytes'], st['snapshot_bytes']))
+    base = common.run(st['image'], st['A'], st['P'], stdin=b'\x00', limit=2000000).ticks
+    print('ticks of an empty text (one zero byte): %d' % base)
+    print('\n| input (repeated 10 times, one space after each) | ticks per word |\n|---|---|')
+    per = {}
+    for label, w in (('first word of the dictionary: copy', b'copy'), ('last word of the dictionary: stack', b'stack'),
+                     ('not in the dictionary: zzz', b'zzz'), ('number 7', b'7'), ('number 65535', b'65535')):
+        r = common.run(st['image'], st['A'], st['P'], stdin=(w + b' ') * 10 + b'\x00', limit=2000000)
+        assert r.rc == 0
+        per[w] = (r.ticks - base) / 10
+        print('| %s | %.1f |' % (label, per[w]))
+    t = lambda w: common.run(st['image'], st['A'], st['P'], stdin=w + b' \x00', limit=2000000).ticks
+    print('\nticks per separator byte (spaces only) %.1f; per further letter of a word %.1f; per further digit %.1f' % (
+        (common.run(st['image'], st['A'], st['P'], stdin=b' ' * 6 + b'\x00', limit=2000000).ticks - base) / 6,
+        (t(b'zzzzz') - t(b'z')) / 4, (t(b'11111') - t(b'1')) / 4))
+    print('search: %.1f ticks per dictionary entry compared' % ((per[b'stack'] - per[b'copy']) / 15))
+
+
+def progs_by_name():
+    return {'add', 'branch', 'loop_digits', 'loop_sum', 'calls', 'and_hex', 'add16_hex', 'array', 'arith8', 'arith16',
+            'echo', 'fib', 'long_rw', 'long_read', 'long_clock', 'long_cat'}
+
+
 main()
 main_long()
 main_price()
+main_text()

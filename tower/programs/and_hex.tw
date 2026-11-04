@@ -1,0 +1,12 @@
+# 0xac and 0x3f, two hex digits, the high one first (progs.and_hex(0xac, 0x3f)).
+:a data 8 0xac
+:b data 8 0x3f
+:r data 8 0
+:ch data 8 0
+:main block
+band &a &b &r
+lut &hex4 &r[4:8] &ch
+emit &ch
+lut &hex4 &r[0:4] &ch
+emit &ch
+halt
