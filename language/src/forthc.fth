@@ -846,14 +846,16 @@ variable fc-sy
   s" %w" fc-lookup 3 cells + @ dup fc-rt ! fc-rta ! ;
 \ The platforms (15.3, language/doc/platform.md), before the replacement. %RUN, %TIME ( xt -- ns err ), %BOTH, %ST: the
 \ time by the clock (area 0 of the host), one run, then 7. %HOST ( x k -- r ) runs the host program K (GEN-HOST: text at HB + 32,
-\ length at HB). The commands (%EXEC) are in the stream at P = 2^30 + 2^29 + 2^26 + 152 + 1024 i (%KL, %RV); the clock is
+\ length at HB). The commands (%EXEC) are in the stream at P = 2^30 + 2^29 + 2^26 + LAY-REC + 1024 i (%KL, %RV); the clock is
 \ read to P + 2920, x at P + 3048, r at P + 3176. %PF: the cell p holds the xt of the word that runs the definition on the platform p.
 variable fc-nhost
 : fc-platform ( -- )
-  0 fc-nhost ! 1677721752 s" : > host.c" lay-put 1677722776 s" cc -O2 -o h? host.c" lay-put
-  1677723800 s" ./h?" lay-put s" variable %tm variable %tn variable %tq variable %hk variable %hl" fc-eval
+  0 fc-nhost ! lay-rec 1677721600 + s" : > host.c" lay-put lay-rec 1677722624 + s" cc -O2 -o h? host.c" lay-put
+  lay-rec 1677723648 + s" ./h?" lay-put lay-rec fc-ct+ s" constant %rec" fc-eval
+  lay-rec 1677722712 + fc-ct+ s" constant %k1" fc-eval lay-rec 1677723672 + fc-ct+ s" constant %k2" fc-eval
+  s" variable %tm variable %tn variable %tq variable %hk variable %hl" fc-eval
   s" create %hf 64 allot create %pf 8 allot create %ra 28 allot create %rb 28 allot" fc-eval
-  s" : %clock 0 1677724672 1677724736 %lld 1677724672 space@ ;" fc-eval
+  s" : %clock 0 0 %pz 1677724672 1677724736 %lld 1677724672 space@ ;" fc-eval
   s" : %run %clock >r 0 swap execute drop %clock r> - ; : %st -1 %tm ! 0 %tn ! 0 %tq ! 7 0 do" fc-eval
   s" dup i cells + @ dup %tm @ u< if dup %tm ! then dup %tn @ u< 0= if %tn @ %tq ! dup %tn ! else" fc-eval
   s" dup %tq @ u< 0= if dup %tq ! then then drop loop drop %tm @ %tq @ %tm @ - ;" fc-eval
@@ -862,11 +864,11 @@ variable fc-nhost
   s" loop drop drop %ra %st %rb %st ; : %rv dup 1 and 7 lshift over 2 and 5 lshift or over 4 and" fc-eval
   s" 3 lshift or over 8 and 1 lshift or over 16 and 1 rshift or over 32 and 3 rshift or over 64 and" fc-eval
   s" 5 rshift or swap 128 and 7 rshift or ; : %kl swap 97 + %rv swap spacec! ;" fc-eval
-  s" : %exec over 5 swap spacec! dup 2 pick 56 + space! 8 * 152 + over + >r >r" fc-eval
-  s" 2147483648 2147483648 r> r> %copy ; : %host dup 1677722864 %kl dup 1677723824 %kl dup 22 lshift 1610612736 +" fc-eval
+  s" : %exec over 5 swap spacec! dup 2 pick 56 + space! 8 * %rec + over + >r >r" fc-eval
+  s" 2147483648 2147483648 r> r> %copy ; : %host dup %k1 %kl dup %k2 %kl dup 22 lshift 1610612736 +" fc-eval
   s" dup %hk ! space@ %hl ! cells %hf + dup @ 0= if -1 swap ! 1677721600 10 %exec" fc-eval
-  s" 268435456 %hk @ 32 + dup %hl @ + %lst 1677722624 19 %exec else drop then 1677724800" fc-eval
-  s" space! 536870912 1677724800 1677724832 %lst 1677723648 4 %exec 536870944 1677724928 1677724960 %lld" fc-eval
+  s" 0 1 %pz %hk @ 32 + dup %hl @ + %lst 1677722624 19 %exec else drop then 1677724800" fc-eval
+  s" space! 0 2 %pz 1677724800 1677724832 %lst 1677723648 4 %exec 32 2 %pz 1677724928 1677724960 %lld" fc-eval
   s" 1677724928 space@ ; : %guest execute ; : %pt cells %pf + @ ;" fc-eval
   s" ['] %guest %pf ! ['] %host %pf 4 + !" fc-eval
   s" time" s" %time" fc-synonym s" platform" s" %pt" fc-synonym ;
@@ -917,26 +919,36 @@ variable fc-nhost
   s" swap r@ rshift swap r> - 1 swap lshift swap 1000000 * swap / ;" fc-eval
   s" check-table" s" %check" fc-synonym s" accuracy" s" %acc" fc-synonym s" proved?" s" %prv" fc-synonym
   fc-uses @ 128 and if fc-platform then fc-uses @ 32 and if fc-replacement then ;
-\ The long copy (15.2, 18.24; emulator/src/proto.def): ( pos lo hi -- ) to the address space of the host (synonym of %LST) and from
-\ it (%LLD); pos = area * 2^28 + bits in the area (HOST_AREA_BITS of proto.def; the cell holds it), area 0 the clock, areas 1..
-\ the -r files and devices in order. No errors: outside - zeros, a write is lost. The price of LONG! and LONG@ is FC-FORBID (as of
-\ the division by 0). Not in the platforms of a program of the kernel (-13).
-\ Outside the kernel (FC-GUARD 0): %LR ( pos len dir -- ) writes the request record LONG at W = 2^30 + 2^28 (chan 0) and %COPY
+\ The long copy (15.2, 18.24, 18.25; emulator/src/proto.def): ( p0 p1 p2 p3 lo hi -- ) to the address space of the host (synonym
+\ of %LST) and from it (%LLD); the position is LAY-CELLS cells, the least significant first (p3 the last), the area the last cell,
+\ the position in the area the rest (HOST_POS_BITS, HOST_AREA_BITS of proto.def: 128, 96 bits); area 0 the clock, areas 1.. the -r
+\ files and devices in order. No errors: outside - zeros, a write is lost. The price of LONG! and LONG@ is FC-FORBID (as of
+\ the division by 0). Not in the platforms of a program of the kernel (-13). %PN (constant) is the number of cells of the position;
+\ %PZ ( pos area -- p0 .. ) is the position with the cells between zeros. In the host the words are without loops (the price of
+\ a word that calls them is known, the platforms compare it): the text of %LR is made cell by cell (FC-NUM).
+\ Outside the kernel (FC-GUARD 0): %LR ( p0 .. len dir -- ) writes the request record LONG at W = 2^30 + 2^28 (chan 0) and %COPY
 \ copies it to S = 2^31.
 : fc-forbidden ( addr u -- ) fc-lookup >r fc-forbid dup dup -1 r> 10 cells + fc-cost! ;
+: fc-num ( v -- ) \ a number in the text of the definition being compiled: the same as the token of the number
+  fc-ll @ fc-plit ! fc-llr @ fc-plr ! fc-llv @ fc-plv ! 0 fc-ll ! fc-code fc-literal ;
 : fc-long-host ( -- )
   s" %copy" ['] fc-copy-row 0 fc-generator
+  lay-rec 1342177280 + fc-ct+ s" constant %rd" fc-eval
+  s" : %pz" fc-eval lay-cells 2 - 0 ?do s" 0 swap" fc-eval loop s" ;" fc-eval
   s" variable %la variable %ln : %lr 1342177320 space! dup %ln ! 1342177336 space!" fc-eval
-  s" 1342177368 space! 0 1342177400 space! 0 1342177288 space!" fc-eval
+  lay-cells 0 do lay-cells 1- i - 5 lshift 1342177368 + fc-num s" space!" fc-eval loop
+  s" 0 1342177288 space!" fc-eval
   s" 6 1342177280 spacec! ; : %lld over %la ! swap - 1 %lr 2147483648 2147483648 1342177280" fc-eval
-  s" 1342177432 %copy %la @ dup %ln @ + 2147483648 2147483648 %copy ; : %lst over %la ! swap - 0 %lr" fc-eval
-  s" 1342177432 dup %ln @ + %la @ dup %ln @ + %copy 2147483648 2147483648 1342177280 1342177432 %ln @ + %copy ;" fc-eval ;
+  s" %rd %copy %la @ dup %ln @ + 2147483648 2147483648 %copy ; : %lst over %la ! swap - 0 %lr" fc-eval
+  s" %rd dup %ln @ + %la @ dup %ln @ + %copy 2147483648 2147483648 1342177280 %rd %ln @ + %copy ;" fc-eval ;
 \ In a program of the kernel (18.24 step 2, language/doc/isolation.md): the request is a block LAY-REQ in the data of the program
 \ (upper half): its header (LAY-HDR bits: op 6, chan 0, flags = the direction) is copied only from a template, a cell of the code
-\ of two no-op rows (FC-LTPL), the program gives pos (off) and the length (arg) as values; %LW ( pos lo n -- ) copies the LAY-CAP
-\ bits from lo (the low bits of lo are patched in, as of SPACE@) after the header and sends the block; %LR ( pos lo hi n -- )
-\ sends the header and copies the answer into [lo, hi) of the data (the low bits of both). One row to SYS: the whole block.
-variable fc-ltpl variable fc-lpos variable fc-llo variable fc-lhi variable fc-lcn variable fc-ldir
+\ of two no-op rows (FC-LTPL), the program gives the position (off, LAY-CELLS cells, each in a layer of its own) and the length (arg)
+\ as values; %LW ( p0 .. lo n -- ) copies the LAY-CAP bits from lo (the low bits of lo are patched in, as of SPACE@) after the
+\ header and sends the block; %LR ( p0 .. lo hi n -- ) sends the header and copies the answer into [lo, hi) of the data (the low
+\ bits of both). One row to SYS: the whole block. %LST sends in pieces: %PAD ( c -- f ) moves the position in the area by c with
+\ the carry between the cells, f: the carry out of the area (what is past it is lost, as in the emulator).
+variable fc-ltpl create fc-lpos lay-cells cells allot variable fc-llo variable fc-lhi variable fc-lcn variable fc-ldir
 variable fc-lp0 variable fc-lp1 variable fc-lpl
 : fc-ltemplate ( -- )
   lay-lone fc-lpl ! fc-lpl @ lay-layer-cell fc-lpl @ lay-next!
@@ -946,11 +958,14 @@ variable fc-lp0 variable fc-lp1 variable fc-lpl
   lay-layer >r
   32 lay-req 56 + fc-lcn @ lay-copy r@ lay-row drop
   lay-hdr lay-req fc-ltpl @ fc-ldir @ 0 lay-field lay-copy r> lay-row drop
-  32 lay-req 88 + fc-lpos @ lay-copy fc-rows1 ;
+  lay-cells 0 do 32 lay-req lay-rec lay-pos - + i 5 lshift + i cells fc-lpos + @ lay-copy fc-rows1 loop ;
 : fc-lsend ( -- ) lay-size @ dup lay-req dup lay-rec + lay-cap + fc-rows1 ;
+: fc-lpop ( -- ) \ the cells of the position from the stack of the registers (the last on the top) into FC-LPOS
+  lay-cells 0 do fc-pop1 lay-cells 1- i - cells fc-lpos + ! loop ;
 : fc-lput ( -- )
-  fc-code 3 fc-need fc-pop1 fc-lcn ! fc-pop1 fc-stlo ! fc-pop1 fc-lpos !
-  fc-lpos @ fc-pin ! fc-stlo @ fc-pin cell+ ! fc-lcn @ fc-pin 2 cells + ! 3 fc-npin !
+  fc-code lay-cells 2 + fc-need fc-pop1 fc-lcn ! fc-pop1 fc-stlo ! fc-lpop
+  lay-cells 0 do i cells fc-lpos + @ i cells fc-pin + ! loop
+  fc-stlo @ lay-cells cells fc-pin + ! fc-lcn @ lay-cells 1+ cells fc-pin + ! lay-cells 2 + fc-npin !
   lay-cap fc-space-end lay-layer fc-lp0 ! lay-layer fc-lp1 !
   0 fc-ldir ! fc-lhead lay-layer fc-strow !
   lay-req lay-rec + dup lay-cap + lay-cap fc-sbase fc-strow @ lay-row
@@ -958,19 +973,23 @@ variable fc-lp0 variable fc-lp1 variable fc-lpl
   fc-sw1 fc-strow @ lay-layer-cell rot 3 lay-field fc-sthi @ lay-copy fc-lp1 @ lay-row drop
   fc-lsend ;
 : fc-lget ( -- )
-  fc-code 4 fc-need fc-pop1 fc-lcn ! fc-pop1 fc-lhi ! fc-pop1 fc-llo ! fc-pop1 fc-lpos !
+  fc-code lay-cells 3 + fc-need fc-pop1 fc-lcn ! fc-pop1 fc-lhi ! fc-pop1 fc-llo ! fc-lpop
   lay-layer fc-lp0 ! lay-layer fc-lp1 ! 1 fc-ldir ! fc-lhead fc-lsend lay-layer fc-strow !
   1 fc-sbase lay-size @ dup fc-strow @ lay-row
   fc-sw0 fc-strow @ lay-layer-cell 2 pick 0 lay-field fc-llo @ lay-copy fc-lp0 @ lay-row drop
   fc-sw0 fc-strow @ lay-layer-cell rot 1 lay-field fc-lhi @ lay-copy fc-lp1 @ lay-row drop ;
 : fc-long-kernel ( -- )
   fc-ltemplate s" %lw" ['] fc-lput 0 fc-generator s" %lr" ['] fc-lget 0 fc-generator
-  s" variable %lp variable %lo variable %ln : %lst over over u< 0= if drop drop drop exit then" fc-eval
-  s" over - %ln ! %lo ! %lp ! 268435456 %lp @ 268435455 and - dup %ln @ u< if %ln ! else drop then" fc-eval
-  s" begin %ln @ while %lp @ %lo @ %ln @ dup 65536 u< 0= if drop 65536 then dup >r %lw" fc-eval
-  s" %lp @ r@ + %lp ! %lo @ r@ + %lo ! %ln @ r> - %ln ! repeat ;" fc-eval
-  s" : %lld over over u< 0= if drop drop drop exit then over over swap - %lr ;" fc-eval ;
+  s" create %lp" fc-eval lay-cells 2 lshift fc-ct+ s" allot variable %lo variable %ln variable %pc variable %pt" fc-eval
+  s" : %pst %pn 0 do %pn 1- i - cells %lp + ! loop ; : %pdrop %pn 0 do drop loop ;" fc-eval
+  s" : %pad %pc ! %pn 1- 0 do %lp i cells + dup @ %pc @ + dup %pt ! swap ! %pt @ %pc @ u<" fc-eval
+  s" if 1 else 0 then %pc ! loop %pc @ ;" fc-eval
+  s" : %lst over over u< 0= if drop drop %pdrop exit then over - %ln ! %lo ! %pst" fc-eval
+  s" begin %ln @ while %pn 0 do %lp i cells + @ loop %lo @ %ln @ dup 65536 u< 0= if drop 65536 then dup >r %lw" fc-eval
+  s" %lo @ r@ + %lo ! %ln @ r@ - %ln ! r> %pad if 0 %ln ! then repeat ;" fc-eval
+  s" : %lld over over u< 0= if drop drop %pdrop exit then over over swap - %lr ;" fc-eval ;
 : fc-long ( -- )
+  lay-cells fc-ct+ s" constant %pn" fc-eval
   fc-guard @ if fc-uses @ 128 and if -13 fc-reject then fc-long-kernel else fc-long-host then
   s" long!" s" %lst" fc-synonym s" long@" s" %lld" fc-synonym
   s" long!" fc-forbidden s" long@" fc-forbidden ;

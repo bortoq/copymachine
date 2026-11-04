@@ -17,7 +17,7 @@
       "origin_in_archive": "forth/scripts/forthc/prelude.fth"
     },
     "src/backend.fth": {
-      "copy_sha256": "069625e5f377cc20182dfeb6effea8e9250765465b5f3fb6058a85ce3c8c663a",
+      "copy_sha256": "75356bd060ed22ec0109a616168e61912f46823b5715e78927d7353e63e915d2",
       "origin_in_archive": "copycode/forth/backend.fth"
     },
     "src/compute.fth": {
@@ -25,7 +25,7 @@
       "origin_in_archive": "copycode/forth/compute.fth"
     },
     "src/forthc.fth": {
-      "copy_sha256": "a75a15a69633e0854ad48114a1614cd1a40706352345b84f81b559ba3a8feb91",
+      "copy_sha256": "6a2ead16053dd048076379bbfcb5eb0bb290ab45a4669a9f9839f2fb4db64d31",
       "origin_in_archive": "forth/scripts/forthc/forthc.fth"
     },
     "src/primitives.fth": {

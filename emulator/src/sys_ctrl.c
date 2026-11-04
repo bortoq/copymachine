@@ -11,13 +11,14 @@
  * RSP fields: op(0) status(1) flags(2) size(3) moved(4) eof(5).
  *
  * LONG (15.2) is the long copy: flags bit 0 = from the address space of
- * the host, arg = bits, off = position (proto.def; chan is not used). A
+ * the host, arg = bits, off = position (HOST_POS_BITS wide, proto.def; chan is not used). A
  * copy from it makes the following answer reads give its bits. Area 0 of
  * the host is the clock, areas 1.. the -r files and devices; no errors.
  */
 #include "sys_ctrl.h"
 #include "proto_gen.h"
 #include <errno.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -176,11 +177,25 @@ size sys_device_pos(unsigned id)
   return 0;
 }
 
+/* a field wider than 64 bits (off) is seen by the control requests as its low 64 bits;
+ * LONG reads all of it (long_pos) */
+static size field_get(size at, size w)
+{
+  return space_get(at, w < 64 ? w : 64);
+}
+
+static void field_put(size w, size value, size at)
+{
+  space_put(w < 64 ? w : 64, value, at);
+  for(at += 64; w > 64; w -= 64, at += 64)
+    space_put(w - 64 < 64 ? w - 64 : 64, 0, at);
+}
+
 void sys_encode_req(size base, const size *v)
 {
   unsigned i;
   for(i = 0; i < REQ_NFIELDS; ++i)
-    space_put(req_w[i], v[i], (size)(base + req_off[i]));
+    field_put(req_w[i], v[i], (size)(base + req_off[i]));
 }
 
 void sys_decode_rsp(size base, size *v)
@@ -198,7 +213,7 @@ static void decode_req(size base, size *v)
 {
   unsigned i;
   for(i = 0; i < REQ_NFIELDS; ++i)
-    v[i] = space_get((size)(base + req_off[i]), req_w[i]);
+    v[i] = field_get((size)(base + req_off[i]), req_w[i]);
 }
 
 static void rsp_reset(channel *c)
@@ -448,20 +463,39 @@ static void file_read(int fd, unsigned char *t, size b0, size nb)
   }
 }
 
+/* the bits [from, from + n) of the field off of the request at base, n <= 64, zeros past the field */
+static size off_bits(size base, size from, size n)
+{
+  size w = req_w[4];
+  if(from >= w)
+    return 0;
+  return space_get((size)(base + req_off[4] + from), n < w - from ? n : w - from);
+}
+
 /*
  * serve a LONG request at bit address base (n bits written to SYS) in the
  * address space of the host (proto.def): off = area * 2^HOST_AREA_BITS +
- * position. From it: the bits go to long_data for the answer reads; to it:
- * the len bits after the record. There are no errors: what is outside an
- * area, in an unknown area, in a file that is not open, or past the end of
- * a file reads as zeros and is lost on write; no exit, no message.
+ * position, HOST_POS_BITS wide. From it: the bits go to long_data for the
+ * answer reads; to it: the len bits after the record. There are no errors:
+ * what is outside an area, in an unknown area, in a file that is not open,
+ * past what the file offset of the host holds, or past the end of a file
+ * reads as zeros and is lost on write; no exit, no message.
  */
+_Static_assert(HOST_AREA_BITS > 64 && HOST_AREA_BITS <= 128, "position in the area: 64 < HOST_AREA_BITS <= 128");
+_Static_assert(HOST_POS_BITS > HOST_AREA_BITS && HOST_POS_BITS - HOST_AREA_BITS <= 64, "area: the top bits of off, 64 at most");
 static void long_copy(size base, size n, const size *v)
 {
-  size from = v[2] & 1u, len = v[3], off = v[4];
-  size area = off >> HOST_AREA_BITS, pos = off & (((size)1 << HOST_AREA_BITS) - 1);
+  size from = v[2] & 1u, len = v[3];
+  size lo = off_bits(base, 0, 64), hi = off_bits(base, 64, HOST_AREA_BITS - 64);   /* position in the area */
+  size area = off_bits(base, HOST_AREA_BITS, HOST_POS_BITS - HOST_AREA_BITS);
+  size top = HOST_AREA_BITS == 128 ? ~(size)0 : ((size)1 << (HOST_AREA_BITS - 64)) - 1;
   size data = (size)(base + req_bits);
-  size in = len < ((size)1 << HOST_AREA_BITS) - pos ? len : ((size)1 << HOST_AREA_BITS) - pos;
+  /* the part of the area from pos on: 2^HOST_AREA_BITS - pos bits */
+  size in = (hi == top && (size)(0 - lo) < len && lo != 0) ? (size)(0 - lo) : len;
+  /* the byte of the file: pos / 8 must fit the file offset of the host (off_t), pos + len too */
+  size b0 = (hi << 61) | (lo >> 3);
+  size nb = (size)((lo % CHAR_BIT + in + CHAR_BIT - 1) / CHAR_BIT);
+  int inside = hi < 4 && b0 <= (size)INT64_MAX - nb;
   if(from)
   {
     free(long_data);
@@ -476,16 +510,16 @@ static void long_copy(size base, size n, const size *v)
       struct timespec ts;
       clock_gettime(CLOCK_MONOTONIC, &ts);
       buf_put(t, 0, 64, (size)ts.tv_sec * 1000000000u + (size)ts.tv_nsec);
-      long_take(t, 64, pos, in);
+      if(hi == 0)
+        long_take(t, 64, lo, in);
     }
-    else if(area - 1 < (size)nremote && in)
+    else if(area - 1 < (size)nremote && in && inside)
     {
-      size nb = (size)((pos % CHAR_BIT + in + CHAR_BIT - 1) / CHAR_BIT);
       unsigned char *t = calloc((size_t)nb, 1);
       if(t == NULL)
         return;
-      file_read(remote_fd[area - 1], t, pos / CHAR_BIT, nb);
-      bitcpy((size_t)in, t, (size_t)(pos % CHAR_BIT), long_data, 0);
+      file_read(remote_fd[area - 1], t, b0, nb);
+      bitcpy((size_t)in, t, (size_t)(lo % CHAR_BIT), long_data, 0);
       free(t);
     }
     return;
@@ -493,15 +527,15 @@ static void long_copy(size base, size n, const size *v)
   long_pending = 0;
   if(n < (size)(req_bits + len))
     return;
-  if(area >= 1 && area - 1 < (size)nremote && in && remote_fd[area - 1] >= 0)
+  if(area >= 1 && area - 1 < (size)nremote && in && inside && remote_fd[area - 1] >= 0)
   {
     int fd = remote_fd[area - 1];
-    size b0 = pos / CHAR_BIT, nb = (size)((pos % CHAR_BIT + in + CHAR_BIT - 1) / CHAR_BIT), put = 0;
+    size put = 0;
     unsigned char *t = calloc((size_t)nb, 1);
     if(t == NULL)
       return;
     file_read(fd, t, b0, nb);         /* the bits around the copy stay */
-    bitcpy((size_t)in, space, (size_t)data, t, (size_t)(pos % CHAR_BIT));
+    bitcpy((size_t)in, space, (size_t)data, t, (size_t)(lo % CHAR_BIT));
     while(put < nb)
     {
       ssize_t w = pwrite(fd, t + put, (size_t)(nb - put), (off_t)(b0 + put));
@@ -602,6 +636,7 @@ void sys_init(void)
       fprintf(stderr, "emulator: out of memory\n");
       exit(EXIT_MEMORY);
     }
+    signal(SIGXFSZ, SIG_IGN);         /* a write past a size limit of the host is lost (EFBIG), not fatal */
     for(k = 0; k < (size)nremote; ++k)
       remote_fd[k] = open(remote_paths[k], O_RDWR | O_CREAT | O_CLOEXEC, 0666);
   }

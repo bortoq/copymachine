@@ -52,7 +52,7 @@ PATCH = r'''
     for(a=3*(1u<<26);a<(1u<<28);a++) hk=(hk^space[a])*1099511628211ull;
     for(a=(1u<<25);a<(1u<<26);a++) hc=(hc^space[a])*1099511628211ull;
     for(a=(1u<<27)+(1u<<25);a<(1u<<27)+(1u<<26);a++)
-      if(a<(1u<<27)+(1u<<25)+128 || a>=(1u<<27)+(1u<<25)+128+8211) hd=(hd^space[a])*1099511628211ull;
+      if(a<(1u<<27)+(1u<<25)+128 || a>=(1u<<27)+(1u<<25)+128+@BLOCK@) hd=(hd^space[a])*1099511628211ull;
     fprintf(stderr,"kernel %016llx code-tail %016llx data-tail %016llx header %02x\n",(unsigned long long)hk,
             (unsigned long long)hc,(unsigned long long)hd,space[(1u<<27)+(1u<<25)+128]);
   }
@@ -68,7 +68,7 @@ def build_emulator(directory):
     text = runtime.read_text()
     old = '  fflush(stdout); destroy_space();'
     assert old in text
-    runtime.write_text(text.replace(old, PATCH))
+    runtime.write_text(text.replace(old, PATCH.replace('@BLOCK@', str((88 + paths.HOST_POS_BITS + 65536) // 8))))   # the request block of the data: lay-rec + lay-cap bits
     out = directory / 'emulator'
     subprocess.run(['cc', '-O2', '-std=c11', *(str(directory / f) for f in
                     ('runtime.c', 'sys_ctrl.c', 'bitcopy.c', 'backend_bitcopy.c')), '-o', str(out)], check=True)
@@ -170,7 +170,8 @@ def forged_returns():
     }
 
 
-AREA = 1 << 28                                 # HOST_AREA_BITS of proto.def: the area 1 is the first -r path
+AREA = paths.host_pos(1)                       # the position 0 of the area 1, the first -r path (HOST_POS_BITS cells of proto.def)
+REC = 88 + paths.HOST_POS_BITS                 # lay-rec: the record LONG is op 8, chan 32, flags 16, arg 32, off
 REQ_OP = 0x60                                  # the first byte of the header of the request after the run: op 6 (LONG), numeric
 
 
@@ -185,22 +186,28 @@ def long_probes(folder):
     cmd = f'touch {marker}'
     n = len(cmd)
     forged = f'5 {FREE} spacec! {n} {FREE + 56} space!\n' + '\n'.join(
-        f'{rev8(ord(c))} {FREE + 152 + 8 * i} spacec!' for i, c in enumerate(cmd))
-    lo, hi = FREE, FREE + 152 + 8 * n
+        f'{rev8(ord(c))} {FREE + REC + 8 * i} spacec!' for i, c in enumerate(cmd))
+    lo, hi = FREE, FREE + REC + 8 * n
     out = {}
     out['long! of a forged EXEC record sends it as data'] = dict(
         program=(f': main key 49 = if {forged}\n  {AREA} {lo} {hi} long! then 89 emit ;'), file=bytes(64),
         exec_record=(forged, lo, hi, n), want_output='Y')
     far = 4294967295
+    area = paths.host_pos(far)                 # an area no path gives
+    wide = paths.host_pos(1, (1 << 64) + 8)    # the position in the area past 2^64 bits
+    edge = paths.host_pos(1, (1 << paths.HOST_AREA_BITS) - 8)   # across the end of the area
     out['long! and long@ with arguments outside'] = dict(
-        program=(f': main key 49 = if {far} {FREE} {FREE + 64} long! {AREA} {FREE + 64} {FREE} long!\n'
-                 f'  {AREA} {FREE} {FREE + (1 << 27)} long! {far} {FREE} {FREE + 64} long@\n'
+        program=(f': main key 49 = if {area} {FREE} {FREE + 64} long! {AREA} {FREE + 64} {FREE} long!\n'
+                 f'  {AREA} {FREE} {FREE + (1 << 27)} long! {area} {FREE} {FREE + 64} long@\n'
                  f'  {AREA} {FREE + 64} {FREE} long@ {AREA} {FREE + 64} {FREE + 64} long@\n'
                  f'  {AREA} {far} {far - 64} long@ {AREA} {far - 8} {far} long! {AREA} {(1 << 28) - 8} {(1 << 28) + 8} long@\n'
+                 f'  {wide} {FREE} {FREE + 64} long! {wide} {FREE} {FREE + 64} long@ {edge} {FREE} {FREE + 192} long!\n'
+                 f'  {edge} {FREE} {FREE + 192} long@ {edge} {FREE} {FREE + (1 << 17)} long!\n'
                  f'  then 89 emit ;'), file=bytes(range(64)), want_output='Y')
-    # the answer of the host over the stack of returns forges the pair of the return of F: the numbers 2, 2 (the points are
-    # numbered in the order of the calls: 0 the call of %lld in F, 1 the call of F, 2 the call of P): F returns after P
-    pair = bytes([0x40, 0, 0, 0, 0x40, 0, 0, 0])
+    # the answer of the host over the stack of returns forges the pair of the return of F: the numbers 3, 3 (the points are
+    # numbered in the order of the calls: 0 the call of %pdrop in %lld, 1 the call of %lld in F, 2 the call of F, 3 the call of P;
+    # %lst, which this program does not use, has none): F returns after P
+    pair = bytes([3 << 5, 0, 0, 0, 3 << 5, 0, 0, 0])
     out['the answer of the host forges a return'] = dict(
         program=(f': p 80 emit ;\n: f {AREA} {RSTACK + 128} {RSTACK + 192} long@ ;\n'
                  ': main 65 emit key 49 = if f then p 66 emit ;'), file=pair, control_output='APB', want_output='AB')
@@ -229,7 +236,7 @@ def run_long(item):
 def exec_sanity(emulator, folder, case):
     """The forged record is a real EXEC: sent as a request by a program of the host (the whole space) it makes the marker."""
     forged, lo, hi, _ = case['exec_record']
-    source = f': unused 0 0 0 long! ;\n: main {forged}\n  2147483648 2147483648 {lo} {hi} %copy ;'
+    source = f': unused {paths.host_pos(0)} 0 0 long! ;\n: main {forged}\n  2147483648 2147483648 {lo} {hi} %copy ;'
     stream = check_programs.compile_on_host(host.build(), paths.source_bytes(paths.LIBRARY_FILES), source)
     marker = folder / 'marker'
     marker.unlink(missing_ok=True)

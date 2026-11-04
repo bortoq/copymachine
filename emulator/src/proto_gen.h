@@ -20,7 +20,7 @@ static const proto_field proto_req[] = {
   {"chan", 0, PK_ADDR},
   {"flags", 16, PK_LIT},
   {"arg", 32, PK_LIT},
-  {"off", 64, PK_LIT},
+  {"off", 128, PK_LIT},
 };
 #define REQ_NFIELDS 5
 
@@ -43,6 +43,7 @@ static const proto_dev proto_devs[] = {
   {4, "snapshot", "w"},
 };
 #define PROTO_NDEVS 5
-#define HOST_AREA_BITS 28
+#define HOST_POS_BITS 128
+#define HOST_AREA_BITS 96
 
 #endif /* PROTO_GEN_H_ */

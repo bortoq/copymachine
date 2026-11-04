@@ -44,7 +44,7 @@ MEMORY_MIB ?= 768
 BIG_MEMORY_MIB ?= 1536
 # Parallel runs (check-kernel, check-isolation) take $(3) CPUs: the CPU of the tree and COPYMACHINE_JOBS follow it.
 CPUS ?= $(shell nproc)
-limit = $(PYTHON) -B "$(LIMITED_RUN)" --seconds $(1) --memory-mib $(or $(2),$(MEMORY_MIB)) --file-mib 64 --cpus $(or $(3),1)
+limit = $(PYTHON) -B "$(LIMITED_RUN)" --seconds $(1) --memory-mib $(or $(2),$(MEMORY_MIB)) --file-mib $(or $(4),64) --cpus $(or $(3),1)
 ifeq ($(COPYMACHINE_LIMITED),1)
 limit =
 endif
@@ -110,7 +110,7 @@ check-tests: $(L0)
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_literals.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_language_md.py
 	$(call limit,$(TEST_SECONDS)) $(PYTHON) -B tests/test_word.py
-	$(call limit,$(TEST_SECONDS),$(BIG_MEMORY_MIB)) $(PYTHON) -B tests/test_long_copy.py
+	$(call limit,$(TEST_SECONDS),$(BIG_MEMORY_MIB),,2048) $(PYTHON) -B tests/test_long_copy.py
 	$(call limit,$(TEST_SECONDS),$(BIG_MEMORY_MIB)) $(PYTHON) -B tests/test_platform.py
 # Isolation of the kernel (14.10, 18.18): probes of L0 (about 20 minutes), not part of check; the word of
 # disjointness on the host is tests/test_disjoint.py (check-fast-tests).

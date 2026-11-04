@@ -4,8 +4,8 @@
 Usage: proto_gen.py <proto.def> <out.h>
 
 The generated header carries: operation codes, request/response field
-tables (name, literal-or-symbolic width), the device table and the
-constants (XCONST). The
+tables (name, literal-or-symbolic width; a constant defined by an earlier
+XCONST also serves as a width), the device table and the constants (XCONST). The
 emulator (sys_ctrl.c) computes offsets and REQ_BITS/RSP_BITS from these
 tables at run time, so widths may depend on the space size (ADDR, NF).
 """
@@ -43,6 +43,8 @@ def parse(path):
                 kind, name, width = m.groups()
                 if width.isdigit():
                     entry = (name, int(width), "PK_LIT")
+                elif width in dict(consts):
+                    entry = (name, dict(consts)[width], "PK_LIT")
                 elif width in KNOWN_WIDTHS:
                     entry = (name, 0, KNOWN_WIDTHS[width])
                 else:

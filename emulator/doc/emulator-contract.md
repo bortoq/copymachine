@@ -151,7 +151,7 @@ The host request/response record contents are unchanged apart from the explicit
 emulator count width (moved uses **A**, not vm2's A-1). Request:
 
 ```
-op:8 chan:A flags:16 arg:32 off:64       (120+A bits)
+op:8 chan:A flags:16 arg:32 off:128      (184+A bits; off is HOST_POS_BITS wide)
 ```
 
 Response:
@@ -160,7 +160,9 @@ Response:
 op:8 status:8 flags:16 size:64 moved:A eof:1   (97+A bits)
 ```
 
-NONE=0, CLOSE=1, SEEK=2, FSTAT=3, IOCTL=4, EXEC=5. FSTAT returns target size
+NONE=0, CLOSE=1, SEEK=2, FSTAT=3, IOCTL=4, EXEC=5, LONG=6 (the long copy to or from the address space of the host: off is the
+area in its top 32 bits and the position in the area in the other HOST_AREA_BITS = 96, see `src/proto.def`). Control
+requests other than LONG see the low 64 bits of off. FSTAT returns target size
 and the last data-operation status, **moved byte count**, EOF. SEEK uses arg as
 whence and off as the host offset. IOCTL returns ENOTTY. EXEC synchronously runs
 the shell command appended immediately after the request record, with arg its

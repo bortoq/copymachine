@@ -1,5 +1,6 @@
 """Paths and imports shared by the tools of language (standard library only)."""
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -39,6 +40,21 @@ def programs():
     cases = {name: (wrapped(source), None) for name, source in PROGRAMS.items()}
     cases.update({name: (wrapped(source), want) for name, (source, want) in EXPECTED.items()})
     return cases
+
+
+def proto_const(name):
+    """XCONST(name, value) of emulator/src/proto.def (the layout of the request the emulator and the language agree on)."""
+    return int(re.search(rf'^XCONST\({name},\s*(\d+)\)', (EMULATOR_ROOT / 'src/proto.def').read_text(), re.M).group(1))
+
+
+HOST_POS_BITS, HOST_AREA_BITS = proto_const('HOST_POS_BITS'), proto_const('HOST_AREA_BITS')
+
+
+def host_pos(area, bit=0):
+    """The cells of a position in the address space of the host as long! long@ take them: HOST_POS_BITS / 32 of 32 bits, the least
+    significant first, the area in the last (the position in the area is HOST_AREA_BITS wide)."""
+    cells = HOST_POS_BITS // 32
+    return ' '.join([str(bit >> 32 * k & 0xFFFFFFFF) for k in range(cells - 1)] + [str(area)])
 
 
 CHECKED = EMULATOR_ROOT / 'build/checked-emulator'

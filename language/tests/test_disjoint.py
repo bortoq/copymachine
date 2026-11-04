@@ -58,9 +58,9 @@ variable cap-buf variable cap-main variable cap-tab variable cap-rt
 '''
 
 BUF = BASE2 + (1 << 27)
-LONGP = f': main 0 {BUF} {BUF + 1024} long@ 5 {BUF} {BUF + 256} long! 65 emit ;'
+LONGP = f': main {paths.host_pos(0)} {BUF} {BUF + 1024} long@ {paths.host_pos(1, 5)} {BUF} {BUF + 256} long! 65 emit ;'
 REQ = BASE2 + (1 << 28) + 1024               # the request block of the long copy (lay-req)
-REC, CAP, HDR = 152, 1 << 16, 56
+REC, CAP, HDR = 88 + paths.HOST_POS_BITS, 1 << 16, 56   # lay-rec: op 8, chan 32, flags 16, arg 32, off
 
 PROGRAM = '''variable v
 : w 5 ;

@@ -29,7 +29,8 @@ SPACE_EMULATOR = paths.OUT / 'space/emulator'
 SOURCES = ['runtime.c', 'sys_ctrl.c', 'bitcopy.c', 'backend_bitcopy.c']
 FLAGS = '-Wall -Wextra -pedantic -std=c11 -O2'
 B = (1 << 30) + (1 << 27)             # the request record, then the command (bit positions of the program half)
-C = B + 152
+REC = 88 + paths.HOST_POS_BITS            # lay-rec: the request record is op 8, chan 32, flags 16, arg 32, off (HOST_POS_BITS)
+C = B + REC
 R = B + (1 << 20)                     # the answer
 X, Y = B + (1 << 21), B + (1 << 22)   # out and exp, read by long@
 
@@ -59,14 +60,14 @@ def guest_source(build, workdir, count, words):
     return f''': rv ( b -- b' ) dup 1 and 7 lshift over 2 and 5 lshift or over 4 and 3 lshift or over 8 and 1 lshift or
   over 16 and 1 rshift or over 32 and 3 rshift or over 64 and 5 rshift or swap 128 and 7 rshift or ;
 : exec ( n -- status ) 5 {B} spacec! dup {B + 56} space!
-  8 * 152 + {B} + >r 2147483648 2147483648 {B} r> %copy {R} {R + 136} 2147483648 2147483648 %copy
+  8 * {REC} + {B} + >r 2147483648 2147483648 {B} r> %copy {R} {R + 136} 2147483648 2147483648 %copy
   {R + 8} {R + 16} spacec@ ;
 : same? ( -- f ) -1 {words} 0 do {X} i 32 * + space@ {Y} i 32 * + space@ xor 0= and loop ;
 : pat ( ch off -- ) 8 * {C} + swap rv swap spacec! ;
 variable po
 : put ( addr u off -- ) po ! 0 do dup i + c@ rv po @ i + 8 * {C} + spacec! loop drop ;
 : step ( k -- f ) dup 10 / 48 + dup {s} pat {e} pat 10 mod 48 + dup {s + 1} pat {e + 1} pat
-  {len(run)} exec if 0 exit then 268435456 {X} {X + 32 * words} long@ 536870912 {Y} {Y + 32 * words} long@ same? ;
+  {len(run)} exec if 0 exit then {paths.host_pos(1)} {X} {X + 32 * words} long@ {paths.host_pos(2)} {Y} {Y + 32 * words} long@ same? ;
 : main ( -- ) {text(cc)} {len(cc)} exec if 70 emit 10 emit exit then
   {text(run)}
   {count} 0 do i step if 80 else 70 then emit loop 10 emit ;

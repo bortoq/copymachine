@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Real subprocess tests of the emulator contract."""
 import os
+import re
 import resource
 import subprocess
 import tempfile
@@ -18,7 +19,9 @@ BINS = [Path(os.environ.get('EMULATOR_BIN') or output_dir(ROOT, 'build')/'bitcop
 S, P = 65520, 8
 A = S.bit_length()
 RSP_BITS = 97+A
-REQ_BITS = 120+A
+POS_BITS, AREA_BITS = (int(re.search(rf'^XCONST\({n},\s*(\d+)\)', (ROOT/'src/proto.def').read_text(), re.M).group(1))
+                       for n in ('HOST_POS_BITS', 'HOST_AREA_BITS'))   # off of the request: the area is the top bits
+REQ_BITS = 56+A+POS_BITS
 checks = 0
 
 def run(binary, packet, *, size=S, slots=P, ticks=0, expected=b''):
@@ -51,7 +54,7 @@ for binary in BINS:
     run(binary, packet+b'abcd', expected=b'abcd')
     run(binary, packet+b'abcd', ticks=clocks+1, expected=b'')
     # Same-tick request/read returns the OLD SYS response.
-    req = record([3, S+2, 0, 0, 0], [8, A, 16, 32, 64])
+    req = record([3, S+2, 0, 0, 0], [8, A, 16, 32, POS_BITS])
     old = bytes((RSP_BITS+7)//8)
     new = record([3, 0, 0, 0, 0, 0], [8, 8, 16, 64, A, 1])
     rows = [[copy(REQ_BITS, S, 24000, S), copy(RSP_BITS, 25000, S, S)],
@@ -61,7 +64,7 @@ for binary in BINS:
     packet, _ = program(rows, data=[(24000, req)])
     run(binary, packet, expected=old+new)
     # Short read + EOF -> later FSTAT -> later response -> output.
-    req = record([3, S+1, 0, 0, 0], [8, A, 16, 32, 64])
+    req = record([3, S+1, 0, 0, 0], [8, A, 16, 32, POS_BITS])
     rows = [[copy(32, 27000, S+1, S)], [copy(REQ_BITS, S, 24000, S)],
             [copy(RSP_BITS, 25000, S, S)], [copy(len(old)*8, S+2, 25000, S)],
             [copy(32, S+2, 27000, S)]]
@@ -69,7 +72,7 @@ for binary in BINS:
     response = record([3, 0, 0, 0, 2, 1], [8, 8, 16, 64, A, 1])
     run(binary, packet+b'xy', expected=response+b'xy\0\0')
     # CLOSE SYS preserves the closing tick's old read, then disables reads.
-    req = record([1, S, 0, 0, 0], [8, A, 16, 32, 64])
+    req = record([1, S, 0, 0, 0], [8, A, 16, 32, POS_BITS])
     rows = [[copy(REQ_BITS, S, 24000, S), copy(RSP_BITS, 25000, S, S)],
             [copy(RSP_BITS, 26000, S, S)],
             [copy(len(old)*8, S+2, 25000, S)],
@@ -101,6 +104,44 @@ for binary in BINS:
         result = subprocess.run([str(binary), *args], capture_output=True, check=False)
         assert result.returncode == 2, (binary, args, result.returncode)
         checks += 1
+# LONG (18.25): off is HOST_POS_BITS wide, the area is the top 32 bits, the position in the area HOST_AREA_BITS bits. A position that
+# is not in a file (past 2^64 bits in the area, past what the file offset of the host holds, an area no path gives) reads as zeros, a
+# write is lost; the emulator ends with 0 and writes nothing to stderr. Positions in a file that is far are tested with the
+# language (language/tests/test_long_copy.py: sparse files of 100 MiB and 1.5 GiB).
+def long_off(area, bit=0):
+    return area << AREA_BITS | bit
+
+def long_run(path, off, from_host, bits, payload=b''):
+    req = record([6, 0, int(from_host), bits, off], [8, A, 16, 32, POS_BITS])
+    if from_host:
+        rows = [[copy(REQ_BITS, S, 24000, S)], [copy(bits, 25000, S, S)], [copy(bits, S+2, 25000, S)]]
+        data = [(24000, req), (25000, b'\xff'*((bits+7)//8))]
+    else:
+        rows = [[copy(REQ_BITS+len(payload)*8, S, 24000, S)]]
+        data = [(24000, req+payload)]
+    packet, _ = program(rows, data=data)
+    result = subprocess.run([str(BINS[0]), '-s', str(S), '-p', str(P), '-r', str(path)], input=packet, capture_output=True,
+                            timeout=60, check=False)
+    assert result.returncode == 0 and not result.stderr, (off, result)
+    return result.stdout
+
+with tempfile.TemporaryDirectory(prefix='emulator-long-') as directory:
+    remote = Path(directory)/'remote'
+    content = bytes((i*37+5) % 256 for i in range(16))
+    remote.write_bytes(content)
+    assert long_run(remote, long_off(1, 8), True, 16) == content[1:3]
+    long_run(remote, long_off(1, 8), False, 8, b'\x5a')
+    assert remote.read_bytes() == content[:1]+b'\x5a'+content[2:]
+    remote.write_bytes(content)
+    outside = [long_off(1, 1 << 64), long_off(1, (1 << 64) + 8), long_off(1, 1 << 65), long_off(1, 3 << 64), long_off(1, 1 << 66),
+               long_off(1, (1 << 95) + 8), long_off(1, (1 << AREA_BITS) - 1), long_off(2), long_off(2**32-1), long_off(2**31, 8),
+               long_off(2**32-1, (1 << AREA_BITS) - 1), long_off(0, 1 << 64), long_off(0, 1 << 65)]
+    for off in outside:
+        assert long_run(remote, off, True, 16) == bytes(2), off     # the buffer held ones
+        long_run(remote, off, False, 8, b'\xa5')
+        assert remote.read_bytes() == content, off
+        checks += 2
+    checks += 2
 # The keys of the usage line: -r (a host file or device, the host area 1) and the joined form -sN.
 with tempfile.TemporaryDirectory(prefix='emulator-r-') as directory:
     remote = Path(directory)/'remote'

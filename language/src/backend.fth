@@ -28,8 +28,11 @@ lay-rev-init
 : lay-stdout ( -- c ) lay-size @ 2 + ;
 \ The request block of the long copy of a program of the kernel (18.24): the bits LAY-REQ ... of the upper half of the data block
 \ (the positions a program computes reach 2^28 + 31 bits at most): the header of the record LONG (LAY-REC bits; its first LAY-HDR
-\ bits are op, chan, flags) and, right after it, LAY-CAP bits of the data.
-152 constant lay-rec  56 constant lay-hdr  65536 constant lay-cap
+\ bits are op, chan, flags) and, right after it, LAY-CAP bits of the data. The position in the address space of the host (off) is
+\ LAY-POS bits (HOST_POS_BITS of emulator/src/proto.def), LAY-CELLS cells of 32 bits, the least significant first; the record is
+\ op 8, chan 32, flags 16, arg 32 (88 bits) and off.
+128 constant lay-pos  lay-pos 5 rshift constant lay-cells
+88 lay-pos + constant lay-rec  56 constant lay-hdr  65536 constant lay-cap
 : lay-req ( -- at ) lay-size @ 1 rshift lay-size @ 3 rshift + 1024 + ;
 : lay-bits ( u -- n ) 0 swap begin dup while 1 rshift swap 1+ swap repeat drop ;
 : lay-numeric ( value nbytes addr -- )

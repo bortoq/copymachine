@@ -38,18 +38,24 @@ XOP(EXEC,  5)
  * reads of SYS get these bits (taken at the tick of the request) instead
  * of the answer record.
  * The address space of the host is divided into areas of 2^HOST_AREA_BITS
- * bits: off = area * 2^HOST_AREA_BITS + the position in the area. Area 0 is
+ * bits; off is HOST_POS_BITS wide (numeric, least significant bit first):
+ * off = area * 2^HOST_AREA_BITS + the position in the area, the area being
+ * the top HOST_POS_BITS - HOST_AREA_BITS = 32 bits. Area 0 is
  * the clock: a read gives the 64-bit monotonic time of the host in
  * nanoseconds (numeric, least significant bit first; zeros past 64 bits),
  * a write is lost. Areas 1.. are the host files and devices given at
  * startup (-r path, in order), bit addressed (position 0 is the high bit
  * of byte 0). There are no errors: a read past the end of a file or
- * device, outside an area, from an unknown area or an unopenable file gives
+ * device, outside an area (a position past what the file offset of the
+ * host holds is outside), from an unknown area or an unopenable file gives
  * zeros; a write there is lost; the emulator never exits with an error on
- * LONG. The 32-bit cell of the language holds the position, so
- * HOST_AREA_BITS = 28 gives 16 areas of 32 MiB.
+ * LONG. The long copy has no limits of the short one: the position is not
+ * held by a cell of the language but by HOST_POS_BITS / 32 of them (the
+ * least significant first), so any bit of a file of Linux (up to 2^66 bits)
+ * is addressed. HOST_POS_BITS = HOST_AREA_BITS + 32.
  */
-XCONST(HOST_AREA_BITS, 28)
+XCONST(HOST_POS_BITS, 128)
+XCONST(HOST_AREA_BITS, 96)
 XOP(LONG,  6)
 /* reserve: SPAWN, POLL, MMAP, ... */
 
@@ -57,7 +63,7 @@ XFIELD(req, op,    8)
 XFIELD(req, chan,  ADDR)
 XFIELD(req, flags, 16)
 XFIELD(req, arg,   32)
-XFIELD(req, off,   64)
+XFIELD(req, off,   HOST_POS_BITS)
 
 XFIELD(rsp, op,     8)
 XFIELD(rsp, status, 8)
