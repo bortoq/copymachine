@@ -160,7 +160,7 @@ class Rejected(unittest.TestCase):
         self.bad(':a data 8 0xzz\n' + MAIN + 'halt\n', 'a number below 2^8 expected')
         self.bad(":t table 1 4  'a' 'b'\n" + MAIN + 'halt\n', 'a character')
         self.bad(':t table 1 8  "ab" "c"\n' + MAIN + 'halt\n', 'a string of 2 bytes does not fit 8 bits')
-        self.bad(':t table 9 1  1\n' + MAIN + 'halt\n', 'a number 1..8 expected')
+        self.bad(':t table 11 1  1\n' + MAIN + 'halt\n', 'a number 1..10 expected')
 
     def test_widths(self):
         d = ':a data 8 0\n:b data 4 0\n:c data 9 0\n:d data 3 0\n:e data 2 0\n'

@@ -2,12 +2,17 @@
 compiled by l3c (text of language 3 -> l3c -> l2l -> seed -> image) and the images work. The chain tool l3c agrees with the Python reference
 (l3ctext) on the texts of seed, l2c and l2l (hoisted: data outside the blocks); the seed made by the chain turns seed.l1 into the
 image of the seed (the fixed point of 23.7, now through the serial layout); the label tool l2l made by the chain turns hello_names.l2
-into what the Python reference gives; and 300 texts spoiled at random give the same bytes and reports in the chain and in Python.
+into what the Python reference gives; 300 texts spoiled at random give the same bytes and reports in the chain and in Python; and
+the FIXED POINT (23.9, part 3): l3c compiles its own text. The seed and the label tool are built on the emulator from seed.l1 and
+l2l.l1 (no Python compiler on that path); the text of language 1 of l3c (programs/l3c.l1, made once with the Python image of the tool
+and the chain) gives the image of l3c, and that image (l3c -> l2l -> seed) builds from l3c.tw the same text l3c.l1 and the same image, byte for
+byte; the text of language 2 which it writes is what the reference gives, and so is the Python image. The names of l3c fill its table (1020 places) and the 1021st is bad label.
 Run: make check-tower-long  or  python3 -B tower/tests/long_l3c.py"""
 import os
 import random
 import re
 import sys
+import time
 
 sys.dont_write_bytecode = True
 import unittest
@@ -21,6 +26,16 @@ import test_l3c as t
 from common import run
 
 BIG = 200 * 10 ** 6
+REPORT = []         # (step, ticks, seconds) of the fixed point, printed at the end of the run (the numbers of docs/measurements/tower.md)
+
+
+def step(name, image, A, P, stdin):
+    """One run on the checked emulator: the output; the ticks and the seconds go to REPORT."""
+    t0 = time.time()
+    r = run(image, A, P, checked=True, limit=BIG, stdin=stdin)
+    REPORT.append((name, r.ticks, time.time() - t0))
+    assert r.rc == 0 and r.ticks < BIG, (name, r.err)
+    return r.out
 
 
 class Long(unittest.TestCase):
@@ -100,6 +115,60 @@ class Long(unittest.TestCase):
             want, err = l3ctext.encode(src)
             self.assertEqual(r.out, want, src)
             self.assertEqual('l3c: ' in r.err, err is not None, (src, r.err))
+
+
+class FixedPoint(unittest.TestCase):
+    """23.9, part 3: l3c builds itself (text of language 3 -> l3c -> l2l -> seed -> image) and the image it builds is the one that built it."""
+
+    @classmethod
+    def tearDownClass(cls):
+        for name, ticks, sec in REPORT:
+            sys.stderr.write('%-28s %12d ticks %7.1f s\n' % (name, ticks, sec))
+
+    def chain(self, tag, l3c, P, src):
+        """text of language 3 -> l3c (A = 20, P) -> l2l (the text twice) -> seed -> the image; returns the three outputs."""
+        l2 = step(tag + ' l3c', l3c, 20, P, src + b'\0')
+        l1 = step(tag + ' l2l', self.l2l_img, self.l2l_st['A'], self.l2l_st['P'], l2 + l2)
+        return l2, l1, step(tag + ' seed', self.seed_img, self.seed_st['A'], self.seed_st['P'], l1)
+
+    def test_fixed_point(self):
+        src = t.read('l3c.tw', 'rb')
+        want = l3ctext.encode(src)
+        self.assertIsNone(want[1])
+        l3c_l1 = t.read('l3c.l1', 'rb') + b'\0'
+        # no Python on this path: seed.img(l3c.l1) is the image of l3c (A = 20, P = 2, serial layout); it builds l3c.l1 again and the same image
+        img1 = step('seed on l3c.l1', self.seed_img, self.seed_st['A'], self.seed_st['P'], l3c_l1)
+        self.assertLess(len(img1) * 8, 1 << 20)
+        l2, l1, img2 = self.chain('l3c (chain image)', img1, 2, src)
+        self.assertEqual(l2, want[0])
+        self.assertEqual(l1, l3c_l1)
+        self.assertEqual(img2, img1)
+        # the Python image of l3c (packed layout, P = 3) writes the same text of language 2: the first image was made by it
+        self.assertEqual(step('l3c (Python image) l3c', l3ctext.tool_image(), 20, 3, src + b'\0'), want[0])
+        # the tool the chain built works as the tool of Python: a few texts
+        for name in ('echo', 'branch', 'array'):
+            text = t.hoisted(name).encode()
+            self.assertEqual(step('chain l3c on ' + name, img1, 20, 2, text + b'\0'), l3ctext.encode(text)[0])
+
+    def test_all_the_names(self):
+        """1020 names of a user fit in the table of l3c (and 4 of the tool), the 1021st is bad label: the same bytes as the reference."""
+        for n, bad in ((1020, False), (1021, True)):
+            src = ''.join(':a%d data 1 0\n' % i for i in range(n)) + ':main block\nhalt\n'
+            r = run(self.tool_image, 20, 3, checked=False, limit=BIG, stdin=src.encode() + b'\0')
+            want, err = l3ctext.encode(src)
+            self.assertEqual(r.out, want)
+            self.assertEqual((err, 'l3c: bad label' in r.err), ('lab', True) if bad else (None, False))
+
+    @classmethod
+    def setUpClass(cls):
+        t.setUpModule()
+        cls.tool_image = t.tool()['image']
+        # the seed and the label tool without Python compilers: seed.l1 -> (the Python encoder, once) seed.img; l2l.l1 -> seed -> l2l.img
+        cls.seed_st, cls.l2l_st = t.compiled('seed').stats, t.compiled('l2l').stats
+        cls.seed_img = l1text.encode(t.read('seed.l1', 'rb') + b'\0')[0]
+        assert cls.seed_img == cls.seed_st['image']
+        cls.l2l_img = step('seed on l2l.l1', cls.seed_img, cls.seed_st['A'], cls.seed_st['P'], t.read('l2l.l1', 'rb') + b'\0')
+        assert cls.l2l_img == cls.l2l_st['image']
 
 
 if __name__ == '__main__':

@@ -184,17 +184,28 @@ class Tool(unittest.TestCase):
         self.assertEqual((r.out, r.err.count('l2l:')), (b'\0', 0))
 
     def test_label_table(self):
-        """255 labels fit (searched from the first, forward and back); the 256th is bad label."""
-        names = ['n%d' % i for i in range(255)]
-        src = ''.join(':%s d 1 1\n' % n for n in names) + 'c 1 &n0 &n254\nc 1 &n127 &n254+1\n'
+        """1024 labels fit (the hash: the last two bytes pick a chain; forward and back); the 1025th is bad label."""
+        names = ['n%d' % i for i in range(1024)]
+        src = ''.join(':%s d 1 1\n' % n for n in names) + 'c 1 &n0 &n1023\nc 1 &n127 &n1023+1\nc 1 &n512 &n999\n'
         r = self.l2l(twice(src), limit=60 * 10 ** 6)
         self.assertEqual(r.out, l2ltext.encode(src, twice=True)[0])
-        self.assertEqual(r.out.count(b'r '), 2)
+        self.assertEqual(r.out.count(b'r '), 3)
         self.assertNotIn('l2l:', r.err)
         src = ''.join(':%s\n' % n for n in names) + ':one_more\n'
         r = self.l2l(twice(src), limit=60 * 10 ** 6)
         self.assertEqual((r.out, 'bad label' in r.err), (b'', True))
         self.assertEqual(l2ltext.encode(src, twice=True), (b'', 'lab'))
+
+    def test_hash_chains(self):
+        """Names with the same last two bytes (one chain) and the same hash (c1 + 4 c2): found, told apart, a repeated one is bad label."""
+        same = ['ab', 'cb', 'xxab', 'yyab', 'zzzzzzzzzzzzzab']
+        src = ''.join(':%s d 1 1\n' % n for n in same) + 'c 1 &ab &zzzzzzzzzzzzzab\nc 1 &yyab &cb\n'
+        self.check_text(src)
+        self.check_text(src + ':xxab\n')
+        self.check_text(src + 'c 1 &aab 1\n')
+        # the same hash c1 + 4 c2 (c1 the last byte, c2 the one before) for 'ba' (97 + 4 * 98) and 'ae' (101 + 4 * 97)
+        self.check_text(':ba d 1 1\n:ae d 1 1\nc 1 &ba &ae\nc 1 &ae &ba\n')
+        self.check_text(':ba d 1 1\n:ae d 1 1\n:ba\n')
 
     def test_random_texts(self):
         """Random changes of a good text (a character changed, dropped, added): the chain and the reference agree."""

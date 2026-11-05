@@ -13,8 +13,8 @@
 # A number is hex (at most 5 digits), or &name (a label anywhere in the text), or &name+k. A wrong text is reported to stderr and
 # the tool halts (7.2.28): bad text (a letter that is no command, a wrong character, an empty name or one over 15 bytes), bad
 # count (a wrong number of numbers in a line), bad label (repeated, not defined, defined at another place in the second copy,
-# or the 256th). The names are a table in the image: names (15 bytes each, from the high end) and the positions, 255 entries,
-# searched from the first by eq (the word find); the 16 bytes of the name in hand (nm) are shifted by one byte for a letter,
+# or the 1025th). The names are a table in the image: names (15 bytes each, from the high end) and the positions, 1024 entries,
+# found by a hash of the last two bytes (the word find: a chain of the entries with the same hash, the tag, then eq); the 16 bytes of the name in hand (nm) are shifted by one byte for a letter,
 # the first byte must stay 0. What is not checked: numbers over 5 digits, w z d over ff.
 # The tables: cls turns a byte into its class (flags, the value of a digit, the code of the command letter), attr gives the
 # attributes of a command: the number of numbers, echo (the line goes out as it stands), numeric, skipping, bits, valid, row,
@@ -55,10 +55,14 @@
 :stt table 3 1  1 1 1 1 0 1 1 1
 # the names (without the first byte, which is 0; entries are at most 64 bits, so two halves), the last two bytes of a name again
 # (tags: a quick test before eq of the halves) and the positions of the labels: the index is the number of the label
-:nameh array 8 60
-:namet array 8 60
-:tags array 8 16
-:vals array 8 20
+:nameh array 10 60
+:namet array 10 60
+:tags array 10 16
+:vals array 10 20
+# the hash: the heads (by the last two bytes of a name) and the next entry of a chain (entry numbers are 1 to 1024, 0 ends a chain,
+# the slot is the low 10 bits)
+:hd array 10 11
+:nx array 10 11
 
 # --- the character, the class
 :ch data 8 0
@@ -94,19 +98,23 @@
 :ent data 60 0
 :et data 16 0
 :ft data 4 0
+:hx data 12 0
+:hy data 12 0
+:hz data 13 0
+:hold data 11 0
 :fm data 15 0
 :fn data 15 0
 :m5 data 5 0
-:fj data 8 0
-:fr data 9 0
+:fj data 12 0
+:fr data 13 0
 :fo data 1 0
 :fv data 20 0
-:fq data 2 0
+:fq data 3 0
 :o2 data 2 0
 :ov data 1 0
-:ncnt data 8 0
-:one8 data 8 1
-:c255 data 8 255
+:ncnt data 12 0
+:one12 data 12 1
+:zero12 data 12 0
 
 # --- the position, the width of a row (4A), the arguments of addpos
 :pos data 20 0
@@ -208,15 +216,17 @@ if &pass &lp1 &lp0
 :lp0 block
 if &fo &badl &lp0b
 :lp0b block
-eq &ncnt &c255 &fq
-if &fq[1] &badl &lp0c
+if &ncnt[10] &badl &lp0c
 :lp0c block
-store &nameh &ncnt &nm[8:68]
-store &namet &ncnt &nm[68:128]
-store &tags &ncnt &nm[112:128]
-store &vals &ncnt &pos
-add &ncnt &one8 &fr
-copy &ncnt &fr[0:8]
+add &ncnt &one12 &fr
+copy &ncnt &fr[0:12]
+store &nameh &ncnt[0:10] &nm[8:68]
+store &namet &ncnt[0:10] &nm[68:128]
+store &tags &ncnt[0:10] &nm[112:128]
+store &vals &ncnt[0:10] &pos
+lut &hd &hz[0:10] &hold
+store &nx &ncnt[0:10] &hold
+store &hd &hz[0:10] &ncnt[0:11]
 goto &ldone
 :lp1 block
 if &fo &lp1b &badl
@@ -419,29 +429,35 @@ lut &nzt &nm[124:128] &o2[1]
 lut &or2 &o2 &ov
 if &ov &f2 &bad
 :f2 block
-copy &fj &z8
+copy &hx[0:8] &nm[120:128]
+copy &hx[8:12] &zero12[0:4]
+copy &hy[0:2] &zero12[0:2]
+copy &hy[2:10] &nm[112:120]
+copy &hy[10:12] &zero12[0:2]
+add &hx &hy &hz
+lut &hd &hz[0:10] &fj[0:11]
+copy &fj[11] &zero
 goto &floop
 :floop block
-eq &fj &ncnt &fq
-if &fq[1] &fnone &fcmp
+eq &fj &zero12 &fq
+if &fq[2] &fnone &fcmp
 :fcmp block
-lut &tags &fj &et
+lut &tags &fj[0:10] &et
 eq &nm[112:128] &et &ft
 if &ft[3] &fcmp1 &fnext
 :fcmp1 block
-lut &namet &fj &ent
+lut &namet &fj[0:10] &ent
 eq &nm[68:128] &ent &fm
 if &fm[14] &fcmp2 &fnext
 :fcmp2 block
-lut &nameh &fj &enh
+lut &nameh &fj[0:10] &enh
 eq &nm[8:68] &enh &fn
 if &fn[14] &ffound &fnext
 :fnext block
-add &fj &one8 &fr
-copy &fj &fr[0:8]
+lut &nx &fj[0:10] &fj[0:11]
 goto &floop
 :ffound block
-lut &vals &fj &fv
+lut &vals &fj[0:10] &fv
 copy &fo &one1
 ret
 :fnone block

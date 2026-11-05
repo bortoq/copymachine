@@ -92,7 +92,7 @@ def lut_shape(a):
 
 def table_shape(a):
     if len(a) < 2:
-        return ('num:1:8', 'num:1:64')[len(a)]
+        return ('num:1:10', 'num:1:64')[len(a)]
     return 'tval' if len(a) < 2 + (1 << a[0]) else None
 
 
@@ -485,7 +485,7 @@ WORDS = {
     'shl': (2, fixed('ref', 'ref', 'num:0:65536'), w_shift),
     'shr': (2, fixed('ref', 'ref', 'num:0:65536'), w_shift),
     'table': (3, table_shape, w_table),
-    'array': (3, fixed('num:1:8', 'num:1:64'), w_array),
+    'array': (3, fixed('num:1:10', 'num:1:64'), w_array),
     'lut': (3, lut_shape, w_lut),
     'store': (3, lut_shape, w_store),
     'block': (3, fixed(), w_block),

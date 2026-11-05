@@ -3,7 +3,7 @@ subset of l3ctext.py) and writes a text of language 2 with labels and a zero byt
 turn into the image: text of language 3 -> l3c -> l2l -> seed -> image. The layout is serial (a row of the text is a layer of its own,
 nothing is packed). The chain and the Python reference (l3ctext.encode) agree byte for byte and by the report; the images made by the
 chain run on the checked emulator and print what the images of the Python compiler print. The tool itself is built by the Python
-compiler (serial layout, A = 20, P = 3); building it by itself is part 3. The long runs (the tools of the chain compiled by l3c) are in
+compiler (serial layout, A = 20, P = 3); building it by itself (the fixed point) is in long_l3c.py. The long runs (the tools of the chain compiled by l3c) are in
 long_l3c.py (make check-tower-long).
 Run: make check-tower  or  python3 -B tower/tests/test_l3c.py"""
 import os
@@ -86,21 +86,42 @@ class Reference(unittest.TestCase):
         self.assertEqual(src[a + len('# --- begin generated\n'):b], l3ctext.tables_text())
 
     def test_tool_is_in_its_subset(self):
-        """The text of l3c.tw is a text of the subset (part 3: the tool compiles itself); today it needs more places for names
-        than the tool has (a table of 255) and l2l has (255 labels): the numbers are counted here."""
-        old = l3ctext.MAXSYM
-        try:
-            self.assertEqual(l3ctext.encode(read('l3c.tw'))[1], 'lab')
-            l3ctext.MAXSYM = 10 ** 6
-            c = l3ctext.Compiler()
-            c.put(l3ctext.prelude())
-            l3ctext.run(c, read('l3c.tw').encode())
-        finally:
-            l3ctext.MAXSYM = old
-        out = ''.join(c.out)
+        """The text of l3c.tw is a text of the subset (the tool compiles itself, part 3): the reference takes it, it fits A = 20 with room, and
+        its names (data, tables, arrays) are at most half of the places of l3c (1020), its labels (b and r) are fewer than the 1024 of l2l."""
+        src = read('l3c.tw')
+        out, err = l3ctext.encode(src)
+        self.assertIsNone(err)
+        c = l3ctext.Compiler()
+        c.put(l3ctext.prelude())
+        l3ctext.run(c, src.encode())
         self.assertLess(c.pos, l3ctext.LIMIT)
         self.assertGreater(len(c.syms), 255)
-        self.assertGreater(len(re.findall(r'^:b', out, re.M)), 255)
+        self.assertLessEqual(2 * len(c.syms), l3ctext.MAXSYM)
+        labels = len(re.findall(r'^:[brt]', ''.join(c.out), re.M)) + 1
+        self.assertGreater(labels, 255)
+        self.assertLess(labels, l2ltext.MAXLAB)
+
+    def test_l3c_text_is_current(self):
+        """programs/l3c.l1 (the seed of the tool: the text of language 1 that the seed turns into the image of l3c) is what the chain l3c -> l2l
+        gives for l3c.tw (the reference: l3ctext.py -l); after a change of l3c.tw it is made again (see tower/README.md)."""
+        l1, err = l3ctext.language1(read('l3c.tw').encode())
+        self.assertIsNone(err)
+        self.assertEqual(read('l3c.l1', 'rb'), l1)
+
+    def test_capacity_in_the_texts(self):
+        """The places of names: 1024 in l3c.tw (six arrays of 2^10, nsym over 11 bits), 1024 labels in l2l.tw and the references."""
+        self.assertEqual((l3ctext.MAXSYM, l2ltext.MAXLAB), (1020, 1024))
+        src = read('l3c.tw')
+        for n in ('sna', 'snb', 'stg', 'ski', 'sad', 'sin'):
+            self.assertIn(':%s array 10 ' % n, src)
+        for n in ('nameh', 'namet', 'tags', 'vals', 'hd', 'nx'):
+            self.assertIn(':%s array 10 ' % n, read('l2l.tw'))
+        names = lambda n: ''.join(':a%d data 1 0\n' % i for i in range(n)) + ':main block\nhalt\n'   # noqa: E731
+        self.assertIsNone(l3ctext.encode(names(1020))[1])
+        self.assertEqual(l3ctext.encode(names(1021))[1], 'lab')
+        lab = lambda n: ''.join(':n%d d 1 1\n' % i for i in range(n))   # noqa: E731
+        self.assertIsNone(l2ltext.encode(lab(1024), twice=True)[1])
+        self.assertEqual(l2ltext.encode(lab(1025), twice=True)[1], 'lab')
 
     def test_format(self):
         """The text of language 2 for the smallest program, and the layers of a copy (the layout is serial: a row and a jump)."""
@@ -257,8 +278,7 @@ class Tool(unittest.TestCase):
         r = self.check_text(big)
         self.assertIn('too big', r.err)
         names = lambda n: ''.join(':a%d data 1 0\n' % i for i in range(n)) + ':main block\nhalt\n'   # noqa: E731
-        self.assertEqual(self.check_text(names(251)).rc, 0)
-        self.assertIn('bad label', self.check_text(names(252)).err)
+        self.assertEqual(self.check_text(names(300)).rc, 0)        # the old table had 251 places; 1020 and 1021 are in long_l3c.py
 
     def test_mutations(self):
         """Texts spoiled at random: the chain and the reference agree (a token dropped, replaced, doubled, the text cut)."""

@@ -9,7 +9,7 @@ packed, there is no planner (23.10 brings it back as an improvement). A is fixed
 The subset of the text of language 3 (text.py reads more; what is left out is told below). Words, separated by blanks and line breaks
 (`#` starts a comment to the end of the line):
   :name data n v          n bits (1..65536), v a number (decimal, taken modulo 2^20) or a string "..." of at most 32 bytes
-  :name table K w v...    2^K values (K 1..8, w 1..64 bits), numbers or strings of w/8 bytes
+  :name table K w v...    2^K values (K 1..10, w 1..64 bits), numbers or strings of w/8 bytes
   :name array K w         a table which is written (all zeros)
   copy d s   shl x r k   shr x r k   (k 0..64)   emit s   warn s   key d
   lut &T args.. out    store &T args.. src       T is a table, an array, or add4 sub4 hex4 (made at the end of the image)
@@ -22,7 +22,7 @@ Left out (text.py has them): language 4 (long! long@), stack push pop rec, dec<n
 tables with several indices of a user, the check that a copy does not cover itself, that `zero` is not written, and that a part of
 space of shl/shr differs from its source; the packing of tables (every table has its own stride, w.bit_length() bits).
 Errors (stderr, halt; the output is cut after the last word that was complete; there is no zero byte): `l3c: bad text` (a wrong
-character or token, an unknown word, a wrong kind or number of arguments, a label where it does not belong, the text ends inside a word), `l3c: bad label` (a name repeated, not defined before, the 252nd of a user, as 255 places are in the table of names), `l3c: bad width` (widths do not agree, a part
+character or token, an unknown word, a wrong kind or number of arguments, a label where it does not belong, the text ends inside a word), `l3c: bad label` (a name repeated, not defined before, the 1021st of a user, as 1024 places are in the table of names), `l3c: bad width` (widths do not agree, a part
 outside its data), `l3c: bad block` (a row outside a block, after its end, a block without an end, `ret` outside a word, a declaration in a block), `l3c: too big` (the image does not
 fit A = 20). Not checked, but defined: numbers over 20 bits (modulo 2^20), a value wider than its field.
 The layout (positions are bits of the snapshot): the boot layer at 0 (the row 0, the jump to `main`), 64 zero bits (`zero` is the first,
@@ -31,7 +31,8 @@ The layout (positions are bits of the snapshot): the boot layer at 0 (the row 0,
 but the jump, the row), the return link of a word (40 bits before its first block), the table of `if` and the link of `call` after the last
 layer of the block; at the end the tables add4 .. hex4 which were used, then zeros up to a whole byte; label `e` is the end.
 Run: python3 tower/l3ctext.py -e < prog.tw > prog.l2z   (the reference of the tool)
-     python3 tower/l3ctext.py -t > l3c.img                (the image of the tool: A = 20, P = 3, run it with `emulator -s 1048570 -p 3`)"""
+     python3 tower/l3ctext.py -t > l3c.img                (the image of the tool: A = 20, P = 3, run it with `emulator -s 1048570 -p 3`)
+     python3 tower/l3ctext.py -l < prog.tw > prog.l1      (the text of language 1 of a program: l3c, then l2l; for l3c.tw it is programs/l3c.l1)"""
 import os
 import sys
 
@@ -45,7 +46,7 @@ M = (1 << A) - 1
 LIMIT = 0xfa000
 MESSAGES = {'bad': 'l3c: bad text\n', 'lab': 'l3c: bad label\n', 'wid': 'l3c: bad width\n', 'blk': 'l3c: bad block\n',
             'big': 'l3c: too big\n'}
-MAXSYM = 251                           # the symbols of a user (with add4, sub4, hex4, zero they fill the 255 places)
+MAXSYM = 1020                          # the symbols of a user (with add4, sub4, hex4, zero they fill the 1024 places)
 MAXSTR = 32
 ZERO_ADDR, ONE_ADDR, START = JB, JB + 64, JB + 65
 WS = b' \t\r\n'
@@ -58,7 +59,7 @@ WORDS = ['data', 'table', 'array', 'copy', 'shl', 'shr', 'lut', 'store', 'block'
          'emit', 'warn', 'key', 'add', 'sub', 'band', 'lt', 'eq']
 CODE = {w: i for i, w in enumerate(WORDS)}
 DEFINING = ('data', 'table', 'array', 'block', 'word')
-SHAPE = {'data': ('N1:65536', 'V'), 'table': ('N1:8', 'N1:64'), 'array': ('N1:8', 'N1:64'), 'copy': ('R', 'R'),
+SHAPE = {'data': ('N1:65536', 'V'), 'table': ('N1:10', 'N1:64'), 'array': ('N1:10', 'N1:64'), 'copy': ('R', 'R'),
          'shl': ('R', 'R', 'N0:64'), 'shr': ('R', 'R', 'N0:64'), 'block': (), 'word': (), 'goto': ('B',), 'if': ('R', 'B', 'B'),
          'call': ('B', 'B'), 'ret': (), 'halt': (), 'emit': ('R',), 'warn': ('R',), 'key': ('R',)}
 for _w in ('add', 'sub', 'band', 'lt', 'eq'):
@@ -578,8 +579,8 @@ def arg(comp, w, label, args, kind, v):
 
 # --- the numbers of the tables of programs/l3c.tw (the text of the tool has them; a test compares)
 KR, KB, KV, KT, KND, KNK, KNO, KNS = 1, 2, 3, 4, 5, 6, 7, 8
-NRANGE = {KND: (1, 65536), KNK: (1, 8), KNO: (1, 64), KNS: (0, 64)}
-KINDS = {'R': KR, 'B': KB, 'V': KV, 'T': KT, 'N1:65536': KND, 'N1:8': KNK, 'N1:64': KNO, 'N0:64': KNS}
+NRANGE = {KND: (1, 65536), KNK: (1, 10), KNO: (1, 64), KNS: (0, 64)}
+KINDS = {'R': KR, 'B': KB, 'V': KV, 'T': KT, 'N1:65536': KND, 'N1:10': KNK, 'N1:64': KNO, 'N0:64': KNS}
 LIB = {'add': 0, 'sub': 1, 'band': 2, 'lt': 3, 'eq': 4}
 LIBP = {  # builtin, nins, step, odel, cdel, fc (first carry is a constant), c0 (1: one), the width of the result
     'add': (0, 3, 4, 0, 0, 1, 0, 0), 'sub': (1, 3, 4, 0, 0, 1, 0, 0), 'band': (2, 2, 4, 0, 0, 0, 0, 1),
@@ -641,8 +642,8 @@ def generated():
     T['mm'] = (2, 20, tvals([(2 * n + 1) * JB for n in range(4)]))
     T['fa'] = (1, 20, tvals([2 * A, 0]))
     T['fb'] = (1, 20, tvals([3 * A, A]))
-    T['p2e'] = (4, 20, tvals([1 << e for e in range(16)]))
-    T['mask'] = (4, 20, tvals([(1 << e) - 1 for e in range(16)]))
+    T['p2e'] = (5, 20, tvals([1 << e if e < 20 else 0 for e in range(32)]))
+    T['mask'] = (5, 20, tvals([(1 << e) - 1 if e < 20 else 0 for e in range(32)]))
     T['jt'] = (7, 3, tvals([min(i.bit_length(), 7) for i in range(128)]))
     T['strd'] = (3, 8, tvals([1 << j for j in range(8)]))
     T['m20'] = (3, 5, tvals([min(1 << j, 20) for j in range(8)]))
@@ -656,8 +657,8 @@ def generated():
     T['ba'] = (2, 8, tvals(idx + [ZERO_ADDR]))
     allin = [(BUILTIN[n][1], BUILTIN[n][2]) for n in BUILTIN]
     T['bi'] = (3, 19, tvals([sum(k << (4 * i) for i, k in enumerate(a)) | o << 12 for a, o in allin] + [0, 0]))
-    T['bfk'] = (3, 4, tvals([sum(i[0]) for i in [(BUILTIN[n][1],) for n in BUILTIN]] + [0, 0]))
-    T['bfe'] = (3, 4, tvals([sum(BUILTIN[n][1]) + BUILTIN[n][2].bit_length() for n in BUILTIN] + [0, 0]))
+    T['bfk'] = (3, 5, tvals([sum(i[0]) for i in [(BUILTIN[n][1],) for n in BUILTIN]] + [0, 0]))
+    T['bfe'] = (3, 5, tvals([sum(BUILTIN[n][1]) + BUILTIN[n][2].bit_length() for n in BUILTIN] + [0, 0]))
     T['bfw'] = (3, 5, tvals([min(1 << BUILTIN[n][2].bit_length(), 20) for n in BUILTIN] + [0, 0]))
     T['bfc'] = (3, 8, tvals([rev8(ord(BUILTIN[n][0][1])) for n in BUILTIN] + [0, 0]))
     return T
@@ -698,6 +699,16 @@ def main():
         sys.exit(1)
 
 
+def language1(src):
+    """The text of language 1 (without the zero byte) which the chain l3c -> l2l gives for a text of language 3: (bytes, error or None)."""
+    import l2ltext
+    l2, err = encode(src)
+    if err:
+        return b'', err
+    l1, err = l2ltext.encode(l2, twice=True)
+    return l1[:-1], err
+
+
 def tool_image():
     """The image of programs/l3c.tw by the Python compiler of the chain (serial layout, A = 20, P = 3; part 3 builds it by the chain)."""
     import l3
@@ -715,6 +726,12 @@ if __name__ == '__main__':
         sys.stdout.buffer.write(tool_image())
     elif sys.argv[1:2] == ['-e']:
         main()
+    elif sys.argv[1:2] == ['-l']:
+        l1, e = language1(sys.stdin.buffer.read())
+        sys.stdout.buffer.write(l1)
+        if e:
+            sys.stderr.write(MESSAGES.get(e, 'l2l: ' + e) + '\n')
+            sys.exit(1)
     else:
         sys.stderr.write('\n'.join(__doc__.splitlines()[-2:]) + '\n')
         sys.exit(2)

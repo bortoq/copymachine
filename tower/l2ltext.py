@@ -7,12 +7,12 @@ and references forward, as hex2 of stage0 after the labels of one letter:
 Everything else is as in l2text.py (the origin `o`, numbers of at most 5 hex digits, positions count the bits of the image text).
 Two passes. The chain reads stdin once, so the text is given twice: stdin is `text 0 text 0`, the first copy only defines the
 labels (nothing goes out; a name not yet defined counts as 0), the second goes out as the text of language 1 and a zero byte.
-At a label the second copy must give the position of the first (the table is in the image: 255 names, 15 bytes each, 20 bits
+At a label the second copy must give the position of the first (the table is in the image: 1024 names, 15 bytes each, 20 bits
 for the position); a name defined in one copy and not in the other, or at another position, is `bad label`. With one copy only
 (`text 0`) the second text is empty: the output is the zero byte alone.
 Errors (stderr, halt, the output is cut where the error is; in the first copy nothing has gone out yet): `l2l: bad text` (an
 unknown command or a wrong character, an empty name or a name over 15 bytes), `l2l: bad count`, `l2l: bad label` (a label
-repeated, a name not defined, a label at another place in the second copy, the 256th label). Not checked, but defined: numbers
+repeated, a name not defined, a label at another place in the second copy, the 1025th label). Not checked, but defined: numbers
 over 5 digits, w z d over ff, the content of r s # lines.
 Run: python3 tower/l2ltext.py -e < prog.l2 > prog.l1z   (the reference: it doubles the text itself, as `cat t t` does)"""
 import os
@@ -25,7 +25,7 @@ from l2text import ATTR, CODES, HEX, M, attr, rev8, table_lines   # noqa: F401  
 
 MESSAGES = {'bad': 'l2l: bad text\n', 'cnt': 'l2l: bad count\n', 'lab': 'l2l: bad label\n'}
 NAME = frozenset(b'abcdefghijklmnopqrstuvwxyz0123456789_')
-MAXLAB = 255
+MAXLAB = 1024
 
 
 def cls(c):
