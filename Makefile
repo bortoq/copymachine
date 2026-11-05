@@ -33,7 +33,8 @@ check-layout:
 # long copies into sparse files of 1.5 GiB (positions over 2^32 bits), hence --file-mib 2048.
 check-tower:
 	$(LIMIT) --file-mib 2048 $(PYTHON) -B -m unittest discover -s tower/tests -p 'test_*.py'
-# The long runs of the chain (not in check-fast; in check-full): the tools compiled by l3c (23.9, part 2) and working, 300 spoiled texts.
+# The long runs of the chain (not in check-fast; in check-full): the tools compiled by l3c (23.9, part 2) and working, 300 spoiled texts,
+# the fixed points of l3c: serial (23.9) and with the planner l3p (23.10).
 check-tower-long:
 	$(LIMIT) $(PYTHON) -B -m unittest discover -s tower/tests -p 'long_*.py'
 check-fast:

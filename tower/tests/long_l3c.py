@@ -7,6 +7,8 @@ the FIXED POINT (23.9, part 3): l3c compiles its own text. The seed and the labe
 l2l.l1 (no Python compiler on that path); the text of language 1 of l3c (programs/l3c.l1, made once with the Python image of the tool
 and the chain) gives the image of l3c, and that image (l3c -> l2l -> seed) builds from l3c.tw the same text l3c.l1 and the same image, byte for
 byte; the text of language 2 which it writes is what the reference gives, and so is the Python image. The names of l3c fill its table (1020 places) and the 1021st is bad label.
+23.10: the same with the planner (pack mode: `pack` first, the pass programs/l3p.tw between l3c and l2l): the fixed point with the planner is
+at the end (class PackedFixedPoint).
 Run: make check-tower-long  or  python3 -B tower/tests/long_l3c.py"""
 import os
 import random
@@ -22,10 +24,12 @@ sys.path.insert(0, os.path.join(HERE, '..'))
 import l1text
 import l2ltext
 import l3ctext
+import l5
 import test_l3c as t
 from common import run
 
-BIG = 200 * 10 ** 6
+BIG = 300 * 10 ** 6
+SHARED = {}         # the seed, the label tool and the serial l3c made without Python (the classes FixedPoint and PackedFixedPoint use them)
 REPORT = []         # (step, ticks, seconds) of the fixed point, printed at the end of the run (the numbers of docs/measurements/tower.md)
 
 
@@ -33,9 +37,34 @@ def step(name, image, A, P, stdin):
     """One run on the checked emulator: the output; the ticks and the seconds go to REPORT."""
     t0 = time.time()
     r = run(image, A, P, checked=True, limit=BIG, stdin=stdin)
-    REPORT.append((name, r.ticks, time.time() - t0))
     assert r.rc == 0 and r.ticks < BIG, (name, r.err)
+    REPORT.append((name, r.ticks, time.time() - t0))
     return r.out
+
+
+def tools():
+    """The seed (the Python encoder, once), the label tool (the seed on l2l.l1) and l3c (the seed on l3c.l1: serial, A = 20, P = 2): no Python compiler."""
+    if not SHARED:
+        t.setUpModule()
+        seed_st, l2l_st = t.compiled('seed').stats, t.compiled('l2l').stats
+        seed = l1text.encode(t.read('seed.l1', 'rb') + b'\0')[0]
+        assert seed == seed_st['image']
+        l2l = step('seed on l2l.l1', seed, seed_st['A'], seed_st['P'], t.read('l2l.l1', 'rb') + b'\0')
+        assert l2l == l2l_st['image']
+        l3c = step('seed on l3c.l1', seed, seed_st['A'], seed_st['P'], t.read('l3c.l1', 'rb') + b'\0')
+        SHARED.update(seed=(seed, seed_st['A'], seed_st['P']), l2l=(l2l, l2l_st['A'], l2l_st['P']), l3c=(l3c, 20, 2))
+    return SHARED
+
+
+def chain(tag, l3c, src, planner=None):
+    """text of language 3 -> l3c -> (l3p) -> l2l (the text twice) -> seed -> the image: returns the text of language 2 (after the planner), of language 1, the image.
+    l3c, planner: (image, A, P)."""
+    tl = tools()
+    l2 = step(tag + ' l3c', l3c[0], l3c[1], l3c[2], src + b'\0')
+    if planner:
+        l2 = step(tag + ' l3p', planner[0], planner[1], planner[2], l2)
+    l1 = step(tag + ' l2l', tl['l2l'][0], tl['l2l'][1], tl['l2l'][2], l2 + l2)
+    return l2, l1, step(tag + ' seed', tl['seed'][0], tl['seed'][1], tl['seed'][2], l1)
 
 
 class Long(unittest.TestCase):
@@ -137,7 +166,7 @@ class FixedPoint(unittest.TestCase):
         self.assertIsNone(want[1])
         l3c_l1 = t.read('l3c.l1', 'rb') + b'\0'
         # no Python on this path: seed.img(l3c.l1) is the image of l3c (A = 20, P = 2, serial layout); it builds l3c.l1 again and the same image
-        img1 = step('seed on l3c.l1', self.seed_img, self.seed_st['A'], self.seed_st['P'], l3c_l1)
+        img1 = tools()['l3c'][0]
         self.assertLess(len(img1) * 8, 1 << 20)
         l2, l1, img2 = self.chain('l3c (chain image)', img1, 2, src)
         self.assertEqual(l2, want[0])
@@ -164,11 +193,63 @@ class FixedPoint(unittest.TestCase):
         t.setUpModule()
         cls.tool_image = t.tool()['image']
         # the seed and the label tool without Python compilers: seed.l1 -> (the Python encoder, once) seed.img; l2l.l1 -> seed -> l2l.img
-        cls.seed_st, cls.l2l_st = t.compiled('seed').stats, t.compiled('l2l').stats
-        cls.seed_img = l1text.encode(t.read('seed.l1', 'rb') + b'\0')[0]
-        assert cls.seed_img == cls.seed_st['image']
-        cls.l2l_img = step('seed on l2l.l1', cls.seed_img, cls.seed_st['A'], cls.seed_st['P'], t.read('l2l.l1', 'rb') + b'\0')
-        assert cls.l2l_img == cls.l2l_st['image']
+        sh = tools()
+        (cls.seed_img, a, p), (cls.l2l_img, b, q) = sh['seed'], sh['l2l']
+        cls.seed_st, cls.l2l_st = dict(A=a, P=p), dict(A=b, P=q)
+
+
+class PackedFixedPoint(unittest.TestCase):
+    """23.10: the fixed point with the planner. The serial chain (l3c, l2l, seed of 23.9, no Python) makes the planner l3p; with it in the chain the text
+    `pack` + l3c.tw becomes the image of the packed l3c (P = 3); that image builds, with the same planner, the same text of language 2, the same text of language 1
+    and the same image: it builds itself. The planner and the image are what the references of Python give; the packed tools made by it work."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.first = len(REPORT)
+
+    @classmethod
+    def tearDownClass(cls):
+        for name, ticks, sec in REPORT[cls.first:]:
+            sys.stderr.write('%-34s %12d ticks %7.1f s\n' % (name, ticks, sec))
+
+    def test_packed_fixed_point(self):
+        t.setUpModule()
+        tl = tools()
+        src = b'pack\n' + t.read('l3c.tw', 'rb')
+        want, err = l3ctext.encode(src)
+        self.assertIsNone(err)
+        want2, err = l3ctext.pack_pass(want)
+        self.assertIsNone(err)
+        # the planner by the serial chain
+        pl2, pl1, planner = chain('l3p (serial chain)', tl['l3c'], t.read('l3p.tw', 'rb'))
+        self.assertEqual(pl2, l3ctext.encode(t.read('l3p.tw', 'rb'))[0])
+        planner = (planner, 20, 2)
+        # the packed l3c by the serial chain with the planner, and by the packed chain with the planner: the same image
+        l2a, l1a, img0 = chain('packed l3c (serial chain)', tl['l3c'], src, planner)
+        self.assertEqual(l2a, want2)
+        self.assertEqual(l1a, l3ctext.language1(src)[0] + b'\0')
+        self.assertEqual(img0, l5.chain_image(src.decode('latin-1'))[0])
+        self.assertLess(len(img0) * 8, 1 << 20)
+        l2b, l1b, img1 = chain('packed l3c (packed chain)', (img0, 20, 3), src, planner)
+        self.assertEqual((l2b, l1b, img1), (l2a, l1a, img0))
+        # the packed tools made by the packed chain work: the planner itself, the seed, the label tool
+        l2c, l1c, pl_pack = chain('l3p (packed chain)', (img1, 20, 3), b'pack\n' + t.read('l3p.tw', 'rb'), planner)
+        self.assertEqual(l1c, l3ctext.language1(b'pack\n' + t.read('l3p.tw', 'rb'))[0] + b'\0')
+        self.assertEqual(step('packed l3p on l3c.tw', pl_pack, 20, 3, want), want2)
+        _, _, seed_pack = chain('seed (packed chain)', (img1, 20, 3), b'pack\n' + t.hoisted('seed').encode(), planner)
+        src1 = t.read('seed.l1', 'rb') + b'\0'
+        self.assertEqual(step('packed seed on seed.l1', seed_pack, 20, 3, src1), l1text.encode(src1)[0])
+
+    def test_names_fill_the_table_in_pack_mode(self):
+        """1020 names and the 1021st: the same bytes and the same reports as the reference, in pack mode too."""
+        t.setUpModule()
+        img = tools()['l3c'][0]
+        for n, bad in ((1020, False), (1021, True)):
+            src = 'pack\n' + ''.join(':a%d data 1 0\n' % i for i in range(n)) + ':main block\nhalt\n'
+            r = run(img, 20, 2, checked=False, limit=BIG, stdin=src.encode() + b'\0')
+            want, err = l3ctext.encode(src)
+            self.assertEqual(r.out, want)
+            self.assertEqual((err, 'l3c: bad label' in r.err), ('lab', True) if bad else (None, False))
 
 
 if __name__ == '__main__':

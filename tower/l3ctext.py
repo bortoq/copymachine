@@ -4,7 +4,13 @@ and a zero byte, stdout is a text of language 2 with labels (what `programs/l2l.
 the tool ends with a zero byte, so `cat out out` is `text 0 text 0`) and a zero byte. So the chain of the build is
     text of language 3 -> l3c -> text of language 2 with labels -> l2l -> text of language 1 -> seed -> the image
 The layout is SERIAL: every row of the text is a layer of its own (two slots: the row and the jump to the next layer), nothing is
-packed, there is no planner (23.10 brings it back as an improvement). A is fixed, 20 (the numbers of language 2 are 20 bits), P is 2 (`common.run(image, 20, 2)`).
+packed. A is fixed, 20 (the numbers of language 2 are 20 bits), P is 2 (`common.run(image, 20, 2)`).
+PACK MODE (23.10, the planner as an improvement of the economical language): the text begins with the word `pack` (alone, first). Then the
+processor has three slots (P = 3: the boot layer and the first layer of a block have three, the data begin 80 bits later, `zero` and `one`
+are at 240 and 304), the pairs of references to a block end in +f0 (the width of a first layer), before every pad of an alignment there is the
+line `# a <k> <pad>` (hex), and data, tables and arrays must stand before the first block (else `bad block`). The output is the same serial layout
+for the pass over it, `pack_pass` below (the tool programs/l3p.tw does the same on the chain: l3c -> l3p -> l2l -> seed); without the pass it
+is not a program (its first layer has two slots).
 
 The subset of the text of language 3 (text.py reads more; what is left out is told below). Words, separated by blanks and line breaks
 (`#` starts a comment to the end of the line):
@@ -31,6 +37,7 @@ The layout (positions are bits of the snapshot): the boot layer at 0 (the row 0,
 but the jump, the row), the return link of a word (40 bits before its first block), the table of `if` and the link of `call` after the last
 layer of the block; at the end the tables add4 .. hex4 which were used, then zeros up to a whole byte; label `e` is the end.
 Run: python3 tower/l3ctext.py -e < prog.tw > prog.l2z   (the reference of the tool)
+     python3 tower/l3ctext.py -p < prog.l2z > prog.l2p    (the reference of the planner l3p.tw, 23.10: the pass over the output of pack mode)
      python3 tower/l3ctext.py -t > l3c.img                (the image of the tool: A = 20, P = 3, run it with `emulator -s 1048570 -p 3`)
      python3 tower/l3ctext.py -l < prog.tw > prog.l1      (the text of language 1 of a program: l3c, then l2l; for l3c.tw it is programs/l3c.l1)"""
 import os
@@ -46,9 +53,13 @@ M = (1 << A) - 1
 LIMIT = 0xfa000
 MESSAGES = {'bad': 'l3c: bad text\n', 'lab': 'l3c: bad label\n', 'wid': 'l3c: bad width\n', 'blk': 'l3c: bad block\n',
             'big': 'l3c: too big\n'}
+PMESSAGES = {'bad': 'l3p: bad text\n', 'big': 'l3p: too big\n'}
 MAXSYM = 1020                          # the symbols of a user (with add4, sub4, hex4, zero they fill the 1024 places)
 MAXSTR = 32
 ZERO_ADDR, ONE_ADDR, START = JB, JB + 64, JB + 65
+PACK_P = 3                            # slots of the processor of a packed program (pack mode)
+HEAD = PACK_P * RB                    # the width of a block's first layer, and of the layer the processor takes at a jump
+PZERO, PONE, PSTART = HEAD, HEAD + 64, HEAD + 65
 WS = b' \t\r\n'
 IDENT = frozenset(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_')
 DIGITS = frozenset(b'0123456789')
@@ -56,7 +67,7 @@ ESC = {ord('n'): 10, ord('t'): 9, ord('r'): 13, ord('0'): 0, ord('\\'): 92, ord(
 
 # the words: kinds of the arguments (R a part of space, N a number lo..hi, V a value, B a block &name, T a table)
 WORDS = ['data', 'table', 'array', 'copy', 'shl', 'shr', 'lut', 'store', 'block', 'word', 'goto', 'if', 'call', 'ret', 'halt',
-         'emit', 'warn', 'key', 'add', 'sub', 'band', 'lt', 'eq']
+         'emit', 'warn', 'key', 'add', 'sub', 'band', 'lt', 'eq', 'pack']
 CODE = {w: i for i, w in enumerate(WORDS)}
 DEFINING = ('data', 'table', 'array', 'block', 'word')
 SHAPE = {'data': ('N1:65536', 'V'), 'table': ('N1:10', 'N1:64'), 'array': ('N1:10', 'N1:64'), 'copy': ('R', 'R'),
@@ -64,6 +75,7 @@ SHAPE = {'data': ('N1:65536', 'V'), 'table': ('N1:10', 'N1:64'), 'array': ('N1:1
          'call': ('B', 'B'), 'ret': (), 'halt': (), 'emit': ('R',), 'warn': ('R',), 'key': ('R',)}
 for _w in ('add', 'sub', 'band', 'lt', 'eq'):
     SHAPE[_w] = ('R', 'R', 'R')
+SHAPE['pack'] = ()
 SHAPE['lut'] = SHAPE['store'] = ('T',)         # the rest depends on the table
 
 # the tables the tool makes at the end: name -> (label, index widths, out, function of the indices)
@@ -99,9 +111,12 @@ class Tab:
 
 
 class Compiler:
-    def __init__(self):
+    def __init__(self, pack=False):
         self.out = []
-        self.pos = START
+        self.pack = pack                      # pack mode: the processor has PACK_P slots, the output is for the pass `pack_pass` (23.10)
+        self.zero, self.one, self.pos = (PZERO, PONE, PSTART) if pack else (ZERO_ADDR, ONE_ADDR, START)
+        self.plus = '+f0\n' if pack else '+a0\n'      # the second half of a pair of references to a layer: the width of the first layer
+        self.coded = False                    # a block was begun (in pack mode data, tables and arrays come before the first block)
         self.syms = {}                        # name -> ('data', addr, bits) | ('tab', Tab)
         self.used = set()
         self.block_open = False
@@ -120,6 +135,8 @@ class Compiler:
 
     def align(self, bits):
         pad = -self.pos % (1 << bits)
+        if self.pack:
+            self.put('# a %x %x\n' % (bits, pad))          # the pass recounts the pad when the layers before it get shorter
         self.zrun(pad)
         self.pos += pad
 
@@ -228,14 +245,14 @@ class Compiler:
             for i in range(k):
                 self.lut_(t, [sx(i), sy(i)], sr(4 * i, 4))
         elif op in ('add', 'sub'):
-            self.lut_(t, [sx(0), sy(0), (ZERO_ADDR, 1)], sr(0, 5))
+            self.lut_(t, [sx(0), sy(0), (self.zero, 1)], sr(0, 5))
             for i in range(1, k):
                 self.lut_(t, [sx(i), sy(i), sr(4 * i, 1)], sr(4 * i, 5))
         elif op == 'lt':
             for i in range(k):
                 self.lut_(t, [sx(i), sy(i), sr(i, 1)], sr(i + 1, 1))
         else:
-            self.lut_(t, [sx(0), sy(0), (ONE_ADDR, 1)], sr(0, 1))
+            self.lut_(t, [sx(0), sy(0), (self.one, 1)], sr(0, 1))
             for i in range(1, k):
                 self.lut_(t, [sx(i), sy(i), sr(i - 1, 1)], sr(i, 1))
 
@@ -249,12 +266,12 @@ class Compiler:
             if k < n:
                 self.layer(self.c(n - k, r[0] + k, x[0]))
             if k:
-                self.layer(self.c(k, r[0], ZERO_ADDR))
+                self.layer(self.c(k, r[0], self.zero))
         else:
             if k < n:
                 self.layer(self.c(n - k, r[0], x[0] + k))
             if k:
-                self.layer(self.c(k, r[0] + n - k, ZERO_ADDR))
+                self.layer(self.c(k, r[0] + n - k, self.zero))
 
     def need_block(self, w):
         if not self.block_open:
@@ -270,13 +287,13 @@ class Compiler:
             self.table_begin(label, a[0], a[1], True)
         elif w == 'block':
             self.put(':b%s\n' % label)
-            self.block_open = True
+            self.block_open = self.coded = True
         elif w == 'word':
             self.check()
             self.put(':r%s\nz 28\n' % label)
             self.pos += 40
             self.put(':b%s\n' % label)
-            self.word, self.block_open = label, True
+            self.word, self.block_open, self.coded = label, True, True
         elif w == 'copy':
             d, s = a
             if d[1] != s[1]:
@@ -319,7 +336,7 @@ class Compiler:
             self.check()
             self.layer(self.c(2 * A, '&r' + a[0], self.pos + 2 * JB))
             self.layer(self.GAP, '&b' + a[0])
-            self.put('d 14 &b%s\nd 14 &b%s+a0\n' % (a[1], a[1]))
+            self.put('d 14 &b%s\nd 14 &b%s%s' % (a[1], a[1], self.plus))
             self.pos += 2 * A
             self.block_open = False
         elif w == 'ret':
@@ -342,7 +359,7 @@ class Compiler:
         self.layer(self.GAP, '0')
         self.align(j + 1)
         for b in (other, then):
-            self.put('d 14 &b%s\nd 14 &b%s+a0\n' % (b, b))
+            self.put('d 14 &b%s\nd 14 &b%s%s' % (b, b, self.plus))
             self.zrun((1 << j) - 2 * A)
         self.pos += 2 << j
         self.block_open = False
@@ -367,8 +384,10 @@ class Compiler:
         self.put(':e\n\0')
 
 
-def prelude():
-    return ('w 14\nd 14 0\nd 14 &e\nd 14 ffffb\nd 14 ffffb\nz 50\no\nz 50\nc a0 0 &bmain\nz 40\nd 1 1\n')
+def prelude(pack=False):
+    if pack:      # the boot layer and the first layer have PACK_P slots; the jump to main takes a whole first layer
+        return 'w 14\nd 14 0\nd 14 &e\nd 14 ffffb\nd 14 ffffb\nz 50\nz 50\no\nz 50\nc f0 0 &bmain\nz 50\nz 40\nd 1 1\n'
+    return 'w 14\nd 14 0\nd 14 &e\nd 14 ffffb\nd 14 ffffb\nz 50\no\nz 50\nc a0 0 &bmain\nz 40\nd 1 1\n'
 
 
 def lex(data):
@@ -451,11 +470,26 @@ def classify(t):
     raise Stop('bad')
 
 
+def iter_tokens(data):
+    """The first token of a text (or nothing when the text begins with a wrong token)."""
+    try:
+        yield from lex(data)
+    except Stop:
+        return
+
+
+def is_pack(src):
+    """Does the text begin with the word `pack` (the pack mode: the output is for the pass of the planner)?"""
+    data = bytes(src) if isinstance(src, (bytes, bytearray)) else src.encode('latin-1')
+    return next(iter_tokens(data), None) == ('name', 'pack')
+
+
 def encode(src):
     """The reference of the tool: (bytes, error or None). The bytes are cut at the error (after the last complete word)."""
     data = bytes(src) if isinstance(src, (bytes, bytearray)) else src.encode('latin-1')
-    comp = Compiler()
-    comp.put(prelude())
+    pack = is_pack(data)
+    comp = Compiler(pack)
+    comp.put(prelude(pack))
     err = None
     try:
         run(comp, data)
@@ -480,7 +514,7 @@ def resolve_ref(comp, tok, want_table=False):
             raise Stop('lab')
         return s[1]
     if name == 'zero':
-        addr, bits = ZERO_ADDR, 1
+        addr, bits = comp.zero, 1
     else:
         s = comp.syms.get(name)
         if s is None or s[0] != 'data':
@@ -497,19 +531,26 @@ def run(comp, data):
     toks = lex(data)
     pending = None
     cur = None            # [word, args kinds list, args]
+    first = True
     for kind, v in toks:
+        if first and (kind, v) == ('name', 'pack'):      # the word of the pack mode (the prelude was written for it), only first
+            first = False
+            continue
+        first = False
         if cur is None:
             if kind == 'label':
                 if pending is not None:
                     raise Stop('bad')
                 pending = v
                 continue
-            if kind != 'name' or v not in CODE:
+            if kind != 'name' or v not in CODE or v == 'pack':
                 raise Stop('bad')
             w = v
             if (w in DEFINING) != (pending is not None):
                 raise Stop('bad')
             if w in ('data', 'table', 'array', 'block', 'word') and comp.block_open:
+                raise Stop('blk')
+            if w in ('data', 'table', 'array') and comp.pack and comp.coded:
                 raise Stop('blk')
             if w not in DEFINING:
                 comp.need_block(w)
@@ -632,13 +673,14 @@ def generated():
     T['kw'] = (5, 40, '\n'.join('  ' + ' '.join(kws[i:i + 4]) for i in range(0, 32, 4)))
     T['shape'] = (8, 4, tvals([shape_kind(i >> 3, i & 7) if i >> 3 < len(WORDS) else 0 for i in range(256)], 8))
     T['wcl'] = (5, 4, tvals([(1 if w == 'table' else 0) | (2 if w in ('lut', 'store') else 0) | (4 if w == 'data' else 0)
-                             | (8 if w == 'array' else 0) for w in WORDS + [''] * 9]))
-    T['defn'] = (5, 1, tvals([int(w in DEFINING) for w in WORDS + [''] * 9]))
-    T['isdecl'] = (5, 1, tvals([int(w in ('data', 'table', 'array')) for w in WORDS + [''] * 9]))
-    T['ar0'] = (5, 1, tvals([int(w != '' and not SHAPE[w]) for w in WORDS + [''] * 9]))
-    T['isret'] = (5, 1, tvals([int(w == 'ret') for w in WORDS + [''] * 9]))
+                             | (8 if w == 'array' else 0) for w in WORDS + [''] * (32 - len(WORDS))]))
+    T['defn'] = (5, 1, tvals([int(w in DEFINING) for w in WORDS + [''] * (32 - len(WORDS))]))
+    T['isdecl'] = (5, 1, tvals([int(w in ('data', 'table', 'array')) for w in WORDS + [''] * (32 - len(WORDS))]))
+    T['ar0'] = (5, 1, tvals([int(w != '' and not SHAPE[w]) for w in WORDS + [''] * (32 - len(WORDS))]))
+    T['isret'] = (5, 1, tvals([int(w == 'ret') for w in WORDS + [''] * (32 - len(WORDS))]))
+    T['isp'] = (5, 1, tvals([int(w == 'pack') for w in WORDS + [''] * (32 - len(WORDS))]))
     T['lp'] = (5, 16, tvals([(lambda p: p[0] | p[1] << 3 | p[2] << 5 | p[3] << 8 | p[4] << 9 | p[5] << 10 | p[6] << 11 | p[7] << 12)(
-        LIBP[w]) if w in LIBP else 0 for w in WORDS + [''] * 9]))
+        LIBP[w]) if w in LIBP else 0 for w in WORDS + [''] * (32 - len(WORDS))]))
     T['mm'] = (2, 20, tvals([(2 * n + 1) * JB for n in range(4)]))
     T['fa'] = (1, 20, tvals([2 * A, 0]))
     T['fb'] = (1, 20, tvals([3 * A, A]))
@@ -662,6 +704,24 @@ def generated():
     T['bfw'] = (3, 5, tvals([min(1 << BUILTIN[n][2].bit_length(), 20) for n in BUILTIN] + [0, 0]))
     T['bfc'] = (3, 8, tvals([rev8(ord(BUILTIN[n][0][1])) for n in BUILTIN] + [0, 0]))
     return T
+
+
+def p_generated():
+    """name -> (K, out, lines of values) for the tables of programs/l3p.tw made by this module (the pass of 23.10)."""
+    T = {}
+    T['cls'] = (8, 4, tvals([(1 if c == 0 else 0) | (2 if c == 32 else 0) | (4 if c == 10 else 0) | (8 if c == 38 else 0) for c in map(rev8, range(256))]))
+    T['hexv'] = (8, 5, tvals([(int(chr(c), 16) | 16) if chr(c) in '0123456789abcdef' else 0 for c in map(rev8, range(256))]))
+    T['fcl'] = (8, 3, tvals([{0: 7, ord(':'): 1, ord('#'): 2, ord('o'): 3, ord('c'): 4, ord('z'): 5, ord('d'): 6}.get(c, 0) for c in map(rev8, range(256))]))
+    T['tbase'] = (8, 20, tvals([TBASE + 0x1000 * TNUM[chr(c)] if chr(c) in TNUM else 0 for c in map(rev8, range(256))]))
+    T['mu'] = (2, 20, tvals([80 * i for i in range(4)]))
+    T['mask'] = (5, 20, tvals([(1 << e) - 1 if e < 20 else 0 for e in range(32)]))
+    T['p2e'] = (5, 20, tvals([1 << e if e < 20 else 0 for e in range(32)]))
+    T['inc8'] = (8, 8, tvals([(i + 1) & 255 for i in range(256)]))
+    return T
+
+
+def p_tables_text():
+    return '\n'.join(':%s table %d %d\n%s' % (n, K, w, v) for n, (K, w, v) in p_generated().items()) + '\n'
 
 
 def tables_text():
@@ -691,12 +751,290 @@ def hoist(src):
     return '\n'.join(decl + rest)
 
 
-def main():
-    out, err = encode(sys.stdin.buffer.read())
+def main(planner=False):
+    if planner:
+        out, err = pack_pass(sys.stdin.buffer.read())
+    else:
+        out, err = encode(sys.stdin.buffer.read())
     sys.stdout.buffer.write(out)
     if err:
-        sys.stderr.write(MESSAGES[err])
+        sys.stderr.write((PMESSAGES if planner else MESSAGES)[err])
         sys.exit(1)
+
+
+# --- the pass of 23.10: the planner (the serial layers of a block packed into fewer layers)
+# The text of language 2 of pack mode (`pack` is its first word) is serial: a layer is a row and a jump of 160 bits, the data and the
+# tables stand before the first block, the processor has PACK_P = 3 slots. The pass (the tool programs/l3p.tw does the same on the
+# chain) takes each block, the layers from its label to the jump which leaves it (a label, or the patched 0), forgets the empty rows
+# (the waits of lut, if, ret) and lays the rows out again into layers of at most PACK_P - 1 rows. It is the list scheduler of l3.py
+# with direct = False: the rows in the text order, every row into the first layer, from the earliest the rows before it allow, where
+# there is room and no bits are touched twice in the layer (source with source too). After a row which touches the same bits (it
+# writes what this reads or writes, or reads what this writes) it goes 1 layer later; after a row which writes into its text, or into
+# the text of the jump of the last layer, 2 layers later (the jump takes the whole next layer one tick before it runs). Only the
+# last WINDOW rows before it are looked at; farther back it goes 2 layers after them all. A copy that writes into the text of the block is a
+# patch: the bits it patches in the sl (dl) field of a row tell the span 2^E of the table the row reads (writes). A reference to a
+# table of the library (&t.) is a span at a place of its own above the memory; a reference to the link of a word (&r...) touches
+# nothing else. key writes from its destination to the channel. The first layer of a block and the layer a jump takes have PACK_P
+# slots (the jump copies PACK_P * RB bits); a layer in the middle has as many slots as it needs, not fewer than the layer before it.
+# The data and the tables stay where they are; what follows the last jump of a block (the table of `if`, the pair of `call`) moves
+# with the block's end, and the pad of an alignment (`# a<k> <pad>`) is counted anew; the markers go.
+S1, S2, S3 = (1 << A) - 5, (1 << A) - 4, (1 << A) - 3
+TBASE = 0xfa000                          # the place of the table of the library 'ta ts tn tl te th' (a, s, n, l, e, h): +0x1000 * its number
+TNUM = {'a': 0, 's': 1, 'n': 2, 'l': 3, 'e': 4, 'h': 5}
+WINDOW = 8
+STATS = {}                               # (rows, layers, bits) of the blocks of the last pass, laid out serially and packed
+
+
+def _field(t):
+    """A field of a row: (label text or None, number); a reference to a table of the library is a number of its place above the memory."""
+    if t[0] != '&':
+        return (None, int(t, 16), 0)
+    if t[1] == 't' and len(t) == 3:
+        return (t, TBASE + 0x1000 * TNUM[t[2]], 1)
+    return (t, 0, 2)
+
+
+def _fmt(f, v):
+    return '%x' % v if f[0] is None else f[0]
+
+
+def _size(line):
+    """Bits of a line of the text (after `o`)."""
+    w = line.split()
+    if not w or line[0] in ':#':
+        return 0
+    if w[0] == 'c':
+        return 80
+    if w[0] in ('d', 'z'):
+        return int(w[1], 16)
+    return 0
+
+
+def _get(lines, j):
+    """lines[j] as the tool reads a line: at most 63 characters and 4 tokens (else bad)."""
+    ln = lines[j]
+    if len(ln) > 63 or len(ln.split()) > 4:
+        raise Stop('bad')
+    return ln
+
+
+def _marker(ln):
+    """(k, pad) if the line is a marker `# a <k> <pad>`; None if it is another comment; bad if it is a marker without its numbers."""
+    tk = ln.split()
+    if ln[:1] != '#' or len(tk) < 2 or tk[1] != 'a' or len(tk[0]) != 1:
+        return None
+    if len(tk) != 4:
+        raise Stop('bad')
+    return int(tk[2], 16), int(tk[3], 16)
+
+
+def _ov(a, b):
+    return a[0] < b[1] and b[0] < a[1]
+
+
+def _z(n):
+    out = []
+    while n >= 255:
+        out.append('z ff')
+        n -= 255
+    if n:
+        out.append('z %x' % n)
+    return out
+
+
+class _Op:
+    pass
+
+
+def _plan(ops, jump):
+    """The layer of every op and the number of layers. Every op has r, w (the intervals read and written), own (the interval of its row's text)."""
+    at, pm, lay, need = [], [], [], 1
+    for i, o in enumerate(ops):
+        lb = pm[i - WINDOW - 1] + 2 if i > WINDOW else 0
+        for j in range(max(0, i - WINDOW), i):
+            p = ops[j]
+            if _ov(p.w, o.own):
+                lb = max(lb, at[j] + 2)
+            if _ov(p.w, o.r) or _ov(p.r, o.w) or _ov(p.w, o.w):
+                lb = max(lb, at[j] + 1)
+        L = lb
+        while True:
+            while L >= len(lay):
+                lay.append([])
+            if len(lay[L]) < PACK_P - 1 and not any(
+                    _ov(o.r, ops[k].r) or _ov(o.r, ops[k].w) or _ov(o.w, ops[k].r) or _ov(o.w, ops[k].w) for k in lay[L]):
+                break
+            L += 1
+        lay[L].append(i)
+        at.append(L)
+        pm.append(max(pm[-1], L) if pm else L)
+        if _ov(o.w, jump):
+            need = max(need, L + 3)
+    n = max(len(lay), need)
+    return lay + [[] for _ in range(n - len(lay))]
+
+
+def _block(lines, i, po, pn):
+    """The block that begins at lines[i] (':b...'): (its lines packed, the index of the line after its last jump, po, pn after it)."""
+    bs = po
+    j, units = i + 1, []
+
+    def line(j, first, ntok=0):
+        """lines[j] if it is a line (not the zero byte or the end of a line cut) of the class `first` with at least ntok tokens."""
+        if j >= len(lines) - 1 or not lines[j] or lines[j][0] not in first or len(lines[j].split()) < ntok:
+            raise Stop('bad')
+        return _get(lines, j)
+
+    while True:                                          # the layers: a row and a jump
+        ln = line(j, 'zcd')
+        if ln[0] == 'd':
+            row = [line(j + k, 'd', 3) for k in range(4)]
+            if any(r.split()[1] != '14' for r in row):
+                raise Stop('bad')
+            j += 4
+        else:
+            if ln[0] == 'z' and int(line(j, 'z', 2).split()[1], 16) != 0x50:
+                raise Stop('bad')
+            row = [line(j, 'c', 4) if ln[0] == 'c' else ln]
+            j += 1
+        tgt = line(j, 'c', 4).split()[3]
+        j += 1
+        units.append((row, tgt))
+        if tgt == '0' or tgt[0] == '&':
+            break
+        if len(units) == 254:
+            raise Stop('big')
+    if j >= len(lines):
+        raise Stop('bad')
+    if j == len(lines) - 1 and lines[j] != '':
+        raise Stop('bad')
+    _get(lines, j)
+    be = bs + 160 * len(units)
+    jump = (be - 80, be)
+    ops, uop = [], {}
+    for k, (row, _) in enumerate(units):
+        if row == ['z 50']:
+            continue
+        o = _Op()
+        o.row, o.own = row, (bs + 160 * k, bs + 160 * k + 80)
+        if row[0].startswith('d 14'):
+            o.q = [int(x.split()[2], 16) for x in row]
+        else:
+            t = row[0].split()
+            o.q, o.n, o.d, o.s = None, int(t[1], 16), _field(t[2]), _field(t[3])
+        uop[k] = len(ops)
+        ops.append(o)
+    es, ed = [0] * len(ops), [0] * len(ops)              # the spans of the tables: the bits patched into sl (dl) of a row
+    for o in ops:
+        o.patch = o.q is None and o.d[2] == 0 and bs <= o.d[1] < be
+        if o.patch and o.d[1] < be - 80:
+            t, off = divmod(o.d[1] - bs, 160)
+            if t not in uop:
+                raise Stop('bad')                         # a patch into an empty row
+            x = uop[t]
+            if 40 <= off < 60:
+                es[x] = max(es[x], off - 40 + o.n)
+            elif off < 20:
+                ed[x] = max(ed[x], off + o.n)
+    for x, o in enumerate(ops):
+        if o.q is None and o.s[2] == 0 and bs <= o.s[1] < be:
+            raise Stop('bad')                                 # a row does not read the text of its block
+        if o.q is not None:
+            if o.q[2] == S1:                              # key: stdin is read, from the destination to the channel is written
+                o.r, o.w = (S1, S1 + 1), (o.q[0], S1 + 1)
+            else:                                         # emit, warn: the channel is written
+                o.r, o.w = (o.q[2], o.q[3]), (o.q[0], o.q[0] + 1)
+        else:
+            o.r = (o.s[1], o.s[1] + ((1 << es[x]) if es[x] else o.n)) if o.s[2] != 2 else (0, 0)
+            o.w = (o.d[1], o.d[1] + ((1 << ed[x]) if ed[x] else o.n)) if o.d[2] != 2 else (0, 0)
+    lay = _plan(ops, jump)
+    n = len(lay)
+    w = [len(l) + 1 for l in lay]
+    u = [PACK_P] + [max(w[k], w[k - 1]) for k in range(1, n)]
+    for key, (r, l, b) in (('serial', (len(ops) + len(units), len(units), 160 * len(units))), ('packed', (len(ops) + n, n, 80 * sum(u)))):
+        STATS[key] = tuple(x + y for x, y in zip(STATS.get(key, (0, 0, 0)), (r, l, b), strict=True))
+    start = [pn]
+    for k in range(n):
+        start.append(start[-1] + u[k] * 80)
+    where = {}
+    for k, l in enumerate(lay):
+        for sl, x in enumerate(l):
+            where[x] = start[k] + sl * 80
+    be_new = start[n]
+    old_pad = new_pad = 0                                 # a pad that follows the block at once: the table of `if`
+    try:
+        mk = _marker(lines[j])                           # (a marker that is wrong is found when the line is read again)
+    except Stop:
+        mk = None
+    if mk:
+        old_pad = mk[1]
+        new_pad = -be_new % (1 << mk[0])
+    shift = (be_new + new_pad) - (be + old_pad)
+
+    def addr(f, v):
+        if f[0] is not None:
+            return v
+        if bs <= v < be:
+            t, off = divmod(v - bs, 160)
+            if off < 80:
+                if t not in uop:
+                    raise Stop('bad')
+                return where[uop[t]] + off
+            return start[n - 1] + (len(lay[n - 1])) * 80 + off - 80
+        return v + shift if be <= v < S1 else v
+
+    out = [lines[i]]
+    for k in range(n):
+        for x in lay[k]:
+            o = ops[x]
+            out.extend(o.row if o.q is not None else ['c %x %s %s' % (o.n, _fmt(o.d, addr(o.d, o.d[1])), _fmt(o.s, addr(o.s, o.s[1])))])
+        out.append('c %x 0 %x' % (u[k + 1] * 80, start[k + 1]) if k < n - 1 else 'c %x 0 %s' % (HEAD, units[-1][1]))
+        out.extend(['z 50'] * (u[k] - w[k]))
+    return out, j, be, be_new
+
+
+def pack_pass(data):
+    """The pass over the text of language 2 of pack mode (see above); data ends with a zero byte, and so does the result."""
+    STATS.clear()
+    text = data.decode('latin-1')
+    assert text.endswith('\0')
+    lines = text[:-1].split('\n')                        # the last piece is empty (the zero byte comes at the start of a line) or a line cut
+    out, i, po, pn = [], 0, 0, 0
+    try:
+        while i < len(lines) - 1:
+            ln = _get(lines, i)
+            if ln.startswith(':b'):
+                out.append(ln)
+                ls, i, po, pn = _block(lines, i, po, pn)
+                out.extend(ls[1:])
+            elif _marker(ln):
+                k, pad = _marker(ln)
+                i += 1
+                left = pad
+                while left:
+                    if i >= len(lines) - 1 or not lines[i].startswith('z ') or len(_get(lines, i).split()) < 2:
+                        raise Stop('bad')
+                    left -= int(lines[i].split()[1], 16)
+                    i += 1
+                if left < 0:
+                    raise Stop('bad')
+                npad = -pn % (1 << k)
+                out.extend(_z(npad))
+                po += pad
+                pn += npad
+            else:
+                if ln == 'o':
+                    po = pn = 0
+                else:
+                    po += _size(ln)
+                    pn += _size(ln)
+                out.append(ln)
+                i += 1
+        if lines[-1] != '':
+            raise Stop('bad')
+    except Stop as e:
+        return ''.join(x + '\n' for x in out).encode('latin-1'), e.why
+    return ('\n'.join(out) + '\n\0').encode('latin-1'), None
 
 
 def language1(src):
@@ -705,6 +1043,10 @@ def language1(src):
     l2, err = encode(src)
     if err:
         return b'', err
+    if is_pack(src):                      # pack mode: the pass of the planner stands between l3c and l2l
+        l2, err = pack_pass(l2)
+        if err:
+            return b'', err
     l1, err = l2ltext.encode(l2, twice=True)
     return l1[:-1], err
 
@@ -726,6 +1068,8 @@ if __name__ == '__main__':
         sys.stdout.buffer.write(tool_image())
     elif sys.argv[1:2] == ['-e']:
         main()
+    elif sys.argv[1:2] == ['-p']:
+        main(True)
     elif sys.argv[1:2] == ['-l']:
         l1, e = language1(sys.stdin.buffer.read())
         sys.stdout.buffer.write(l1)

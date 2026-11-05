@@ -50,7 +50,7 @@
   "block" "\0word" "\0goto" "\0\0\0if"
   "\0call" "\0\0ret" "\0halt" "\0emit"
   "\0warn" "\0\0key" "\0\0add" "\0\0sub"
-  "\0band" "\0\0\0lt" "\0\0\0eq" "\0\0\0\0\0"
+  "\0band" "\0\0\0lt" "\0\0\0eq" "\0pack"
   "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0"
   "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0"
 :shape table 8 4
@@ -97,10 +97,13 @@
   0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 :ar0 table 5 1
   0 0 0 0 0 0 0 0 1 1 0 0 0 1 1 0
-  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0
 :isret table 5 1
   0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0
   0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:isp table 5 1
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0
 :lp table 5 16
   0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
   0 0 1176 1177 4242 13115 11836 0 0 0 0 0 0 0 0 0
@@ -396,7 +399,21 @@
 :one1 data 1 1
 :one20 data 20 1
 :c14 data 8 14
-:c23 data 8 23
+:c24 data 8 24
+:started data 1 0
+:packm data 1 0
+:pdone data 1 0
+:coded data 1 0
+:zaddr data 20 160
+:oaddr data 20 224
+:pstart data 20 305
+:z240 data 20 240
+:z304 data 20 304
+:zi3 data 10 3
+:s_plusp data 32 "+f0\n"
+:s_mark data 32 "# a "
+:pp3 data 136 "z 50\nz 50\no\nz 50\n"
+:pp4 data 240 "c f0 0 &bmain\nz 50\nz 40\nd 1 1\n"
 :c4 data 8 4
 :c255 data 20 255
 :c160 data 20 160
@@ -535,11 +552,6 @@ goto &init
 
 # --- the start: the first lines of the text, the symbols of the tool (add4 .. hex4, zero)
 :init block
-emit &pre1
-emit &pre2
-emit &pre3
-emit &pre4
-copy &pos &start
 goto &iloop
 :iloop block
 lut &bn &ki7[0:2] &bnv
@@ -750,6 +762,8 @@ goto &read
 # --- the end of the text: no word half done, no label alone, no block open; then the tables of the builtins which were used (bua),
 # zeros up to a whole byte, the label e, the zero byte
 :eot block
+call &prel &eot1
+:eot1 block
 if &inw &bad &eot2
 :eot2 block
 if &pend &bad &eot3
@@ -868,22 +882,58 @@ emit &s_cole
 emit &zero8
 halt
 
-# --- errors: the report to stderr and the halt (the output so far stays as it is)
+# --- the errors: the report to stderr and the halt (the output so far stays as it is; the first lines go out first)
 :bad block
+call &prel &bad2
+:bad2 block
 warn &msg_bad
 halt
 :lab block
+call &prel &lab2
+:lab2 block
 warn &msg_lab
 halt
 :wid block
+call &prel &wid2
+:wid2 block
 warn &msg_wid
 halt
 :blk block
+call &prel &blk2
+:blk2 block
 warn &msg_blk
 halt
 :big block
+call &prel &big2
+:big2 block
 warn &msg_big
 halt
+
+# --- the first lines of the text, once: when the first token has ended (or the text, or an error, came first). The pack mode (the first
+# token is `pack`) has a boot layer and a first layer of three slots: the data begin 80 bits later, the bits of `zero` and `one` too.
+:prel word
+if &pdone &prelx &prel1
+:prelx block
+ret
+:prel1 block
+copy &pdone &one1
+emit &pre1
+emit &pre2
+if &packm &prelp &prels
+:prels block
+emit &pre3
+emit &pre4
+copy &pos &start
+ret
+:prelp block
+emit &pp3
+emit &pp4
+copy &pos &pstart
+copy &zaddr &z240
+copy &oaddr &z304
+copy &s_plus &s_plusp
+store &sad &zi3 &z240
+ret
 
 # --- a name starts again; the number of a digit
 :clrname word
@@ -971,13 +1021,32 @@ copy &kwc &ki
 ret
 :kwnx block
 lut &inc8 &ki &ki
-eq &ki &c23 &q2
+eq &ki &c24 &q2
 if &q2[1] &kwend &kwl
 :kwend block
 ret
 
 # --- the end of a token
 :tokend word
+if &started &tkn0 &tkfirst
+:tkfirst block
+copy &started &one1
+if &tf[1] &tkf1 &tkf9
+:tkf1 block
+if &inw &tkf9 &tkf2
+:tkf2 block
+call &kwfind &tkf3
+:tkf3 block
+if &kwf &tkf4 &tkf9
+:tkf4 block
+lut &isp &kwc[0:5] &q1
+if &q1 &tkpack &tkf9
+:tkpack block
+copy &packm &one1
+call &prel &tdone
+:tkf9 block
+call &prel &tkn0
+:tkn0 block
 if &tf[0] &tkl &te1
 :tkl block
 if &inw &bad &tkl0
@@ -998,6 +1067,9 @@ call &kwfind &tkw3
 :tkw3 block
 if &kwf &tkw4 &bad
 :tkw4 block
+lut &isp &kwc[0:5] &q1
+if &q1 &bad &tkw5
+:tkw5 block
 call &wstart &tdone
 :te2 block
 if &tf[4] &te3 &te5
@@ -1036,6 +1108,10 @@ if &bopen &blk &ws2b
 lut &isdecl &wd[0:5] &isd
 if &isd &ws2c &ws5
 :ws2c block
+if &packm &ws2p &ws2c1
+:ws2p block
+if &coded &blk &ws2c1
+:ws2c1 block
 copy &nm &lbl
 call &find &ws2d
 :ws2d block
@@ -1443,6 +1519,8 @@ copy &s21 &wxr
 copy &q &s21[0:20]
 call &chk &tb3
 :tb3 block
+call &amark &tb3b
+:tb3b block
 call &doalign &tb4
 :tb4 block
 copy &nm &lbl
@@ -1704,8 +1782,28 @@ ret
 :align word
 call &padcalc &aln2
 :aln2 block
+call &amark &aln5
+:aln5 block
 call &doalign &aln3
 :aln3 block
+ret
+
+# pack mode: the line `# a<k> <pad>` before the pad of an alignment to 2^k (the pass l3p counts the pad anew)
+:amark word
+if &packm &aln4 &aln8
+:aln8 block
+ret
+:aln4 block
+emit &s_mark
+copy &h[0:5] &ale
+copy &h[5:20] &z20[0:15]
+call &puthex &aln6
+:aln6 block
+emit &sp
+copy &h &pad
+call &puthex &aln7
+:aln7 block
+emit &nl8
 ret
 
 # the bytes of the string in hand: d 8 <byte>
@@ -1868,6 +1966,7 @@ if &wd[0] &a_store &a_lut
 ret
 
 :a_block block
+copy &coded &one1
 emit &s_cb
 copy &pnm &lbl
 call &pname &ab2
@@ -1877,6 +1976,7 @@ copy &bopen &one1
 ret
 
 :a_word block
+copy &coded &one1
 copy &q &z20
 call &chk &aw1
 :aw1 block
@@ -2269,7 +2369,7 @@ call &lc &sh7
 if &kz &actret &sh8
 :sh8 block
 copy &p1 &kv20
-copy &p3 &c160
+copy &p3 &zaddr
 if &dir &sh8r &sh8l
 :sh8l block
 copy &p2 &gb[0:20]
@@ -2387,10 +2487,10 @@ if &q1 &alc0 &alc1
 :alc0 block
 if &lpv[11] &alcone &alczero
 :alcone block
-copy &ca &c224
+copy &ca &oaddr
 goto &alcst
 :alczero block
-copy &ca &c160
+copy &ca &zaddr
 goto &alcst
 :alc1 block
 if &lpv[9] &alc2 &alc3

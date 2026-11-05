@@ -52,7 +52,7 @@ MAIN = ':main block\n'
 class Programs(unittest.TestCase):
     def test_every_program_is_in_text(self):
         names = sorted(f[:-3] for f in os.listdir(PROGRAMS) if f.endswith('.tw'))
-        self.assertEqual(names, sorted(list(BUILDERS) + ['dict', 'seed', 'l2c', 'l2l', 'l3c']))
+        self.assertEqual(names, sorted(list(BUILDERS) + ['dict', 'seed', 'l2c', 'l2l', 'l3c', 'l3p']))
 
     def test_parse_and_bytes(self):
         """Each text is accepted and gives the image of its builder byte for byte (and the same A and P)."""
