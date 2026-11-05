@@ -18,6 +18,7 @@
 | [guide/06-plans.md](guide/06-plans.md) | что осталось сделать |
 | [dictionary.md](dictionary.md) | словарь низкоуровневых терминов (описания, процессор, образы) и указатель понятий README |
 | [layout.md](layout.md) | раскладка каталогов репозитория |
+| [../tower/README.md](../tower/README.md) | цепочка вложенных языков 1–5 (этап 23): зерно, инструменты, как собрать и проверить, непересечение |
 | [../emulator/README.md](../emulator/README.md) | краткая справка по эмулятору (English) |
 | [../emulator/doc/emulator-contract.md](../emulator/doc/emulator-contract.md) | точный контракт эмулятора: кодировка, такт, каналы, SYS, обязанности программы |
 | [../language/README.md](../language/README.md) | что такое каталог `language/` и как его проверить |
@@ -45,7 +46,10 @@
 | [../ROADMAP.md](../ROADMAP.md) | план: этапы и пункты со статусами ✅/❌ |
 | [journal/roadmap.md](journal/roadmap.md) | журнал плана: полный текст каждого этапа, принятые решения, «Сделано» с цифрами |
 | [design/exclude_this_file_from_git.txt](design/exclude_this_file_from_git.txt) | журнал дизайна: обсуждение и решения автора (раздел 7.2 — действующие); подлежит переработке в дизайн проекта |
-| [measurements/](measurements/) | замеры и разборы отдельных пунктов: [бут на L0](measurements/boot-on-l0.md) (18.2), [динамическая изоляция](measurements/dynamic-isolation.md) (18.18), [вызов на хосте](measurements/host-call.md) (18.13), [задержки](measurements/host-delay.md) (18.15), [раскладка](measurements/host-layout.md) (18.19), [следующие слова](measurements/host-next.md) (18.16), [слова на хосте](measurements/host-words.md) (18.11), [минимум понятий](measurements/min-concepts.md) (18.1), [без исключений](measurements/no-exceptions.md) (18.21), [таблица возвратов](measurements/return-table.md) (18.22); `check-full.json` — результаты долгих целей; `*-tools/` — скрипты замеров |
+| [measurements/](measurements/) | замеры и разборы отдельных пунктов: [бут на L0](measurements/boot-on-l0.md) (18.2), [динамическая изоляция](measurements/dynamic-isolation.md) (18.18), [вызов на хосте](measurements/host-call.md) (18.13), [задержки](measurements/host-delay.md) (18.15), [раскладка](measurements/host-layout.md) (18.19), [следующие слова](measurements/host-next.md) (18.16), [слова на хосте](measurements/host-words.md) (18.11), [минимум понятий](measurements/min-concepts.md) (18.1), [без исключений](measurements/no-exceptions.md) (18.21), [таблица возвратов](measurements/return-table.md) (18.22); `*-tools/` — скрипты замеров |
+| [measurements/tower.md](measurements/tower.md) | замеры цепочки языков по пунктам 23.x |
+| [measurements/tower-forth37.md](measurements/tower-forth37.md) | 37 программ нынешнего языка на цепочке (23.11) |
+| [measurements/language-tower.md](measurements/language-tower.md) | разметка слов ядра по языкам цепочки (21.1) |
 | [research/](research/) | [граф определений ядра](research/definition-graph.md) (порождается `defgraph.py`) и данные `definition-graph.json`, `isolation-ticks.json` |
 
 Пути `docs/journal/`, `docs/design/`, `docs/measurements/` и `language/doc/` не меняются: на них ссылаются тесты и журналы.

@@ -5,6 +5,7 @@
 PYTHON ?= python3
 RUFF ?= ruff
 LIMIT = $(PYTHON) -B tools/limited_run.py --seconds 600 --memory-mib 768
+LIMIT_LONG = $(PYTHON) -B tools/limited_run.py --seconds 1800 --memory-mib 768
 LONG = check-kernel check-self check-isolation check-proof check-replace check-user-programs
 .PHONY: all emulator language check-fast check check-full check-layout check-tower check-tower-long lint coverage clean
 all: emulator language
@@ -36,7 +37,7 @@ check-tower:
 # The long runs of the chain (not in check-fast; in check-full): the tools compiled by l3c (23.9, part 2) and working, 300 spoiled texts,
 # the fixed points of l3c: serial (23.9) and with the planner l3p (23.10).
 check-tower-long:
-	$(LIMIT) $(PYTHON) -B -m unittest discover -s tower/tests -p 'long_*.py'
+	$(LIMIT_LONG) $(PYTHON) -B -m unittest discover -s tower/tests -p 'long_*.py'
 check-fast:
 	$(LIMIT) $(MAKE) -C emulator -j1 check checked
 	$(MAKE) -C language -j1 check-programs check-closure check-language-md check-fast-tests

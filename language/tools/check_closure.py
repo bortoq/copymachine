@@ -260,6 +260,8 @@ def render_core():
     """The text of doc/core.md."""
     graph, rows, unused, numbers, entries = core_nodes()
     kinds = collections.Counter(row['kind'] for row in rows)
+    names = len({row['node']['name'] for row in rows})
+    words = names - kinds['literal']
     REDEFINED.update(node['name'] for node in graph.nodes if node['version'] > 1)
     where = lambda node: node['file'].replace('language/', '') + ':' + str(node['line'])
     out = ['# Ядро языка (14.8)', '',
@@ -270,8 +272,9 @@ def render_core():
            'если до него доходят ссылки из кода верхнего уровня файлов, из входов бута и из последнего '
            '`main`. Определение замкнуто: имён, использованных и не определённых в нём, нет '
            '(`external 0`). Слова — в порядке определения.', '',
-           f'**Слов в ядре: {len(rows)}** (' + ', '.join(f'{KINDS[kind]} — {count}' for kind, count in
+           f'**Узлов в ядре: {len(rows)}** (' + ', '.join(f'{KINDS[kind]} — {count}' for kind, count in
                                                          sorted(kinds.items(), key=lambda item: -item[1])) + ').', '',
+           f'**Слов в ядре: {words}** — различных имён ({names}; имя, определённое дважды, — один узел-слово) без цифр ({kinds["literal"]}).', '',
            '## Основание', '',
            'Основание — слова-копирования: генераторы строки (копия — приёмник и источник) и слоя '
            '(ячейка строк) из `src/backend.fth`. Определение инструкции — она сама: тело этих слов '
@@ -356,7 +359,7 @@ def main():
     if not args.no_core:
         text = render_core()
         args.core.write_text(text)
-        print(f'core {text.split("Слов в ядре: ")[1].split("**")[0]} words -> {args.core}')
+        print(f'core {text.split("Узлов в ядре: ")[1].split("**")[0]} nodes, {text.split("Слов в ядре: ")[1].split("**")[0]} words -> {args.core}')
     if len(names) > args.max_external:
         print(f'FAIL external {len(names)} > MAX_EXTERNAL {args.max_external}', file=sys.stderr)
         return 1

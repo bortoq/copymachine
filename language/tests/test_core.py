@@ -26,7 +26,7 @@ assert not names, sorted(names)
 KIND = {v: k for k, v in check_closure.KINDS.items()}
 ROW = re.compile(r'^\| (\d+) \| `(.*?)` \| (.*?) \| (src/\S+\.fth):(\d+) \| (\d+) \| (.*?) \|$', re.M)
 rows = ROW.findall(document.split('## Слова ядра')[1].split('## Числа определения')[0])
-total = int(re.search(r'Слов в ядре: (\d+)', document).group(1))
+total = int(re.search(r'Узлов в ядре: (\d+)', document).group(1))
 assert rows and len(rows) == total, (len(rows), total)
 assert [int(row[0]) for row in rows] == list(range(1, total + 1))
 order = {name: i for i, name in enumerate(paths.KERNEL_FILES)}
@@ -51,10 +51,10 @@ for _number, name, kind, file, line, uses, note in rows:
     else:
         raise AssertionError(kind)
     assert int(uses) >= 1, ('a word of the core without a use', name)
-print(f'PASS {total} words of the core: each is defined at its file:line, in the order of definition, and used')
+print(f'PASS {total} nodes of the core: each is defined at its file:line, in the order of definition, and used')
 
 # 2. the kinds in the header add up
-header = re.search(r'Слов в ядре: \d+\*\* \((.*?)\)\.', document).group(1)
+header = re.search(r'Узлов в ядре: \d+\*\* \((.*?)\)\.', document).group(1)
 counts = {KIND[kind.strip()]: int(count) for kind, count in (part.rsplit(' — ', 1) for part in header.split(', '))}
 assert sum(counts.values()) == total and counts['foundation'] == len(check_closure.FOUNDATION), counts
 print('PASS kinds:', header)
