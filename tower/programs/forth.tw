@@ -1,0 +1,1440 @@
+# The Forth of the chain (23.15, part 1): a compiler of a subset of Forth, a program of the chain (language 3). stdin: a text of Forth and a
+# zero byte; stdout: a text of language 3 and a zero byte (what programs/l3c.tw reads): Forth text -> forth -> l3c -> l2l -> seed -> image.
+# One pass: a word is defined before it is used, and the compiler writes the code of each word as soon as it has read it. The stacks are
+# arrays with a pointer (6 bits: 64 cells of 32 bits), the memory is 1024 bytes (an address is taken modulo 1024), a word is called by
+# pushing a code on the return stack and a jump, and `;` pops the code and finds the place by a tree of `if` (written at the end).
+# The text of a word of language 3 which the compiler writes is a template in a pool (programs/forth.def); a template has the
+# characters @ ~ % ^ for the numbers r1..r4. The tables between the marks are made by forth_gen.sh from forth.def.
+# The names of Forth words are the last 8 characters, the strings of s" are at most 32 bytes.
+
+# --- begin generated
+:cls table 8 8
+2 0 0 0 1 0 0 0 0 0 0 0 4 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 16 0 0 0 0 0 0 0 4 0 0 0
+65 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0
+1 0 0 0 32 0 0 0 0 0 0 0 4 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0
+1 0 0 0 8 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:pcl table 8 4
+4 0 8 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 11 0 0 0 9 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 10 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:inc7 table 7 7
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 0
+:dec7 table 7 7
+127 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126
+:pool0 table 10 56
+":inc ta" "ble 6 6" " 1 2 3 " "4 5 6 7" " 8 9 10" " 11 12 "
+"13 14 1" "5 16 17" " 18 19 " "20 21 2" "2 23 24" " 25 26 "
+"27 28 2" "9 30 31" " 32 33 " "34 35 3" "6 37 38" " 39 40 "
+"41 42 4" "3 44 45" " 46 47 " "48 49 5" "0 51 52" " 53 54 "
+"55 56 5" "7 58 59" " 60 61 " "62 63 0" "\n:dec t" "able 6 "
+"6 63 0 " "1 2 3 4" " 5 6 7 " "8 9 10 " "11 12 1" "3 14 15"
+" 16 17 " "18 19 2" "0 21 22" " 23 24 " "25 26 2" "7 28 29"
+" 30 31 " "32 33 3" "4 35 36" " 37 38 " "39 40 4" "1 42 43"
+" 44 45 " "46 47 4" "8 49 50" " 51 52 " "53 54 5" "5 56 57"
+" 58 59 " "60 61 6" "2\n:rev4" " table " "4 4 0 8" " 4 12 2"
+" 10 6 1" "4 1 9 5" " 13 3 1" "1 7 15\n" ":ds arr" "ay 6 32"
+"\n:rs ar" "ray 6 3" "2\n:mem " "array 1" "0 8\n:sp" " data 6"
+" 0\n:rp " "data 6 " "0\n:sq d" "ata 6 0" "\n:sr da" "ta 6 0\n"
+":ta dat" "a 32 0\n" ":tb dat" "a 32 0\n" ":tc dat" "a 32 0\n"
+":td dat" "a 32 0\n" ":tm dat" "a 32 0\n" ":tq dat" "a 32 0\n"
+":rc dat" "a 32 0\n" ":fl dat" "a 32 0\n" ":zz dat" "a 32 0\n"
+":uu dat" "a 32 1\n" ":tr dat" "a 33 0\n" ":ts dat" "a 33 0\n"
+":ix dat" "a 10 0\n" ":hr dat" "a 12 51" "2\n:ai d" "ata 12 "
+"0\n:ot d" "ata 12 " "1\n:tth " "data 13" " 0\n:tfv" " data 5"
+" 0\n:eo " "data 8 " "0\n:eqb " "data 8 " "0\n:chv " "data 8 "
+"0\n:chw " "data 8 " "0\n:ci d" "ata 8 0" "\n:cj da" "ta 8 0\n"
+":zb dat" "a 8 0\n:" "ltb dat" "a 9 0\n:" "eqs dat" "a 2 0\n:"
+"qa data" " 2 0\n:q" "b data " "2 1\n:qc" " data 2" " 2\n:qd "
+"data 2 " "3\n:cn d" "ata 6 0" "\n:zs da" "ta 6 0\n" ":cg dat"
+"a 4 8\n:" "fb data" " 1 0\n:s" "a data " "1 0\n:sb" " data 1"
+" 0\n:bo " "data 1 " "1\n:main" " block\n" "\0\0\0\0\0\0\0" "goto &b"
+"@\n:l@ d" "ata 32 " "~\n:b@ b" "lock\nst" "ore &ds" " &sp &l"
+"@\nlut &" "inc &sp" " &sp\n\0\0" "goto &b" "@\n:l@ d" "ata 32 "
+"~\n:h@ d" "ata 12 " "%\n:b@ b" "lock\nco" "py &l@[" "20:32] "
+"&h@\nsto" "re &ds " "&sp &l@" "\nlut &i" "nc &sp " "&sp\n\0\0\0"
+"goto &b" "@\n:c~ d" "ata 32 " "~\n:b@ b" "lock\nst" "ore &rs"
+" &rp &c" "~\nlut &" "inc &rp" " &rp\ngo" "to &w%\n" ":k~ blo"
+"ck\n\0\0\0\0" "goto &b" "@\n:c~ d" "ata 32 " "~\n:b@ b" "lock\nst"
+"ore &rs" " &rp &c" "~\nlut &" "inc &rp" " &rp\ngo" "to &ex\n"
+":k~ blo" "ck\n\0\0\0\0" "call &f" "% &b@\n:" "b@ bloc" "k\n\0\0\0\0\0"
+"goto &r" "t\n:b@ b" "lock\n\0\0" "goto &b" "@\n:w~ b" "lock\n\0\0"
+"lut &de" "c &sp &" "sp\nlut " "&ds &sp" " &ta\neq" " &ta &z"
+"z &eqb\n" "if &eqb" "[7] &b~" " &b@\n:b" "@ block" "\n\0\0\0\0\0\0"
+"goto &b" "@\n:b~ b" "lock\n\0\0" "lut &de" "c &sp &" "sp\nlut "
+"&ds &sp" " &ta\neq" " &ta &z" "z &eqb\n" "if &eqb" "[7] &b@"
+" &b~\n:b" "~ block" "\n\0\0\0\0\0\0" "lut &de" "c &sp &" "sp\nlut "
+"&ds &sp" " &ta\nlu" "t &dec " "&sp &sp" "\nlut &d" "s &sp &"
+"tb\nstor" "e &rs &" "rp &tb\n" "lut &in" "c &rp &" "rp\nstor"
+"e &rs &" "rp &ta\n" "lut &in" "c &rp &" "rp\ngoto" " &b@\n:b"
+"@ block" "\n\0\0\0\0\0\0" "lut &de" "c &sp &" "sp\nlut " "&ds &sp"
+" &ta\nlu" "t &dec " "&sp &sp" "\nlut &d" "s &sp &" "tb\neq &"
+"ta &tb " "&eqb\nif" " &eqb[7" "] &b% &" "b^\n:b^ " "block\ns"
+"tore &r" "s &rp &" "tb\nlut " "&inc &r" "p &rp\ns" "tore &r"
+"s &rp &" "ta\nlut " "&inc &r" "p &rp\ng" "oto &b@" "\n:b@ bl"
+"ock\n\0\0\0" "lut &de" "c &rp &" "sq\nlut " "&rs &sq" " &ta\nad"
+"d &ta &" "uu &tr\n" "store &" "rs &sq " "&tr[0:3" "2]\nlut "
+"&dec &s" "q &sq\nl" "ut &rs " "&sq &tb" "\neq &tr" "[0:32] "
+"&tb &eq" "b\nif &e" "qb[7] &" "b~ &b@\n" ":b~ blo" "ck\nlut "
+"&dec &r" "p &rp\nl" "ut &dec" " &rp &r" "p\ngoto " "&b%\n:b%"
+" block\n" "\0\0\0\0\0\0\0" "halt\n\0\0" ":rt blo" "ck\nlut " "&dec &r"
+"p &rp\nl" "ut &rs " "&rp &rc" "\ngoto &" "n1\n\0\0\0\0" ":ex blo"
+"ck\nlut " "&dec &s" "p &sp\nl" "ut &ds " "&sp &rc" "\ngoto &"
+"x1\n\0\0\0\0" ":kz blo" "ck\nhalt" "\n\0\0\0\0\0\0" " block\n" "if &rc["
+"\0\0\0\0\0\0\0" "] &\0\0\0\0" " &\0\0\0\0\0" "\n\0\0\0\0\0\0" "goto &b" "@\n:s@ d"
+"ata ~ \"" "\0\0\0\0\0\0\0" "\"\n:a@ d" "ata 12 " "%\n:b@ b" "lock\nco"
+"py &ai " "&a@\n\0\0\0" "copy &c" "hv &s@[" "~:%]\nlu" "t &rev4"
+" &chv[4" ":8] &ch" "w[0:4]\n" "lut &re" "v4 &chv" "[0:4] &"
+"chw[4:8" "]\nstore" " &mem &" "ai[0:10" "] &chw\n" "add &ai"
+" &ot &t" "th\ncopy" " &ai &t" "th[0:12" "]\n\0\0\0\0\0" "copy &t"
+"a &zz\nc" "opy &ta" "[0:12] " "&hr\nsto" "re &ds " "&sp &ta"
+"\nlut &i" "nc &sp " "&sp\n\0\0\0" "lut &de" "c &sp &" "sp\nlut "
+"&ds &sp" " &ta\nad" "d &hr &" "ta[0:12" "] &tth\n" "copy &h"
+"r &tth[" "0:12]\n\0" "lut &de" "c &sp &" "sq\nlut " "&ds &sq"
+" &ta\nst" "ore &ds" " &sp &t" "a\nlut &" "inc &sp" " &sp\n\0\0"
+"lut &de" "c &sp &" "sp\n\0\0\0\0" "lut &de" "c &sp &" "sq\nlut "
+"&ds &sq" " &ta\nlu" "t &dec " "&sq &sr" "\nlut &d" "s &sr &"
+"tb\nstor" "e &ds &" "sq &tb\n" "store &" "ds &sr " "&ta\n\0\0\0"
+"lut &de" "c &sp &" "sq\nlut " "&dec &s" "q &sr\nl" "ut &ds "
+"&sr &ta" "\nstore " "&ds &sp" " &ta\nlu" "t &inc " "&sp &sp"
+"\n\0\0\0\0\0\0" "lut &de" "c &sp &" "sq\nlut " "&dec &s" "q &sr\nl"
+"ut &ds " "&sq &ta" "\nlut &d" "s &sr &" "tb\nlut " "&dec &s"
+"r &sq\nl" "ut &ds " "&sq &tc" "\nstore " "&ds &sq" " &tb\nst"
+"ore &ds" " &sr &t" "a\nlut &" "inc &sq" " &sq\nlu" "t &inc "
+"&sq &sq" "\nstore " "&ds &sq" " &tc\n\0\0" "lut &de" "c &sp &"
+"sp\nlut " "&ds &sp" " &ta\nst" "ore &rs" " &rp &t" "a\nlut &"
+"inc &rp" " &rp\n\0\0" "lut &de" "c &rp &" "rp\nlut " "&rs &rp"
+" &ta\nst" "ore &ds" " &sp &t" "a\nlut &" "inc &sp" " &sp\n\0\0"
+"lut &de" "c &rp &" "sq\nlut " "&rs &sq" " &ta\nst" "ore &ds"
+" &sp &t" "a\nlut &" "inc &sp" " &sp\n\0\0" "lut &de" "c &rp &"
+"sq\nlut " "&dec &s" "q &sq\nl" "ut &dec" " &sq &s" "q\nlut &"
+"rs &sq " "&ta\nsto" "re &ds " "&sp &ta" "\nlut &i" "nc &sp "
+"&sp\n\0\0\0" "lut &de" "c &rp &" "rp\nlut " "&dec &r" "p &rp\n\0"
+"lut &de" "c &sp &" "sp\nlut " "&ds &sp" " &ta\nlu" "t &rev4"
+" &ta[4:" "8] &eo[" "0:4]\nlu" "t &rev4" " &ta[0:" "4] &eo["
+"4:8]\nem" "it &eo\n" "\0\0\0\0\0\0\0" "store &" "ds &sp " "&tq\nlut"
+" &inc &" "sp &sp\n" "\0\0\0\0\0\0\0" "store &" "ds &sp " "&tm\nlut"
+" &inc &" "sp &sp\n" "\0\0\0\0\0\0\0" "store &" "ds &sp " "&tm\nlut"
+" &inc &" "sp &sp\n" "store &" "ds &sp " "&tq\nlut" " &inc &"
+"sp &sp\n" "\0\0\0\0\0\0\0" ":f@ wor" "d\nlut &" "dec &sp" " &sp\nlu"
+"t &ds &" "sp &tb\n" "lut &de" "c &sp &" "sp\nlut " "&ds &sp"
+" &ta\nad" "d &ta &" "tb &tr\n" "store &" "ds &sp " "&tr[0:3"
+"2]\nlut " "&inc &s" "p &sp\nr" "et\n\0\0\0\0" ":f@ wor" "d\nlut &"
+"dec &sp" " &sp\nlu" "t &ds &" "sp &tb\n" "lut &de" "c &sp &"
+"sp\nlut " "&ds &sp" " &ta\nsu" "b &ta &" "tb &tr\n" "store &"
+"ds &sp " "&tr[0:3" "2]\nlut " "&inc &s" "p &sp\nr" "et\n\0\0\0\0"
+":f@ wor" "d\nlut &" "dec &sp" " &sp\nlu" "t &ds &" "sp &tb\n"
+"lut &de" "c &sp &" "sp\nlut " "&ds &sp" " &ta\nba" "nd &ta "
+"&tb &tc" "\nstore " "&ds &sp" " &tc\nlu" "t &inc " "&sp &sp"
+"\nret\n\0\0" ":f@ wor" "d\nlut &" "dec &sp" " &sp\nlu" "t &ds &"
+"sp &tb\n" "lut &de" "c &sp &" "sp\nlut " "&ds &sp" " &ta\nad"
+"d &ta &" "tb &tr\n" "band &t" "a &tb &" "tc\nsub " "&tr[0:3"
+"2] &tc " "&ts\nsto" "re &ds " "&sp &ts" "[0:32]\n" "lut &in"
+"c &sp &" "sp\nret\n" "\0\0\0\0\0\0\0" ":f@ wor" "d\nlut &" "dec &sp"
+" &sp\nlu" "t &ds &" "sp &tb\n" "lut &de" "c &sp &" "sp\nlut "
+"&ds &sp" " &ta\nad" "d &ta &" "tb &tr\n" "band &t" "a &tb &"
+"tc\nshl " "&tc &td" " 1\nsub " "&tr[0:3" "2] &td " "&ts\nsto"
+"re &ds " "&sp &ts" "[0:32]\n" "lut &in" "c &sp &" "sp\nret\n"
+"\0\0\0\0\0\0\0" ":f@ wor" "d\nlut &" "dec &sp" " &sp\nlu" "t &ds &"
+"sp &tb\n" "lut &de" "c &sp &" "sp\nlut " "&ds &sp" " &ta\neq"
+" &ta &t" "b &eqb\n" "copy &f" "b &eqb[" "7:8]\nco" "py &fl["
+"0:1] &f" "b\nsub &" "zz &fl " "&tr\nsto" "re &ds " "&sp &tr"
+"[0:32]\n" "lut &in" "c &sp &" "sp\nret\n" "\0\0\0\0\0\0\0" ":f@ wor"
+"d\nlut &" "dec &sp" " &sp\nlu" "t &ds &" "sp &tb\n" "lut &de"
+"c &sp &" "sp\nlut " "&ds &sp" " &ta\nad" "d &ta[2" "8:32] &"
+"cg &tfv" "\ncopy &" "ta[28:3" "2] &tfv" "[0:4]\na" "dd &tb["
+"28:32] " "&cg &tf" "v\ncopy " "&tb[28:" "32] &tf" "v[0:4]\n"
+"lt &ta " "&tb &lt" "b\ncopy " "&fb &lt" "b[8:9]\n" "copy &f"
+"l[0:1] " "&fb\nsub" " &zz &f" "l &tr\ns" "tore &d" "s &sp &"
+"tr[0:32" "]\nlut &" "inc &sp" " &sp\nre" "t\n\0\0\0\0\0" ":f@ wor"
+"d\nlut &" "dec &sp" " &sp\nlu" "t &ds &" "sp &tb\n" "lut &de"
+"c &sp &" "sp\nlut " "&ds &sp" " &ta\nlt" " &ta &t" "b &ltb\n"
+"copy &f" "b &ltb[" "8:9]\nco" "py &fl[" "0:1] &f" "b\nsub &"
+"zz &fl " "&tr\nsto" "re &ds " "&sp &tr" "[0:32]\n" "lut &in"
+"c &sp &" "sp\nret\n" "\0\0\0\0\0\0\0" ":f@ wor" "d\nlut &" "dec &sp"
+" &sp\nlu" "t &ds &" "sp &tb\n" "lut &de" "c &sp &" "sp\nlut "
+"&ds &sp" " &ta\nsh" "r &tb &" "tc 5\neq" " &tc &z" "z &eqb\n"
+"if &eqb" "[7] &s@" "a &z@a\n" ":z@a bl" "ock\ncop" "y &ta &"
+"zz\ngoto" " &p@a\n:" "s@a blo" "ck\nif &" "tb[0] &" "h@a &s@"
+"b\n:h@a " "block\ns" "hl &ta " "&td 1\nc" "opy &ta" " &td\ngo"
+"to &s@b" "\n:s@b b" "lock\nif" " &tb[1]" " &h@b &" "s@c\n:h@"
+"b block" "\nshl &t" "a &td 2" "\ncopy &" "ta &td\n" "goto &s"
+"@c\n:s@c" " block\n" "if &tb[" "2] &h@c" " &s@d\n:" "h@c blo"
+"ck\nshl " "&ta &td" " 4\ncopy" " &ta &t" "d\ngoto " "&s@d\n:s"
+"@d bloc" "k\nif &t" "b[3] &h" "@d &s@e" "\n:h@d b" "lock\nsh"
+"l &ta &" "td 8\nco" "py &ta " "&td\ngot" "o &s@e\n" ":s@e bl"
+"ock\nif " "&tb[4] " "&h@e &p" "@a\n:h@e" " block\n" "shl &ta"
+" &td 16" "\ncopy &" "ta &td\n" "goto &p" "@a\n:p@a" " block\n"
+"store &" "ds &sp " "&ta\nlut" " &inc &" "sp &sp\n" "ret\n\0\0\0"
+":f@ wor" "d\nlut &" "dec &sp" " &sp\nlu" "t &ds &" "sp &tb\n"
+"lut &de" "c &sp &" "sp\nlut " "&ds &sp" " &ta\nsh" "r &tb &"
+"tc 5\neq" " &tc &z" "z &eqb\n" "if &eqb" "[7] &s@" "a &z@a\n"
+":z@a bl" "ock\ncop" "y &ta &" "zz\ngoto" " &p@a\n:" "s@a blo"
+"ck\nif &" "tb[0] &" "h@a &s@" "b\n:h@a " "block\ns" "hr &ta "
+"&td 1\nc" "opy &ta" " &td\ngo" "to &s@b" "\n:s@b b" "lock\nif"
+" &tb[1]" " &h@b &" "s@c\n:h@" "b block" "\nshr &t" "a &td 2"
+"\ncopy &" "ta &td\n" "goto &s" "@c\n:s@c" " block\n" "if &tb["
+"2] &h@c" " &s@d\n:" "h@c blo" "ck\nshr " "&ta &td" " 4\ncopy"
+" &ta &t" "d\ngoto " "&s@d\n:s" "@d bloc" "k\nif &t" "b[3] &h"
+"@d &s@e" "\n:h@d b" "lock\nsh" "r &ta &" "td 8\nco" "py &ta "
+"&td\ngot" "o &s@e\n" ":s@e bl" "ock\nif " "&tb[4] " "&h@e &p"
+"@a\n:h@e" " block\n" "shr &ta" " &td 16" "\ncopy &" "ta &td\n"
+"goto &p" "@a\n:p@a" " block\n" "store &" "ds &sp " "&ta\nlut"
+" &inc &" "sp &sp\n" "ret\n\0\0\0" ":f@ wor" "d\nlut &" "dec &sp"
+" &sp\nlu" "t &ds &" "sp &tb\n" "lut &de" "c &sp &" "sp\nlut "
+"&ds &sp" " &ta\nco" "py &tc " "&zz\ncop" "y &cn &" "zs\ngoto"
+" &m@a\n:" "m@a blo" "ck\nif &" "tb[0] &" "m@b &m@" "c\n:m@b "
+"block\na" "dd &tc " "&ta &tr" "\ncopy &" "tc &tr[" "0:32]\ng"
+"oto &m@" "c\n:m@c " "block\ns" "hl &ta " "&td 1\nc" "opy &ta"
+" &td\nsh" "r &tb &" "td 1\nco" "py &tb " "&td\nlut" " &inc &"
+"cn &cn\n" "if &cn[" "5] &m@d" " &m@a\n:" "m@d blo" "ck\nstor"
+"e &ds &" "sp &tc\n" "lut &in" "c &sp &" "sp\nret\n" "\0\0\0\0\0\0\0"
+":f@ wor" "d\nlut &" "dec &sp" " &sp\nlu" "t &ds &" "sp &tb\n"
+"lut &de" "c &sp &" "sp\nlut " "&ds &sp" " &ta\neq" " &tb &z"
+"z &eqb\n" "if &eqb" "[7] &d@" "z &d@a\n" ":d@z bl" "ock\nhal"
+"t\n:d@a " "block\nc" "opy &sa" " &ta[31" ":32]\nco" "py &sb "
+"&tb[31:" "32]\nif " "&sa &d@" "b &d@c\n" 
+:pool1 table 9 56
+":d@b bl" "ock\nsub" " &zz &t" "a &tr\nc" "opy &ta" " &tr[0:"
+"32]\ngot" "o &d@c\n" ":d@c bl" "ock\nif " "&sb &d@" "d &d@e\n"
+":d@d bl" "ock\nsub" " &zz &t" "b &tr\nc" "opy &tb" " &tr[0:"
+"32]\ngot" "o &d@e\n" ":d@e bl" "ock\ncop" "y &tq &" "ta\ncopy"
+" &tm &z" "z\ncopy " "&cn &zs" "\ngoto &" "d@f\n:d@" "f block"
+"\nshl &t" "m &td 1" "\ncopy &" "tm &td\n" "copy &t" "m[0:1] "
+"&tq[31:" "32]\nshl" " &tq &t" "d 1\ncop" "y &tq &" "td\nlt &"
+"tm &tb " "&ltb\nif" " &ltb[8" "] &d@h " "&d@g\n:d" "@g bloc"
+"k\nsub &" "tm &tb " "&tr\ncop" "y &tm &" "tr[0:32" "]\ncopy "
+"&tq[0:1" "] &bo\ng" "oto &d@" "h\n:d@h " "block\nl" "ut &inc"
+" &cn &c" "n\nif &c" "n[5] &d" "@i &d@f" "\n:d@i b" "lock\nif"
+" &sa &d" "@j &d@k" "\n:d@j b" "lock\nsu" "b &zz &" "tm &tr\n"
+"copy &t" "m &tr[0" ":32]\ngo" "to &d@k" "\n:d@k b" "lock\nif"
+" &sa &d" "@l &d@m" "\n:d@l b" "lock\nif" " &sb &d" "@o &d@n"
+"\n:d@m b" "lock\nif" " &sb &d" "@n &d@o" "\n:d@n b" "lock\nsu"
+"b &zz &" "tq &tr\n" "copy &t" "q &tr[0" ":32]\ngo" "to &d@o"
+"\n:d@o b" "lock\nre" "t\n\0\0\0\0\0" ":f@ wor" "d\nlut &" "dec &sp"
+" &sp\nlu" "t &ds &" "sp &ta\n" "copy &s" "q &sp\nc" "opy &ci"
+"[0:6] &" "ta[0:6]" "\ngoto &" "p@a\n:p@" "a block" "\nlut &d"
+"ec &sq " "&sq\neq " "&ci &zb" " &eqs\ni" "f &eqs[" "1] &p@c"
+" &p@b\n:" "p@b blo" "ck\nlut " "&dec &c" "i[0:6] " "&ci[0:6"
+"]\ngoto " "&p@a\n:p" "@c bloc" "k\nlut &" "ds &sq " "&ta\nsto"
+"re &ds " "&sp &ta" "\nlut &i" "nc &sp " "&sp\nret" "\n\0\0\0\0\0\0"
+":f@ wor" "d\nlut &" "dec &sp" " &sp\nlu" "t &ds &" "sp &ta\n"
+"copy &s" "q &sp\nc" "opy &ci" "[0:6] &" "ta[0:6]" "\ngoto &"
+"r@a\n:r@" "a block" "\nlut &d" "ec &sq " "&sq\neq " "&ci &zb"
+" &eqs\ni" "f &eqs[" "1] &r@c" " &r@b\n:" "r@b blo" "ck\nlut "
+"&dec &c" "i[0:6] " "&ci[0:6" "]\ngoto " "&r@a\n:r" "@c bloc"
+"k\nlut &" "ds &sq " "&tb\nlut" " &dec &" "sp &sr\n" "goto &r"
+"@d\n:r@d" " block\n" "copy &c" "i[0:6] " "&sq\ncop" "y &cj[0"
+":6] &sr" "\neq &ci" " &cj &e" "qs\nif &" "eqs[1] " "&r@f &r"
+"@e\n:r@e" " block\n" "lut &in" "c &sq &" "ta[0:6]" "\nlut &d"
+"s &ta[0" ":6] &tc" "\nstore " "&ds &sq" " &tc\nco" "py &sq "
+"&ta[0:6" "]\ngoto " "&r@d\n:r" "@f bloc" "k\nstore" " &ds &s"
+"r &tb\nr" "et\n\0\0\0\0" ":f@ wor" "d\nlut &" "dec &sp" " &sp\nlu"
+"t &ds &" "sp &ta\n" "copy &i" "x[2:10]" " &ta[2:" "10]\ncop"
+"y &ix[0" ":2] &qa" "\nlut &m" "em &ix " "&tc[0:8" "]\ncopy "
+"&ix[0:2" "] &qb\nl" "ut &mem" " &ix &t" "c[8:16]" "\ncopy &"
+"ix[0:2]" " &qc\nlu" "t &mem " "&ix &tc" "[16:24]" "\ncopy &"
+"ix[0:2]" " &qd\nlu" "t &mem " "&ix &tc" "[24:32]" "\nstore "
+"&ds &sp" " &tc\nlu" "t &inc " "&sp &sp" "\nret\n\0\0" ":f@ wor"
+"d\nlut &" "dec &sp" " &sp\nlu" "t &ds &" "sp &tb\n" "lut &de"
+"c &sp &" "sp\nlut " "&ds &sp" " &ta\nco" "py &ix[" "2:10] &"
+"tb[2:10" "]\ncopy " "&ix[0:2" "] &qa\ns" "tore &m" "em &ix "
+"&ta[0:8" "]\ncopy " "&ix[0:2" "] &qb\ns" "tore &m" "em &ix "
+"&ta[8:1" "6]\ncopy" " &ix[0:" "2] &qc\n" "store &" "mem &ix"
+" &ta[16" ":24]\nco" "py &ix[" "0:2] &q" "d\nstore" " &mem &"
+"ix &ta[" "24:32]\n" "ret\n\0\0\0" ":f@ wor" "d\nlut &" "dec &sp"
+" &sp\nlu" "t &ds &" "sp &ta\n" "copy &i" "x &ta[0" ":10]\nlu"
+"t &mem " "&ix &tc" "[0:8]\nc" "opy &tc" "[8:32] " "&zz[0:2"
+"4]\nstor" "e &ds &" "sp &tc\n" "lut &in" "c &sp &" "sp\nret\n"
+"\0\0\0\0\0\0\0" ":f@ wor" "d\nlut &" "dec &sp" " &sp\nlu" "t &ds &"
+"sp &tb\n" "lut &de" "c &sp &" "sp\nlut " "&ds &sp" " &ta\nco"
+"py &ix " "&tb[0:1" "0]\nstor" "e &mem " "&ix &ta" "[0:8]\nr"
+"et\n\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0" 
+:tst table 7 12
+0 155 165 180 193 206 210 213 216 228 231 243 266 295 326 327
+335 343 346 349 350 351 352 356 362 383 393 404 414 417 432 445
+472 482 492 502 517 522 537 543 549 560 580 600 619 645 673 701
+743 771 858 945 996 1123 1162 1230 1269 1309 1331 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:rtt table 7 7
+0 41 42 43 44 45 46 47 48 49 50 51 52 55 56 57 58 53 54 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:pnm table 7 64
+"\0\0\0\0\0\0\0+" "\0\0\0\0\0\0\0-" "\0\0\0\0\0and" "\0\0\0\0\0\0or"
+"\0\0\0\0\0xor" "\0\0\0\0\0\0\0=" "\0\0\0\0\0\0\0<" "\0\0\0\0\0\0u<"
+"\0\0lshift" "\0\0rshift" "\0\0\0\0\0\0\0*" "\0\0\0\0\0\0\0/"
+"\0\0\0\0\0mod" "\0\0\0\0/mod" "\0\0\0\0\0\0\0@" "\0\0\0\0\0\0\0!"
+"\0\0\0\0\0\0c@" "\0\0\0\0\0\0c!" "\0\0\0\0pick" "\0\0\0\0roll"
+"\0\0\0\0\0dup" "\0\0\0\0drop" "\0\0\0\0swap" "\0\0\0\0over"
+"\0\0\0\0\0rot" "\0\0\0\0\0\0>r" "\0\0\0\0\0\0r>" "\0\0\0\0\0\0r@"
+"\0\0\0\0\0\0\0i" "\0\0\0\0\0\0\0j" "\0\0unloop" "\0\0\0\0emit"
+"\0\0\0allot" "\0decimal" "\0\0\0\0\0\01+" "\0\0\0\0\0\01-"
+"\0\0\0\0\0\02*" "\0\0\0cell+" "\0\0\0cells" "\0\0\0\0\0\00="
+"\0\0\0\0\0\0\0:" "\0\0\0\0\0\0\0;" "\0\0\0\0\0\0if" "\0\0\0while"
+"\0\0\0\0else" "\0\0\0\0then" "\0\0\0begin" "\0\0\0until"
+"\0\0repeat" "\0\0\0\0\0\0do" "\0\0\0\0\0?do" "\0\0\0\0loop"
+"\0\0\0leave" "\0\0\0\0exit" "\0recurse" "variable"
+"constant" "\0\0create" "\0\0\0\0\0\0\0(" "\0\0\0\0\0\0\0\\"
+"\0\0\0\0\0\0s\"" "\0\0[char]" "\0\0\0\0\0\0\0'" "\0\0\0\0\0[']"
+"\0execute" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+"\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0"
+:pin table 7 17
+32 64 96 128 160 192 224 256 288 320 352 39296 40320 41344 416 448
+480 512 544 576 27648 28672 29696 30720 31744 32768 33792 34816 34816 35840 36864 37888
+26624 0 54 1078 8246 150 10390 5142 7169 6146 8195 8195 9220 9221 9222 10247
+9224 11273 12297 13322 9227 6156 3085 14 15 16 17 18 19 20 21 21
+4122 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:npr data 7 65
+:nrt data 7 18
+:t_prelude data 7 0
+:t_lit data 7 1
+:t_lith data 7 2
+:t_call data 7 3
+:t_callx data 7 4
+:t_rcall data 7 5
+:t_ret data 7 6
+:t_colon data 7 7
+:t_fin data 7 14
+:t_rthead data 7 15
+:t_exhead data 7 16
+:t_kz data 7 17
+:t_tn1 data 7 18
+:t_tn2 data 7 19
+:t_tn3 data 7 20
+:t_tn4 data 7 21
+:t_str1 data 7 22
+:t_str2 data 7 23
+:t_strch data 7 24
+:t_herepush data 7 25
+:px_fetch data 7 14
+:px_store data 7 15
+# --- end generated
+
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:pw table 3 20 1000000 100000 10000 1000 100 10 1 0
+:last6 table 3 1 0 0 0 0 0 0 1 0
+:is7 table 3 1 0 0 0 0 0 0 0 1
+:un array 7 64
+:uk array 7 5
+:uv array 7 20
+:ctl array 7 20
+:lt1 array 7 20
+:lt2 array 7 20
+:lt3 array 7 20
+:used array 7 1
+:sbf array 6 8
+:rg array 2 20
+
+# the reader
+:ch data 8 0
+:cl data 8 0
+:dg4 data 4 0
+:md data 2 0
+:tk data 1 0
+:fst data 1 0
+:isn data 1 0
+:nd data 1 0
+:neg data 1 0
+:wf data 1 0
+:want data 3 0
+:nm data 64 0
+:nt data 64 0
+:nv data 32 0
+:fc data 8 0
+:n8 data 32 0
+:n2 data 32 0
+:n10 data 32 0
+:d32 data 32 0
+:s33 data 33 0
+# the state of the compiler
+:idv data 20 0
+:scv data 20 0
+:wcv data 20 0
+:ccv data 20 0
+:nid data 20 0
+:cont data 20 0
+:cur data 20 0
+:sid data 20 0
+:nu data 7 0
+:cp data 7 0
+:lq data 7 0
+:xu data 1 0
+:slen data 7 0
+:si data 7 0
+:rr data 7 0
+# the numbers of the templates and the print
+:r1 data 20 0
+:r2 data 20 0
+:r3 data 20 0
+:r4 data 20 0
+:cv data 20 0
+:pv data 20 0
+:pq data 20 0
+:t21 data 21 0
+:t0 data 20 0
+:l6 data 6 0
+:dd data 4 0
+:t5 data 5 0
+:st data 1 0
+:e1 data 1 0
+:e5 data 5 0
+:hc data 8 0
+:pk data 7 0
+:lf data 1 0
+:tn data 7 0
+:pi data 12 0
+:pe data 56 0
+:pf data 56 0
+:pj data 7 0
+:pc data 4 0
+:f7 data 1 0
+:t13 data 13 0
+# the lookup
+:fnd data 1 0
+:li data 7 0
+:l8 data 8 0
+:l9 data 8 0
+:e2 data 2 0
+:cand data 64 0
+:e16 data 16 0
+:kd data 5 0
+:ra data 8 0
+:tp data 8 0
+:uvv data 20 0
+:pin17 data 17 0
+:pxi data 7 0
+# the tree
+:cap data 20 0
+:tnb data 20 0
+:kk data 20 0
+:npow data 20 0
+:tx data 20 0
+:dd7 data 7 0
+:bitn data 7 0
+:pn data 8 0
+:pl data 8 0
+# constants
+:z2 data 2 0
+:z3 data 3 0
+:z4 data 4 0
+:z7 data 7 0
+:z8 data 8 0
+:z10 data 10 0
+:z13 data 13 0
+:z20 data 20 0
+:z24 data 24 0
+:z32 data 32 0
+:z64 data 64 0
+:one1 data 1 1
+:one7 data 7 1
+:one20 data 20 1
+:one12 data 12 1
+:two20 data 20 2
+:four20 data 20 4
+:k1_4 data 4 1
+:c0 data 2 0
+:c1 data 2 1
+:c2 data 2 2
+:c3 data 2 3
+:k_uword data 5 23
+:k_uvar data 5 24
+:k_uconst data 5 25
+:wk1 data 3 1
+:wk2 data 3 2
+:wk3 data 3 3
+:wk4 data 3 4
+:wk5 data 3 5
+:wk6 data 3 6
+:md1 data 2 1
+:md2 data 2 2
+:md3 data 2 3
+:chn data 8 "n"
+:chx data 8 "x"
+:chk data 8 "k"
+:chw data 8 "w"
+:chz data 8 "z"
+:chcol data 8 ":"
+:nulb data 8 0
+:nmain data 64 "\0\0\0\0main"
+
+:main block
+copy &tn &t_prelude
+call &etpl &m1
+:m1 block
+goto &read
+
+# --- a character: the class (bits 0 blank, 1 zero byte, 2 digit, 3 minus, 4 quote, 5 right parenthesis, 6 line break)
+:read block
+key &ch
+lut &cls &ch &cl
+if &md[1] &rmd &rnm
+:rnm block
+if &md[0] &rpar &rnorm
+:rpar block
+if &cl[5] &rpar1 &rpar2
+:rpar1 block
+copy &md &z2
+goto &read
+:rpar2 block
+if &cl[1] &eot &read
+:rmd block
+if &md[0] &rstr &rline
+:rline block
+if &cl[6] &rline1 &rline2
+:rline1 block
+copy &md &z2
+goto &read
+:rline2 block
+if &cl[1] &eot &read
+:rstr block
+if &cl[1] &eot &rstr1
+:rstr1 block
+if &cl[4] &strend &rstr2
+:rstr2 block
+if &slen[5] &read &rstr3
+:rstr3 block
+store &sbf &slen[0:6] &ch
+lut &inc7 &slen &slen
+goto &read
+:strend block
+copy &md &z2
+call &strfin &read
+:rnorm block
+if &cl[1] &rend &rn1
+:rend block
+call &tokend &eot
+:rn1 block
+if &cl[0] &rblank &rtc
+:rblank block
+call &tokend &read
+:rtc block
+call &tokchar &read
+
+# --- the end of the text: the call of main, the routines, the trees, the zero byte
+:eot block
+call &finish &done
+:done block
+halt
+
+# --- a character of a token
+:tokchar word
+if &tk &tc2 &tc1
+:tc1 block
+copy &tk &one1
+copy &fst &one1
+copy &isn &one1
+copy &nd &zero
+copy &neg &zero
+copy &nv &z32
+copy &nm &z64
+copy &fc &ch
+goto &tc2
+:tc2 block
+shr &nm &nt 8
+copy &nm &nt
+copy &nm[56:64] &ch
+if &cl[2] &tcd &tc3
+:tcd block
+call &acc &tcd2
+:tcd2 block
+copy &nd &one1
+goto &tcend
+:tc3 block
+if &cl[3] &tc4 &tc5
+:tc4 block
+if &fst &tc6 &tc5
+:tc6 block
+copy &neg &one1
+goto &tcend
+:tc5 block
+copy &isn &zero
+goto &tcend
+:tcend block
+copy &fst &zero
+ret
+
+# nv = nv * 10 + the digit
+:acc word
+lut &rev4 &ch[4:8] &dg4
+shl &nv &n8 3
+shl &nv &n2 1
+add &n8 &n2 &s33
+copy &n10 &s33[0:32]
+copy &d32[0:4] &dg4
+add &n10 &d32 &s33
+copy &nv &s33[0:32]
+ret
+
+# --- the end of a token
+:tokend word
+if &tk &te1 &teret
+:teret block
+ret
+:te1 block
+copy &tk &zero
+if &wf &te2 &te3
+:te2 block
+call &wantp &teret
+:te3 block
+if &isn &te4 &te6
+:te4 block
+if &nd &te5 &te6
+:te5 block
+if &neg &te5a &te5b
+:te5a block
+sub &z32 &nv &s33
+copy &nv &s33[0:32]
+goto &te5b
+:te5b block
+call &lit &teret
+:te6 block
+call &lookup &te7
+:te7 block
+if &fnd &te8 &teret
+:te8 block
+call &dispatch &teret
+
+# --- the word of the name (the next token is a name or a character)
+:wantp word
+copy &wf &zero
+if &want[2] &wp45 &wp03
+:wp03 block
+if &want[1] &wp23 &wcolon
+:wp23 block
+if &want[0] &wconst &wvar
+:wp45 block
+if &want[1] &wtick &wp4
+:wp4 block
+if &want[0] &wchar &wcreate
+:wret block
+ret
+# : name
+:wcolon block
+call &addentry &wc2
+:wc2 block
+copy &cur &wcv
+call &newid &wc3
+:wc3 block
+copy &r1 &nid
+copy &cont &nid
+copy &r2 &wcv
+add &wcv &one20 &t21
+copy &wcv &t21[0:20]
+copy &tn &t_colon
+call &etpl &wret
+# variable name
+:wvar block
+copy &tp[0:1] &zero
+call &addvar &wv1
+:wv1 block
+add &ccv &four20 &t21
+copy &ccv &t21[0:20]
+goto &wret
+# constant name
+:wconst block
+copy &tp[0:1] &one1
+call &addvar &wc4
+:wc4 block
+call &litcc &wc5
+:wc5 block
+copy &pxi &px_store
+call &plainix &wc6
+:wc6 block
+add &ccv &four20 &t21
+copy &ccv &t21[0:20]
+goto &wret
+# create name
+:wcreate block
+copy &tp[0:1] &one1
+call &addvar &wcr1
+:wcr1 block
+copy &tn &t_herepush
+call &etpl &wcr2
+:wcr2 block
+call &litcc &wcr3
+:wcr3 block
+copy &pxi &px_store
+call &plainix &wcr4
+:wcr4 block
+add &ccv &four20 &t21
+copy &ccv &t21[0:20]
+goto &wret
+# [char] c
+:wchar block
+copy &nv &z32
+lut &rev4 &fc[0:4] &nv[4:8]
+lut &rev4 &fc[4:8] &nv[0:4]
+call &lit &wret
+# ' name
+:wtick block
+call &lookup &wt1
+:wt1 block
+if &fnd &wt2 &wret
+:wt2 block
+copy &nv &z32
+copy &nv[0:20] &uvv
+call &lit &wret
+
+# a new entry: the name nm, a word of the number wcv (colon) or a cell of the memory (variable, constant: uvar, uconst)
+:addentry word
+store &un &nu[0:7] &nm
+store &uk &nu[0:7] &k_uword
+store &uv &nu[0:7] &wcv
+lut &inc7 &nu &nu
+ret
+:addvar word
+store &un &nu[0:7] &nm
+store &uk &nu[0:7] &k_uvar
+store &uv &nu[0:7] &ccv
+if &tp[0] &avc &avv
+:avc block
+store &uk &nu[0:7] &k_uconst
+goto &avv
+:avv block
+lut &inc7 &nu &nu
+ret
+
+# nv = the cell address ccv, then the literal
+:litcc word
+copy &nv &z32
+copy &nv[0:20] &ccv
+call &lit &lcret
+:lcret block
+ret
+
+# --- the lookup of the name nm: user words (the last first), then the words of forth.def
+:lookup word
+copy &fnd &zero
+copy &li &nu
+goto &lk1
+:lk1 block
+copy &l8[0:7] &li
+eq &l8 &z8 &e2
+if &e2[1] &lkp &lk2
+:lk2 block
+lut &dec7 &li &li
+lut &un &li &cand
+eq &nm &cand &e16
+if &e16[15] &lku &lk1
+:lku block
+lut &uk &li &kd
+lut &uv &li &uvv
+copy &fnd &one1
+ret
+:lkp block
+copy &li &z7
+goto &lkp1
+:lkp1 block
+copy &l8[0:7] &li
+copy &l9[0:7] &npr
+eq &l8 &l9 &e2
+if &e2[1] &lkend &lkp2
+:lkp2 block
+lut &pnm &li &cand
+eq &nm &cand &e16
+if &e16[15] &lkpf &lkp3
+:lkp3 block
+lut &inc7 &li &li
+goto &lkp1
+:lkpf block
+lut &pin &li &pin17
+call &dec17 &lkp4
+:lkp4 block
+copy &fnd &one1
+goto &lkend
+:lkend block
+ret
+
+# kd, ra, tp from pin17
+:dec17 word
+copy &kd &pin17[0:5]
+copy &ra[0:5] &pin17[5:10]
+copy &ra[5:8] &z3
+copy &tp[0:7] &pin17[10:17]
+copy &tp[7:8] &zero
+ret
+
+# the word number pxi of forth.def, as the word in the text
+:plainix word
+lut &pin &pxi &pin17
+call &dec17 &pix1
+:pix1 block
+call &plain &pix2
+:pix2 block
+ret
+
+# a word of kind plain: the call of its routine (once written at the end), then its template
+:plain word
+eq &ra &z8 &e2
+if &e2[1] &pl2 &pl1
+:pl1 block
+store &used &ra[0:7] &one1
+call &newid &pl1a
+:pl1a block
+copy &r1 &nid
+copy &r3[0:8] &ra
+copy &r3[8:20] &z24[0:12]
+copy &tn &t_rcall
+call &etpl &pl2
+:pl2 block
+eq &tp &z8 &e2
+if &e2[1] &plret &pl3
+:pl3 block
+copy &tn[0:7] &tp[0:7]
+call &etpl &plret
+:plret block
+ret
+
+# a call of the user word uvv (template tn)
+:ucall word
+call &newid &uc1
+:uc1 block
+copy &r1 &nid
+copy &r2 &scv
+copy &r3 &uvv
+add &scv &one20 &t21
+copy &scv &t21[0:20]
+call &etpl &ucret
+:ucret block
+ret
+
+# the identifier: nid = idv, idv + 1
+:newid word
+copy &nid &idv
+add &idv &one20 &t21
+copy &idv &t21[0:20]
+ret
+
+# the control stack
+:cpush word
+store &ctl &cp &cv
+lut &inc7 &cp &cp
+ret
+:cpop word
+lut &dec7 &cp &cp
+lut &ctl &cp &cv
+ret
+
+# the literal nv: the number r2 (20 bits) and r3 (the other 12 bits)
+:lit word
+call &newid &li1
+:li1 block
+copy &r1 &nid
+copy &r2 &nv[0:20]
+copy &r3[0:12] &nv[20:32]
+copy &r3[12:20] &z8
+eq &r3 &z20 &e5
+if &e5[4] &li2 &li3
+:li2 block
+copy &tn &t_lit
+call &etpl &li4
+:li3 block
+copy &tn &t_lith
+call &etpl &li4
+:li4 block
+ret
+
+# --- the decimal number pv
+:pdec word
+copy &st &zero
+copy &pk &z7
+goto &pd1
+:pd1 block
+lut &pw &pk[0:3] &pq
+copy &dd &z4
+goto &pd3
+:pd3 block
+lt &pv &pq &l6
+if &l6[5] &pd5 &pd4
+:pd4 block
+sub &pv &pq &t21
+copy &pv &t21[0:20]
+add &dd &k1_4 &t5
+copy &dd &t5[0:4]
+goto &pd3
+:pd5 block
+eq &dd &z4 &e1
+if &e1 &pd6 &pd7
+:pd6 block
+if &st &pd8 &pd9
+:pd7 block
+copy &st &one1
+goto &pd8
+:pd8 block
+lut &hex4 &dd &hc
+emit &hc
+goto &pd9
+:pd9 block
+lut &last6 &pk[0:3] &lf
+if &lf &pd10 &pd11
+:pd11 block
+lut &inc7 &pk &pk
+goto &pd1
+:pd10 block
+if &st &pd12 &pd13
+:pd13 block
+lut &hex4 &dd &hc
+emit &hc
+goto &pd12
+:pd12 block
+ret
+
+# --- the template tn: the characters of the pool up to the zero byte; @ ~ % ^ are r1..r4
+:etpl word
+store &rg &c0 &r1
+store &rg &c1 &r2
+store &rg &c2 &r3
+store &rg &c3 &r4
+lut &tst &tn &pi
+copy &pj &z7
+goto &et1
+:et1 block
+if &pi[10] &et2 &et3
+:et2 block
+lut &pool1 &pi[0:9] &pe
+goto &et4
+:et3 block
+lut &pool0 &pi[0:10] &pe
+goto &et4
+:et4 block
+copy &ch &pe[0:8]
+shr &pe &pf 8
+copy &pe &pf
+lut &pcl &ch &pc
+if &pc[3] &et5 &et6
+:et5 block
+lut &rg &pc[0:2] &pv
+call &pdec &et9
+:et6 block
+if &pc[2] &etend &et8
+:et8 block
+emit &ch
+goto &et9
+:et9 block
+lut &inc7 &pj &pj
+lut &is7 &pj[0:3] &f7
+if &f7 &et10 &et4
+:et10 block
+add &pi &one12 &t13
+copy &pi &t13[0:12]
+copy &pj &z7
+goto &et1
+:etend block
+ret
+
+# --- the kind of the word: kd (a tree of `if` on its bits), the handlers
+:dispatch word
+goto &dk1
+# --- tree
+:dk1 block
+if &kd[4] &dk3 &dk2
+:dk2 block
+if &kd[3] &dk5 &dk4
+:dk3 block
+if &kd[3] &dk7 &dk6
+:dk4 block
+if &kd[2] &dk9 &dk8
+:dk5 block
+if &kd[2] &dk11 &dk10
+:dk6 block
+if &kd[2] &dk13 &dk12
+:dk7 block
+if &kd[2] &dk15 &dk14
+:dk8 block
+if &kd[1] &dk17 &dk16
+:dk9 block
+if &kd[1] &dk19 &dk18
+:dk10 block
+if &kd[1] &dk21 &dk20
+:dk11 block
+if &kd[1] &dk23 &dk22
+:dk12 block
+if &kd[1] &dk25 &dk24
+:dk13 block
+if &kd[1] &dk27 &dk26
+:dk14 block
+if &kd[1] &dk29 &dk28
+:dk15 block
+if &kd[1] &dk31 &dk30
+:dk16 block
+if &kd[0] &hk_colon &hk_plain
+:dk17 block
+if &kd[0] &hk_if &hk_semi
+:dk18 block
+if &kd[0] &hk_then &hk_else
+:dk19 block
+if &kd[0] &hk_until &hk_begin
+:dk20 block
+if &kd[0] &hk_do &hk_repeat
+:dk21 block
+if &kd[0] &hk_leave &hk_loop
+:dk22 block
+if &kd[0] &hk_recurse &hk_exit
+:dk23 block
+if &kd[0] &hk_constant &hk_variable
+:dk24 block
+if &kd[0] &hk_paren &hk_create
+:dk25 block
+if &kd[0] &hk_squote &hk_bslash
+:dk26 block
+if &kd[0] &hk_tick &hk_bchar
+:dk27 block
+if &kd[0] &hk_uword &hk_macro
+:dk28 block
+if &kd[0] &hk_uconst &hk_uvar
+:dk29 block
+if &kd[0] &hkret &hk_execute
+:dk30 block
+if &kd[0] &hkret &hkret
+:dk31 block
+if &kd[0] &hkret &hkret
+# --- handlers
+:hkret block
+ret
+:hk_plain block
+call &plain &hkret
+:hk_colon block
+copy &want &wk1
+copy &wf &one1
+goto &hkret
+:hk_semi block
+copy &r1 &cont
+copy &tn &t_ret
+call &etpl &hkret
+:hk_if block
+call &newid &hi1
+:hi1 block
+copy &r1 &nid
+call &newid &hi2
+:hi2 block
+copy &r2 &nid
+copy &cv &nid
+call &cpush &hi3
+:hi3 block
+copy &tn[0:7] &tp[0:7]
+call &etpl &hkret
+:hk_else block
+call &newid &he1
+:he1 block
+copy &r1 &nid
+call &cpop &he2
+:he2 block
+copy &r2 &cv
+copy &cv &r1
+call &cpush &he3
+:he3 block
+copy &tn[0:7] &tp[0:7]
+call &etpl &hkret
+:hk_then block
+call &cpop &ht1
+:ht1 block
+copy &r1 &cv
+copy &r2 &cv
+copy &tn[0:7] &tp[0:7]
+call &etpl &hkret
+:hk_begin block
+call &newid &hb1
+:hb1 block
+copy &r1 &nid
+copy &r2 &nid
+copy &cv &nid
+call &cpush &hb2
+:hb2 block
+copy &tn[0:7] &tp[0:7]
+call &etpl &hkret
+:hk_until block
+call &cpop &hu1
+:hu1 block
+copy &r1 &cv
+call &newid &hu2
+:hu2 block
+copy &r2 &nid
+copy &tn[0:7] &tp[0:7]
+call &etpl &hkret
+:hk_repeat block
+call &cpop &hr1
+:hr1 block
+copy &r2 &cv
+call &cpop &hr2
+:hr2 block
+copy &r1 &cv
+copy &tn[0:7] &tp[0:7]
+call &etpl &hkret
+:hk_do block
+call &newid &hd1
+:hd1 block
+copy &r1 &nid
+call &newid &hd2
+:hd2 block
+copy &r2 &nid
+call &newid &hd3
+:hd3 block
+copy &r3 &nid
+call &newid &hd4
+:hd4 block
+copy &r4 &nid
+store &lt1 &lq &r1
+store &lt2 &lq &r2
+store &lt3 &lq &r3
+lut &inc7 &lq &lq
+copy &tn[0:7] &tp[0:7]
+call &etpl &hkret
+:hk_loop block
+lut &dec7 &lq &lq
+lut &lt1 &lq &r1
+lut &lt2 &lq &r2
+lut &lt3 &lq &r3
+copy &tn[0:7] &tp[0:7]
+call &etpl &hkret
+:hk_leave block
+lut &dec7 &lq &li
+lut &lt2 &li &r1
+call &newid &hl1
+:hl1 block
+copy &r2 &nid
+copy &tn[0:7] &tp[0:7]
+call &etpl &hkret
+:hk_exit block
+call &newid &hx1
+:hx1 block
+copy &r1 &nid
+copy &tn[0:7] &tp[0:7]
+call &etpl &hkret
+:hk_recurse block
+copy &uvv &cur
+goto &hk_uword
+:hk_variable block
+copy &want &wk2
+copy &wf &one1
+goto &hkret
+:hk_constant block
+copy &want &wk3
+copy &wf &one1
+goto &hkret
+:hk_create block
+copy &want &wk4
+copy &wf &one1
+goto &hkret
+:hk_paren block
+copy &md &md1
+goto &hkret
+:hk_bslash block
+copy &md &md2
+goto &hkret
+:hk_squote block
+copy &md &md3
+copy &slen &z7
+goto &hkret
+:hk_bchar block
+copy &want &wk5
+copy &wf &one1
+goto &hkret
+:hk_tick block
+copy &want &wk6
+copy &wf &one1
+goto &hkret
+:hk_macro block
+copy &pxi &tp[0:7]
+copy &nv &z32
+copy &nv[0:8] &ra
+call &lit &hm1
+:hm1 block
+call &plainix &hkret
+:hk_uword block
+copy &tn &t_call
+call &ucall &hkret
+:hk_uvar block
+copy &nv &z32
+copy &nv[0:20] &uvv
+call &lit &hkret
+:hk_uconst block
+copy &nv &z32
+copy &nv[0:20] &uvv
+call &lit &hu3
+:hu3 block
+copy &pxi &px_fetch
+call &plainix &hkret
+:hk_execute block
+copy &xu &one1
+copy &tn &t_callx
+call &ucall &hkret
+
+# --- the string s" ...": the characters in sbf (slen of them), the code that writes them into the memory
+:strfin word
+call &newid &sf1
+:sf1 block
+copy &sid &nid
+copy &l8[0:7] &slen
+eq &l8 &z8 &e2
+if &e2[1] &sf9 &sf2
+:sf2 block
+copy &r1 &sid
+copy &r2[0:3] &z3
+copy &r2[3:10] &slen
+copy &r2[10:20] &z10
+copy &r3 &ccv
+copy &tn &t_str1
+call &etpl &sf3
+:sf3 block
+copy &si &z7
+goto &sf4
+:sf4 block
+lut &sbf &si[0:6] &ch
+emit &ch
+lut &inc7 &si &si
+copy &l8[0:7] &si
+copy &l9[0:7] &slen
+eq &l8 &l9 &e2
+if &e2[1] &sf5 &sf4
+:sf5 block
+copy &tn &t_str2
+call &etpl &sf6
+:sf6 block
+copy &si &z7
+goto &sf7
+:sf7 block
+copy &r1 &sid
+copy &r2[0:3] &z3
+copy &r2[3:10] &si
+copy &r2[10:20] &z10
+lut &inc7 &si &si
+copy &r3[0:3] &z3
+copy &r3[3:10] &si
+copy &r3[10:20] &z10
+copy &tn &t_strch
+call &etpl &sf8
+:sf8 block
+copy &l8[0:7] &si
+copy &l9[0:7] &slen
+eq &l8 &l9 &e2
+if &e2[1] &sf9 &sf7
+:sf9 block
+call &litcc &sf10
+:sf10 block
+copy &nv &z32
+copy &nv[0:7] &slen
+call &lit &sf11
+:sf11 block
+copy &r1[0:7] &slen
+copy &r1[7:20] &z13
+add &ccv &r1 &t21
+copy &ccv &t21[0:20]
+ret
+
+# --- the end: main, the routines, the trees
+:finish word
+copy &nm &nmain
+call &lookup &fi1
+:fi1 block
+if &fnd &fi2 &fi3
+:fi2 block
+copy &tn &t_call
+call &ucall &fi3
+:fi3 block
+copy &tn &t_fin
+call &etpl &fi4
+:fi4 block
+copy &rr &one7
+goto &fi5
+:fi5 block
+lut &used &rr &lf
+if &lf &fi6 &fi8
+:fi6 block
+copy &r1[0:7] &rr
+copy &r1[7:20] &z13
+lut &rtt &rr &tn
+call &etpl &fi8
+:fi8 block
+copy &l8[0:7] &rr
+copy &l9[0:7] &nrt
+eq &l8 &l9 &e2
+if &e2[1] &fi10 &fi9
+:fi9 block
+lut &inc7 &rr &rr
+goto &fi5
+:fi10 block
+copy &tn &t_rthead
+call &etpl &fi11
+:fi11 block
+copy &pn &chn
+copy &pl &chk
+copy &tnb &scv
+call &tree &fi12
+:fi12 block
+copy &tn &t_kz
+call &etpl &fi13
+:fi13 block
+if &xu &fi14 &fi16
+:fi14 block
+copy &tn &t_exhead
+call &etpl &fi15
+:fi15 block
+copy &pn &chx
+copy &pl &chw
+copy &tnb &wcv
+call &tree &fi16
+:fi16 block
+emit &nulb
+ret
+
+# a tree of `if` on the bits of rc: the nodes pn1.. (heap numbers), the leaves pl0 .. pl(tnb-1), `kz` beyond
+:tree word
+copy &cap &two20
+copy &dd7 &one7
+goto &tr1
+:tr1 block
+lt &cap &tnb &l6
+if &l6[5] &tr2 &tr3
+:tr2 block
+add &cap &cap &t21
+copy &cap &t21[0:20]
+lut &inc7 &dd7 &dd7
+goto &tr1
+:tr3 block
+lut &dec7 &dd7 &bitn
+copy &kk &one20
+copy &npow &two20
+goto &tr4
+:tr4 block
+emit &chcol
+emit &pn
+copy &pv &kk
+call &pdec &tr5
+:tr5 block
+copy &tn &t_tn1
+call &etpl &tr6
+:tr6 block
+copy &pv[0:7] &bitn
+copy &pv[7:20] &z13
+call &pdec &tr7
+:tr7 block
+copy &tn &t_tn2
+call &etpl &tr8
+:tr8 block
+add &kk &kk &t21
+copy &t0 &t21[0:20]
+add &t0 &one20 &t21
+copy &tx &t21[0:20]
+call &ptgt &tr9
+:tr9 block
+copy &tn &t_tn3
+call &etpl &tr10
+:tr10 block
+copy &tx &t0
+call &ptgt &tr11
+:tr11 block
+copy &tn &t_tn4
+call &etpl &tr12
+:tr12 block
+add &kk &one20 &t21
+copy &kk &t21[0:20]
+eq &kk &cap &e5
+if &e5[4] &tr15 &tr13
+:tr13 block
+eq &kk &npow &e5
+if &e5[4] &tr14 &tr4
+:tr14 block
+lut &dec7 &bitn &bitn
+add &npow &npow &t21
+copy &npow &t21[0:20]
+goto &tr4
+:tr15 block
+ret
+
+# the name of the heap number tx: a node, a leaf or kz
+:ptgt word
+lt &tx &cap &l6
+if &l6[5] &pg1 &pg2
+:pg1 block
+emit &pn
+copy &pv &tx
+call &pdec &pg9
+:pg2 block
+sub &tx &cap &t21
+copy &tx &t21[0:20]
+lt &tx &tnb &l6
+if &l6[5] &pg3 &pg4
+:pg3 block
+emit &pl
+copy &pv &tx
+call &pdec &pg9
+:pg4 block
+emit &chk
+emit &chz
+goto &pg9
+:pg9 block
+ret

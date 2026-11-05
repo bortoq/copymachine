@@ -1,5 +1,5 @@
 # name, the output (hex) of the Forth program of language/tests/reference/forthc_programs.py (the output of pForth for PROGRAMS, the EXPECTED field for the rest);
-# `bytes` differs: the shift 3 33 lshift prints 6 in the Forth language (the amount is taken modulo 32), 0 on the chain (a shift by 33 bits of 32 is all zeros)
+# `bytes`: 3 33 lshift prints 0 (a shift by 33 bits of 32 is all zeros; this is right). The present language takes the amount modulo 32 and prints 6, its error; forthc_programs.py has it.
 address_aliasing 41373737
 arithmetic 4143434645
 begin_until 3031323334

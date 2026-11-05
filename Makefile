@@ -35,7 +35,7 @@ check-layout:
 check-tower:
 	$(LIMIT) --file-mib 2048 $(PYTHON) -B -m unittest discover -s tower/tests -p 'test_*.py'
 # The long runs of the chain (not in check-fast; in check-full): the tools compiled by l3c (23.9, part 2) and working, 300 spoiled texts,
-# the fixed points of l3c: serial (23.9) and with the planner l3p (23.10).
+# the fixed points of l3c: serial (23.9) and with the planner l3p (23.10), the 37 programs by hand (23.11) and as Forth texts (23.15).
 check-tower-long:
 	$(LIMIT_LONG) $(PYTHON) -B -m unittest discover -s tower/tests -p 'long_*.py'
 check-fast:

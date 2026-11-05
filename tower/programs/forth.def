@@ -1,0 +1,725 @@
+// The definition of the Forth of the chain (23.15): the text of language 3 that the compiler forth.tw writes, and its words.
+// forth_gen.sh turns this file into the tables between the marks "begin generated" and "end generated" of forth.tw.
+// A line "=name" starts a template (the text up to the next "=" line); the characters @ ~ % ^ in it are the numbers r1 r2 r3 r4
+// (decimal) which the compiler sets before it writes the template. "//" lines are comments. After "=words" every line is
+// "word kind routine template" (a "-" is none); a routine is the template of a word of language 3 `:f@ word` which the compiler
+// writes at the end once if the word is used; a macro is "word macro number word": the number, then the word.
+// A body line that ends with $ loses its line break and the $. "%sys" names the templates which forth.tw uses by name (constants
+// t_<name>), "%px" names the words whose number forth.tw uses (px_<name>).
+%sys prelude lit lith call callx rcall ret colon fin rthead exhead kz tn1 tn2 tn3 tn4 str1 str2 strch herepush
+%px fetch @
+%px store !
+=prelude
+:inc table 6 6 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 0
+:dec table 6 6 63 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:ds array 6 32
+:rs array 6 32
+:mem array 10 8
+:sp data 6 0
+:rp data 6 0
+:sq data 6 0
+:sr data 6 0
+:ta data 32 0
+:tb data 32 0
+:tc data 32 0
+:td data 32 0
+:tm data 32 0
+:tq data 32 0
+:rc data 32 0
+:fl data 32 0
+:zz data 32 0
+:uu data 32 1
+:tr data 33 0
+:ts data 33 0
+:ix data 10 0
+:hr data 12 512
+:ai data 12 0
+:ot data 12 1
+:tth data 13 0
+:tfv data 5 0
+:eo data 8 0
+:eqb data 8 0
+:chv data 8 0
+:chw data 8 0
+:ci data 8 0
+:cj data 8 0
+:zb data 8 0
+:ltb data 9 0
+:eqs data 2 0
+:qa data 2 0
+:qb data 2 1
+:qc data 2 2
+:qd data 2 3
+:cn data 6 0
+:zs data 6 0
+:cg data 4 8
+:fb data 1 0
+:sa data 1 0
+:sb data 1 0
+:bo data 1 1
+:main block
+=lit
+goto &b@
+:l@ data 32 ~
+:b@ block
+store &ds &sp &l@
+lut &inc &sp &sp
+=lith
+goto &b@
+:l@ data 32 ~
+:h@ data 12 %
+:b@ block
+copy &l@[20:32] &h@
+store &ds &sp &l@
+lut &inc &sp &sp
+=call
+goto &b@
+:c~ data 32 ~
+:b@ block
+store &rs &rp &c~
+lut &inc &rp &rp
+goto &w%
+:k~ block
+=callx
+goto &b@
+:c~ data 32 ~
+:b@ block
+store &rs &rp &c~
+lut &inc &rp &rp
+goto &ex
+:k~ block
+=rcall
+call &f% &b@
+:b@ block
+=ret
+goto &rt
+:b@ block
+=colon
+goto &b@
+:w~ block
+=if
+lut &dec &sp &sp
+lut &ds &sp &ta
+eq &ta &zz &eqb
+if &eqb[7] &b~ &b@
+:b@ block
+=else
+goto &b@
+:b~ block
+=until
+lut &dec &sp &sp
+lut &ds &sp &ta
+eq &ta &zz &eqb
+if &eqb[7] &b@ &b~
+:b~ block
+=do
+lut &dec &sp &sp
+lut &ds &sp &ta
+lut &dec &sp &sp
+lut &ds &sp &tb
+store &rs &rp &tb
+lut &inc &rp &rp
+store &rs &rp &ta
+lut &inc &rp &rp
+goto &b@
+:b@ block
+=qdo
+lut &dec &sp &sp
+lut &ds &sp &ta
+lut &dec &sp &sp
+lut &ds &sp &tb
+eq &ta &tb &eqb
+if &eqb[7] &b% &b^
+:b^ block
+store &rs &rp &tb
+lut &inc &rp &rp
+store &rs &rp &ta
+lut &inc &rp &rp
+goto &b@
+:b@ block
+=loop
+lut &dec &rp &sq
+lut &rs &sq &ta
+add &ta &uu &tr
+store &rs &sq &tr[0:32]
+lut &dec &sq &sq
+lut &rs &sq &tb
+eq &tr[0:32] &tb &eqb
+if &eqb[7] &b~ &b@
+:b~ block
+lut &dec &rp &rp
+lut &dec &rp &rp
+goto &b%
+:b% block
+=fin
+halt
+=rthead
+:rt block
+lut &dec &rp &rp
+lut &rs &rp &rc
+goto &n1
+=exhead
+:ex block
+lut &dec &sp &sp
+lut &ds &sp &rc
+goto &x1
+=kz
+:kz block
+halt
+=tn1
+ block
+if &rc[$
+=tn2
+] &$
+=tn3
+ &$
+=tn4
+
+=str1
+goto &b@
+:s@ data ~ "$
+=str2
+"
+:a@ data 12 %
+:b@ block
+copy &ai &a@
+=strch
+copy &chv &s@[~:%]
+lut &rev4 &chv[4:8] &chw[0:4]
+lut &rev4 &chv[0:4] &chw[4:8]
+store &mem &ai[0:10] &chw
+add &ai &ot &tth
+copy &ai &tth[0:12]
+=herepush
+copy &ta &zz
+copy &ta[0:12] &hr
+store &ds &sp &ta
+lut &inc &sp &sp
+=allot
+lut &dec &sp &sp
+lut &ds &sp &ta
+add &hr &ta[0:12] &tth
+copy &hr &tth[0:12]
+=dup
+lut &dec &sp &sq
+lut &ds &sq &ta
+store &ds &sp &ta
+lut &inc &sp &sp
+=drop
+lut &dec &sp &sp
+=swap
+lut &dec &sp &sq
+lut &ds &sq &ta
+lut &dec &sq &sr
+lut &ds &sr &tb
+store &ds &sq &tb
+store &ds &sr &ta
+=over
+lut &dec &sp &sq
+lut &dec &sq &sr
+lut &ds &sr &ta
+store &ds &sp &ta
+lut &inc &sp &sp
+=rot
+lut &dec &sp &sq
+lut &dec &sq &sr
+lut &ds &sq &ta
+lut &ds &sr &tb
+lut &dec &sr &sq
+lut &ds &sq &tc
+store &ds &sq &tb
+store &ds &sr &ta
+lut &inc &sq &sq
+lut &inc &sq &sq
+store &ds &sq &tc
+=tor
+lut &dec &sp &sp
+lut &ds &sp &ta
+store &rs &rp &ta
+lut &inc &rp &rp
+=rfrom
+lut &dec &rp &rp
+lut &rs &rp &ta
+store &ds &sp &ta
+lut &inc &sp &sp
+=rat
+lut &dec &rp &sq
+lut &rs &sq &ta
+store &ds &sp &ta
+lut &inc &sp &sp
+=jj
+lut &dec &rp &sq
+lut &dec &sq &sq
+lut &dec &sq &sq
+lut &rs &sq &ta
+store &ds &sp &ta
+lut &inc &sp &sp
+=unloop
+lut &dec &rp &rp
+lut &dec &rp &rp
+=emit
+lut &dec &sp &sp
+lut &ds &sp &ta
+lut &rev4 &ta[4:8] &eo[0:4]
+lut &rev4 &ta[0:4] &eo[4:8]
+emit &eo
+=pushq
+store &ds &sp &tq
+lut &inc &sp &sp
+=pushm
+store &ds &sp &tm
+lut &inc &sp &sp
+=pushmq
+store &ds &sp &tm
+lut &inc &sp &sp
+store &ds &sp &tq
+lut &inc &sp &sp
+=add
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+add &ta &tb &tr
+store &ds &sp &tr[0:32]
+lut &inc &sp &sp
+ret
+=sub
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+sub &ta &tb &tr
+store &ds &sp &tr[0:32]
+lut &inc &sp &sp
+ret
+=and
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+band &ta &tb &tc
+store &ds &sp &tc
+lut &inc &sp &sp
+ret
+=or
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+add &ta &tb &tr
+band &ta &tb &tc
+sub &tr[0:32] &tc &ts
+store &ds &sp &ts[0:32]
+lut &inc &sp &sp
+ret
+=xor
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+add &ta &tb &tr
+band &ta &tb &tc
+shl &tc &td 1
+sub &tr[0:32] &td &ts
+store &ds &sp &ts[0:32]
+lut &inc &sp &sp
+ret
+=eq
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+eq &ta &tb &eqb
+copy &fb &eqb[7:8]
+copy &fl[0:1] &fb
+sub &zz &fl &tr
+store &ds &sp &tr[0:32]
+lut &inc &sp &sp
+ret
+=lt
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+add &ta[28:32] &cg &tfv
+copy &ta[28:32] &tfv[0:4]
+add &tb[28:32] &cg &tfv
+copy &tb[28:32] &tfv[0:4]
+lt &ta &tb &ltb
+copy &fb &ltb[8:9]
+copy &fl[0:1] &fb
+sub &zz &fl &tr
+store &ds &sp &tr[0:32]
+lut &inc &sp &sp
+ret
+=ult
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+lt &ta &tb &ltb
+copy &fb &ltb[8:9]
+copy &fl[0:1] &fb
+sub &zz &fl &tr
+store &ds &sp &tr[0:32]
+lut &inc &sp &sp
+ret
+=lshift
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+shr &tb &tc 5
+eq &tc &zz &eqb
+if &eqb[7] &s@a &z@a
+:z@a block
+copy &ta &zz
+goto &p@a
+:s@a block
+if &tb[0] &h@a &s@b
+:h@a block
+shl &ta &td 1
+copy &ta &td
+goto &s@b
+:s@b block
+if &tb[1] &h@b &s@c
+:h@b block
+shl &ta &td 2
+copy &ta &td
+goto &s@c
+:s@c block
+if &tb[2] &h@c &s@d
+:h@c block
+shl &ta &td 4
+copy &ta &td
+goto &s@d
+:s@d block
+if &tb[3] &h@d &s@e
+:h@d block
+shl &ta &td 8
+copy &ta &td
+goto &s@e
+:s@e block
+if &tb[4] &h@e &p@a
+:h@e block
+shl &ta &td 16
+copy &ta &td
+goto &p@a
+:p@a block
+store &ds &sp &ta
+lut &inc &sp &sp
+ret
+=rshift
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+shr &tb &tc 5
+eq &tc &zz &eqb
+if &eqb[7] &s@a &z@a
+:z@a block
+copy &ta &zz
+goto &p@a
+:s@a block
+if &tb[0] &h@a &s@b
+:h@a block
+shr &ta &td 1
+copy &ta &td
+goto &s@b
+:s@b block
+if &tb[1] &h@b &s@c
+:h@b block
+shr &ta &td 2
+copy &ta &td
+goto &s@c
+:s@c block
+if &tb[2] &h@c &s@d
+:h@c block
+shr &ta &td 4
+copy &ta &td
+goto &s@d
+:s@d block
+if &tb[3] &h@d &s@e
+:h@d block
+shr &ta &td 8
+copy &ta &td
+goto &s@e
+:s@e block
+if &tb[4] &h@e &p@a
+:h@e block
+shr &ta &td 16
+copy &ta &td
+goto &p@a
+:p@a block
+store &ds &sp &ta
+lut &inc &sp &sp
+ret
+=mul
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+copy &tc &zz
+copy &cn &zs
+goto &m@a
+:m@a block
+if &tb[0] &m@b &m@c
+:m@b block
+add &tc &ta &tr
+copy &tc &tr[0:32]
+goto &m@c
+:m@c block
+shl &ta &td 1
+copy &ta &td
+shr &tb &td 1
+copy &tb &td
+lut &inc &cn &cn
+if &cn[5] &m@d &m@a
+:m@d block
+store &ds &sp &tc
+lut &inc &sp &sp
+ret
+=divmod
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+eq &tb &zz &eqb
+if &eqb[7] &d@z &d@a
+:d@z block
+halt
+:d@a block
+copy &sa &ta[31:32]
+copy &sb &tb[31:32]
+if &sa &d@b &d@c
+:d@b block
+sub &zz &ta &tr
+copy &ta &tr[0:32]
+goto &d@c
+:d@c block
+if &sb &d@d &d@e
+:d@d block
+sub &zz &tb &tr
+copy &tb &tr[0:32]
+goto &d@e
+:d@e block
+copy &tq &ta
+copy &tm &zz
+copy &cn &zs
+goto &d@f
+:d@f block
+shl &tm &td 1
+copy &tm &td
+copy &tm[0:1] &tq[31:32]
+shl &tq &td 1
+copy &tq &td
+lt &tm &tb &ltb
+if &ltb[8] &d@h &d@g
+:d@g block
+sub &tm &tb &tr
+copy &tm &tr[0:32]
+copy &tq[0:1] &bo
+goto &d@h
+:d@h block
+lut &inc &cn &cn
+if &cn[5] &d@i &d@f
+:d@i block
+if &sa &d@j &d@k
+:d@j block
+sub &zz &tm &tr
+copy &tm &tr[0:32]
+goto &d@k
+:d@k block
+if &sa &d@l &d@m
+:d@l block
+if &sb &d@o &d@n
+:d@m block
+if &sb &d@n &d@o
+:d@n block
+sub &zz &tq &tr
+copy &tq &tr[0:32]
+goto &d@o
+:d@o block
+ret
+=pick
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &ta
+copy &sq &sp
+copy &ci[0:6] &ta[0:6]
+goto &p@a
+:p@a block
+lut &dec &sq &sq
+eq &ci &zb &eqs
+if &eqs[1] &p@c &p@b
+:p@b block
+lut &dec &ci[0:6] &ci[0:6]
+goto &p@a
+:p@c block
+lut &ds &sq &ta
+store &ds &sp &ta
+lut &inc &sp &sp
+ret
+=roll
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &ta
+copy &sq &sp
+copy &ci[0:6] &ta[0:6]
+goto &r@a
+:r@a block
+lut &dec &sq &sq
+eq &ci &zb &eqs
+if &eqs[1] &r@c &r@b
+:r@b block
+lut &dec &ci[0:6] &ci[0:6]
+goto &r@a
+:r@c block
+lut &ds &sq &tb
+lut &dec &sp &sr
+goto &r@d
+:r@d block
+copy &ci[0:6] &sq
+copy &cj[0:6] &sr
+eq &ci &cj &eqs
+if &eqs[1] &r@f &r@e
+:r@e block
+lut &inc &sq &ta[0:6]
+lut &ds &ta[0:6] &tc
+store &ds &sq &tc
+copy &sq &ta[0:6]
+goto &r@d
+:r@f block
+store &ds &sr &tb
+ret
+=fetch
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &ta
+copy &ix[2:10] &ta[2:10]
+copy &ix[0:2] &qa
+lut &mem &ix &tc[0:8]
+copy &ix[0:2] &qb
+lut &mem &ix &tc[8:16]
+copy &ix[0:2] &qc
+lut &mem &ix &tc[16:24]
+copy &ix[0:2] &qd
+lut &mem &ix &tc[24:32]
+store &ds &sp &tc
+lut &inc &sp &sp
+ret
+=store
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+copy &ix[2:10] &tb[2:10]
+copy &ix[0:2] &qa
+store &mem &ix &ta[0:8]
+copy &ix[0:2] &qb
+store &mem &ix &ta[8:16]
+copy &ix[0:2] &qc
+store &mem &ix &ta[16:24]
+copy &ix[0:2] &qd
+store &mem &ix &ta[24:32]
+ret
+=cfetch
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &ta
+copy &ix &ta[0:10]
+lut &mem &ix &tc[0:8]
+copy &tc[8:32] &zz[0:24]
+store &ds &sp &tc
+lut &inc &sp &sp
+ret
+=cstore
+:f@ word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+copy &ix &tb[0:10]
+store &mem &ix &ta[0:8]
+ret
+=words
+// word kind routine template
++ plain add -
+- plain sub -
+and plain and -
+or plain or -
+xor plain xor -
+= plain eq -
+< plain lt -
+u< plain ult -
+lshift plain lshift -
+rshift plain rshift -
+* plain mul -
+/ plain divmod pushq
+mod plain divmod pushm
+/mod plain divmod pushmq
+@ plain fetch -
+! plain store -
+c@ plain cfetch -
+c! plain cstore -
+pick plain pick -
+roll plain roll -
+dup plain - dup
+drop plain - drop
+swap plain - swap
+over plain - over
+rot plain - rot
+>r plain - tor
+r> plain - rfrom
+r@ plain - rat
+i plain - rat
+j plain - jj
+unloop plain - unloop
+emit plain - emit
+allot plain - allot
+decimal plain - -
+1+ macro 1 +
+1- macro 1 -
+2* macro 1 lshift
+cell+ macro 4 +
+cells macro 4 *
+0= macro 0 =
+: colon - colon
+; semi - ret
+if if - if
+while if - if
+else else - else
+then then - else
+begin begin - else
+until until - until
+repeat repeat - else
+do do - do
+?do do - qdo
+loop loop - loop
+leave leave - else
+exit exit - ret
+recurse recurse - call
+variable variable - -
+constant constant - -
+create create - -
+( paren - -
+\ bslash - -
+s" squote - -
+[char] bchar - -
+' tick - -
+['] tick - -
+execute execute - callx

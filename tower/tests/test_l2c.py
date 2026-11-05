@@ -65,7 +65,7 @@ class Reference(unittest.TestCase):
     def test_every_program_through_language_2(self):
         """The text of the image of each program of programs/, written in language 2, is compiled back to the same text."""
         for f in sorted(os.listdir(PROGRAMS)):
-            if f.endswith('.tw') and f not in ('l3c.tw', 'l3p.tw'):       # l3c.tw is laid out serially (A=20): tests/test_l3c.py; l3p.tw (A=20): tests/test_l3p.py
+            if f.endswith('.tw') and f not in ('l3c.tw', 'l3p.tw', 'forth.tw'):       # l3c.tw is laid out serially (A=20): tests/test_l3c.py; l3p.tw (A=20): tests/test_l3p.py; forth.tw (A=20): tests/test_forth.py
                 with self.subTest(f):
                     t = text_of(f[:-3])
                     two = l2text.to_l2(t)
