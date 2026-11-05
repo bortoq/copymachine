@@ -1,0 +1,138 @@
+# recursion: : fact ( n -- n! ) dup 1 < if drop 1 else dup 1 - recurse * then ; 5 fact emit 0 fact 48 + emit 4 fact emit (a return code stack and a value stack as arrays; the chain words have one return link, no recursion)
+:ma data 32 0
+:mb data 32 0
+:mr data 32 0
+:dst array 5 8
+:rst array 5 8
+:dsp data 8 0
+:rsp data 8 0
+:nn data 8 0
+:rv data 8 0
+:cc data 8 0
+:tt data 8 0
+:k2_8 data 8 2
+:k1_8 data 8 1
+:ta8 data 9 0
+:k5_8 data 8 5
+:tl8 data 3 0
+:ts8 data 9 0
+:te8 data 2 0
+:k3_8 data 8 3
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k0_8 data 8 0
+:v data 8 0
+:k48_8 data 8 48
+:k4_8 data 8 4
+:mx data 32 0
+:my data 32 0
+:mw data 32 0
+:mi data 8 0
+:z32 data 32 0
+:z8 data 8 0
+:ta32 data 33 0
+:k32_8 data 8 32
+:main block
+copy &tt &k2_8
+store &rst &rsp[0:5] &tt
+add &rsp &k1_8 &ta8
+copy &rsp &ta8[0:8]
+copy &nn &k5_8
+goto &e5
+:e5 block
+lt &nn &k1_8 &tl8
+if &tl8[2] &g7 &f6
+:f6 block
+store &dst &dsp[0:5] &nn
+add &dsp &k1_8 &ta8
+copy &dsp &ta8[0:8]
+sub &nn &k1_8 &ts8
+copy &nn &ts8[0:8]
+copy &tt &k1_8
+store &rst &rsp[0:5] &tt
+add &rsp &k1_8 &ta8
+copy &rsp &ta8[0:8]
+goto &e5
+:g7 block
+copy &rv &k1_8
+goto &h8
+:a1 block
+sub &dsp &k1_8 &ts8
+copy &dsp &ts8[0:8]
+lut &dst &dsp[0:5] &nn
+copy &ma[0:8] &nn
+copy &mb[0:8] &rv
+call &mul &r9
+:r9 block
+copy &rv &mr[0:8]
+goto &h8
+:h8 block
+sub &rsp &k1_8 &ts8
+copy &rsp &ts8[0:8]
+lut &rst &rsp[0:5] &cc
+eq &cc &k1_8 &te8
+if &te8[1] &a1 &dp10
+:dp10 block
+eq &cc &k2_8 &te8
+if &te8[1] &b2 &dp11
+:dp11 block
+eq &cc &k3_8 &te8
+if &te8[1] &c3 &dp12
+:dp12 block
+goto &d4
+:b2 block
+copy &eb &rv
+call &ebyte &r13
+:r13 block
+copy &tt &k3_8
+store &rst &rsp[0:5] &tt
+add &rsp &k1_8 &ta8
+copy &rsp &ta8[0:8]
+copy &nn &k0_8
+goto &e5
+:c3 block
+add &rv &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r14
+:r14 block
+copy &tt &k4_8
+store &rst &rsp[0:5] &tt
+add &rsp &k1_8 &ta8
+copy &rsp &ta8[0:8]
+copy &nn &k4_8
+goto &e5
+:d4 block
+copy &eb &rv
+call &ebyte &r15
+:r15 block
+halt
+:mul word
+copy &mx &ma
+copy &my &mb
+copy &mr &z32
+copy &mi &z8
+goto &ml16
+:ml16 block
+if &my[0] &ma17 &mn18
+:ma17 block
+add &mr &mx &ta32
+copy &mr &ta32[0:32]
+goto &mn18
+:mn18 block
+shl &mx &mw 1
+copy &mx &mw
+shr &my &mw 1
+copy &my &mw
+add &mi &k1_8 &ta8
+copy &mi &ta8[0:8]
+eq &mi &k32_8 &te8
+if &te8[1] &md19 &ml16
+:md19 block
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

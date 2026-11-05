@@ -1,0 +1,33 @@
+# loop-sum: variable acc : main 0 acc ! 101 1 do acc @ i + acc ! loop acc @ 255 and emit acc @ 256 / emit ; (acc and i are 16 bits)
+:acc data 16 0
+:i data 16 0
+:lim data 16 101
+:k1_16 data 16 1
+:ta16 data 17 0
+:te16 data 4 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:main block
+copy &i &k1_16
+goto &lp1
+:lp1 block
+add &acc &i &ta16
+copy &acc &ta16[0:16]
+add &i &k1_16 &ta16
+copy &i &ta16[0:16]
+eq &i &lim &te16
+if &te16[3] &dn2 &lp1
+:dn2 block
+copy &eb &acc[0:8]
+call &ebyte &r3
+:r3 block
+copy &eb &acc[8:16]
+call &ebyte &r4
+:r4 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

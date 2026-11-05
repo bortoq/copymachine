@@ -1,0 +1,77 @@
+# stack: 65 66 swap emit emit 67 68 over emit emit emit 69 70 71 rot emit emit emit 72 dup emit emit 73 74 drop emit
+:stt data 8 0
+:s3 data 8 0
+:k65_8 data 8 65
+:s4 data 8 0
+:k66_8 data 8 66
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k67_8 data 8 67
+:k68_8 data 8 68
+:s5 data 8 0
+:k69_8 data 8 69
+:k70_8 data 8 70
+:k71_8 data 8 71
+:k72_8 data 8 72
+:k73_8 data 8 73
+:k74_8 data 8 74
+:main block
+copy &s3 &k65_8
+copy &s4 &k66_8
+copy &stt &s4
+copy &s4 &s3
+copy &s3 &stt
+copy &eb &s4
+call &ebyte &r1
+:r1 block
+copy &eb &s3
+call &ebyte &r2
+:r2 block
+copy &s3 &k67_8
+copy &s4 &k68_8
+copy &s5 &s3
+copy &eb &s5
+call &ebyte &r3
+:r3 block
+copy &eb &s4
+call &ebyte &r4
+:r4 block
+copy &eb &s3
+call &ebyte &r5
+:r5 block
+copy &s3 &k69_8
+copy &s4 &k70_8
+copy &s5 &k71_8
+copy &stt &s3
+copy &s3 &s4
+copy &s4 &s5
+copy &s5 &stt
+copy &eb &s5
+call &ebyte &r6
+:r6 block
+copy &eb &s4
+call &ebyte &r7
+:r7 block
+copy &eb &s3
+call &ebyte &r8
+:r8 block
+copy &s3 &k72_8
+copy &s4 &s3
+copy &eb &s4
+call &ebyte &r9
+:r9 block
+copy &eb &s3
+call &ebyte &r10
+:r10 block
+copy &s3 &k73_8
+copy &s4 &k74_8
+copy &eb &s3
+call &ebyte &r11
+:r11 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

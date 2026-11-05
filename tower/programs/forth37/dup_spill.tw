@@ -1,0 +1,78 @@
+# dup-spill: : f ( a b -- a b a b ) over over ; : main 65 66 f emit emit emit emit 67 dup dup 2 0 do loop emit emit emit ;
+:fa data 8 0
+:fb data 8 0
+:f1 data 8 0
+:f2 data 8 0
+:f3 data 8 0
+:f4 data 8 0
+:s3 data 8 0
+:k65_8 data 8 65
+:s4 data 8 0
+:k66_8 data 8 66
+:s5 data 8 0
+:s6 data 8 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k67_8 data 8 67
+:i data 8 0
+:z8 data 8 0
+:k1_8 data 8 1
+:ta8 data 9 0
+:k2_8 data 8 2
+:te8 data 2 0
+:main block
+copy &s3 &k65_8
+copy &s4 &k66_8
+copy &fa &s3
+copy &fb &s4
+call &f &r1
+:r1 block
+copy &s3 &f1
+copy &s4 &f2
+copy &s5 &f3
+copy &s6 &f4
+copy &eb &s6
+call &ebyte &r2
+:r2 block
+copy &eb &s5
+call &ebyte &r3
+:r3 block
+copy &eb &s4
+call &ebyte &r4
+:r4 block
+copy &eb &s3
+call &ebyte &r5
+:r5 block
+copy &s3 &k67_8
+copy &s4 &s3
+copy &s5 &s4
+copy &i &z8
+goto &lp6
+:lp6 block
+add &i &k1_8 &ta8
+copy &i &ta8[0:8]
+eq &i &k2_8 &te8
+if &te8[1] &nx7 &lp6
+:nx7 block
+copy &eb &s5
+call &ebyte &r8
+:r8 block
+copy &eb &s4
+call &ebyte &r9
+:r9 block
+copy &eb &s3
+call &ebyte &r10
+:r10 block
+halt
+:f word
+copy &f1 &fa
+copy &f2 &fb
+copy &f3 &fa
+copy &f4 &fb
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

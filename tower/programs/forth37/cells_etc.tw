@@ -1,0 +1,65 @@
+# cells-etc: variable v : main 5 cells 48 + emit 7 2* 48 + emit 9 1+ 48 + emit 9 1- 48 + emit 0 cell+ 48 + emit 1 v ! v @ 48 + emit decimal ;
+:v data 8 0
+:t data 8 0
+:k5_8 data 8 5
+:u data 8 0
+:k48_8 data 8 48
+:ta8 data 9 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k7_8 data 8 7
+:k9_8 data 8 9
+:k1_8 data 8 1
+:ts8 data 9 0
+:z8 data 8 0
+:k4_8 data 8 4
+:main block
+copy &t &k5_8
+shl &t &u 2
+add &u &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r1
+:r1 block
+copy &t &k7_8
+shl &t &u 1
+add &u &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r2
+:r2 block
+copy &t &k9_8
+add &t &k1_8 &ta8
+copy &u &ta8[0:8]
+add &u &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r3
+:r3 block
+sub &t &k1_8 &ts8
+copy &u &ts8[0:8]
+add &u &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r4
+:r4 block
+add &z8 &k4_8 &ta8
+copy &u &ta8[0:8]
+add &u &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r5
+:r5 block
+copy &v &k1_8
+add &v &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r6
+:r6 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

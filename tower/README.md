@@ -56,6 +56,7 @@
   собранный серийной цепочкой с `l3p` из текста `pack` + `l3c.tw`, — упакованный `l3c`; он собирает из того же текста тот же текст языка 2, языка 1 и тот же образ побайтно.
   Не сделано: прямая запись в процессор (дыры, 23.3 г): `lut` остаётся в 4 слоях, `if` в 6; переходы и таблицы `if`/`call` не участвуют в расписании; окно 8 строк; 3 слота.
   Тесты: `tests/test_l3p.py` (в `check-tower`), класс `PackedFixedPoint` в `tests/long_l3c.py`. Замеры — `docs/measurements/tower.md`, раздел 17.
+- **37 программ нынешнего языка (23.11): `programs/forth37/*.tw`** — те же программы, что `language/tests/reference/forthc_programs.py`, на подмножестве `l3c` (вывод в `expected.txt`; у `bytes` сдвиг на 33 бита даёт 0, у Форта 6). Тесты: `tests/test_forth37.py` (`check-tower`), `tests/long_forth37.py` (`check-tower-long`). Итоги — `docs/measurements/tower.md`, раздел 18, и `tower-forth37.md`.
 - **Временно:** Python остаётся эталоном и порождает тексты зерна: `l2.py`–`l5.py`, `lib.py`, `text.py` (разбор текста `.tw`, метки, проверки), `progs.py`, `l1.py`,
   `l1text.py` (генератор `seed.l1`, `l2c.l1`, `l2l.l1`; Python-эталон кодера; **первый `seed.img` из `seed.l1`**), `l2text.py`, `l2ltext.py`, `l3ctext.py`
   (эталоны `l2c`, `l2l`, `l3c`, `l3p`; `-l` печатает `l3c.l1`). Зерно, с которого цепочка идёт без Python: **эмулятор + `seed.img` + `seed.l1`, `l2l.l1`, `l3c.l1`**

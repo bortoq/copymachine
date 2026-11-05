@@ -1,0 +1,183 @@
+# multiply: 6 7 * emit 3 dup * 48 + emit and b4 (four bytes) of 123456*789, -3*5, -7*-9, 65535*65537, 2147483647^2, -2147483648*-1, 0*99 (32-bit cells)
+:ma data 32 0
+:mb data 32 0
+:mr data 32 0
+:bv data 32 0
+:k6_16 data 16 6
+:k0_16 data 16 0
+:k7_16 data 16 7
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k3_16 data 16 3
+:t32 data 32 0
+:k48_32 data 32 48
+:ta32 data 33 0
+:k57920_16 data 16 57920
+:k1_16 data 16 1
+:k789_16 data 16 789
+:k65533_16 data 16 65533
+:k65535_16 data 16 65535
+:k5_16 data 16 5
+:k65529_16 data 16 65529
+:k65527_16 data 16 65527
+:k32767_16 data 16 32767
+:k32768_16 data 16 32768
+:k99_16 data 16 99
+:mx data 32 0
+:my data 32 0
+:mw data 32 0
+:mi data 8 0
+:z32 data 32 0
+:z8 data 8 0
+:k1_8 data 8 1
+:ta8 data 9 0
+:k32_8 data 8 32
+:te8 data 2 0
+:bw data 32 0
+:ci data 4 0
+:z4 data 4 0
+:ts32 data 33 0
+:k1_4 data 4 1
+:ta4 data 5 0
+:k4_4 data 4 4
+:te4 data 1 0
+:main block
+copy &ma[0:16] &k6_16
+copy &ma[16:32] &k0_16
+copy &mb[0:16] &k7_16
+copy &mb[16:32] &k0_16
+call &mul &r1
+:r1 block
+copy &eb &mr[0:8]
+call &ebyte &r2
+:r2 block
+copy &ma[0:16] &k3_16
+copy &ma[16:32] &k0_16
+copy &mb[0:16] &k3_16
+copy &mb[16:32] &k0_16
+call &mul &r3
+:r3 block
+add &mr &k48_32 &ta32
+copy &t32 &ta32[0:32]
+copy &eb &t32[0:8]
+call &ebyte &r4
+:r4 block
+copy &ma[0:16] &k57920_16
+copy &ma[16:32] &k1_16
+copy &mb[0:16] &k789_16
+copy &mb[16:32] &k0_16
+call &mul &r5
+:r5 block
+copy &bv &mr
+call &b4 &r6
+:r6 block
+copy &ma[0:16] &k65533_16
+copy &ma[16:32] &k65535_16
+copy &mb[0:16] &k5_16
+copy &mb[16:32] &k0_16
+call &mul &r7
+:r7 block
+copy &bv &mr
+call &b4 &r8
+:r8 block
+copy &ma[0:16] &k65529_16
+copy &ma[16:32] &k65535_16
+copy &mb[0:16] &k65527_16
+copy &mb[16:32] &k65535_16
+call &mul &r9
+:r9 block
+copy &bv &mr
+call &b4 &r10
+:r10 block
+copy &ma[0:16] &k65535_16
+copy &ma[16:32] &k0_16
+copy &mb[0:16] &k1_16
+copy &mb[16:32] &k1_16
+call &mul &r11
+:r11 block
+copy &bv &mr
+call &b4 &r12
+:r12 block
+copy &ma[0:16] &k65535_16
+copy &ma[16:32] &k32767_16
+copy &mb[0:16] &k65535_16
+copy &mb[16:32] &k32767_16
+call &mul &r13
+:r13 block
+copy &bv &mr
+call &b4 &r14
+:r14 block
+copy &ma[0:16] &k0_16
+copy &ma[16:32] &k32768_16
+copy &mb[0:16] &k65535_16
+copy &mb[16:32] &k65535_16
+call &mul &r15
+:r15 block
+copy &bv &mr
+call &b4 &r16
+:r16 block
+copy &ma[0:16] &k0_16
+copy &ma[16:32] &k0_16
+copy &mb[0:16] &k99_16
+copy &mb[16:32] &k0_16
+call &mul &r17
+:r17 block
+copy &bv &mr
+call &b4 &r18
+:r18 block
+halt
+:mul word
+copy &mx &ma
+copy &my &mb
+copy &mr &z32
+copy &mi &z8
+goto &ml19
+:ml19 block
+if &my[0] &ma20 &mn21
+:ma20 block
+add &mr &mx &ta32
+copy &mr &ta32[0:32]
+goto &mn21
+:mn21 block
+shl &mx &mw 1
+copy &mx &mw
+shr &my &mw 1
+copy &my &mw
+add &mi &k1_8 &ta8
+copy &mi &ta8[0:8]
+eq &mi &k32_8 &te8
+if &te8[1] &md22 &ml19
+:md22 block
+ret
+:b4 word
+copy &ci &z4
+goto &bl23
+:bl23 block
+copy &eb &bv[0:8]
+call &ebyte &r24
+:r24 block
+if &bv[31] &bn25 &bp26
+:bn25 block
+sub &z32 &bv &ts32
+copy &bv &ts32[0:32]
+shr &bv &bw 8
+sub &z32 &bw &ts32
+copy &bv &ts32[0:32]
+goto &bx27
+:bp26 block
+shr &bv &bw 8
+copy &bv &bw
+goto &bx27
+:bx27 block
+add &ci &k1_4 &ta4
+copy &ci &ta4[0:4]
+eq &ci &k4_4 &te4
+if &te4[0] &bd28 &bl23
+:bd28 block
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

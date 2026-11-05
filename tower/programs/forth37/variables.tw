@@ -1,0 +1,36 @@
+# variables: variable x variable y 5 x ! 7 y ! x @ y @ + 48 + emit x @ 1 + x ! x @ 48 + emit
+:x data 8 0
+:y data 8 0
+:t data 8 0
+:k5_8 data 8 5
+:k7_8 data 8 7
+:ta8 data 9 0
+:v data 8 0
+:k48_8 data 8 48
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k1_8 data 8 1
+:main block
+copy &x &k5_8
+copy &y &k7_8
+add &x &y &ta8
+copy &t &ta8[0:8]
+add &t &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r1
+:r1 block
+add &x &k1_8 &ta8
+copy &x &ta8[0:8]
+add &x &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r2
+:r2 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

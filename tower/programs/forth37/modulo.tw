@@ -1,0 +1,193 @@
+# modulo: 100 7 mod 48 + emit 17 5 /mod 48 + emit 48 + emit 1000000 999 mod b4 0 5 mod 48 + emit
+:da data 32 0
+:db data 32 0
+:dq data 32 0
+:dm data 32 0
+:bv data 32 0
+:k100_16 data 16 100
+:k0_16 data 16 0
+:k7_16 data 16 7
+:t32 data 32 0
+:k48_32 data 32 48
+:ta32 data 33 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k17_16 data 16 17
+:k5_16 data 16 5
+:k16960_16 data 16 16960
+:k15_16 data 16 15
+:k999_16 data 16 999
+:dx data 32 0
+:dy data 32 0
+:dr data 32 0
+:dc data 32 0
+:dw data 32 0
+:di data 8 0
+:dsa data 1 0
+:dsb data 1 0
+:one1 data 1 1
+:z32 data 32 0
+:te32 data 8 0
+:ts32 data 33 0
+:z8 data 8 0
+:tl32 data 9 0
+:k1_8 data 8 1
+:ta8 data 9 0
+:k32_8 data 8 32
+:te8 data 2 0
+:bw data 32 0
+:ci data 4 0
+:z4 data 4 0
+:k1_4 data 4 1
+:ta4 data 5 0
+:k4_4 data 4 4
+:te4 data 1 0
+:main block
+copy &da[0:16] &k100_16
+copy &da[16:32] &k0_16
+copy &db[0:16] &k7_16
+copy &db[16:32] &k0_16
+call &divs &r1
+:r1 block
+add &dm &k48_32 &ta32
+copy &t32 &ta32[0:32]
+copy &eb &t32[0:8]
+call &ebyte &r2
+:r2 block
+copy &da[0:16] &k17_16
+copy &da[16:32] &k0_16
+copy &db[0:16] &k5_16
+copy &db[16:32] &k0_16
+call &divs &r3
+:r3 block
+add &dq &k48_32 &ta32
+copy &t32 &ta32[0:32]
+copy &eb &t32[0:8]
+call &ebyte &r4
+:r4 block
+add &dm &k48_32 &ta32
+copy &t32 &ta32[0:32]
+copy &eb &t32[0:8]
+call &ebyte &r5
+:r5 block
+copy &da[0:16] &k16960_16
+copy &da[16:32] &k15_16
+copy &db[0:16] &k999_16
+copy &db[16:32] &k0_16
+call &divs &r6
+:r6 block
+copy &bv &dm
+call &b4 &r7
+:r7 block
+copy &da[0:16] &k0_16
+copy &da[16:32] &k0_16
+copy &db[0:16] &k5_16
+copy &db[16:32] &k0_16
+call &divs &r8
+:r8 block
+add &dm &k48_32 &ta32
+copy &t32 &ta32[0:32]
+copy &eb &t32[0:8]
+call &ebyte &r9
+:r9 block
+halt
+:divs word
+eq &db &z32 &te32
+if &te32[7] &dz10 &dg11
+:dz10 block
+halt
+:dg11 block
+copy &dsa &da[31]
+copy &dsb &db[31]
+copy &dx &da
+copy &dy &db
+if &da[31] &dn12 &dn13
+:dn12 block
+sub &z32 &da &ts32
+copy &dx &ts32[0:32]
+goto &dn13
+:dn13 block
+if &db[31] &dn14 &dn15
+:dn14 block
+sub &z32 &db &ts32
+copy &dy &ts32[0:32]
+goto &dn15
+:dn15 block
+copy &dr &z32
+copy &dc &z32
+copy &di &z8
+goto &dl16
+:dl16 block
+shl &dr &dw 1
+copy &dr &dw
+copy &dr[0] &dx[31]
+shl &dx &dw 1
+copy &dx &dw
+shl &dc &dw 1
+copy &dc &dw
+lt &dr &dy &tl32
+if &tl32[8] &dl18 &dl17
+:dl17 block
+sub &dr &dy &ts32
+copy &dr &ts32[0:32]
+copy &dc[0] &one1
+goto &dl19
+:dl18 block
+goto &dl19
+:dl19 block
+add &di &k1_8 &ta8
+copy &di &ta8[0:8]
+eq &di &k32_8 &te8
+if &te8[1] &df20 &dl16
+:df20 block
+copy &dm &dr
+if &dsa &dm21 &dm22
+:dm21 block
+sub &z32 &dr &ts32
+copy &dm &ts32[0:32]
+goto &dm22
+:dm22 block
+copy &dq &dc
+if &dsa &dq23 &dq24
+:dq23 block
+if &dsb &dq26 &dq25
+:dq24 block
+if &dsb &dq25 &dq26
+:dq25 block
+sub &z32 &dc &ts32
+copy &dq &ts32[0:32]
+goto &dq26
+:dq26 block
+ret
+:b4 word
+copy &ci &z4
+goto &bl27
+:bl27 block
+copy &eb &bv[0:8]
+call &ebyte &r28
+:r28 block
+if &bv[31] &bn29 &bp30
+:bn29 block
+sub &z32 &bv &ts32
+copy &bv &ts32[0:32]
+shr &bv &bw 8
+sub &z32 &bw &ts32
+copy &bv &ts32[0:32]
+goto &bx31
+:bp30 block
+shr &bv &bw 8
+copy &bv &bw
+goto &bx31
+:bx31 block
+add &ci &k1_4 &ta4
+copy &ci &ta4[0:4]
+eq &ci &k4_4 &te4
+if &te4[0] &bd32 &bl27
+:bd32 block
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

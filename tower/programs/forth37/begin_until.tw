@@ -1,0 +1,32 @@
+# begin-until: 0 begin dup 48 + emit 1 + dup 5 = until drop
+:n data 8 0
+:v data 8 0
+:z8 data 8 0
+:k48_8 data 8 48
+:ta8 data 9 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k1_8 data 8 1
+:k5_8 data 8 5
+:te8 data 2 0
+:main block
+copy &n &z8
+goto &lp1
+:lp1 block
+add &n &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r3
+:r3 block
+add &n &k1_8 &ta8
+copy &n &ta8[0:8]
+eq &n &k5_8 &te8
+if &te8[1] &dn2 &lp1
+:dn2 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

@@ -1,0 +1,74 @@
+# bytes: 3 c@ 48 + emit 65 7 c! 7 c@ emit 66 524287 c! 524287 c@ emit 67 0 c! 524288 c@ emit 3 33 lshift 48 + emit (1 KiB of bytes; a shift by 33 gives 0 here, the Forth language takes the amount modulo 32 and prints 6)
+:mem array 10 8
+:ad data 32 0
+:val data 8 0
+:o data 8 0
+:x data 32 0
+:y data 32 0
+:k3_16 data 16 3
+:k0_16 data 16 0
+:v data 8 0
+:k48_8 data 8 48
+:ta8 data 9 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k7_16 data 16 7
+:k65_8 data 8 65
+:k65535_16 data 16 65535
+:k66_8 data 8 66
+:k67_8 data 8 67
+:k8_16 data 16 8
+:main block
+copy &ad[0:16] &k3_16
+copy &ad[16:32] &k0_16
+lut &mem &ad[0:10] &o
+add &o &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r1
+:r1 block
+copy &ad[0:16] &k7_16
+copy &ad[16:32] &k0_16
+copy &val &k65_8
+store &mem &ad[0:10] &val
+copy &ad[0:16] &k65535_16
+copy &ad[16:32] &k7_16
+copy &val &k66_8
+store &mem &ad[0:10] &val
+copy &ad[0:16] &k0_16
+copy &ad[16:32] &k0_16
+copy &val &k67_8
+store &mem &ad[0:10] &val
+copy &ad[0:16] &k7_16
+copy &ad[16:32] &k0_16
+lut &mem &ad[0:10] &o
+copy &eb &o
+call &ebyte &r2
+:r2 block
+copy &ad[0:16] &k65535_16
+copy &ad[16:32] &k7_16
+lut &mem &ad[0:10] &o
+copy &eb &o
+call &ebyte &r3
+:r3 block
+copy &ad[0:16] &k0_16
+copy &ad[16:32] &k8_16
+lut &mem &ad[0:10] &o
+copy &eb &o
+call &ebyte &r4
+:r4 block
+copy &x[0:16] &k3_16
+copy &x[16:32] &k0_16
+shl &x &y 33
+add &y[0:8] &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r5
+:r5 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

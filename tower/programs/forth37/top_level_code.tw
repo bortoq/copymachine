@@ -1,0 +1,37 @@
+# top-level-code: variable a variable b 5 a ! a @ 2 * b ! : init2 a @ 1 + a ! ; init2 : main a @ 48 + emit b @ 48 + emit
+:a data 8 0
+:b data 8 0
+:k5_8 data 8 5
+:ta8 data 9 0
+:v data 8 0
+:k48_8 data 8 48
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k1_8 data 8 1
+:main block
+copy &a &k5_8
+add &a &a &ta8
+copy &b &ta8[0:8]
+call &init2 &r1
+:r1 block
+add &a &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r2
+:r2 block
+add &b &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r3
+:r3 block
+halt
+:init2 word
+add &a &k1_8 &ta8
+copy &a &ta8[0:8]
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

@@ -1,0 +1,38 @@
+# execute: : a 65 emit ; : b 66 emit ; : main ['] a execute ['] b execute ['] a dup execute execute ; (execute is a chain of if on the code of the word)
+:xt data 4 0
+:ca data 8 "A"
+:cb data 8 "B"
+:k1_4 data 4 1
+:k2_4 data 4 2
+:te4 data 1 0
+:main block
+copy &xt &k1_4
+call &exec &r1
+:r1 block
+copy &xt &k2_4
+call &exec &r2
+:r2 block
+copy &xt &k1_4
+call &exec &r3
+:r3 block
+copy &xt &k1_4
+call &exec &r4
+:r4 block
+halt
+:exec word
+eq &xt &k1_4 &te4
+if &te4[0] &ia5 &ib6
+:ia5 block
+call &wa &r7
+:r7 block
+ret
+:ib6 block
+call &wb &r8
+:r8 block
+ret
+:wa word
+emit &ca
+ret
+:wb word
+emit &cb
+ret

@@ -1,0 +1,161 @@
+# divmod-random: the random pairs of forthc_programs.py with a nonzero divisor, each a b /mod b4 b4 (quotient first)
+:da data 32 0
+:db data 32 0
+:dq data 32 0
+:dm data 32 0
+:bv data 32 0
+:al table 6 16 65535 1 65529 39419 52501 7 52501 65529 0 292 2 65350 292 21382 65535 42387 65535 53768 3753 65036 65239 24108 65360 46004 42387 65239 20954 23569 38735 46004 57941 28099 17623 65036 1 65350 39419 20906 7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:ah table 6 16 0 0 65535 24862 1883 0 1883 65535 1 0 0 65535 0 182 65535 51850 32767 64992 40039 34306 65535 48366 65535 51195 51850 65535 5926 46523 50465 51195 14749 57607 38064 34306 0 65535 24862 41847 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:bl table 6 16 134 53768 65239 134 47884 42387 65443 65360 0 65535 21382 65321 0 65239 256 20906 65438 65535 65321 65360 65529 256 3753 38735 52501 1 292 256 24304 21382 65529 65443 255 2 20954 23569 24108 65239 23569 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:bh table 6 16 0 64992 65535 0 11418 51850 65535 65535 32768 65535 182 65535 1 65535 0 41847 65535 65535 65535 65535 65535 0 40039 50465 1883 0 0 0 57233 182 65535 65535 0 0 5926 46523 48366 65535 46523 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:pi data 8 0
+:z8 data 8 0
+:k1_8 data 8 1
+:ta8 data 9 0
+:k39_8 data 8 39
+:te8 data 2 0
+:dx data 32 0
+:dy data 32 0
+:dr data 32 0
+:dc data 32 0
+:dw data 32 0
+:di data 8 0
+:dsa data 1 0
+:dsb data 1 0
+:one1 data 1 1
+:z32 data 32 0
+:te32 data 8 0
+:ts32 data 33 0
+:tl32 data 9 0
+:k32_8 data 8 32
+:bw data 32 0
+:ci data 4 0
+:z4 data 4 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k1_4 data 4 1
+:ta4 data 5 0
+:k4_4 data 4 4
+:te4 data 1 0
+:main block
+copy &pi &z8
+goto &lp1
+:lp1 block
+lut &al &pi[0:6] &da[0:16]
+lut &ah &pi[0:6] &da[16:32]
+lut &bl &pi[0:6] &db[0:16]
+lut &bh &pi[0:6] &db[16:32]
+call &divs &r3
+:r3 block
+copy &bv &dq
+call &b4 &r4
+:r4 block
+copy &bv &dm
+call &b4 &r5
+:r5 block
+add &pi &k1_8 &ta8
+copy &pi &ta8[0:8]
+eq &pi &k39_8 &te8
+if &te8[1] &dn2 &lp1
+:dn2 block
+halt
+:divs word
+eq &db &z32 &te32
+if &te32[7] &dz6 &dg7
+:dz6 block
+halt
+:dg7 block
+copy &dsa &da[31]
+copy &dsb &db[31]
+copy &dx &da
+copy &dy &db
+if &da[31] &dn8 &dn9
+:dn8 block
+sub &z32 &da &ts32
+copy &dx &ts32[0:32]
+goto &dn9
+:dn9 block
+if &db[31] &dn10 &dn11
+:dn10 block
+sub &z32 &db &ts32
+copy &dy &ts32[0:32]
+goto &dn11
+:dn11 block
+copy &dr &z32
+copy &dc &z32
+copy &di &z8
+goto &dl12
+:dl12 block
+shl &dr &dw 1
+copy &dr &dw
+copy &dr[0] &dx[31]
+shl &dx &dw 1
+copy &dx &dw
+shl &dc &dw 1
+copy &dc &dw
+lt &dr &dy &tl32
+if &tl32[8] &dl14 &dl13
+:dl13 block
+sub &dr &dy &ts32
+copy &dr &ts32[0:32]
+copy &dc[0] &one1
+goto &dl15
+:dl14 block
+goto &dl15
+:dl15 block
+add &di &k1_8 &ta8
+copy &di &ta8[0:8]
+eq &di &k32_8 &te8
+if &te8[1] &df16 &dl12
+:df16 block
+copy &dm &dr
+if &dsa &dm17 &dm18
+:dm17 block
+sub &z32 &dr &ts32
+copy &dm &ts32[0:32]
+goto &dm18
+:dm18 block
+copy &dq &dc
+if &dsa &dq19 &dq20
+:dq19 block
+if &dsb &dq22 &dq21
+:dq20 block
+if &dsb &dq21 &dq22
+:dq21 block
+sub &z32 &dc &ts32
+copy &dq &ts32[0:32]
+goto &dq22
+:dq22 block
+ret
+:b4 word
+copy &ci &z4
+goto &bl23
+:bl23 block
+copy &eb &bv[0:8]
+call &ebyte &r24
+:r24 block
+if &bv[31] &bn25 &bp26
+:bn25 block
+sub &z32 &bv &ts32
+copy &bv &ts32[0:32]
+shr &bv &bw 8
+sub &z32 &bw &ts32
+copy &bv &ts32[0:32]
+goto &bx27
+:bp26 block
+shr &bv &bw 8
+copy &bv &bw
+goto &bx27
+:bx27 block
+add &ci &k1_4 &ta4
+copy &ci &ta4[0:4]
+eq &ci &k4_4 &te4
+if &te4[0] &bd28 &bl23
+:bd28 block
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

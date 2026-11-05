@@ -1,0 +1,72 @@
+# compare: 3 3 = b 3 4 = b 3 4 < b 4 3 < b -1 0 < b 0 -1 < b 0 0= b 5 0= b (8-bit cells, -1 is 255, < is signed)
+:k3_8 data 8 3
+:te8 data 2 0
+:fl data 1 0
+:k4_8 data 8 4
+:flip table 4 4 8 9 10 11 12 13 14 15 0 1 2 3 4 5 6 7
+:fa8 data 8 0
+:fb8 data 8 0
+:tl8 data 3 0
+:k255_8 data 8 255
+:k0_8 data 8 0
+:k5_8 data 8 5
+:cy data 8 "Y"
+:cn data 8 "N"
+:main block
+eq &k3_8 &k3_8 &te8
+copy &fl &te8[1]
+call &b &r1
+:r1 block
+eq &k3_8 &k4_8 &te8
+copy &fl &te8[1]
+call &b &r2
+:r2 block
+copy &fa8 &k3_8
+copy &fb8 &k4_8
+lut &flip &fa8[4:8] &fa8[4:8]
+lut &flip &fb8[4:8] &fb8[4:8]
+lt &fa8 &fb8 &tl8
+copy &fl &tl8[2]
+call &b &r3
+:r3 block
+copy &fa8 &k4_8
+copy &fb8 &k3_8
+lut &flip &fa8[4:8] &fa8[4:8]
+lut &flip &fb8[4:8] &fb8[4:8]
+lt &fa8 &fb8 &tl8
+copy &fl &tl8[2]
+call &b &r4
+:r4 block
+copy &fa8 &k255_8
+copy &fb8 &k0_8
+lut &flip &fa8[4:8] &fa8[4:8]
+lut &flip &fb8[4:8] &fb8[4:8]
+lt &fa8 &fb8 &tl8
+copy &fl &tl8[2]
+call &b &r5
+:r5 block
+copy &fa8 &k0_8
+copy &fb8 &k255_8
+lut &flip &fa8[4:8] &fa8[4:8]
+lut &flip &fb8[4:8] &fb8[4:8]
+lt &fa8 &fb8 &tl8
+copy &fl &tl8[2]
+call &b &r6
+:r6 block
+eq &k0_8 &k0_8 &te8
+copy &fl &te8[1]
+call &b &r7
+:r7 block
+eq &k5_8 &k0_8 &te8
+copy &fl &te8[1]
+call &b &r8
+:r8 block
+halt
+:b word
+if &fl &by9 &bn10
+:by9 block
+emit &cy
+ret
+:bn10 block
+emit &cn
+ret

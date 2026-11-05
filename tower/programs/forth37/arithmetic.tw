@@ -1,0 +1,75 @@
+# arithmetic: 65 emit 3 4 + 60 + emit 100 33 - emit 6 7 and 64 or emit 70 3 xor emit (8-bit cells)
+:s3 data 8 0
+:k65_8 data 8 65
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k3_8 data 8 3
+:s4 data 8 0
+:k4_8 data 8 4
+:ta8 data 9 0
+:k60_8 data 8 60
+:k100_8 data 8 100
+:k33_8 data 8 33
+:ts8 data 9 0
+:k6_8 data 8 6
+:k7_8 data 8 7
+:k64_8 data 8 64
+:ob8 data 8 0
+:os8 data 8 0
+:k70_8 data 8 70
+:xb8 data 8 0
+:xs8 data 8 0
+:xu8 data 8 0
+:main block
+copy &s3 &k65_8
+copy &eb &s3
+call &ebyte &r1
+:r1 block
+copy &s3 &k3_8
+copy &s4 &k4_8
+add &s3 &s4 &ta8
+copy &s3 &ta8[0:8]
+copy &s4 &k60_8
+add &s3 &s4 &ta8
+copy &s3 &ta8[0:8]
+copy &eb &s3
+call &ebyte &r2
+:r2 block
+copy &s3 &k100_8
+copy &s4 &k33_8
+sub &s3 &s4 &ts8
+copy &s3 &ts8[0:8]
+copy &eb &s3
+call &ebyte &r3
+:r3 block
+copy &s3 &k6_8
+copy &s4 &k7_8
+band &s3 &s4 &s3
+copy &s4 &k64_8
+band &s3 &s4 &ob8
+add &s3 &s4 &ta8
+copy &os8 &ta8[0:8]
+sub &os8 &ob8 &ts8
+copy &s3 &ts8[0:8]
+copy &eb &s3
+call &ebyte &r4
+:r4 block
+copy &s3 &k70_8
+copy &s4 &k3_8
+band &s3 &s4 &xb8
+add &s3 &s4 &ta8
+copy &xs8 &ta8[0:8]
+sub &xs8 &xb8 &ts8
+copy &xu8 &ts8[0:8]
+sub &xu8 &xb8 &ts8
+copy &s3 &ts8[0:8]
+copy &eb &s3
+call &ebyte &r5
+:r5 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

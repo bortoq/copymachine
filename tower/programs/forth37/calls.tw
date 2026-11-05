@@ -1,0 +1,40 @@
+# calls: : sq dup + ; : quad sq sq ; : main 3 quad 48 + emit 10 quad emit ;
+:v data 8 0
+:k3_8 data 8 3
+:k48_8 data 8 48
+:ta8 data 9 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k10_8 data 8 10
+:main block
+copy &v &k3_8
+call &quad &r1
+:r1 block
+add &v &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r2
+:r2 block
+copy &v &k10_8
+call &quad &r3
+:r3 block
+copy &eb &v
+call &ebyte &r4
+:r4 block
+halt
+:sq word
+add &v &v &ta8
+copy &v &ta8[0:8]
+ret
+:quad word
+call &sq &r5
+:r5 block
+call &sq &r6
+:r6 block
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

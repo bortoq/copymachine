@@ -1,0 +1,47 @@
+# strings: : main s" Hello" 0 do dup i + c@ emit loop drop s" " swap drop 48 + emit [char] Z emit [char] a emit s" x y" swap drop 48 + emit ; (a string is a table of bytes, its length a number)
+:hello table 3 8 "H" "e" "l" "l" "o" "\0" "\0" "\0"
+:len0 data 8 0
+:len3 data 8 3
+:cz data 8 "Z"
+:ca data 8 "a"
+:i data 8 0
+:ch data 8 0
+:z8 data 8 0
+:k1_8 data 8 1
+:ta8 data 9 0
+:k5_8 data 8 5
+:te8 data 2 0
+:v data 8 0
+:k48_8 data 8 48
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:main block
+copy &i &z8
+goto &lp1
+:lp1 block
+lut &hello &i[0:3] &ch
+emit &ch
+add &i &k1_8 &ta8
+copy &i &ta8[0:8]
+eq &i &k5_8 &te8
+if &te8[1] &nx2 &lp1
+:nx2 block
+add &len0 &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r3
+:r3 block
+emit &cz
+emit &ca
+add &len3 &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r4
+:r4 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

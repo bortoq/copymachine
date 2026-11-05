@@ -1,0 +1,45 @@
+# empty-run: variable x : main 1 x ! 0 if then x @ drop begin x @ 1 + dup x ! 3 = until x @ 48 + emit 1 if x @ drop then 65 emit ;
+:x data 8 0
+:f0 data 1 0
+:f1 data 1 1
+:k1_8 data 8 1
+:ta8 data 9 0
+:k3_8 data 8 3
+:te8 data 2 0
+:v data 8 0
+:k48_8 data 8 48
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k65_8 data 8 65
+:main block
+copy &x &k1_8
+if &f0 &e1 &e2
+:e1 block
+goto &e2
+:e2 block
+goto &e3
+:e3 block
+add &x &k1_8 &ta8
+copy &x &ta8[0:8]
+eq &x &k3_8 &te8
+if &te8[1] &e5 &e3
+:e5 block
+add &x &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r6
+:r6 block
+if &f1 &e7 &e8
+:e7 block
+goto &e8
+:e8 block
+copy &eb &k65_8
+call &ebyte &r9
+:r9 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

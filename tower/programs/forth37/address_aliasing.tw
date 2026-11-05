@@ -1,0 +1,55 @@
+# address-aliasing: 65 emit 7 0 ! 524288 @ 48 + emit 3 @ 48 + emit 1048576 @ 48 + emit (the cell index is bits 2..9 of the address: 256 cells of 8 bits, the address is taken modulo 1 KiB)
+:mem array 8 8
+:ad data 32 0
+:val data 8 0
+:o data 8 0
+:k65_8 data 8 65
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k0_16 data 16 0
+:k7_8 data 8 7
+:k8_16 data 16 8
+:v data 8 0
+:k48_8 data 8 48
+:ta8 data 9 0
+:k3_16 data 16 3
+:k16_16 data 16 16
+:main block
+copy &eb &k65_8
+call &ebyte &r1
+:r1 block
+copy &ad[0:16] &k0_16
+copy &ad[16:32] &k0_16
+copy &val &k7_8
+store &mem &ad[2:10] &val
+copy &ad[0:16] &k0_16
+copy &ad[16:32] &k8_16
+lut &mem &ad[2:10] &o
+add &o &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r2
+:r2 block
+copy &ad[0:16] &k3_16
+copy &ad[16:32] &k0_16
+lut &mem &ad[2:10] &o
+add &o &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r3
+:r3 block
+copy &ad[0:16] &k0_16
+copy &ad[16:32] &k16_16
+lut &mem &ad[2:10] &o
+add &o &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r4
+:r4 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

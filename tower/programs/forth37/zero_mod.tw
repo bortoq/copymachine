@@ -1,0 +1,136 @@
+# zero-mod: : z 7 0 mod ; : main 65 emit 7 2 mod 48 + emit z 66 emit ; (a division by 0 halts: B is never printed)
+:da data 32 0
+:db data 32 0
+:dq data 32 0
+:dm data 32 0
+:k65_8 data 8 65
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k7_16 data 16 7
+:k0_16 data 16 0
+:k2_16 data 16 2
+:t32 data 32 0
+:k48_32 data 32 48
+:ta32 data 33 0
+:k66_8 data 8 66
+:dx data 32 0
+:dy data 32 0
+:dr data 32 0
+:dc data 32 0
+:dw data 32 0
+:di data 8 0
+:dsa data 1 0
+:dsb data 1 0
+:one1 data 1 1
+:z32 data 32 0
+:te32 data 8 0
+:ts32 data 33 0
+:z8 data 8 0
+:tl32 data 9 0
+:k1_8 data 8 1
+:ta8 data 9 0
+:k32_8 data 8 32
+:te8 data 2 0
+:main block
+copy &eb &k65_8
+call &ebyte &r1
+:r1 block
+copy &da[0:16] &k7_16
+copy &da[16:32] &k0_16
+copy &db[0:16] &k2_16
+copy &db[16:32] &k0_16
+call &divs &r2
+:r2 block
+add &dm &k48_32 &ta32
+copy &t32 &ta32[0:32]
+copy &eb &t32[0:8]
+call &ebyte &r3
+:r3 block
+call &z &r4
+:r4 block
+copy &eb &k66_8
+call &ebyte &r5
+:r5 block
+halt
+:z word
+copy &da[0:16] &k7_16
+copy &da[16:32] &k0_16
+copy &db[0:16] &k0_16
+copy &db[16:32] &k0_16
+call &divs &r6
+:r6 block
+ret
+:divs word
+eq &db &z32 &te32
+if &te32[7] &dz7 &dg8
+:dz7 block
+halt
+:dg8 block
+copy &dsa &da[31]
+copy &dsb &db[31]
+copy &dx &da
+copy &dy &db
+if &da[31] &dn9 &dn10
+:dn9 block
+sub &z32 &da &ts32
+copy &dx &ts32[0:32]
+goto &dn10
+:dn10 block
+if &db[31] &dn11 &dn12
+:dn11 block
+sub &z32 &db &ts32
+copy &dy &ts32[0:32]
+goto &dn12
+:dn12 block
+copy &dr &z32
+copy &dc &z32
+copy &di &z8
+goto &dl13
+:dl13 block
+shl &dr &dw 1
+copy &dr &dw
+copy &dr[0] &dx[31]
+shl &dx &dw 1
+copy &dx &dw
+shl &dc &dw 1
+copy &dc &dw
+lt &dr &dy &tl32
+if &tl32[8] &dl15 &dl14
+:dl14 block
+sub &dr &dy &ts32
+copy &dr &ts32[0:32]
+copy &dc[0] &one1
+goto &dl16
+:dl15 block
+goto &dl16
+:dl16 block
+add &di &k1_8 &ta8
+copy &di &ta8[0:8]
+eq &di &k32_8 &te8
+if &te8[1] &df17 &dl13
+:df17 block
+copy &dm &dr
+if &dsa &dm18 &dm19
+:dm18 block
+sub &z32 &dr &ts32
+copy &dm &ts32[0:32]
+goto &dm19
+:dm19 block
+copy &dq &dc
+if &dsa &dq20 &dq21
+:dq20 block
+if &dsb &dq23 &dq22
+:dq21 block
+if &dsb &dq22 &dq23
+:dq22 block
+sub &z32 &dc &ts32
+copy &dq &ts32[0:32]
+goto &dq23
+:dq23 block
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

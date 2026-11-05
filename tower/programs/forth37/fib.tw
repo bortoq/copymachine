@@ -1,0 +1,104 @@
+# fib: : fib ( n -- f ) dup 2 < if exit then dup 1 - recurse swap 2 - recurse + ; 10 fib emit 12 fib 100 - emit (return codes and values on arrays)
+:dst array 5 8
+:rst array 5 8
+:dsp data 8 0
+:rsp data 8 0
+:nn data 8 0
+:rv data 8 0
+:cc data 8 0
+:tt data 8 0
+:k3_8 data 8 3
+:k1_8 data 8 1
+:ta8 data 9 0
+:k10_8 data 8 10
+:k2_8 data 8 2
+:tl8 data 3 0
+:ts8 data 9 0
+:te8 data 2 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k4_8 data 8 4
+:k12_8 data 8 12
+:k100_8 data 8 100
+:main block
+copy &tt &k3_8
+store &rst &rsp[0:5] &tt
+add &rsp &k1_8 &ta8
+copy &rsp &ta8[0:8]
+copy &nn &k10_8
+goto &a1
+:a1 block
+lt &nn &k2_8 &tl8
+if &tl8[2] &c3 &b2
+:c3 block
+copy &rv &nn
+goto &f6
+:b2 block
+store &dst &dsp[0:5] &nn
+add &dsp &k1_8 &ta8
+copy &dsp &ta8[0:8]
+sub &nn &k1_8 &ts8
+copy &nn &ts8[0:8]
+copy &tt &k1_8
+store &rst &rsp[0:5] &tt
+add &rsp &k1_8 &ta8
+copy &rsp &ta8[0:8]
+goto &a1
+:d4 block
+sub &dsp &k1_8 &ts8
+copy &dsp &ts8[0:8]
+lut &dst &dsp[0:5] &nn
+store &dst &dsp[0:5] &rv
+add &dsp &k1_8 &ta8
+copy &dsp &ta8[0:8]
+sub &nn &k2_8 &ts8
+copy &nn &ts8[0:8]
+copy &tt &k2_8
+store &rst &rsp[0:5] &tt
+add &rsp &k1_8 &ta8
+copy &rsp &ta8[0:8]
+goto &a1
+:e5 block
+sub &dsp &k1_8 &ts8
+copy &dsp &ts8[0:8]
+lut &dst &dsp[0:5] &tt
+add &rv &tt &ta8
+copy &rv &ta8[0:8]
+goto &f6
+:f6 block
+sub &rsp &k1_8 &ts8
+copy &rsp &ts8[0:8]
+lut &rst &rsp[0:5] &cc
+eq &cc &k1_8 &te8
+if &te8[1] &d4 &dp9
+:dp9 block
+eq &cc &k2_8 &te8
+if &te8[1] &e5 &dp10
+:dp10 block
+eq &cc &k3_8 &te8
+if &te8[1] &g7 &dp11
+:dp11 block
+goto &h8
+:g7 block
+copy &eb &rv
+call &ebyte &r12
+:r12 block
+copy &tt &k4_8
+store &rst &rsp[0:5] &tt
+add &rsp &k1_8 &ta8
+copy &rsp &ta8[0:8]
+copy &nn &k12_8
+goto &a1
+:h8 block
+sub &rv &k100_8 &ts8
+copy &rv &ts8[0:8]
+copy &eb &rv
+call &ebyte &r13
+:r13 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

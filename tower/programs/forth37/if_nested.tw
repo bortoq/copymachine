@@ -1,0 +1,73 @@
+# if-nested: : c ( n -- ) dup 0 < if drop 45 else dup 0= if drop 48 else 10 < if 115 else 76 then then then emit ; -5 c 0 c 7 c 70 c
+:cn data 8 0
+:ch data 8 0
+:k251_8 data 8 251
+:k0_8 data 8 0
+:k7_8 data 8 7
+:k70_8 data 8 70
+:flip table 4 4 8 9 10 11 12 13 14 15 0 1 2 3 4 5 6 7
+:fa8 data 8 0
+:fb8 data 8 0
+:tl8 data 3 0
+:k45_8 data 8 45
+:te8 data 2 0
+:k48_8 data 8 48
+:k10_8 data 8 10
+:k115_8 data 8 115
+:k76_8 data 8 76
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:main block
+copy &cn &k251_8
+call &cw &r1
+:r1 block
+copy &cn &k0_8
+call &cw &r2
+:r2 block
+copy &cn &k7_8
+call &cw &r3
+:r3 block
+copy &cn &k70_8
+call &cw &r4
+:r4 block
+halt
+:cw word
+copy &fa8 &cn
+copy &fb8 &k0_8
+lut &flip &fa8[4:8] &fa8[4:8]
+lut &flip &fb8[4:8] &fb8[4:8]
+lt &fa8 &fb8 &tl8
+if &tl8[2] &c5 &c6
+:c5 block
+copy &ch &k45_8
+goto &c11
+:c6 block
+eq &cn &k0_8 &te8
+if &te8[1] &c7 &c8
+:c7 block
+copy &ch &k48_8
+goto &c11
+:c8 block
+copy &fa8 &cn
+copy &fb8 &k10_8
+lut &flip &fa8[4:8] &fa8[4:8]
+lut &flip &fb8[4:8] &fb8[4:8]
+lt &fa8 &fb8 &tl8
+if &tl8[2] &c9 &c10
+:c9 block
+copy &ch &k115_8
+goto &c11
+:c10 block
+copy &ch &k76_8
+goto &c11
+:c11 block
+copy &eb &ch
+call &ebyte &r12
+:r12 block
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

@@ -1,0 +1,35 @@
+# while-repeat: 10 begin dup while dup 64 + emit 2 - repeat drop
+:n data 8 0
+:v data 8 0
+:k10_8 data 8 10
+:k0_8 data 8 0
+:te8 data 2 0
+:k64_8 data 8 64
+:ta8 data 9 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k2_8 data 8 2
+:ts8 data 9 0
+:main block
+copy &n &k10_8
+goto &lp1
+:lp1 block
+eq &n &k0_8 &te8
+if &te8[1] &dn3 &bd2
+:bd2 block
+add &n &k64_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r4
+:r4 block
+sub &n &k2_8 &ts8
+copy &n &ts8[0:8]
+goto &lp1
+:dn3 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

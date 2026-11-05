@@ -1,0 +1,66 @@
+# pick-roll: 65 66 67 2 pick emit 1 pick emit 0 pick emit drop 2 roll emit emit emit 68 69 1 roll emit emit 70 0 roll emit (the cells below the bottom are 0)
+:stt data 8 0
+:s2 data 8 0
+:s3 data 8 0
+:k65_8 data 8 65
+:s4 data 8 0
+:k66_8 data 8 66
+:s5 data 8 0
+:k67_8 data 8 67
+:s6 data 8 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k68_8 data 8 68
+:k69_8 data 8 69
+:k70_8 data 8 70
+:main block
+copy &s3 &k65_8
+copy &s4 &k66_8
+copy &s5 &k67_8
+copy &s6 &s3
+copy &eb &s6
+call &ebyte &r1
+:r1 block
+copy &s6 &s4
+copy &eb &s6
+call &ebyte &r2
+:r2 block
+copy &s6 &s5
+copy &eb &s6
+call &ebyte &r3
+:r3 block
+copy &stt &s2
+copy &s2 &s3
+copy &s3 &s4
+copy &s4 &stt
+copy &eb &s4
+call &ebyte &r4
+:r4 block
+copy &eb &s3
+call &ebyte &r5
+:r5 block
+copy &eb &s2
+call &ebyte &r6
+:r6 block
+copy &s2 &k68_8
+copy &s3 &k69_8
+copy &stt &s2
+copy &s2 &s3
+copy &s3 &stt
+copy &eb &s3
+call &ebyte &r7
+:r7 block
+copy &eb &s2
+call &ebyte &r8
+:r8 block
+copy &s2 &k70_8
+copy &eb &s2
+call &ebyte &r9
+:r9 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

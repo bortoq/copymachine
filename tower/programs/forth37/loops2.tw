@@ -1,0 +1,138 @@
+# loops2: do loop with j, ?do, leave, unloop exit (see forthc_programs.py)
+:i data 8 0
+:j data 8 0
+:z8 data 8 0
+:v data 8 0
+:k48_8 data 8 48
+:ta8 data 9 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k1_8 data 8 1
+:k2_8 data 8 2
+:te8 data 2 0
+:k3_8 data 8 3
+:k5_8 data 8 5
+:k88_8 data 8 88
+:k4_8 data 8 4
+:k10_8 data 8 10
+:k89_8 data 8 89
+:k90_8 data 8 90
+:k6_8 data 8 6
+:fi data 8 0
+:main block
+copy &j &z8
+goto &ou1
+:ou1 block
+copy &i &z8
+goto &lp2
+:lp2 block
+add &j &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r3
+:r3 block
+add &i &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r4
+:r4 block
+add &i &k1_8 &ta8
+copy &i &ta8[0:8]
+eq &i &k2_8 &te8
+if &te8[1] &nx5 &lp2
+:nx5 block
+add &j &k1_8 &ta8
+copy &j &ta8[0:8]
+eq &j &k3_8 &te8
+if &te8[1] &n6 &ou1
+:n6 block
+copy &i &k5_8
+eq &i &k5_8 &te8
+if &te8[1] &sa8 &sb7
+:sb7 block
+copy &eb &k88_8
+call &ebyte &r9
+:r9 block
+add &i &k1_8 &ta8
+copy &i &ta8[0:8]
+eq &i &k5_8 &te8
+if &te8[1] &sa8 &sb7
+:sa8 block
+copy &i &z8
+goto &lp10
+:lp10 block
+add &i &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r11
+:r11 block
+add &i &k1_8 &ta8
+copy &i &ta8[0:8]
+eq &i &k3_8 &te8
+if &te8[1] &nx12 &lp10
+:nx12 block
+copy &i &z8
+goto &lp13
+:lp13 block
+eq &i &k4_8 &te8
+if &te8[1] &dn16 &c15
+:c15 block
+add &i &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r17
+:r17 block
+add &i &k1_8 &ta8
+copy &i &ta8[0:8]
+eq &i &k10_8 &te8
+if &te8[1] &dn16 &lp13
+:dn16 block
+copy &eb &k89_8
+call &ebyte &r18
+:r18 block
+call &f &r19
+:r19 block
+copy &eb &k90_8
+call &ebyte &r20
+:r20 block
+copy &i &k2_8
+goto &lp21
+:lp21 block
+eq &i &k3_8 &te8
+if &te8[1] &dn23 &c22
+:c22 block
+add &i &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r24
+:r24 block
+add &i &k1_8 &ta8
+copy &i &ta8[0:8]
+eq &i &k6_8 &te8
+if &te8[1] &dn23 &lp21
+:dn23 block
+halt
+:f word
+copy &fi &z8
+goto &fl25
+:fl25 block
+eq &fi &k3_8 &te8
+if &te8[1] &fx27 &fb26
+:fb26 block
+add &fi &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r28
+:r28 block
+add &fi &k1_8 &ta8
+copy &fi &ta8[0:8]
+eq &fi &k10_8 &te8
+if &te8[1] &fx27 &fl25
+:fx27 block
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

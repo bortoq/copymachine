@@ -1,0 +1,39 @@
+# unsigned: : b ( f -- ) if 89 else 78 then emit ; 1 2 u< b 2 1 u< b -1 1 u< b 1 -1 u< b 5 5 u< b (8-bit cells, -1 is 255)
+:k1_8 data 8 1
+:k2_8 data 8 2
+:tl8 data 3 0
+:fl data 1 0
+:k255_8 data 8 255
+:k5_8 data 8 5
+:cy data 8 "Y"
+:cn data 8 "N"
+:main block
+lt &k1_8 &k2_8 &tl8
+copy &fl &tl8[2]
+call &b &r1
+:r1 block
+lt &k2_8 &k1_8 &tl8
+copy &fl &tl8[2]
+call &b &r2
+:r2 block
+lt &k255_8 &k1_8 &tl8
+copy &fl &tl8[2]
+call &b &r3
+:r3 block
+lt &k1_8 &k255_8 &tl8
+copy &fl &tl8[2]
+call &b &r4
+:r4 block
+lt &k5_8 &k5_8 &tl8
+copy &fl &tl8[2]
+call &b &r5
+:r5 block
+halt
+:b word
+if &fl &by6 &bn7
+:by6 block
+emit &cy
+ret
+:bn7 block
+emit &cn
+ret

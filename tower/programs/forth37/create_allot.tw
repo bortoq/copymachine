@@ -1,0 +1,63 @@
+# create-allot: create buf 16 allot variable v 3 constant three three 2 * 1+ constant seven : main buf 16 0 do i 65 + over i + c! loop drop buf 16 0 do dup i + c@ emit loop drop seven 48 + emit ; (the memory is an array of 64 bytes)
+:mem array 6 8
+:three data 8 3
+:seven data 8 0
+:buf data 8 0
+:i data 8 0
+:ad data 8 0
+:val data 8 0
+:o data 8 0
+:t data 8 0
+:k1_8 data 8 1
+:ta8 data 9 0
+:z8 data 8 0
+:k65_8 data 8 65
+:k16_8 data 8 16
+:te8 data 2 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:v data 8 0
+:k48_8 data 8 48
+:main block
+shl &three &t 1
+add &t &k1_8 &ta8
+copy &seven &ta8[0:8]
+copy &i &z8
+goto &lp1
+:lp1 block
+add &i &k65_8 &ta8
+copy &val &ta8[0:8]
+add &buf &i &ta8
+copy &ad &ta8[0:8]
+store &mem &ad[0:6] &val
+add &i &k1_8 &ta8
+copy &i &ta8[0:8]
+eq &i &k16_8 &te8
+if &te8[1] &nx2 &lp1
+:nx2 block
+copy &i &z8
+goto &lp3
+:lp3 block
+add &buf &i &ta8
+copy &ad &ta8[0:8]
+lut &mem &ad[0:6] &o
+copy &eb &o
+call &ebyte &r4
+:r4 block
+add &i &k1_8 &ta8
+copy &i &ta8[0:8]
+eq &i &k16_8 &te8
+if &te8[1] &nx5 &lp3
+:nx5 block
+add &seven &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r6
+:r6 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

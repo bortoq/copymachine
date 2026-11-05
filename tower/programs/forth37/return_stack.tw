@@ -1,0 +1,26 @@
+# return-stack: 65 >r 66 >r r@ emit r> emit r> emit (the return stack is two named cells)
+:r1 data 8 0
+:r2 data 8 0
+:k65_8 data 8 65
+:k66_8 data 8 66
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:main block
+copy &r1 &k65_8
+copy &r2 &k66_8
+copy &eb &r2
+call &ebyte &r1
+:r1 block
+copy &eb &r2
+call &ebyte &r2
+:r2 block
+copy &eb &r1
+call &ebyte &r3
+:r3 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

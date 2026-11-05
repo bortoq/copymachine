@@ -1,0 +1,106 @@
+# mul-random: the 40 random pairs of forthc_programs.py (a table of 16-bit halves), each a b * b4
+:ma data 32 0
+:mb data 32 0
+:mr data 32 0
+:bv data 32 0
+:al table 6 16 65535 1 65529 39419 52501 7 52501 65529 0 292 2 65350 292 21382 65535 42387 65535 53768 3753 65036 65239 24108 65360 46004 42387 65239 20954 29606 23569 38735 46004 57941 28099 17623 65036 1 65350 39419 20906 7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:ah table 6 16 0 0 65535 24862 1883 0 1883 65535 1 0 0 65535 0 182 65535 51850 32767 64992 40039 34306 65535 48366 65535 51195 51850 65535 5926 43067 46523 50465 51195 14749 57607 38064 34306 0 65535 24862 41847 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:bl table 6 16 134 53768 65239 134 47884 42387 65443 65360 0 65535 21382 65321 0 65239 256 20906 65438 65535 65321 65360 65529 256 3753 38735 52501 1 292 0 256 24304 21382 65529 65443 255 2 20954 23569 24108 65239 23569 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:bh table 6 16 0 64992 65535 0 11418 51850 65535 65535 32768 65535 182 65535 1 65535 0 41847 65535 65535 65535 65535 65535 0 40039 50465 1883 0 0 0 0 57233 182 65535 65535 0 0 5926 46523 48366 65535 46523 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:pi data 8 0
+:z8 data 8 0
+:k1_8 data 8 1
+:ta8 data 9 0
+:k40_8 data 8 40
+:te8 data 2 0
+:mx data 32 0
+:my data 32 0
+:mw data 32 0
+:mi data 8 0
+:z32 data 32 0
+:ta32 data 33 0
+:k32_8 data 8 32
+:bw data 32 0
+:ci data 4 0
+:z4 data 4 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:ts32 data 33 0
+:k1_4 data 4 1
+:ta4 data 5 0
+:k4_4 data 4 4
+:te4 data 1 0
+:main block
+copy &pi &z8
+goto &lp1
+:lp1 block
+lut &al &pi[0:6] &ma[0:16]
+lut &ah &pi[0:6] &ma[16:32]
+lut &bl &pi[0:6] &mb[0:16]
+lut &bh &pi[0:6] &mb[16:32]
+call &mul &r3
+:r3 block
+copy &bv &mr
+call &b4 &r4
+:r4 block
+add &pi &k1_8 &ta8
+copy &pi &ta8[0:8]
+eq &pi &k40_8 &te8
+if &te8[1] &dn2 &lp1
+:dn2 block
+halt
+:mul word
+copy &mx &ma
+copy &my &mb
+copy &mr &z32
+copy &mi &z8
+goto &ml5
+:ml5 block
+if &my[0] &ma6 &mn7
+:ma6 block
+add &mr &mx &ta32
+copy &mr &ta32[0:32]
+goto &mn7
+:mn7 block
+shl &mx &mw 1
+copy &mx &mw
+shr &my &mw 1
+copy &my &mw
+add &mi &k1_8 &ta8
+copy &mi &ta8[0:8]
+eq &mi &k32_8 &te8
+if &te8[1] &md8 &ml5
+:md8 block
+ret
+:b4 word
+copy &ci &z4
+goto &bl9
+:bl9 block
+copy &eb &bv[0:8]
+call &ebyte &r10
+:r10 block
+if &bv[31] &bn11 &bp12
+:bn11 block
+sub &z32 &bv &ts32
+copy &bv &ts32[0:32]
+shr &bv &bw 8
+sub &z32 &bw &ts32
+copy &bv &ts32[0:32]
+goto &bx13
+:bp12 block
+shr &bv &bw 8
+copy &bv &bw
+goto &bx13
+:bx13 block
+add &ci &k1_4 &ta4
+copy &ci &ta4[0:4]
+eq &ci &k4_4 &te4
+if &te4[0] &bd14 &bl9
+:bd14 block
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

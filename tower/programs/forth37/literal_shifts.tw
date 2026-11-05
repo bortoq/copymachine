@@ -1,0 +1,125 @@
+# literal-shifts: 3 8 * 48 + emit -1 28 rshift 48 + emit 1 6 lshift emit 5 1 * 48 + emit 7 0 lshift 48 + emit 96 3 * emit 0 4 * 48 + emit
+:x data 32 0
+:y data 32 0
+:ma data 32 0
+:mb data 32 0
+:mr data 32 0
+:v data 8 0
+:k3_16 data 16 3
+:k0_16 data 16 0
+:k8_16 data 16 8
+:k48_8 data 8 48
+:ta8 data 9 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k65535_16 data 16 65535
+:k1_16 data 16 1
+:k5_16 data 16 5
+:k7_16 data 16 7
+:k96_16 data 16 96
+:k4_16 data 16 4
+:mx data 32 0
+:my data 32 0
+:mw data 32 0
+:mi data 8 0
+:z32 data 32 0
+:z8 data 8 0
+:ta32 data 33 0
+:k1_8 data 8 1
+:k32_8 data 8 32
+:te8 data 2 0
+:main block
+copy &ma[0:16] &k3_16
+copy &ma[16:32] &k0_16
+copy &mb[0:16] &k8_16
+copy &mb[16:32] &k0_16
+call &mul &r1
+:r1 block
+add &mr[0:8] &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r2
+:r2 block
+copy &x[0:16] &k65535_16
+copy &x[16:32] &k65535_16
+shr &x &y 28
+add &y[0:8] &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r3
+:r3 block
+copy &x[0:16] &k1_16
+copy &x[16:32] &k0_16
+shl &x &y 6
+copy &eb &y[0:8]
+call &ebyte &r4
+:r4 block
+copy &ma[0:16] &k5_16
+copy &ma[16:32] &k0_16
+copy &mb[0:16] &k1_16
+copy &mb[16:32] &k0_16
+call &mul &r5
+:r5 block
+add &mr[0:8] &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r6
+:r6 block
+copy &x[0:16] &k7_16
+copy &x[16:32] &k0_16
+shl &x &y 0
+add &y[0:8] &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r7
+:r7 block
+copy &ma[0:16] &k96_16
+copy &ma[16:32] &k0_16
+copy &mb[0:16] &k3_16
+copy &mb[16:32] &k0_16
+call &mul &r8
+:r8 block
+copy &eb &mr[0:8]
+call &ebyte &r9
+:r9 block
+copy &ma[0:16] &k0_16
+copy &ma[16:32] &k0_16
+copy &mb[0:16] &k4_16
+copy &mb[16:32] &k0_16
+call &mul &r10
+:r10 block
+add &mr[0:8] &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r11
+:r11 block
+halt
+:mul word
+copy &mx &ma
+copy &my &mb
+copy &mr &z32
+copy &mi &z8
+goto &ml12
+:ml12 block
+if &my[0] &ma13 &mn14
+:ma13 block
+add &mr &mx &ta32
+copy &mr &ta32[0:32]
+goto &mn14
+:mn14 block
+shl &mx &mw 1
+copy &mx &mw
+shr &my &mw 1
+copy &my &mw
+add &mi &k1_8 &ta8
+copy &mi &ta8[0:8]
+eq &mi &k32_8 &te8
+if &te8[1] &md15 &ml12
+:md15 block
+ret
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret

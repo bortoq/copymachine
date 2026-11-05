@@ -1,0 +1,57 @@
+# shifts: 1 6 lshift emit 256 2 rshift emit -1 28 rshift 48 + emit 255 4 lshift 4 rshift emit 0 3 lshift 48 + emit (32-bit cells)
+:x data 32 0
+:y data 32 0
+:v data 8 0
+:k1_16 data 16 1
+:k0_16 data 16 0
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:eb data 8 0
+:eo data 8 0
+:k256_16 data 16 256
+:k65535_16 data 16 65535
+:k48_8 data 8 48
+:ta8 data 9 0
+:k255_16 data 16 255
+:y2 data 32 0
+:main block
+copy &x[0:16] &k1_16
+copy &x[16:32] &k0_16
+shl &x &y 6
+copy &eb &y[0:8]
+call &ebyte &r1
+:r1 block
+copy &x[0:16] &k256_16
+copy &x[16:32] &k0_16
+shr &x &y 2
+copy &eb &y[0:8]
+call &ebyte &r2
+:r2 block
+copy &x[0:16] &k65535_16
+copy &x[16:32] &k65535_16
+shr &x &y 28
+add &y[0:8] &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r3
+:r3 block
+copy &x[0:16] &k255_16
+copy &x[16:32] &k0_16
+shl &x &y 4
+shr &y &y2 4
+copy &eb &y2[0:8]
+call &ebyte &r4
+:r4 block
+copy &x[0:16] &k0_16
+copy &x[16:32] &k0_16
+shl &x &y 3
+add &y[0:8] &k48_8 &ta8
+copy &v &ta8[0:8]
+copy &eb &v
+call &ebyte &r5
+:r5 block
+halt
+:ebyte word
+lut &rev4 &eb[4:8] &eo[0:4]
+lut &rev4 &eb[0:4] &eo[4:8]
+emit &eo
+ret
