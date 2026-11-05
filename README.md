@@ -2,7 +2,7 @@
 
 **EN.** copymachine is a computer in which the only action is copying bits from one range of positions to another. It has two parts: an emulator of this "copy space" (many copies happen at once, in ticks) and a language whose definition is written in its own words and compiles itself (the compiler L0 builds its own definition: L1 = L0, byte for byte; L0 is 16,174,606 bytes). Everything is explained below in Russian, from the basic ideas to the plans; the chapters of [docs/guide/](docs/guide/README.md) go step by step. First minutes: `make && make check-fast` (see "Быстрый старт").
 
-Это руководство для нового разработчика. Оно написано простыми словами: каждое понятие объясняется там, где встречается впервые, а точные определения лежат в одном месте — в разделе «Понятия» ниже (низкоуровневые термины — в [словаре](docs/dictionary.md)). Остальные документы на них ссылаются и не повторяют.
+Это руководство для нового разработчика. Оно написано простыми словами: каждое понятие объясняется там, где встречается впервые, а точные определения лежат в одном месте — в разделе «Понятия» ниже (низкоуровневые термины — в [словаре](docs/dictionary.md)). Остальные документы на них ссылаются и не повторяют. Исключение: определения языка цепочки (этап 23: языки 1–5, их слова и понятия) — только в [tower/README.md](tower/README.md); здесь их нет.
 
 ## Содержание
 
@@ -122,6 +122,10 @@
 
 Копирование между разными пространствами (компьютерами) по ненадёжному каналу — в плане, пока не сделано. **Минимум понятий** — слова языка, необходимые и достаточные, чтобы делать длинные и дальние копирования (решение автора, пункт 18.1). Глава [6](docs/guide/06-plans.md).
 
+### Цепочка языков
+
+Строго вложенные языки 1–5: язык 1 копирует по четырём числам, каждый следующий добавляет слова и сам компилятор в язык ниже (таблицы и переходы, длинное копирование, цена). Цепочка собирает себя из текста языка 1 без Python и претендует заменить нынешний язык (этап 23). Все определения — в [tower/README.md](tower/README.md).
+
 ## Как всё работает целиком
 
 1. **Основа.** Пространство из S бит, в начале — процессор из описаний копирований. Эмулятор в каждом такте читает все описания и выполняет копирования, пока процессор не станет из одних NOP.
@@ -169,7 +173,7 @@ CI (`.github/workflows/`): `check.yml` — быстрый набор, эмуля
 | `language/tools/`, `language/tests/` | бут, проверки, тесты; `tests/reference/` — независимые эталоны (модель K0) |
 | `language/doc/` | подробные документы о языке (список — в [указателе](docs/README.md)) |
 | `language/boot/` | хостовый pForth для первой компиляции |
-| `tower/` | цепочка вложенных языков 1–5 снизу вверх (опыт этапа 23, `make check-tower`; замеры — [tower.md](docs/measurements/tower.md)) |
+| `tower/` | цепочка вложенных языков 1–5: [определение](tower/README.md), `make check-tower`; замеры — [tower.md](docs/measurements/tower.md) |
 | `tools/` | `limited_run.py`, `check_layout.py`, `gcov_summary.py`, `ci/*.sh` |
 | `docs/guide/` | пошаговое руководство |
 | `docs/dictionary.md`, `docs/layout.md` | словарь низкоуровневых терминов, раскладка |

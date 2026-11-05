@@ -18,7 +18,7 @@
 | [guide/06-plans.md](guide/06-plans.md) | что осталось сделать |
 | [dictionary.md](dictionary.md) | словарь низкоуровневых терминов (описания, процессор, образы) и указатель понятий README |
 | [layout.md](layout.md) | раскладка каталогов репозитория |
-| [../tower/README.md](../tower/README.md) | цепочка вложенных языков 1–5 (этап 23): зерно, инструменты, как собрать и проверить, непересечение |
+| [../tower/README.md](../tower/README.md) | единственное определение языка цепочки 1–5 (этап 23): понятия, все слова, что в пространстве и что на хосте, минимум понятий, сборка |
 | [../emulator/README.md](../emulator/README.md) | краткая справка по эмулятору (English) |
 | [../emulator/doc/emulator-contract.md](../emulator/doc/emulator-contract.md) | точный контракт эмулятора: кодировка, такт, каналы, SYS, обязанности программы |
 | [../language/README.md](../language/README.md) | что такое каталог `language/` и как его проверить |
