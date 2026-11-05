@@ -5,10 +5,9 @@ Every tool is made by the chain from its text of language 1 (seed.l1, l2l.l1, l3
 Python reference (the texts of language 3 it writes are checked by running them). The 37 programs of the present language are in
 `programs/forth37/*.fs` (the Forth texts) with the output in `expected.txt` (the same as for the hand-written texts of 23.11); here a few small ones
 and some texts of other words go through the whole chain; all 37 are in long_forth.py (make check-tower-long). The tables of forth.tw between the
-marks are made by programs/forth_gen.sh from programs/forth.def (awk); a test compares them.
+marks are made by programs/forthgen.tw (a program of the chain, forthgen.l1) from programs/forth.def; a test compares them.
 Run: make check-tower  or  python3 -B tower/tests/test_forth.py"""
 import os
-import subprocess
 import sys
 
 sys.dont_write_bytecode = True
@@ -58,6 +57,12 @@ def tools():
     return _TOOLS
 
 
+def tables():
+    """What the program of the chain forthgen (the seed turns forthgen.l1 into its image) writes for forth.def."""
+    img = step('seed on forthgen.l1', tools()['seed'], t.read('forthgen.l1', 'rb') + b'\0').out
+    return step('forthgen', (img, 20, 2), t.read('forth.def', 'rb') + b'\0').out
+
+
 def build(fs):
     """Forth text -> text of language 3 -> language 2 -> language 1 -> image (every step on the plain emulator): the image."""
     tl = tools()
@@ -75,11 +80,10 @@ def output(fs):
 
 class Texts(unittest.TestCase):
     def test_generated_is_current(self):
-        """The tables of forth.tw between the marks are what forth_gen.sh makes of forth.def."""
+        """The tables of forth.tw between the marks are what forthgen (the chain) makes of forth.def."""
         src = t.read('forth.tw')
         a, b = src.index('# --- begin generated\n') + len('# --- begin generated\n'), src.index('# --- end generated')
-        r = subprocess.run(['sh', os.path.join(t.PROGRAMS, 'forth_gen.sh')], check=True, capture_output=True, timeout=120)
-        self.assertEqual(src[a:b], r.stdout.decode())
+        self.assertEqual(src[a:b], tables().decode())
 
     def test_words(self):
         """The words of forth.def: 65 (the word `'` and `[']` are two spellings of one)."""

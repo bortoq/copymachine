@@ -4,7 +4,7 @@
 # arrays with a pointer (6 bits: 64 cells of 32 bits), the memory is 1024 bytes (an address is taken modulo 1024), a word is called by
 # pushing a code on the return stack and a jump, and `;` pops the code and finds the place by a tree of `if` (written at the end).
 # The text of a word of language 3 which the compiler writes is a template in a pool (programs/forth.def); a template has the
-# characters @ ~ % ^ for the numbers r1..r4. The tables between the marks are made by forth_gen.sh from forth.def.
+# characters @ ~ % ^ for the numbers r1..r4. The tables between the marks are made by programs/forthgen.tw from forth.def.
 # The names of Forth words are the last 8 characters, the strings of s" are at most 32 bytes.
 
 # --- begin generated

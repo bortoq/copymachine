@@ -36,6 +36,14 @@ class Programs(unittest.TestCase):
         self.assertEqual(tf.step('seed', tl['seed'], l1).out, tl['forth'][0])
         self.assertLess(len(tl['forth'][0]) * 8, 1 << 20)
 
+    def test_forthgen_l1_is_current(self):
+        """forthgen.tw -> l3c -> l2l gives forthgen.l1 (the tables of forth.tw are made by the chain, no awk, no Python)."""
+        tl = tf.tools()
+        l2 = tf.step('l3c', tl['l3c'], t.read('forthgen.tw', 'rb') + b'\0').out
+        l1 = tf.step('l2l', tl['l2l'], l2 + l2).out
+        self.assertEqual(l1[:-1], t.read('forthgen.l1', 'rb'))
+        self.assertLess(len(tf.step('seed', tl['seed'], l1).out) * 8, 1 << 20)
+
     def test_all_37(self):
         for n in tf.names():
             with self.subTest(n):

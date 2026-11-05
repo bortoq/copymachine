@@ -1,5 +1,5 @@
 // The definition of the Forth of the chain (23.15): the text of language 3 that the compiler forth.tw writes, and its words.
-// forth_gen.sh turns this file into the tables between the marks "begin generated" and "end generated" of forth.tw.
+// forthgen.tw (a program of the chain) turns this file into the tables between the marks "begin generated" and "end generated" of forth.tw.
 // A line "=name" starts a template (the text up to the next "=" line); the characters @ ~ % ^ in it are the numbers r1 r2 r3 r4
 // (decimal) which the compiler sets before it writes the template. "//" lines are comments. After "=words" every line is
 // "word kind routine template" (a "-" is none); a routine is the template of a word of language 3 `:f@ word` which the compiler
