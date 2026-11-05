@@ -4,7 +4,7 @@
 
 ## Часть 1. Изучение проекта
 
-Читать в таком порядке. Определения понятий — только в [README](../README.md#понятия) (и низкоуровневые — в словаре); остальные документы ссылаются на них.
+Читать в таком порядке. Определения понятий — только в [словаре](dictionary.md#понятия) (и низкоуровневые — в словаре); остальные документы ссылаются на них.
 
 | Документ | О чём, кому |
 |---|---|
@@ -52,3 +52,17 @@
 | [research/](research/) | [граф определений ядра](research/definition-graph.md) (порождается `defgraph.py`) и данные `definition-graph.json`, `isolation-ticks.json` |
 
 Пути `docs/journal/`, `docs/design/`, `docs/measurements/` и `language/doc/` не меняются: на них ссылаются тесты и журналы.
+
+## Цели make и CI
+
+| Цель | Что делает |
+|---|---|
+| `make` | эмулятор и L0 |
+| `make check-fast` | тесты эмулятора (с режимом `checked`), 37 программ на хосте, замкнутость, сверка `language.md`, `make check-tower` (цепочка языков 1–5) |
+| `make check` | + бут и `make -C language check` (около 10 минут) |
+| `make check-full` | + долгие цели: ядро, самосборка `check-self`, изоляция, доказательство, замена, программы пользователя, `make check-tower-long` (часы) |
+| `make lint`, `make coverage` | ruff; покрытие эмулятора gcov |
+| `sh tools/ci/fast.sh` | то же, что быстрое задание CI: lint, `check-fast`, лицензии, документация, покрытие |
+| `sh tools/ci/docs.sh` | ссылки в Markdown и объём документации (меньше, чем в теге `archive-2026-10-30`) |
+
+CI (`.github/workflows/`): `check.yml` — быстрый набор, эмулятор gcc/clang в release и с санитайзерами, язык; `nightly.yml` — долгие цели, `check-self` выкладывает sha256 L0 и L1 (сверяйте хеши).

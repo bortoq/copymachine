@@ -140,6 +140,37 @@ class Reference(unittest.TestCase):
         self.assertEqual(self.layers(head + 'lut &t &d[0] &o\ncopy &e &f\nhalt\n'), 4)
         self.assertEqual(self.layers(head + 'lut &t &d[0] &o\nlut &t &e[0] &f\nhalt\n'), 5)          # the patches of the second fill the first's waits
 
+    def test_language_4_in_the_plan(self):
+        """23.17: after the pass l4p a long copy is planned like other rows: &ta+30 is a place of the table add4, the SYS channel is written by the row
+        to it and read by the row after it (the answer is read a layer later, the data is copied a layer after the read), the request buffer is above
+        the image (not moved when the blocks shrink)."""
+        src = ':pos data 128 0\n:w data 200 0\n:x data 8 0\n:main block\nlong@ &pos &w[0:16]\ncopy &x &w[0:8]\nlong! &pos &w[0:16]\nhalt\n'
+        ser, err = l3ctext.encode('pack\n' + src)
+        self.assertIsNone(err)
+        l2, perr = l3ctext.long_pass(ser)
+        self.assertIsNone(perr)
+        out, perr = l3ctext.pack_pass(l2)
+        self.assertIsNone(perr)
+        lines = out.decode().split('\n')
+        lines = lines[lines.index(':bmain') + 1:lines.index(':e')]
+        layers, cur = [], []
+        for ln in lines:
+            cur.append(ln)
+            if ln.startswith('c ') and ln.split()[2] == '0':
+                layers.append(cur)
+                cur = []
+        sysw, sysr = 'd 14 ffffa\nd 14 ffffa\nd 14 fd200\nd 14 fd2cc', 'd 14 fd2cc\nd 14 fd341\nd 14 ffffa\nd 14 ffffa'
+        text = [('\n'.join(lay)) for lay in layers]
+        w, r = [k for k, x in enumerate(text) if sysw in x], [k for k, x in enumerate(text) if sysr in x]
+        self.assertEqual((len(w), len(r)), (1, 1))
+        self.assertLess(w[0], r[0])
+        copy = [k for k, lay in enumerate(layers) if any(x.startswith('c 10 ') and x.endswith(' fd2cc') for x in lay)]
+        self.assertEqual(len(copy), 1)
+        self.assertLess(r[0], copy[0])
+        self.assertTrue(any('c 4 fd200 &ta+30' in x for x in text))
+        self.assertTrue(all(int(ln.split()[2], 16) >= l3ctext.QB for ln in lines if ln.startswith('c 4 ')))
+        self.assertLess(len(layers), 24)                                  # 24 layers of the serial text: 11 + 1 + 11 + the halt
+
     def test_the_layers_of_a_block_are_of_the_text(self):
         """The rows go out unchanged in a packed block, in the order the layers give; the sets of rows are the same (fields moved only in
         the patches and the tail)."""
@@ -315,6 +346,13 @@ class Planner(unittest.TestCase):
                 self.assertIsNone(err)
                 r = self.check_pass(ser)
                 self.assertEqual(r.rc, 0)
+
+    def test_l3p_long_words(self):
+        """The planner on the text after the pass l4p (23.17): the rows to SYS and the nibbles from add4, the same bytes as the reference."""
+        src = ':pos data 128 0\n:w data 200 0\n:x data 8 0\n:main block\nlong@ &pos &w[0:16]\ncopy &x &w[0:8]\nlong! &pos &w\nlong@ &pos &w\nhalt\n'
+        ser, err = l3ctext.encode('pack\n' + src)
+        self.assertIsNone(err)
+        self.assertEqual(self.check_pass(l3ctext.long_pass(ser)[0]).rc, 0)
 
     def test_l3p_tools(self):
         """The planner on the output of l3c for seed.tw: the same bytes (the long run does l2c, l2l, l3c and l3p)."""

@@ -20,23 +20,25 @@ The subset of the text of language 3 (text.py reads more; what is left out is to
   copy d s   shl x r k   shr x r k   (k 0..64)   emit s   warn s   key d
   lut &T args.. out    store &T args.. src       T is a table, an array, or add4 sub4 hex4 (made at the end of the image)
   add sub band lt eq x y r                        the library over the tables above (the widths as in lib.py)
+  long! &pos &src   long@ &pos &dst               language 4, the long copy (pos: 128 bits; src, dst: at most NMAX bits)
   :name block   :name word   goto b   if c b1 b2   call w b   ret   halt         (the entry block is `main`)
 A part of space is `&name`, `&name[k]`, `&name[lo:hi]` (a data defined before). Names are 1..14 bytes of A-Z a-z 0-9 _ (not a digit first);
-the names of blocks and words must be a-z 0-9 _ (the tool l2l takes them as labels `b<name>`, `r<name>`), `zero` is a part of space of
+the names of blocks and words must be a-z 0-9 _ (the tool l2l takes them as labels `b<name>`, `r<name>`; `!` and `@` stand only in the words long! long@), `zero` is a part of space of
 1 bit which is 0. Data, tables and arrays are declared outside a block; a word or a block begins after the end of the block before.
-Left out (text.py has them): language 4 (long! long@), stack push pop rec, dec<n>, 0x numbers, 'c' characters, \\x escapes, the
+Left out (text.py has them): stack push pop rec, dec<n>, 0x numbers, 'c' characters, \\x escapes, the
 tables with several indices of a user, the check that a copy does not cover itself, that `zero` is not written, and that a part of
 space of shl/shr differs from its source; the packing of tables (every table has its own stride, w.bit_length() bits).
 Errors (stderr, halt; the output is cut after the last word that was complete; there is no zero byte): `l3c: bad text` (a wrong
 character or token, an unknown word, a wrong kind or number of arguments, a label where it does not belong, the text ends inside a word), `l3c: bad label` (a name repeated, not defined before, the 1021st of a user, as 1024 places are in the table of names), `l3c: bad width` (widths do not agree, a part
 outside its data), `l3c: bad block` (a row outside a block, after its end, a block without an end, `ret` outside a word, a declaration in a block), `l3c: too big` (the image does not
-fit A = 20). Not checked, but defined: numbers over 20 bits (modulo 2^20), a value wider than its field.
+fit A = 20: also a datum of long! long@ over NMAX bits, the buffer of the request is above every image). Not checked, but defined: numbers over 20 bits (modulo 2^20), a value wider than its field.
 The layout (positions are bits of the snapshot): the boot layer at 0 (the row 0, the jump to `main`), 64 zero bits (`zero` is the first,
 `zeros` for shl/shr), the bit `one`, then in the order of the text: data, tables and arrays (a table at a multiple of its span
 2^(w.bit_length() + K)), the words of a block (a layer each; lut and store: a patch of the row for every field, a layer which has nothing
 but the jump, the row), the return link of a word (40 bits before its first block), the table of `if` and the link of `call` after the last
 layer of the block; at the end the tables add4 .. hex4 which were used, then zeros up to a whole byte; label `e` is the end.
 Run: python3 tower/l3ctext.py -e < prog.tw > prog.l2z   (the reference of the tool)
+     python3 tower/l3ctext.py -x < prog.l2z > prog.l2x    (the reference of the pass l4p.tw, 23.17: the layers of the words long! long@)
      python3 tower/l3ctext.py -p < prog.l2z > prog.l2p    (the reference of the planner l3p.tw, 23.10: the pass over the output of pack mode)
      python3 tower/l3ctext.py -t > l3c.img                (the image of the tool: A = 20, P = 3, run it with `emulator -s 1048570 -p 3`)
      python3 tower/l3ctext.py -l < prog.tw > prog.l1      (the text of language 1 of a program: l3c, then l2l; for l3c.tw it is programs/l3c.l1)"""
@@ -57,6 +59,9 @@ PMESSAGES = {'bad': 'l3p: bad text\n', 'big': 'l3p: too big\n'}
 MAXSYM = 1020                          # the symbols of a user (with add4, sub4, hex4, zero they fill the 1024 places)
 MAXSTR = 32
 ZERO_ADDR, ONE_ADDR, START = JB, JB + 64, JB + 65
+SYSC = (1 << A) - 6                   # the channel SYS (language 4)
+QB, NMAX = 0xfd200, 11566             # the request buffer of the long copy: above every image (tables of the library included); S - QB - 204 bits of data
+LONGL = 11                            # layers of a long copy after the pass l4p (the placeholder is one layer, l3c moves the position by 10 more)
 PACK_P = 3                            # slots of the processor of a packed program (pack mode)
 HEAD = PACK_P * RB                    # the width of a block's first layer, and of the layer the processor takes at a jump
 PZERO, PONE, PSTART = HEAD, HEAD + 64, HEAD + 65
@@ -67,7 +72,7 @@ ESC = {ord('n'): 10, ord('t'): 9, ord('r'): 13, ord('0'): 0, ord('\\'): 92, ord(
 
 # the words: kinds of the arguments (R a part of space, N a number lo..hi, V a value, B a block &name, T a table)
 WORDS = ['data', 'table', 'array', 'copy', 'shl', 'shr', 'lut', 'store', 'block', 'word', 'goto', 'if', 'call', 'ret', 'halt',
-         'emit', 'warn', 'key', 'add', 'sub', 'band', 'lt', 'eq', 'pack']
+         'emit', 'warn', 'key', 'add', 'sub', 'band', 'lt', 'eq', 'pack', 'long!', 'long@']
 CODE = {w: i for i, w in enumerate(WORDS)}
 DEFINING = ('data', 'table', 'array', 'block', 'word')
 SHAPE = {'data': ('N1:65536', 'V'), 'table': ('N1:10', 'N1:64'), 'array': ('N1:10', 'N1:64'), 'copy': ('R', 'R'),
@@ -76,6 +81,7 @@ SHAPE = {'data': ('N1:65536', 'V'), 'table': ('N1:10', 'N1:64'), 'array': ('N1:1
 for _w in ('add', 'sub', 'band', 'lt', 'eq'):
     SHAPE[_w] = ('R', 'R', 'R')
 SHAPE['pack'] = ()
+SHAPE['long!'] = SHAPE['long@'] = ('R', 'R')
 SHAPE['lut'] = SHAPE['store'] = ('T',)         # the rest depends on the table
 
 # the tables the tool makes at the end: name -> (label, index widths, out, function of the indices)
@@ -310,6 +316,19 @@ class Compiler:
                 raise Stop('wid')
             self.check()
             self.layer(self.quad(a[0][0], a[0][0] + a[0][1], S1, S1))
+        elif w in ('long!', 'long@'):
+            # the placeholder: the line `long`, a layer whose row is the four numbers (bits of the data + 2^19 for long@, the address of the position, the
+            # address of the data, the position of the layer); the pass l4p (long_pass) makes LONGL layers of it
+            (p, pb), (d, db) = a
+            if pb != 128:
+                raise Stop('wid')
+            if db > NMAX:
+                raise Stop('big')
+            self.check()
+            self.used.add('add4')
+            self.put('long\n')
+            self.layer(self.quad(db | (w == 'long@') << 19, p, d, self.pos))
+            self.pos += (LONGL - 1) * JB
         elif w in ('add', 'sub', 'band', 'lt', 'eq'):
             self.lib(w, *a)
         elif w in ('lut', 'store'):
@@ -465,7 +484,7 @@ def classify(t):
         if not all(x in DIGITS for x in t):
             raise Stop('bad')
         return ('num', int(t) & M)
-    if name_ok(t):
+    if name_ok(t) or t in (b'long!', b'long@'):
         return ('name', t.decode())
     raise Stop('bad')
 
@@ -644,7 +663,7 @@ def tvals(vals, per=16):
 
 def istr(b):
     """A string of bytes as a text of language 3 (escapes for what is not a letter)."""
-    return '"' + ''.join('\\0' if c == 0 else chr(c) for c in b) + '"'
+    return '"' + ''.join('\\0' if c == 0 else '\\n' if c == 10 else chr(c) for c in b) + '"'
 
 
 def cls(c):
@@ -661,13 +680,15 @@ def cls(c):
         v |= 1024 | int(ch) << 12
     if c < 128 and (ch.isalnum() or ch == '_'):
         v |= 2048
+    if ch in '!@':
+        v |= 65536                      # a character of the words long! long@ (a word only, not of a label or a reference)
     return v
 
 
 def generated():
     """name -> (K, out, lines of values) for the tables of l3c.tw made by this module."""
     T = {}
-    T['cls'] = (8, 16, tvals([cls(rev8(i)) for i in range(256)]))
+    T['cls'] = (8, 17, tvals([cls(rev8(i)) for i in range(256)]))
     T['escv'] = (8, 9, tvals([(256 | rev8(ESC[rev8(i)])) if rev8(i) in ESC else 0 for i in range(256)]))
     kws = ['"' + '\\0' * (5 - len(w)) + w + '"' for w in WORDS] + ['"\\0\\0\\0\\0\\0"'] * (32 - len(WORDS))
     T['kw'] = (5, 40, '\n'.join('  ' + ' '.join(kws[i:i + 4]) for i in range(0, 32, 4)))
@@ -718,6 +739,20 @@ def p_generated():
     T['p2e'] = (5, 20, tvals([1 << e if e < 20 else 0 for e in range(32)]))
     T['inc8'] = (8, 8, tvals([(i + 1) & 255 for i in range(256)]))
     return T
+
+
+def x_generated():
+    """name -> (K, out, lines of values) for the tables of programs/l4p.tw made by this module (the pass of 23.17)."""
+    T = {}
+    T['hexv'] = (8, 5, tvals([(int(chr(c), 16) | 16) if chr(c) in '0123456789abcdef' else 0 for c in map(rev8, range(256))]))
+    T['qd'] = (3, 40, '  ' + ' '.join(istr(('%x' % (QB + o)).encode()) for o in (0, 0x1c, 0x2c, 0x30, 0x34, 0x38, 0x3c, 0x4c)))
+    pat = b'long\n'
+    T['pat'] = (4, 8, '  ' + ' '.join([istr(bytes([c])) for c in pat] + ['0'] * (16 - len(pat))))
+    return T
+
+
+def x_tables_text():
+    return '\n'.join(':%s table %d %d\n%s' % (n, K, w, v) for n, (K, w, v) in x_generated().items()) + '\n'
 
 
 def p_tables_text():
@@ -789,7 +824,7 @@ def _field(t):
     """A field of a row: (label text or None, number); a reference to a table of the library is a number of its place above the memory."""
     if t[0] != '&':
         return (None, int(t, 16), 0)
-    if t[1] == 't' and len(t) == 3:
+    if t[1] == 't' and len(t) >= 3:           # &ta, and &ta+30 of the nibbles of the long copy: the whole table is one place
         return (t, TBASE + 0x1000 * TNUM[t[2]], 1)
     return (t, 0, 2)
 
@@ -940,8 +975,8 @@ def _block(lines, i, po, pn):
         if o.q is None and o.s[2] == 0 and bs <= o.s[1] < be:
             raise Stop('bad')                                 # a row does not read the text of its block
         if o.q is not None:
-            if o.q[2] == S1:                              # key: stdin is read, from the destination to the channel is written
-                o.r, o.w = (S1, S1 + 1), (o.q[0], S1 + 1)
+            if o.q[2] in (S1, SYSC):                      # key, the read of the answer of SYS: the channel is read, from the destination to it written
+                o.r, o.w = (o.q[2], o.q[2] + 1), (o.q[0], o.q[2] + 1)
             else:                                         # emit, warn: the channel is written
                 o.r, o.w = (o.q[2], o.q[3]), (o.q[0], o.q[0] + 1)
         else:
@@ -981,7 +1016,7 @@ def _block(lines, i, po, pn):
                     raise Stop('bad')
                 return where[uop[t]] + off
             return start[n - 1] + (len(lay[n - 1])) * 80 + off - 80
-        return v + shift if be <= v < S1 else v
+        return v + shift if be <= v < TBASE else v
 
     out = [lines[i]]
     for k in range(n):
@@ -1037,12 +1072,74 @@ def pack_pass(data):
     return ('\n'.join(out) + '\n\0').encode('latin-1'), None
 
 
+# --- the pass of 23.17: language 4 (the tool programs/l4p.tw does the same on the chain: l3c -> l4p -> [l3p] -> l2l -> seed)
+# l3c has no room for the long copy (98 % of A = 20): `long! &pos &src` and `long@ &pos &dst` it checks (pos has 128 bits, the data at most NMAX), and writes
+# the line `long` and a layer whose row is the four numbers n (+ 2^19 for long@), the address of pos, the address of the data, the position of the layer;
+# it moves the position by 10 layers more and marks the table add4 as used. The pass puts LONGL = 11 layers there. The request of the SYS channel is built
+# of copies only (no row of the program writes a record by itself): at QB, above the image and its tables, the record op:8 chan:20 flags:16 arg:32
+# off:128 (bits 0, 8, 28, 44, 76) and the data after it (204); the numbers op (6), flags (the direction) and arg (the bits of the data) are made of
+# 4 bits copied from the table add4, whose entry (v, 0, 0) at 8v is the number v; the bits not written stay zeros.
+# long!: the nibbles (7 layers), pos (128 bits), the data (n bits), the row to SYS, a layer of nothing. long@: the same without the data, the row to
+# SYS, the row which reads max(n, 117) bits of the answer from SYS to QB+204 (117 = 97 + A: a whole record of the answer, the contract of the
+# emulator), the copy of n bits into the data. The pass copies the text as it is; the line `long` is followed by five lines (the four numbers and the
+# jump `c a0 0 X`): the value of a line is its last blank-separated token, in hex, mod 2^20 (a character that is not a hex digit, a blank, or the line
+# break, or the end of the text inside the five lines: `l4p: bad text`, the output stops before the placeholder). A layer is 160 bits. Without the pass
+# the line `long` is not a line of language 2: l2l (and l3p) stop with a report.
+LPMESSAGES = {'bad': 'l4p: bad text\n'}
+
+
+def _last_hex(line):
+    tok = line.rsplit(' ', 1)[-1]
+    if any(c not in '0123456789abcdef ' for c in line):
+        raise Stop('bad')
+    return int(tok, 16) & M if tok else 0
+
+
+def long_text(put, n, p, d, first):
+    """The 11 layers of a long copy (put or get of n bits, the position at p, the data at d), the first at `first`."""
+    q = lambda o: '%x' % (QB + o)      # noqa: E731
+    rows = ['c 4 %s &ta+30\n' % q(0), 'c 4 %s &ta+%x\n' % (q(0x1c), 0 if put else 8)]
+    rows += ['c 4 %s &ta+%x\n' % (q(0x2c + 4 * i), 8 * (n >> 4 * i & 15)) for i in range(5)]
+    rows.append('c 80 %s %x\n' % (q(0x4c), p))
+    row = lambda *v: ''.join('d 14 %x\n' % (x & M) for x in v)      # noqa: E731
+    if put:
+        rows += ['c %x %s %x\n' % (n, q(0xcc), d), row(SYSC, SYSC, QB, QB + 0xcc + n), 'z 50\n']
+    else:
+        rows += [row(SYSC, SYSC, QB, QB + 0xcc), row(QB + 0xcc, QB + 0xcc + max(n, 0x75), SYSC, SYSC), 'c %x %x %s\n' % (n, d, q(0xcc))]
+    return ''.join(r + 'c a0 0 %x\n' % ((first + JB * (j + 1)) & M) for j, r in enumerate(rows))
+
+
+def long_pass(data):
+    """The pass over the text of language 2 of l3c (see above); data ends with a zero byte, and so does the result: (bytes, error or None)."""
+    text = data.decode('latin-1')
+    assert text.endswith('\0')
+    lines = text[:-1].split('\n')                        # the last piece is empty (the zero byte comes at the start of a line) or a line cut
+    out, i = [], 0
+    try:
+        while i < len(lines) - 1:
+            if lines[i] == 'long':
+                if i + 5 >= len(lines) - 1:
+                    raise Stop('bad')
+                n, p, d, first, _ = (_last_hex(lines[i + k]) for k in range(1, 6))
+                out.append(long_text(not n >> 19 & 1, n & 0x7ffff, p, d, first))
+                i += 6
+            else:
+                out.append(lines[i] + '\n')
+                i += 1
+    except Stop as e:
+        return ''.join(out).encode('latin-1'), e.why
+    return (''.join(out) + lines[-1] + '\0').encode('latin-1'), None
+
+
 def language1(src):
-    """The text of language 1 (without the zero byte) which the chain l3c -> l2l gives for a text of language 3: (bytes, error or None)."""
+    """The text of language 1 (without the zero byte) which the chain l3c -> l4p -> l2l gives for a text of language 3: (bytes, error or None)."""
     import l2ltext
     l2, err = encode(src)
     if err:
         return b'', err
+    l2, err = long_pass(l2)
+    if err:
+        return b'', 'l4p'
     if is_pack(src):                      # pack mode: the pass of the planner stands between l3c and l2l
         l2, err = pack_pass(l2)
         if err:
@@ -1070,11 +1167,17 @@ if __name__ == '__main__':
         main()
     elif sys.argv[1:2] == ['-p']:
         main(True)
+    elif sys.argv[1:2] == ['-x']:
+        out, err = long_pass(sys.stdin.buffer.read())
+        sys.stdout.buffer.write(out)
+        if err:
+            sys.stderr.write(LPMESSAGES[err])
+            sys.exit(1)
     elif sys.argv[1:2] == ['-l']:
         l1, e = language1(sys.stdin.buffer.read())
         sys.stdout.buffer.write(l1)
         if e:
-            sys.stderr.write(MESSAGES.get(e, 'l2l: ' + e) + '\n')
+            sys.stderr.write((LPMESSAGES['bad'] if e == 'l4p' else MESSAGES.get(e, 'l2l: ' + e)) + '\n')
             sys.exit(1)
     else:
         sys.stderr.write('\n'.join(__doc__.splitlines()[-2:]) + '\n')

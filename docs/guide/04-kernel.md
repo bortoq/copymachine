@@ -1,6 +1,6 @@
 # 4. Ядро, бут и изоляция
 
-Как язык появляется из ничего и как ядро остаётся целым, пока работают программы пользователя. Понятия бута, L0, L1, самосборки, изоляции построением, доказательства и замены — в [README](../../README.md#понятия). Подробности — [boot.md](../../language/doc/boot.md), [isolation.md](../../language/doc/isolation.md), [proof.md](../../language/doc/proof.md), [replace.md](../../language/doc/replace.md), [user_programs.md](../../language/doc/user_programs.md).
+Как язык появляется из ничего и как ядро остаётся целым, пока работают программы пользователя. Понятия бута, L0, L1, самосборки, изоляции построением, доказательства и замены — в [словаре](../dictionary.md#понятия). Подробности — [boot.md](../../language/doc/boot.md), [isolation.md](../../language/doc/isolation.md), [proof.md](../../language/doc/proof.md), [replace.md](../../language/doc/replace.md), [user_programs.md](../../language/doc/user_programs.md).
 
 ## Бут: откуда берётся первый L0
 

@@ -356,6 +356,8 @@
 :c5 data 5 31
 :cht data 8 "t"
 :s1v data 20 1048571
+:s0v data 20 1048570
+:limc data 20 1024000
 :s1w data 20 1048572
 :sp data 8 " "
 :nl8 data 8 "\n"
@@ -1029,8 +1031,8 @@ lut &tcl &tki &tclv
 eq &tc2v &cht &q2
 if &q2[1] &tkd2 &tkd3
 :tkd2 block
-eq &tclv &c3b &q2
-if &q2[1] &tkd4 &tkd3
+eq &tclv &c2b &q2
+if &q2[1] &tkd3 &tkd4
 :tkd4 block
 copy &tkk &y1
 lut &tc3 &tki &tc3v
@@ -1242,10 +1244,16 @@ copy &aa &stl
 copy &ab &s1v
 call &eqw &brq1
 :brq1 block
+if &er &brk &brq0
+:brq0 block
+copy &aa &stl
+copy &ab &s0v
+call &eqw &brq0b
+:brq0b block
 if &er &brk &brq2
 :brk block
-store &rlo &bk &s1v
-copy &aa &s1v
+store &rlo &bk &stl
+copy &aa &stl
 copy &ab &one20
 call &addw &brk1
 :brk1 block
@@ -1875,7 +1883,7 @@ call &ltw &rm3
 if &lr &rmcode &rm4
 :rm4 block
 copy &aa &rv
-copy &ab &s1v
+copy &ab &limc
 call &ltw &rm5
 :rm5 block
 if &lr &rmtail &rmsame

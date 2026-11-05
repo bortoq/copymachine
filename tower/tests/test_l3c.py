@@ -138,13 +138,30 @@ class Reference(unittest.TestCase):
                          ':a data 1 0\n:main block\nlut &a &a &a\nhalt'],
                  'wid': [':a data 8 0\n:b data 9 0\n:main block\ncopy &a &b\nhalt', ':a data 8 0\n:main block\ncopy &a[0:9] &a\nhalt',
                          ':a data 3 0\n:b data 3 0\n:main block\nadd &a &a &b\nhalt', ':a data 8 0\n:main block\nkey &a[0:4]\nhalt',
-                         ':a data 8 "abc"'],
+                         ':a data 8 "abc"', LONG + 'long! &p127 &o\nhalt', LONG + 'long@ &o &o\nhalt', LONG + 'long! &z &o\nhalt'],
                  'blk': [':main block\n:b block', ':main block\ngoto &main\nhalt', 'halt', ':main block\n:a data 1 0\nhalt',
                          ':main block\nret\nhalt', ':main block\nemit &zero', ':a block\n:b block'],
-                 'big': [''.join(':a%d array 8 64\n' % i for i in range(40))]}
+                 'big': [''.join(':a%d array 8 64\n' % i for i in range(40)), LONG + 'long! &p &w[0:%d]\nhalt' % (l3ctext.NMAX + 1)]}
         for why, texts in cases.items():
             for t in texts:
                 self.assertEqual(l3ctext.encode(t)[1], why, t)
+
+    def test_long_words(self):
+        """Language 4 (23.17): the placeholder (the line `long`, a layer with the four numbers, ten layers of room), add4 used, the bits of the words."""
+        src = LONG + 'long! &p &o\nlong@ &p &w[0:%d]\nhalt\n' % l3ctext.NMAX
+        out, err = l3ctext.encode(src)
+        self.assertIsNone(err)
+        text = out.decode()
+        self.assertEqual(text.count('long\n'), 2)
+        self.assertTrue('long\nd 14 28\nd 14 %x\nd 14 %x\nd 14 ' % (l3ctext.START, l3ctext.START + 255) in text)      # n = 40, pos, the data
+        self.assertTrue('long\nd 14 %x\n' % (l3ctext.NMAX | 1 << 19) in text)                                      # long@: bit 19
+        self.assertTrue(':ta\n' in text)
+        self.assertEqual(l3ctext.encode(LONG + 'halt\n')[0].count(b':ta'), 0)
+        self.assertEqual(l3ctext.encode(src + 'copy &o &o\n')[1], 'blk')
+        self.assertEqual((l3ctext.LONGL, l3ctext.QB + 204 + l3ctext.NMAX <= (1 << 20) - 6), (11, True))
+        self.assertLess(l3ctext.QB, (1 << 20) - 6)
+        a, b = (l3ctext.encode(LONG + '%s\nhalt\n' % w)[0].count(b'\nz 50\n') for w in ('copy &o &o', 'long! &p &o'))
+        self.assertEqual(a, b)
 
     def test_cli(self):
         root = os.path.dirname(common.HERE)
@@ -157,6 +174,9 @@ class Reference(unittest.TestCase):
         e = subprocess.run([sys.executable, '-B', 'tower/l3ctext.py', '-e'], input=b'foo', cwd=root, check=False, capture_output=True,
                            timeout=120)
         self.assertEqual((e.returncode, e.stderr), (1, b'l3c: bad text\n'))
+
+
+LONG = ':p data 128 0\n:p127 data 127 0\n:o data 40 "hello"\n:w data %d 0\n:z data 1 0\n:main block\n' % (l3ctext.NMAX + 1)
 
 
 class Images(unittest.TestCase):
@@ -260,6 +280,16 @@ class Tool(unittest.TestCase):
                     ':a data 16 0\n:b data 17 0\n:c data 16 0\n:main block\nadd &a &c &b\nsub &a &c &b\nshr &a &c 4\nkey &a\nwarn &a\nhalt\n',
                     ':t table 2 24 "abc" "def" "ghi" "jkl"\n:main block\nhalt\n', ':a data 40 1048575\n:b data 21 0\n:main block\nhalt\n'):
             self.check_text(src)
+
+    def test_long_words(self):
+        """The words of language 4 and their errors: the same bytes and reports as the reference (the pass l4p is in test_l4p.py)."""
+        for src in (LONG + 'long! &p &o\nlong@ &p &o\nhalt\n', LONG + 'long@ &p &w[0:117]\nlong! &p &w[0:%d]\nhalt\n' % l3ctext.NMAX,
+                    LONG + 'long! &p127 &o\nhalt\n', LONG + 'long@ &o &o\nhalt\n', LONG + 'long! &p &w\nhalt\n', LONG + 'long! &p\nhalt\n',
+                    LONG + 'long! &p &o &o\nhalt\n', LONG + 'long! 1 &o\nhalt\n', LONG + 'long!x &p &o\nhalt\n', LONG + 'long &p &o\nhalt\n',
+                    LONG + 'long@@ &p &o\nhalt\n', ':a! data 1 0\n', ':a data 1 0\n:main block\ncopy &a! &a\nhalt\n', '!\n', '@long\n',
+                    'long! &p &o\n', ':long! data 1 0\n', LONG + 'long!\n', 'pack\n' + LONG.replace(':main block\n', '') + ':main block\nlong@ &p &o\nhalt\n'):
+            with self.subTest(src):
+                self.check_text(src)
 
     def test_errors(self):
         for src in ('foo', ':a :b data 1 0', ':a data 1 0 7', ':a block\n:b block', '&a', '"x', ':a data 8 "abc" ', ':A\n', ':a data 8 5x',

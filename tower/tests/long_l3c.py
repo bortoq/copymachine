@@ -9,11 +9,15 @@ and the chain) gives the image of l3c, and that image (l3c -> l2l -> seed) build
 byte; the text of language 2 which it writes is what the reference gives, and so is the Python image. The names of l3c fill its table (1020 places) and the 1021st is bad label.
 23.10: the same with the planner (pack mode: `pack` first, the pass programs/l3p.tw between l3c and l2l): the fixed point with the planner is
 at the end (class PackedFixedPoint).
+23.17: language 4 on the chain (class LongWords): the pass programs/l4p.tw made by the chain, and the programs with `long!` and `long@` made by
+l3c -> l4p -> [l3p] -> l2l -> seed, step by step what the references give; the images work as the images of the Python compiler (the same output and host files).
 Run: make check-tower-long  or  python3 -B tower/tests/long_l3c.py"""
 import os
 import random
 import re
+import shutil
 import sys
+import tempfile
 import time
 
 sys.dont_write_bytecode = True
@@ -26,6 +30,8 @@ import l2ltext
 import l3ctext
 import l5
 import test_l3c as t
+import test_l4p as t4
+import text
 from common import run
 
 BIG = 300 * 10 ** 6
@@ -56,15 +62,27 @@ def tools():
     return SHARED
 
 
-def chain(tag, l3c, src, planner=None):
-    """text of language 3 -> l3c -> (l3p) -> l2l (the text twice) -> seed -> the image: returns the text of language 2 (after the planner), of language 1, the image.
-    l3c, planner: (image, A, P)."""
+def chain(tag, l3c, src, planner=None, longp=None):
+    """text of language 3 -> l3c -> (l4p) -> (l3p) -> l2l (the text twice) -> seed -> the image: returns the text of language 2 (after the passes), of language 1,
+    the image. l3c, longp, planner: (image, A, P)."""
     tl = tools()
     l2 = step(tag + ' l3c', l3c[0], l3c[1], l3c[2], src + b'\0')
+    if longp:
+        l2 = step(tag + ' l4p', longp[0], longp[1], longp[2], l2)
     if planner:
         l2 = step(tag + ' l3p', planner[0], planner[1], planner[2], l2)
     l1 = step(tag + ' l2l', tl['l2l'][0], tl['l2l'][1], tl['l2l'][2], l2 + l2)
     return l2, l1, step(tag + ' seed', tl['seed'][0], tl['seed'][1], tl['seed'][2], l1)
+
+
+def serial_pass(name):
+    """The pass programs/<name>.tw (l3p, l4p) made by the serial chain without Python (cached): the text of language 2, of language 1, the image (A = 20, P = 2)."""
+    if name not in SHARED:
+        src = t.read(name + '.tw', 'rb')
+        l2, l1, img = chain(name + ' (serial chain)', tools()['l3c'], src)
+        assert l2 == l3ctext.encode(src)[0] and l1 == l3ctext.language1(src)[0] + b'\0'
+        SHARED[name] = (l2, l1, (img, 20, 2))
+    return SHARED[name]
 
 
 class Long(unittest.TestCase):
@@ -221,9 +239,7 @@ class PackedFixedPoint(unittest.TestCase):
         want2, err = l3ctext.pack_pass(want)
         self.assertIsNone(err)
         # the planner by the serial chain
-        pl2, pl1, planner = chain('l3p (serial chain)', tl['l3c'], t.read('l3p.tw', 'rb'))
-        self.assertEqual(pl2, l3ctext.encode(t.read('l3p.tw', 'rb'))[0])
-        planner = (planner, 20, 2)
+        planner = serial_pass('l3p')[2]
         # the packed l3c by the serial chain with the planner, and by the packed chain with the planner: the same image
         l2a, l1a, img0 = chain('packed l3c (serial chain)', tl['l3c'], src, planner)
         self.assertEqual(l2a, want2)
@@ -250,6 +266,76 @@ class PackedFixedPoint(unittest.TestCase):
             want, err = l3ctext.encode(src)
             self.assertEqual(r.out, want)
             self.assertEqual((err, 'l3c: bad label' in r.err), ('lab', True) if bad else (None, False))
+
+
+class LongWords(unittest.TestCase):
+    """23.17: `long!` and `long@` on the chain without Python. The pass l4p is made by the serial chain; the programs go l3c -> l4p -> [l3p] -> l2l -> seed
+    and every step is what the references give; the images work as the images of the Python compiler (the output and the host files)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.first = len(REPORT)
+        t.setUpModule()
+
+    @classmethod
+    def tearDownClass(cls):
+        for name, ticks, sec in REPORT[cls.first:]:
+            sys.stderr.write('%-34s %12d ticks %7.1f s\n' % (name, ticks, sec))
+
+    def host(self, image, A, P, data=t4.FILE):
+        d = tempfile.mkdtemp(prefix='tower-long-')
+        self.addCleanup(shutil.rmtree, d, True)
+        f = os.path.join(d, 'f.bin')
+        with open(f, 'wb') as h:
+            h.write(data)
+        r = run(image, A, P, checked=True, limit=BIG, files=[f])
+        with open(f, 'rb') as h:
+            return r.rc, r.out, h.read()
+
+    def test_the_chain(self):
+        tl = tools()
+        longp, planner = serial_pass('l4p')[2], serial_pass('l3p')[2]
+        self.assertEqual(longp[0], t4.pass_tool()['image'])
+        example = t4.readme_example()
+        for name, prog in [('readme', example)] + sorted(t4.PROGRAMS.items()):
+            for pack in (False, True):
+                if pack and name == 'cat':          # the two adds of 128 bits are blocks of more than 254 layers: too big for the planner
+                    continue
+                full = ('pack\n' if pack else '') + prog
+                tag = '%s%s' % (name, ' pack' if pack else '')
+                l2, l1, img = chain(tag, tl['l3c'], full.encode(), planner if pack else None, longp)
+                want2, err = l3ctext.encode(full)
+                self.assertIsNone(err)
+                want2 = l3ctext.long_pass(want2)[0]
+                if pack:
+                    want2 = l3ctext.pack_pass(want2)[0]
+                self.assertEqual(l2, want2, tag)
+                self.assertEqual(l1, l3ctext.language1(full.encode())[0] + b'\0', tag)
+                ref = l5.chain_image(full)
+                self.assertEqual((img, 3 if pack else 2), ref, tag)
+                py, errs = text.compile_text(prog)
+                self.assertEqual(errs, [])
+                a = self.host(img, 20, ref[1])
+                b = self.host(py.stats['image'], py.stats['A'], py.stats['P'])
+                self.assertEqual(a, b, tag)
+                self.assertEqual(a[0], 0)
+                if name == 'readme':
+                    self.assertEqual(a[1:], (b'hello', bytes([t4.FILE[0]]) + b'hello' + t4.FILE[6:]))
+
+    def test_errors_of_the_words(self):
+        """The reports of l3c on the words of language 4: the same bytes and messages as the reference (`bad width`, `too big`, `bad text`)."""
+        tl = tools()
+        head = ':p data 128 0\n:p127 data 127 0\n:o data 40 "hello"\n:w data %d 0\n:main block\n' % (l3ctext.NMAX + 1)
+        for body in ('long! &p127 &o', 'long@ &o &o', 'long! &p &w', 'long!x &p &o', 'long &p &o', 'long@ &p', 'long! &p &w[0:%d]' % l3ctext.NMAX):
+            src = head + body + '\nhalt\n'
+            r = run(tl['l3c'][0], 20, 2, checked=False, limit=BIG, stdin=src.encode() + b'\0')
+            want, err = l3ctext.encode(src)
+            self.assertEqual(r.out, want, body)
+            self.assertEqual(('l3c: ' in r.err) and r.err.strip(), err is not None and l3ctext.MESSAGES[err].strip(), body)
+        for l2 in (b'long\nd 14 1\nd 14 zz\nd 14 3\nd 14 400\nc a0 0 560\n\0', b'long\nd 14 1\n\0', b'x\nlong\0'):
+            r = run(t4.pass_tool()['image'], 20, 2, checked=False, limit=BIG, stdin=l2)
+            want, err = l3ctext.long_pass(l2)
+            self.assertEqual((r.out, 'l4p: bad text' in r.err), (want, err is not None))
 
 
 if __name__ == '__main__':

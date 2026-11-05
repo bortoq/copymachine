@@ -10,8 +10,8 @@
 # Tables made by tower/l3ctext.py (tables_text) stand between the marks "begin generated" and "end generated".
 
 # --- begin generated
-:cls table 8 16
-  1 0 0 0 2 0 0 0 0 0 2048 0 3072 0 2048 0
+:cls table 8 17
+  1 0 65536 0 2 0 0 0 0 0 2048 0 3072 0 2048 0
   0 0 2048 0 0 0 2048 0 0 0 2048 0 35840 0 2048 0
   0 0 2048 0 0 0 2048 0 0 0 2048 0 19456 0 2048 0
   0 0 2048 0 0 0 2048 0 0 0 32 0 0 0 0 0
@@ -19,7 +19,7 @@
   6 0 2048 0 0 0 2048 0 0 0 2048 0 64 0 2048 0
   0 0 2048 0 128 0 2048 0 0 0 2048 0 27648 0 2048 0
   0 0 2048 0 0 0 2048 0 0 0 0 0 0 0 0 0
-  0 0 2048 0 0 0 2048 0 0 0 2048 0 7168 0 2048 0
+  0 0 2048 0 65536 0 2048 0 0 0 2048 0 7168 0 2048 0
   2 0 2048 0 0 0 2048 0 0 0 2048 0 39936 0 2048 0
   0 0 2048 0 0 0 2048 0 0 0 2048 0 23552 0 2048 0
   2 0 2048 0 0 0 2048 0 0 0 512 0 0 0 0 0
@@ -51,7 +51,7 @@
   "\0call" "\0\0ret" "\0halt" "\0emit"
   "\0warn" "\0\0key" "\0\0add" "\0\0sub"
   "\0band" "\0\0\0lt" "\0\0\0eq" "\0pack"
-  "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0"
+  "long!" "long@" "\0\0\0\0\0" "\0\0\0\0\0"
   "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0"
 :shape table 8 4
   5 3 0 0 0 0 0 0
@@ -78,8 +78,8 @@
   1 1 1 0 0 0 0 0
   1 1 1 0 0 0 0 0
   0 0 0 0 0 0 0 0
-  0 0 0 0 0 0 0 0
-  0 0 0 0 0 0 0 0
+  1 1 0 0 0 0 0 0
+  1 1 0 0 0 0 0 0
   0 0 0 0 0 0 0 0
   0 0 0 0 0 0 0 0
   0 0 0 0 0 0 0 0
@@ -200,7 +200,7 @@
 
 # --- the character and its class
 :ch data 8 0
-:cl data 16 0
+:cl data 17 0
 :ev data 9 0
 :sep data 1 0
 :tf data 6 0
@@ -399,7 +399,7 @@
 :one1 data 1 1
 :one20 data 20 1
 :c14 data 8 14
-:c24 data 8 24
+:cnw data 8 26
 :started data 1 0
 :packm data 1 0
 :pdone data 1 0
@@ -477,6 +477,7 @@
 :msg_blk data 120 "l3c: bad block\n"
 :msg_big data 104 "l3c: too big\n"
 :s_cole data 24 ":e\n"
+:s_long data 40 "long\n"
 
 :z112 data 112 0
 :lbrv data 5 17
@@ -540,6 +541,8 @@
 :kv20 data 20 0
 :ci8 data 8 0
 :c128 data 20 128
+:cnmax data 20 11566
+:c1600 data 20 1600
 :s_z18 data 40 "z 18\n"
 :r5 data 5 0
 :k2 data 3 2
@@ -685,7 +688,11 @@ call &dacc &read
 :it1 block
 if &tf[4] &refc &it2
 :it2 block
-if &cl[11] &nameadd &bad
+if &cl[11] &nameadd &it3
+:it3 block
+if &cl[16] &it4 &bad
+:it4 block
+if &tf[1] &nameadd &bad
 
 # a character of a name (not a digit first, at most 14 bytes)
 :nameadd block
@@ -1021,7 +1028,7 @@ copy &kwc &ki
 ret
 :kwnx block
 lut &inc8 &ki &ki
-eq &ki &c24 &q2
+eq &ki &cnw &q2
 if &q2[1] &kwend &kwl
 :kwend block
 ret
@@ -1936,6 +1943,8 @@ if &wd[4] &act1x &act0x
 lut &or2 &wd[1:3] &q1
 if &q1 &a_lib &act1y
 :act1y block
+if &wd[3] &a_long &act1z
+:act1z block
 if &wd[0] &a_key &a_warn
 :act0x block
 if &wd[3] &act8 &act0
@@ -2073,6 +2082,43 @@ call &chk &ah2
 copy &jtv &y2
 copy &bopen &zero
 call &lastx &actret
+
+# long! pos src, long@ pos dst (language 4; wd[0]: 0 put, 1 get): pos has 128 bits, the data at most NMAX (cnmax); the line `long` and one layer with the row of the
+# four numbers n (bit 19: get), the address of pos, the address of the data, the position of the layer, and ten layers of room for the pass l4p (c1600); add4 is used
+:a_long block
+lut &av &k0i &ga
+lut &av &k1i &gb
+copy &wxa &ga[20:40]
+copy &wxb &c128
+call &weq &xq77
+:xq77 block
+if &q5[4] &lo1 &wid
+:lo1 block
+copy &wxa &cnmax
+copy &wxb &gb[20:40]
+call &wlt &xq78
+:xq78 block
+if &ltc[5] &big &lo2
+:lo2 block
+copy &q &z20
+call &chk &lo3
+:lo3 block
+store &bua &k0i &one1
+emit &s_long
+copy &qd1 &gb[20:40]
+copy &qd1[19] &wd[0]
+copy &qd2 &ga[0:20]
+copy &qd3 &gb[0:20]
+copy &qd4 &pos
+call &lq &lo4
+:lo4 block
+copy &wxa &pos
+copy &wxb &c1600
+call &wadd &xq79
+:xq79 block
+copy &s21 &wxr
+copy &pos &s21[0:20]
+ret
 
 # call w b: copy the link into the return link of w, then jump to w; the link (the pair of b) follows the last layer
 :a_call block

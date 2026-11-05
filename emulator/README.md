@@ -1,6 +1,6 @@
 # emulator — four-index positional space emulator
 
-emulator executes simultaneous copies between bit half-intervals (a step-by-step explanation in Russian: [docs/guide/02-emulator.md](../docs/guide/02-emulator.md); the concepts: [README](../README.md#понятия)). Its processor is
+emulator executes simultaneous copies between bit half-intervals (a step-by-step explanation in Russian: [docs/guide/02-emulator.md](../docs/guide/02-emulator.md); the concepts: [словаре](../docs/dictionary.md#понятия)). Its processor is
 part of the same bit space and can replace its own instructions. The
 [public contract](doc/emulator-contract.md) defines encoding, tick boundaries,
 channels and valid-program obligations.
