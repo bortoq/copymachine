@@ -1,0 +1,2448 @@
+# The compiler of language 3 (23.9, part 2), a program of the chain (languages 1-3). stdin: a text of language 3 (the subset
+# of tower/l3ctext.py) and a zero byte; stdout: a text of language 2 with labels and a zero byte (the tool programs/l2l.tw reads
+# it, twice: `cat out out` is `text 0 text 0`). So: text of language 3 -> l3c -> l2l -> seed -> image. The layout is serial: a
+# row of the text is a layer of its own (the row and the jump to the next layer), nothing is packed (the planner of 23.10 comes
+# later); A is 20, P is 2. The reference in Python, the words, the errors and the layout are in tower/l3ctext.py; this text
+# does the same on the chain and a test compares the bytes. The text of this tool is in the subset itself (data and tables
+# first, names of blocks a-z 0-9 _, no hex numbers), so that part 3 can have the tool compile itself.
+# How it reads: a character at a time (key); a token is a name (a word), :name (a label), a number, "string", &name[lo:hi];
+# a word with its arguments is carried out when the last argument has come. Tokens end at a blank or the zero byte.
+# Tables made by tower/l3ctext.py (tables_text) stand between the marks "begin generated" and "end generated".
+
+# --- begin generated
+:cls table 8 16
+  1 0 0 0 2 0 0 0 0 0 2048 0 3072 0 2048 0
+  0 0 2048 0 0 0 2048 0 0 0 2048 0 35840 0 2048 0
+  0 0 2048 0 0 0 2048 0 0 0 2048 0 19456 0 2048 0
+  0 0 2048 0 0 0 2048 0 0 0 32 0 0 0 0 0
+  0 0 2048 0 16 0 2048 0 0 0 2048 0 11264 0 2048 0
+  6 0 2048 0 0 0 2048 0 0 0 2048 0 64 0 2048 0
+  0 0 2048 0 128 0 2048 0 0 0 2048 0 27648 0 2048 0
+  0 0 2048 0 0 0 2048 0 0 0 0 0 0 0 0 0
+  0 0 2048 0 0 0 2048 0 0 0 2048 0 7168 0 2048 0
+  2 0 2048 0 0 0 2048 0 0 0 2048 0 39936 0 2048 0
+  0 0 2048 0 0 0 2048 0 0 0 2048 0 23552 0 2048 0
+  2 0 2048 0 0 0 2048 0 0 0 512 0 0 0 0 0
+  0 0 2048 0 8 0 2048 0 0 0 2048 0 15360 0 2048 0
+  0 0 2048 0 0 0 2048 0 0 0 256 0 0 0 0 0
+  0 0 2048 0 0 0 2048 0 0 0 2048 0 31744 0 2048 0
+  0 0 2048 0 0 0 2048 0 0 0 2048 0 0 0 0 0
+:escv table 8 9
+  0 0 0 0 0 0 0 0 0 0 0 0 256 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 400 0
+  0 0 0 0 0 0 0 0 0 0 314 0 0 0 0 0
+  0 0 0 0 324 0 0 0 0 0 0 0 0 0 432 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 336 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:kw table 5 40
+  "\0data" "table" "array" "\0copy"
+  "\0\0shl" "\0\0shr" "\0\0lut" "store"
+  "block" "\0word" "\0goto" "\0\0\0if"
+  "\0call" "\0\0ret" "\0halt" "\0emit"
+  "\0warn" "\0\0key" "\0\0add" "\0\0sub"
+  "\0band" "\0\0\0lt" "\0\0\0eq" "\0\0\0\0\0"
+  "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0"
+  "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0" "\0\0\0\0\0"
+:shape table 8 4
+  5 3 0 0 0 0 0 0
+  6 7 3 3 3 3 3 3
+  6 7 0 0 0 0 0 0
+  1 1 0 0 0 0 0 0
+  1 1 8 0 0 0 0 0
+  1 1 8 0 0 0 0 0
+  4 1 1 1 1 1 1 1
+  4 1 1 1 1 1 1 1
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  2 0 0 0 0 0 0 0
+  1 2 2 0 0 0 0 0
+  2 2 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  1 0 0 0 0 0 0 0
+  1 0 0 0 0 0 0 0
+  1 0 0 0 0 0 0 0
+  1 1 1 0 0 0 0 0
+  1 1 1 0 0 0 0 0
+  1 1 1 0 0 0 0 0
+  1 1 1 0 0 0 0 0
+  1 1 1 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0
+:wcl table 5 4
+  4 1 8 0 0 0 2 2 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:defn table 5 1
+  1 1 1 0 0 0 0 0 1 1 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:isdecl table 5 1
+  1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:ar0 table 5 1
+  0 0 0 0 0 0 0 0 1 1 0 0 0 1 1 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:isret table 5 1
+  0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:lp table 5 16
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 1176 1177 4242 13115 11836 0 0 0 0 0 0 0 0 0
+:mm table 2 20
+  160 480 800 1120
+:fa table 1 20
+  40 0
+:fb table 1 20
+  60 20
+:p2e table 4 20
+  1 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768
+:mask table 4 20
+  0 1 3 7 15 31 63 127 255 511 1023 2047 4095 8191 16383 32767
+:jt table 7 3
+  0 1 2 2 3 3 3 3 4 4 4 4 4 4 4 4
+  5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5
+  6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+  6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+  7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7
+  7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7
+  7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7
+  7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7
+:strd table 3 8
+  1 2 4 8 16 32 64 128
+:m20 table 3 5
+  1 2 4 8 16 20 20 20
+:nlo table 4 20
+  0 0 0 0 0 1 1 1 0 0 0 0 0 0 0 0
+:nhi table 4 20
+  0 0 0 0 0 65536 8 64 64 0 0 0 0 0 0 0
+:inc8 table 8 8
+  1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+  17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32
+  33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48
+  49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64
+  65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80
+  81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96
+  97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112
+  113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128
+  129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144
+  145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160
+  161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176
+  177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192
+  193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208
+  209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224
+  225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240
+  241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 0
+:bn table 2 32
+  "add4"
+  "sub4"
+  "hex4"
+  "zero"
+:bk table 2 3
+  4 4 4 1
+:ba table 2 8
+  0 1 5 160
+:bi table 3 19
+  20804 20804 16452 4420 4420 32772 0 0
+:bfk table 3 4
+  9 9 8 9 9 4 0 0
+:bfe table 3 4
+  12 12 11 10 10 8 0 0
+:bfw table 3 5
+  8 8 8 2 2 16 0 0
+:bfc table 3 8
+  134 206 118 54 166 22 0 0
+# --- end generated
+:nzt table 4 1  0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+:and2 table 2 1  0 0 0 1
+:or2 table 2 1  0 1 1 1
+:xor2 table 2 1  0 1 1 0
+:stt table 3 1  1 1 1 1 0 1 1 1
+:cnt3 table 3 2  0 1 1 2 1 2 2 3
+:gt5 table 4 1  0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1
+:is14 table 4 1  0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0
+:isdata table 3 1  0 1 0 0 0 0 0 0
+:istab table 3 1  0 0 1 1 1 0 0 0
+:isarr table 3 1  0 0 0 1 0 0 0 0
+
+# arrays: the symbols (names in two halves of 56 bits, a tag of the last two bytes, kind, address, information), the string in
+# hand, the arguments of a word (address and bits, 20 + 20), the arguments of the lookup, the widths of the indices of a table
+:sna array 8 56
+:snb array 8 56
+:stg array 8 16
+:ski array 8 3
+:sad array 8 20
+:sin array 8 19
+:sb array 5 8
+:av array 3 40
+:qa array 2 20
+:tks array 2 4
+
+# --- the character and its class
+:ch data 8 0
+:cl data 16 0
+:ev data 9 0
+:sep data 1 0
+:tf data 6 0
+:rf data 5 0
+:nm data 112 0
+:nt data 112 0
+:nlen data 8 0
+:nz data 1 0
+:g5 data 1 0
+:q1 data 1 0
+:q2 data 2 0
+:q4 data 4 0
+:q8 data 8 0
+:q16 data 16 0
+:num data 20 0
+:n8 data 20 0
+:n2 data 20 0
+:dg data 20 0
+:s21 data 21 0
+:s21b data 21 0
+:lov data 20 0
+:hiv data 20 0
+:slen data 8 0
+:pend data 1 0
+:lbl data 112 0
+:inw data 1 0
+:wd data 8 0
+:na data 8 0
+:ai data 8 0
+:nb data 8 0
+:sk data 8 0
+:kd data 4 0
+:kd2 data 4 0
+:nz4 data 1 0
+:fd data 1 0
+:fact data 1 0
+:wc data 4 0
+:bopen data 1 0
+:hasw data 1 0
+:curw data 112 0
+:bn0 data 112 0
+:bn1 data 112 0
+:sq data 1 0
+:esc data 1 0
+:sclose data 1 0
+:cm data 1 0
+:kwf data 1 0
+:kwc data 8 0
+:ki data 8 0
+:kwv data 40 0
+:kwq data 10 0
+:mm0 data 1 0
+:isd data 1 0
+:isdc data 1 0
+
+# --- the symbols
+:nsym data 8 0
+:fj data 8 0
+:fo data 1 0
+:fq data 2 0
+:ft data 4 0
+:fm data 14 0
+:fn data 14 0
+:et data 16 0
+:ea data 56 0
+:eb data 56 0
+:fkind data 3 0
+:faddr data 20 0
+:finfo data 19 0
+:ikind data 3 0
+:iaddr data 20 0
+:iinfo data 19 0
+:ki7 data 8 0
+:bnv data 32 0
+:bav data 8 0
+:biv data 19 0
+:bkv data 3 0
+
+# --- the table in hand: its information, the base, the builtin label, the widths of the indices (array tks)
+:tn data 8 0
+:tout data 8 0
+:tj data 20 0
+:tbl data 1 0
+:tadr data 20 0
+:tchar data 8 0
+:tinfo data 19 0
+:tk0 data 4 0
+:tk1 data 4 0
+:tk2 data 4 0
+:tkz data 3 0
+:bu data 8 0
+:bidx data 8 0
+:tcnt data 20 0
+:tstr data 8 0
+:tstm data 20 0
+:tstr20 data 20 0
+:tbeg data 20 0
+
+# --- the position, the numbers of the output
+:pos data 20 0
+:pr data 21 0
+:h data 20 0
+:h2 data 20 0
+:nib data 4 0
+:st2 data 1 0
+:cnt data 5 0
+:cnt2 data 5 0
+:sn data 3 0
+:hch data 8 0
+:p1 data 20 0
+:p2 data 20 0
+:p3 data 20 0
+:q data 20 0
+:lk data 2 0
+:lk2 data 2 0
+:lk3 data 2 0
+:rname data 112 0
+:pnm data 112 0
+:pnt data 112 0
+:pz data 2 0
+:pnz data 1 0
+:pby data 8 0
+:pi data 8 0
+:jtv data 2 0
+:zc data 20 0
+:zr data 21 0
+:neg data 21 0
+:pad data 20 0
+:mk data 20 0
+:ale data 4 0
+:chs data 21 0
+:ltc data 6 0
+:span data 20 0
+:e1 data 8 0
+:qd1 data 20 0
+:qd2 data 20 0
+:qd3 data 20 0
+:qd4 data 20 0
+
+# --- the arguments, the lookups, the loops of the words
+:ga data 40 0
+:gb data 40 0
+:gc data 40 0
+:dn data 20 0
+:dnl data 20 0
+:ds data 20 0
+:ds8 data 20 0
+:dm data 20 0
+:ra data 20 0
+:ro data 20 0
+:f1 data 20 0
+:f2 data 20 0
+:b1 data 21 0
+:b2 data 21 0
+:t1 data 21 0
+:t2 data 21 0
+:off data 20 0
+:off2 data 21 0
+:li data 8 0
+:kk data 4 0
+:kk20 data 20 0
+:lmode data 1 0
+:lx data 8 0
+:ly data 8 0
+:lz data 8 0
+:xa data 20 0
+:ya data 20 0
+:rra data 20 0
+:rn data 20 0
+:xn data 20 0
+:yn data 20 0
+:nk data 20 0
+:lpv data 16 0
+:lstep data 20 0
+:ii data 20 0
+:ci data 20 0
+:oa data 20 0
+:oa2 data 21 0
+:ca data 20 0
+:ca2 data 21 0
+:lpn data 8 0
+:wk data 20 0
+:lastv data 20 0
+:tabv data 20 0
+:tabp data 20 0
+:ifj data 20 0
+:ifj7 data 20 0
+
+# --- constants
+:zero8 data 8 0
+:z6 data 6 0
+:z20 data 20 0
+:z80 data 80 0
+:z3 data 3 0
+:one1 data 1 1
+:one20 data 20 1
+:c14 data 8 14
+:c23 data 8 23
+:c4 data 8 4
+:c255 data 20 255
+:c160 data 20 160
+:c1 data 20 1
+:limit data 20 1024000
+:start data 20 225
+:p4v data 20 4
+:c2a data 8 2
+:c3a data 20 3
+:c320 data 20 320
+:c480 data 20 480
+:c800 data 20 800
+:c960 data 20 960
+:c40 data 20 40
+:c120 data 20 120
+:c28 data 20 40
+:k0i data 3 0
+:k1i data 3 1
+:k2i data 3 2
+:k3i data 3 3
+:y0 data 2 0
+:y1 data 2 1
+:y2 data 2 2
+:tl6 data 6 33
+:tw6 data 6 34
+:tn6 data 6 36
+:ts6 data 6 40
+:tr6 data 6 48
+
+# --- the strings of the output
+:sp data 8 " "
+:nl8 data 8 "\n"
+:pre1 data 160 "w 14\nd 14 0\nd 14 &e\n"
+:pre2 data 176 "d 14 ffffb\nd 14 ffffb\n"
+:pre3 data 96 "z 50\no\nz 50\n"
+:pre4 data 200 "c a0 0 &bmain\nz 40\nd 1 1\n"
+:s_c data 16 "c "
+:s_d data 16 "d "
+:s_z data 16 "z "
+:s_zff data 40 "z ff\n"
+:s_d14 data 40 "d 14 "
+:s_jmp data 56 "c a0 0 "
+:s_gap data 40 "z 50\n"
+:s_dl8 data 32 "d 8 "
+:s_c28r data 56 "c 28 &r"
+:s_c28 data 40 "c 28 "
+:s_cb data 16 ":b"
+:s_cr data 16 ":r"
+:s_z28 data 40 "z 28\n"
+:s_ab data 16 "&b"
+:s_ar data 16 "&r"
+:s_at data 16 "&t"
+:s_ae data 16 "&e"
+:s_d14b data 56 "d 14 &b"
+:s_plus data 32 "+a0\n"
+:s_ct data 16 ":t"
+:s_one data 8 "0"
+:msg_bad data 112 "l3c: bad text\n"
+:msg_lab data 120 "l3c: bad label\n"
+:msg_wid data 120 "l3c: bad width\n"
+:msg_blk data 120 "l3c: bad block\n"
+:msg_big data 104 "l3c: too big\n"
+:s_cole data 24 ":e\n"
+
+:z112 data 112 0
+:lbrv data 5 17
+:c5 data 5 31
+:c6 data 8 6
+:c255b data 8 255
+:c20 data 20 20
+:c440 data 20 440
+:c7e data 4 7
+:c3e data 4 3
+:y3 data 2 3
+:cs1 data 20 1048571
+:cs2 data 20 1048572
+:cs3 data 20 1048573
+:q5 data 5 0
+:r9 data 9 0
+:dir data 1 0
+:possv data 20 0
+:ifpad data 20 0
+:nmk data 20 0
+:kz data 1 0
+:lkn data 1 0
+:wo20 data 20 0
+:ix data 20 0
+:v5 data 5 0
+:v4 data 4 0
+:v1 data 1 0
+:v8 data 8 0
+:fw data 5 0
+:isstore table 5 1  0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:nz3 table 3 1  0 1 1 1 1 1 1 1
+:incs table 3 3  1 2 3 4 5 6 7 7
+:bua array 3 1
+:tjv data 3 0
+:tj4 data 4 0
+:kj data 4 0
+:tout20 data 20 0
+:dsl data 20 0
+:xcur data 20 0
+:ycur data 20 0
+:ocur data 20 0
+:kq data 20 0
+:n1 data 21 0
+:k1 data 21 0
+:wantv data 20 0
+:bidx3 data 3 0
+:s9 data 9 0
+:wxa data 20 0
+:wxb data 20 0
+:wxr data 21 0
+:one19 data 19 1
+:a4 data 4 0
+:b4 data 4 0
+:cc2 data 2 0
+:ee1 data 1 0
+:tn2 data 2 0
+:c526 data 20 526
+:c386 data 20 386
+:c224 data 20 224
+:kv20 data 20 0
+:ci8 data 8 0
+:c128 data 20 128
+:s_z18 data 40 "z 18\n"
+:r5 data 5 0
+:k2 data 3 2
+:k3 data 3 3
+:hv data 20 0
+:s13 data 13 0
+
+:main block
+goto &init
+
+# --- the start: the first lines of the text, the symbols of the tool (add4 .. hex4, zero)
+:init block
+emit &pre1
+emit &pre2
+emit &pre3
+emit &pre4
+copy &pos &start
+goto &iloop
+:iloop block
+lut &bn &ki7[0:2] &bnv
+copy &nm[0:80] &z80
+copy &nm[80:112] &bnv
+lut &bk &ki7[0:2] &ikind
+lut &ba &ki7[0:2] &bav
+copy &iaddr[0:8] &bav
+copy &iaddr[8:20] &z20[0:12]
+if &ikind[2] &ibi &izero
+:ibi block
+lut &bi &bav[0:3] &iinfo
+call &insert &inext
+:izero block
+copy &iinfo &one19
+call &insert &inext
+:inext block
+lut &inc8 &ki7 &ki7
+eq &ki7 &c4 &q2
+if &q2[1] &read &iloop
+
+# --- a character: the class (bits: 0 zero byte, 1 blank, 2 line break, 3 #, 4 ", 5 \, 6 :, 7 &, 8 [, 9 ], 10 digit,
+# 11 letter digit or _, 12-15 the value of a digit)
+:read block
+key &ch
+lut &cls &ch &cl
+lut &or2 &cl[0:2] &sep
+if &sq &instr &r1
+:r1 block
+if &sclose &afterq &r2
+:r2 block
+if &cm &incm &r3
+:r3 block
+if &sep &sepc &r4
+:r4 block
+if &tf[5] &intok &idle
+
+# --- inside a string: an escape, the closing quote, a character
+:instr block
+if &esc &escc &i1
+:escc block
+lut &escv &ch &ev
+copy &esc &zero
+if &ev[8] &escok &bad
+:escok block
+copy &ch &ev[0:8]
+goto &sadd
+:i1 block
+if &cl[4] &sclosed &i2
+:sclosed block
+copy &sq &zero
+copy &sclose &one1
+goto &read
+:i2 block
+if &cl[5] &sbs &i3
+:sbs block
+copy &esc &one1
+goto &read
+:i3 block
+if &cl[0] &bad &sadd
+:sadd block
+if &slen[5] &bad &sadd2
+:sadd2 block
+store &sb &slen[0:5] &ch
+lut &inc8 &slen &slen
+goto &read
+:afterq block
+if &sep &sepc &bad
+
+# --- a comment (to the end of the line or of the text)
+:incm block
+if &cl[2] &cmend &incm2
+:cmend block
+copy &cm &zero
+goto &read
+:incm2 block
+if &cl[0] &eot &read
+
+# --- a blank or the zero byte: the token ends
+:sepc block
+if &tf[5] &sepc1 &sepc2
+:sepc1 block
+call &tokend &sepc2
+:sepc2 block
+if &cl[0] &eot &read
+
+# --- between tokens: a comment, a label, a reference, a string, a number, a name
+:idle block
+if &cl[3] &hash &id1
+:hash block
+copy &cm &one1
+goto &read
+:id1 block
+if &cl[6] &stlabel &id2
+:stlabel block
+copy &tf &tl6
+call &clrname &read
+:id2 block
+if &cl[7] &stref &id3
+:stref block
+copy &tf &tr6
+copy &rf &z6[0:5]
+call &clrname &read
+:id3 block
+if &cl[4] &stq &id4
+:stq block
+copy &tf &ts6
+copy &sq &one1
+copy &esc &zero
+copy &slen &zero8
+goto &read
+:id4 block
+if &cl[10] &stnum &id5
+:stnum block
+copy &tf &tn6
+copy &num &z20
+call &dacc &read
+:id5 block
+if &cl[11] &stname &bad
+:stname block
+copy &tf &tw6
+call &clrname &nameadd
+
+# --- inside a token: a number, a reference, a name or a label
+:intok block
+if &tf[2] &tnum &it1
+:tnum block
+if &cl[10] &tnum2 &bad
+:tnum2 block
+call &dacc &read
+:it1 block
+if &tf[4] &refc &it2
+:it2 block
+if &cl[11] &nameadd &bad
+
+# a character of a name (not a digit first, at most 14 bytes)
+:nameadd block
+if &nz &nameadd2 &nafirst
+:nafirst block
+if &cl[10] &bad &nameadd2
+:nameadd2 block
+lut &is14 &nlen[0:4] &q1
+if &q1 &bad &nameadd3
+:nameadd3 block
+copy &nt[0:104] &nm[8:112]
+copy &nt[104:112] &ch
+copy &nm &nt
+lut &inc8 &nlen &nlen
+lut &nzt &nlen[0:4] &nz
+goto &read
+
+# a reference: the name, then [lo] or [lo:hi], then the end (rf: 0 in the brackets, 1 after the colon, 2 closed, 3 a digit
+# was there, 4 brackets)
+:refc block
+if &rf[2] &bad &rf1
+:rf1 block
+if &rf[0] &rfn &rfname
+:rfname block
+if &cl[8] &lbr &rfn2
+:rfn2 block
+if &cl[11] &nameadd &bad
+:lbr block
+if &nz &lbr2 &bad
+:lbr2 block
+copy &rf &lbrv
+copy &num &z20
+goto &read
+:rfn block
+if &cl[10] &rdig &rf2
+:rdig block
+copy &rf[3] &one1
+call &dacc &read
+:rf2 block
+if &cl[6] &rcolon &rf3
+:rcolon block
+if &rf[1] &bad &rcolon2
+:rcolon2 block
+if &rf[3] &rcolon3 &bad
+:rcolon3 block
+copy &lov &num
+copy &rf[1] &one1
+copy &rf[3] &zero
+copy &num &z20
+goto &read
+:rf3 block
+if &cl[9] &rrb &bad
+:rrb block
+if &rf[3] &rrb2 &bad
+:rrb2 block
+if &rf[1] &rrb3 &rrb4
+:rrb3 block
+copy &hiv &num
+goto &rrb5
+:rrb4 block
+copy &lov &num
+copy &wxa &num
+copy &wxb &one20
+call &wadd &xq1
+:xq1 block
+copy &s21 &wxr
+copy &hiv &s21[0:20]
+goto &rrb5
+:rrb5 block
+copy &rf[2] &one1
+goto &read
+
+
+# --- the end of the text: no word half done, no label alone, no block open; then the tables of the builtins which were used (bua),
+# zeros up to a whole byte, the label e, the zero byte
+:eot block
+if &inw &bad &eot2
+:eot2 block
+if &pend &bad &eot3
+:eot3 block
+if &bopen &blk &fin1
+:fin1 block
+copy &bidx &zero8
+goto &finl
+:finl block
+eq &bidx &c6 &q2
+if &q2[1] &fin9 &finb
+:finb block
+lut &bua &bidx[0:3] &q1
+if &q1 &finc &fint
+:fint block
+lut &inc8 &bidx &bidx
+goto &finl
+:finc block
+lut &bfe &bidx[0:3] &ale
+call &align &finc2
+:finc2 block
+emit &s_ct
+lut &bfc &bidx[0:3] &tchar
+emit &tchar
+emit &nl8
+lut &bfk &bidx[0:3] &ale
+lut &p2e &ale &tcnt
+lut &bfw &bidx[0:3] &fw
+copy &ix &z20
+goto &fixl
+:fixl block
+copy &wxa &ix
+copy &wxb &tcnt
+call &weq &xq2
+:xq2 block
+if &q5[4] &fixe &fixb
+:fixb block
+copy &h &z20
+if &bidx[2] &fv4 &fv0
+:fv0 block
+if &bidx[1] &fv2 &fv01
+:fv01 block
+if &bidx[0] &fvsub &fvadd
+:fvadd block
+lut &add4 &ix[0:4] &ix[4:8] &ix[8:9] &v5
+copy &h[0:5] &v5
+goto &fvp
+:fvsub block
+lut &sub4 &ix[0:4] &ix[4:8] &ix[8:9] &v5
+copy &h[0:5] &v5
+goto &fvp
+:fv2 block
+if &bidx[0] &fvlt &fvand
+:fvand block
+copy &a4 &ix[0:4]
+copy &b4 &ix[4:8]
+band &a4 &b4 &v4
+copy &h[0:4] &v4
+goto &fvp
+:fvlt block
+copy &a4 &ix[0:4]
+copy &b4 &ix[4:8]
+copy &cc2[0] &ix[8]
+lt &a4 &b4 &cc2
+copy &h[0:1] &cc2[1]
+goto &fvp
+:fv4 block
+if &bidx[0] &fvhex &fveq
+:fveq block
+copy &a4 &ix[0:4]
+copy &b4 &ix[4:8]
+eq &a4 &b4 &ee1
+copy &q2[0] &ee1
+copy &q2[1] &ix[8]
+lut &and2 &q2 &q1
+copy &h[0:1] &q1
+goto &fvp
+:fvhex block
+lut &hex4 &ix[0:4] &v8
+copy &h[0:8] &v8
+goto &fvp
+:fvp block
+copy &hv &h
+emit &s_d
+copy &h[0:5] &fw
+copy &h[5:20] &z20[0:15]
+call &puthex &fvp2
+:fvp2 block
+emit &sp
+copy &h &hv
+call &puthex &fvp3
+:fvp3 block
+emit &nl8
+copy &wxa &ix
+copy &wxb &c1
+call &wadd &xq3
+:xq3 block
+copy &s21 &wxr
+copy &ix &s21[0:20]
+goto &fixl
+:fixe block
+lut &bfe &bidx[0:3] &ale
+lut &p2e &ale &span
+copy &wxa &pos
+copy &wxb &span
+call &wadd &xq4
+:xq4 block
+copy &s21 &wxr
+copy &pos &s21[0:20]
+goto &fint
+:fin9 block
+copy &ale &c3e
+call &align &fin10
+:fin10 block
+emit &s_cole
+emit &zero8
+halt
+
+# --- errors: the report to stderr and the halt (the output so far stays as it is)
+:bad block
+warn &msg_bad
+halt
+:lab block
+warn &msg_lab
+halt
+:wid block
+warn &msg_wid
+halt
+:blk block
+warn &msg_blk
+halt
+:big block
+warn &msg_big
+halt
+
+# --- a name starts again; the number of a digit
+:clrname word
+copy &nlen &zero8
+copy &nz &zero
+copy &nm &z112
+ret
+
+:dacc word
+shl &num &n8 3
+shl &num &n2 1
+copy &wxa &n8
+copy &wxb &n2
+call &wadd &xq5
+:xq5 block
+copy &s21 &wxr
+copy &dg[0:4] &cl[12:16]
+copy &wxa &s21[0:20]
+copy &wxb &dg
+call &wadd &xq6
+:xq6 block
+copy &s21b &wxr
+copy &num &s21b[0:20]
+ret
+
+# --- the symbols: insert the name in nm with ikind, iaddr, iinfo; find the name in nm (fo, fkind, faddr, finfo)
+:insert word
+store &sna &nsym &nm[0:56]
+store &snb &nsym &nm[56:112]
+store &stg &nsym &nm[96:112]
+store &ski &nsym &ikind
+store &sad &nsym &iaddr
+store &sin &nsym &iinfo
+lut &inc8 &nsym &nsym
+ret
+
+:find word
+copy &fj &zero8
+copy &fo &zero
+goto &floop
+:floop block
+eq &fj &nsym &fq
+if &fq[1] &fnone &fcmp
+:fnone block
+ret
+:fcmp block
+lut &stg &fj &et
+eq &nm[96:112] &et &ft
+if &ft[3] &fc1 &fnext
+:fc1 block
+lut &sna &fj &ea
+eq &nm[0:56] &ea &fm
+if &fm[13] &fc2 &fnext
+:fc2 block
+lut &snb &fj &eb
+eq &nm[56:112] &eb &fn
+if &fn[13] &ffound &fnext
+:fnext block
+lut &inc8 &fj &fj
+goto &floop
+:ffound block
+copy &fo &one1
+lut &ski &fj &fkind
+lut &sad &fj &faddr
+lut &sin &fj &finfo
+ret
+
+# --- the word in nm: kwf = it is a word, kwc = its code (the table kw holds the words as 5 bytes, the last byte is the last letter)
+:kwfind word
+copy &kwf &zero
+lut &gt5 &nlen[0:4] &q1
+if &q1 &kwend &kw0
+:kw0 block
+copy &ki &zero8
+goto &kwl
+:kwl block
+lut &kw &ki[0:5] &kwv
+eq &nm[72:112] &kwv &kwq
+if &kwq[9] &kwhit &kwnx
+:kwhit block
+copy &kwf &one1
+copy &kwc &ki
+ret
+:kwnx block
+lut &inc8 &ki &ki
+eq &ki &c23 &q2
+if &q2[1] &kwend &kwl
+:kwend block
+ret
+
+# --- the end of a token
+:tokend word
+if &tf[0] &tkl &te1
+:tkl block
+if &inw &bad &tkl0
+:tkl0 block
+if &nz &tkl2 &bad
+:tkl2 block
+if &pend &bad &tkl3
+:tkl3 block
+copy &pend &one1
+copy &lbl &nm
+goto &tdone
+:te1 block
+if &tf[1] &tkw &te2
+:tkw block
+if &inw &bad &tkw2
+:tkw2 block
+call &kwfind &tkw3
+:tkw3 block
+if &kwf &tkw4 &bad
+:tkw4 block
+call &wstart &tdone
+:te2 block
+if &tf[4] &te3 &te5
+:te3 block
+if &nz &te4 &bad
+:te4 block
+if &rf[4] &te4b &te5
+:te4b block
+if &rf[2] &te5 &bad
+:te5 block
+call &argproc &tdone
+:tdone block
+copy &tf &z6
+copy &rf &z6[0:5]
+copy &sclose &zero
+ret
+
+# --- a word begins (code in kwc): a label iff it defines; at most 255 symbols; a block open or not
+:wstart word
+copy &wd &kwc
+copy &na &zero8
+copy &ai &zero8
+copy &nb &zero8
+copy &fd &zero
+copy &fact &one1
+lut &defn &wd[0:5] &isdc
+copy &q2[0] &isdc
+copy &q2[1] &pend
+lut &xor2 &q2 &q1
+if &q1 &bad &ws1
+:ws1 block
+if &isdc &ws2 &ws3
+:ws2 block
+if &bopen &blk &ws2b
+:ws2b block
+lut &isdecl &wd[0:5] &isd
+if &isd &ws2c &ws5
+:ws2c block
+copy &nm &lbl
+call &find &ws2d
+:ws2d block
+if &fo &lab &ws2e
+:ws2e block
+eq &nsym &c255b &q2
+if &q2[1] &lab &ws5
+:ws3 block
+if &bopen &ws3b &blk
+:ws3b block
+lut &isret &wd[0:5] &q1
+if &q1 &ws3c &ws5
+:ws3c block
+if &hasw &ws5 &blk
+:ws5 block
+copy &pend &zero
+lut &ar0 &wd[0:5] &q1
+if &q1 &ws6 &ws7
+:ws6 block
+call &act &ws6b
+:ws6b block
+copy &inw &zero
+ret
+:ws7 block
+copy &inw &one1
+ret
+
+# --- an argument (a number, a string or a reference) of the word in hand: the kind comes from the table shape (wd, na)
+:argproc word
+if &inw &ap1 &bad
+:ap1 block
+copy &sk[0:3] &na[0:3]
+copy &sk[3:8] &wd[0:5]
+lut &shape &sk &kd
+if &kd[3] &kn &ap2
+:ap2 block
+if &kd[2] &ap3 &ap4
+:ap3 block
+lut &or2 &kd[0:2] &q1
+if &q1 &kn &kt
+:ap4 block
+if &kd[1] &ap5 &kr
+:ap5 block
+if &kd[0] &kv &kb
+
+# a part of space: &name, &name[k], &name[lo:hi] of a data; 0 <= lo < hi <= bits; the argument is (address, bits)
+:kr block
+if &tf[4] &kr1 &bad
+:kr1 block
+call &find &kr2
+:kr2 block
+if &fo &kr3 &lab
+:kr3 block
+lut &isdata &fkind &q1
+if &q1 &kr4 &lab
+:kr4 block
+if &rf[4] &kr5 &krnb
+:krnb block
+copy &lov &z20
+copy &hiv[0:17] &finfo[0:17]
+copy &hiv[17:20] &z20[0:3]
+goto &kr5
+:kr5 block
+copy &wxa &lov
+copy &wxb &hiv
+call &wlt &xq7
+:xq7 block
+if &ltc[5] &kr6 &wid
+:kr6 block
+copy &wo20[0:17] &finfo[0:17]
+copy &wo20[17:20] &z20[0:3]
+copy &wxa &wo20
+copy &wxb &hiv
+call &wlt &xq8
+:xq8 block
+if &ltc[5] &wid &kr7
+:kr7 block
+copy &wxa &faddr
+copy &wxb &lov
+call &wadd &xq9
+:xq9 block
+copy &s21 &wxr
+copy &ga[0:20] &s21[0:20]
+copy &wxa &hiv
+copy &wxb &lov
+call &wsub &xq10
+:xq10 block
+copy &s21b &wxr
+copy &ga[20:40] &s21b[0:20]
+store &av &ai[0:3] &ga
+lut &inc8 &ai &ai
+goto &argfin
+
+# a block: &name without brackets (the first goes to bn0, the second to bn1)
+:kb block
+if &tf[4] &kb1 &bad
+:kb1 block
+if &rf[4] &bad &kb2
+:kb2 block
+lut &nzt &nb[0:4] &q1
+if &q1 &kb3 &kb4
+:kb3 block
+copy &bn1 &nm
+goto &kb5
+:kb4 block
+copy &bn0 &nm
+goto &kb5
+:kb5 block
+lut &inc8 &nb &nb
+goto &argfin
+
+# a table or array (the first argument of lut and store; store needs an array); the builtins are marked used
+:kt block
+if &tf[4] &kt1 &bad
+:kt1 block
+if &rf[4] &bad &kt2
+:kt2 block
+call &find &kt3
+:kt3 block
+if &fo &kt4 &lab
+:kt4 block
+lut &istab &fkind &q1
+if &q1 &kt5 &lab
+:kt5 block
+lut &isstore &wd[0:5] &q1
+if &q1 &kt6 &kt7
+:kt6 block
+lut &isarr &fkind &q1
+if &q1 &kt7 &bad
+:kt7 block
+if &fkind[2] &kt8 &kt9
+:kt8 block
+copy &bidx[0:3] &faddr[0:3]
+copy &bidx[3:8] &zero8[0:5]
+call &loadb &argfin
+:kt9 block
+copy &tbl &zero
+copy &tadr &faddr
+copy &tinfo &finfo
+call &loadinfo &argfin
+
+# a number with a range (the table nlo, nhi by the kind); it goes to the arguments as (number, 0); the second number of table and
+# array (the width of an entry) begins the table
+:kn block
+if &tf[2] &kn1 &bad
+:kn1 block
+lut &nlo &kd &wo20
+copy &wxa &num
+copy &wxb &wo20
+call &wlt &xq11
+:xq11 block
+if &ltc[5] &bad &kn2
+:kn2 block
+lut &nhi &kd &wo20
+copy &wxa &wo20
+copy &wxb &num
+call &wlt &xq12
+:xq12 block
+if &ltc[5] &bad &kn3
+:kn3 block
+copy &ga[0:20] &num
+copy &ga[20:40] &z20
+store &av &ai[0:3] &ga
+lut &inc8 &ai &ai
+lut &and2 &kd[0:2] &q1
+if &q1 &kn4 &argfin
+:kn4 block
+call &tbegin &kn5
+:kn5 block
+lut &wcl &wd[0:5] &wc
+if &wc[3] &kn6 &argfin
+:kn6 block
+copy &fd &one1
+copy &fact &zero
+goto &argfin
+
+# a value: a number or a string (data, or one entry of a table)
+:kv block
+lut &or2 &tf[2:4] &q1
+if &q1 &kv1 &bad
+:kv1 block
+lut &wcl &wd[0:5] &wc
+if &wc[0] &tentry &dataval
+
+# data n v: wid if a string is longer than the data; big; the symbol; the bits
+:dataval block
+lut &av &k0i &ga
+copy &dn &ga[0:20]
+if &tf[3] &dv1 &dv3
+:dv1 block
+copy &dsl[0:8] &slen
+copy &dsl[8:20] &z20[0:12]
+shl &dsl &ds8 3
+copy &wxa &dn
+copy &wxb &ds8
+call &wlt &xq13
+:xq13 block
+if &ltc[5] &wid &dv3
+:dv3 block
+copy &q &dn
+call &chk &dv4
+:dv4 block
+copy &nm &lbl
+copy &ikind[0] &one1
+copy &ikind[1:3] &z20[0:2]
+copy &iaddr &pos
+copy &iinfo[0:17] &dn[0:17]
+copy &iinfo[17:19] &z20[0:2]
+call &insert &dv5
+:dv5 block
+if &tf[3] &dvs &dvn
+:dvn block
+copy &wxa &c20
+copy &wxb &dn
+call &wlt &xq14
+:xq14 block
+if &ltc[5] &dvn2 &dvn3
+:dvn2 block
+copy &dm &c20
+goto &dvn4
+:dvn3 block
+copy &dm &dn
+goto &dvn4
+:dvn4 block
+emit &s_d
+copy &h &dm
+call &puthex &dvn5
+:dvn5 block
+emit &sp
+copy &h &num
+call &puthex &dvn6
+:dvn6 block
+emit &nl8
+copy &wxa &dn
+copy &wxb &dm
+call &wsub &xq15
+:xq15 block
+copy &s21 &wxr
+copy &zc &s21[0:20]
+call &zrun &dvend
+:dvs block
+call &ebytes &dvs2
+:dvs2 block
+copy &wxa &dn
+copy &wxb &ds8
+call &wsub &xq16
+:xq16 block
+copy &s21 &wxr
+copy &zc &s21[0:20]
+call &zrun &dvend
+:dvend block
+copy &wxa &pos
+copy &wxb &dn
+call &wadd &xq17
+:xq17 block
+copy &s21 &wxr
+copy &pos &s21[0:20]
+copy &fd &one1
+copy &fact &zero
+goto &argfin
+
+# an entry of a table: a string must have as many bytes as the entry has bits / 8; the entry goes out with zeros up to the stride
+:tentry block
+if &tf[3] &tes &ten
+:ten block
+emit &s_d
+copy &h &tstm
+call &puthex &ten2
+:ten2 block
+emit &sp
+copy &h &num
+call &puthex &ten3
+:ten3 block
+emit &nl8
+copy &wxa &tstr20
+copy &wxb &tstm
+call &wsub &xq18
+:xq18 block
+copy &s21 &wxr
+copy &zc &s21[0:20]
+call &zrun &tend
+:tes block
+copy &dsl[0:8] &slen
+copy &dsl[8:20] &z20[0:12]
+shl &dsl &ds8 3
+copy &wxa &ds8
+copy &wxb &tout20
+call &weq &xq19
+:xq19 block
+if &q5[4] &tes2 &bad
+:tes2 block
+call &ebytes &tes3
+:tes3 block
+copy &wxa &tstr20
+copy &wxb &tout20
+call &wsub &xq20
+:xq20 block
+copy &s21 &wxr
+copy &zc &s21[0:20]
+call &zrun &tend
+:tend block
+copy &wxa &tcnt
+copy &wxb &c1
+call &wsub &xq21
+:xq21 block
+copy &s21 &wxr
+copy &tcnt &s21[0:20]
+copy &wxa &tcnt
+copy &wxb &z20
+call &weq &xq22
+:xq22 block
+if &q5[4] &tend2 &argfin
+:tend2 block
+copy &fd &one1
+copy &fact &zero
+goto &argfin
+
+# the argument is in: one more; the word is done when the table shape says so (lut and store: tn + 2; table: by the count)
+:argfin block
+lut &incs &na[0:3] &na[0:3]
+if &fd &afdone &af1
+:af1 block
+lut &wcl &wd[0:5] &wc
+if &wc[1] &afls &afs
+:afls block
+add &tn &c2a &r9
+eq &na &r9[0:8] &q2
+if &q2[1] &afdone &afend
+:afs block
+copy &sk[0:3] &na[0:3]
+copy &sk[3:8] &wd[0:5]
+lut &shape &sk &kd2
+lut &nzt &kd2 &nz4
+if &nz4 &afend &afdone
+:afdone block
+copy &inw &zero
+if &fact &afact &afend
+:afact block
+call &act &afend
+:afend block
+ret
+
+# --- the table in hand from its information (tinfo: three widths of indices, the width of an entry): tks, tn, tout, tjv (the
+# stride is 2^tjv, tjv the number of bits of tout)
+:loadinfo word
+copy &tk0 &tinfo[0:4]
+copy &tk1 &tinfo[4:8]
+copy &tk2 &tinfo[8:12]
+store &tks &y0 &tk0
+store &tks &y1 &tk1
+store &tks &y2 &tk2
+copy &tout[0:7] &tinfo[12:19]
+copy &tout[7] &zero
+copy &tout20[0:8] &tout
+copy &tout20[8:20] &z20[0:12]
+lut &nzt &tk0 &tkz[0]
+lut &nzt &tk1 &tkz[1]
+lut &nzt &tk2 &tkz[2]
+lut &cnt3 &tkz &tn2
+copy &tn[0:2] &tn2
+copy &tn[2:8] &zero8[0:6]
+lut &jt &tout[0:7] &tjv
+copy &tj[0:3] &tjv
+copy &tj[3:20] &z20[0:17]
+ret
+
+# a builtin table (index in bidx): information, label letter; it is marked used
+:loadb word
+lut &bi &bidx[0:3] &tinfo
+lut &bfc &bidx[0:3] &tchar
+copy &tbl &one1
+store &bua &bidx[0:3] &one1
+call &loadinfo &lb2
+:lb2 block
+ret
+
+# --- a table or an array begins: K = av[0], w = av[1]; the span is 2^(w.bit_length() + K), the table is at a multiple of it
+:tbegin word
+lut &av &k0i &ga
+lut &av &k1i &gb
+copy &tinfo[0:4] &ga[0:4]
+copy &tinfo[4:12] &z20[0:8]
+copy &tinfo[12:19] &gb[0:7]
+call &loadinfo &tb1
+:tb1 block
+copy &tj4[0:3] &tjv
+copy &tj4[3] &zero
+copy &kj &ga[0:4]
+add &tj4 &kj &r5
+copy &ale &r5[0:4]
+lut &p2e &ale &span
+lut &p2e &ga[0:4] &tcnt
+lut &strd &tjv &tstr
+copy &tstr20[0:8] &tstr
+copy &tstr20[8:20] &z20[0:12]
+lut &m20 &tjv &fw
+copy &tstm[0:5] &fw
+copy &tstm[5:20] &z20[0:15]
+call &padcalc &tb2
+:tb2 block
+copy &wxa &pad
+copy &wxb &span
+call &wadd &xq23
+:xq23 block
+copy &s21 &wxr
+copy &q &s21[0:20]
+call &chk &tb3
+:tb3 block
+call &doalign &tb4
+:tb4 block
+copy &nm &lbl
+lut &wcl &wd[0:5] &wc
+if &wc[3] &tb5 &tb6
+:tb5 block
+copy &ikind &k3
+goto &tb7
+:tb6 block
+copy &ikind &k2
+goto &tb7
+:tb7 block
+copy &iaddr &pos
+copy &iinfo &tinfo
+call &insert &tb8
+:tb8 block
+if &wc[3] &tb9 &tb10
+:tb9 block
+copy &zc &span
+call &zrun &tb10
+:tb10 block
+copy &wxa &pos
+copy &wxb &span
+call &wadd &xq24
+:xq24 block
+copy &s21 &wxr
+copy &pos &s21[0:20]
+ret
+
+# --- the output: hex digits of h without leading zeros (h is spoiled), the name in pnm, the zeros, the position
+:puthex word
+copy &cnt &c5
+copy &sn[0] &zero
+goto &phl
+:phl block
+copy &nib &h[16:20]
+shl &h &h2 4
+shr &cnt &cnt2 1
+lut &nzt &nib &sn[1:2]
+copy &sn[2] &cnt2[0]
+lut &stt &sn &st2
+copy &h &h2
+copy &cnt &cnt2
+if &st2 &phpr &phnp
+:phpr block
+lut &hex4 &nib &hch
+emit &hch
+goto &phnp
+:phnp block
+copy &sn[0] &st2
+if &cnt[0] &phl &phend
+:phend block
+ret
+
+:pname word
+copy &pi &zero8
+goto &pnl1
+:pnl1 block
+lut &nzt &pnm[0:4] &pz[0]
+lut &nzt &pnm[4:8] &pz[1]
+lut &or2 &pz &pnz
+if &pnz &pnem &pnx
+:pnem block
+copy &pby &pnm[0:8]
+emit &pby
+goto &pnx
+:pnx block
+copy &pnt[0:104] &pnm[8:112]
+copy &pnt[104:112] &zero8
+copy &pnm &pnt
+lut &inc8 &pi &pi
+eq &pi &c14 &q2
+if &q2[1] &pnend &pnl1
+:pnend block
+ret
+
+# an operand of a row: a number (h), or a label: &t and the letter of the builtin (1), &r and the name in rname (2)
+:popd word
+if &lk[0] &pdb &pd1
+:pdb block
+emit &s_at
+emit &tchar
+ret
+:pd1 block
+if &lk[1] &pdr &pdn
+:pdr block
+emit &s_ar
+copy &pnm &rname
+call &pname &pdz
+:pdn block
+call &puthex &pdz
+:pdz block
+ret
+
+# the jump to the next layer: c a0 0 <the next layer>; the position moves by a layer
+:pjump word
+emit &s_jmp
+copy &wxa &pos
+copy &wxb &c160
+call &wadd &xq25
+:xq25 block
+copy &pr &wxr
+copy &pos &pr[0:20]
+copy &h &pos
+call &puthex &pj2
+:pj2 block
+emit &nl8
+ret
+
+:pgap word
+emit &s_gap
+call &pjump &pg2
+:pg2 block
+ret
+
+# the last layer with a jump to a block (jt 1: &b and the name bn0), the end (2: &e) or nothing (3: 0)
+:lastx word
+emit &s_gap
+emit &s_jmp
+if &jtv[0] &lx1 &lx2
+:lx1 block
+if &jtv[1] &lx0 &lxb
+:lxb block
+emit &s_ab
+copy &pnm &bn0
+call &pname &lxe
+:lx0 block
+emit &s_one
+goto &lxe
+:lx2 block
+emit &s_ae
+goto &lxe
+:lxe block
+emit &nl8
+copy &wxa &pos
+copy &wxb &c160
+call &wadd &xq26
+:xq26 block
+copy &pr &wxr
+copy &pos &pr[0:20]
+ret
+
+# a layer with a copy row: c p1 p2 p3 (the operands p2 and p3 are labels when lk2 and lk3 say so)
+:lc word
+emit &s_c
+copy &h &p1
+call &puthex &lc1
+:lc1 block
+emit &sp
+copy &h &p2
+copy &lk &lk2
+call &popd &lc2
+:lc2 block
+emit &sp
+copy &h &p3
+copy &lk &lk3
+call &popd &lc3
+:lc3 block
+emit &nl8
+copy &lk2 &y0
+copy &lk3 &y0
+call &pjump &lc4
+:lc4 block
+ret
+
+# a layer with a row of four numbers (qd1 .. qd4): the rows of the channels
+:lq word
+emit &s_d14
+copy &h &qd1
+call &puthex &lq1
+:lq1 block
+emit &nl8
+emit &s_d14
+copy &h &qd2
+call &puthex &lq2
+:lq2 block
+emit &nl8
+emit &s_d14
+copy &h &qd3
+call &puthex &lq3
+:lq3 block
+emit &nl8
+emit &s_d14
+copy &h &qd4
+call &puthex &lq4
+:lq4 block
+emit &nl8
+call &pjump &lq5
+:lq5 block
+ret
+
+# zc zero bits: z ff lines, then the rest
+:zrun word
+goto &zl
+:zl block
+copy &wxa &zc
+copy &wxb &c255
+call &wsub &xq27
+:xq27 block
+copy &zr &wxr
+if &zr[20] &zend &zbody
+:zbody block
+emit &s_zff
+copy &zc &zr[0:20]
+goto &zl
+:zend block
+eq &zc[0:8] &zero8 &q2
+if &q2[1] &zfin &zprint
+:zprint block
+emit &s_z
+copy &h &zc
+call &puthex &zp2
+:zp2 block
+emit &nl8
+ret
+:zfin block
+ret
+
+# is the position pos + q inside the limit
+:chk word
+copy &wxa &pos
+copy &wxb &q
+call &wadd &xq28
+:xq28 block
+copy &chs &wxr
+if &chs[20] &big &chk2
+:chk2 block
+copy &wxa &limit
+copy &wxb &chs[0:20]
+call &wlt &xq29
+:xq29 block
+if &ltc[5] &big &chk3
+:chk3 block
+ret
+
+# pad = the zeros which bring pos to a multiple of 2^ale (ale <= 15)
+:padcalc word
+copy &wxa &z20
+copy &wxb &pos
+call &wsub &xq30
+:xq30 block
+copy &neg &wxr
+lut &mask &ale &mk
+band &neg[0:20] &mk &pad
+ret
+
+:doalign word
+copy &zc &pad
+call &zrun &da2
+:da2 block
+copy &wxa &pos
+copy &wxb &pad
+call &wadd &xq31
+:xq31 block
+copy &s21 &wxr
+copy &pos &s21[0:20]
+ret
+
+:align word
+call &padcalc &aln2
+:aln2 block
+call &doalign &aln3
+:aln3 block
+ret
+
+# the bytes of the string in hand: d 8 <byte>
+:ebytes word
+copy &ix &z20
+goto &ebl
+:ebl block
+copy &lx &ix[0:8]
+eq &lx &slen &q2
+if &q2[1] &ebend &ebb
+:ebb block
+lut &sb &lx[0:5] &pby
+emit &s_dl8
+copy &h[0:8] &pby
+copy &h[8:20] &z20[0:12]
+call &puthex &eb2
+:eb2 block
+emit &nl8
+lut &inc8 &lx &lx
+copy &ix[0:8] &lx
+goto &ebl
+:ebend block
+ret
+
+# --- a layer for each patch of a lut or store: the patches of the fields of the row, a layer with nothing but the jump, the row
+# (the data: tn, tks, tout, tj, tbl, tadr, tchar; the addresses qa[0..tn]; lmode 0 lut, 1 store)
+:lutgen word
+lut &mm &tn[0:2] &ro
+copy &wxa &pos
+copy &wxb &ro
+call &wadd &xq32
+:xq32 block
+copy &t1 &wxr
+copy &ra &t1[0:20]
+lut &fa &lmode &f1
+lut &fb &lmode &f2
+copy &wxa &ra
+copy &wxb &f1
+call &wadd &xq33
+:xq33 block
+copy &t1 &wxr
+copy &wxa &t1[0:20]
+copy &wxb &tj
+call &wadd &xq34
+:xq34 block
+copy &b1 &wxr
+copy &wxa &ra
+copy &wxb &f2
+call &wadd &xq35
+:xq35 block
+copy &t1 &wxr
+copy &wxa &t1[0:20]
+copy &wxb &tj
+call &wadd &xq36
+:xq36 block
+copy &b2 &wxr
+copy &off &z20
+copy &li &zero8
+goto &lgl
+:lgl block
+eq &li &tn &q2
+if &q2[1] &lgend &lgb
+:lgb block
+lut &tks &li[0:2] &kk
+lut &qa &li[0:2] &qd1
+copy &kk20[0:4] &kk
+copy &wxa &b1[0:20]
+copy &wxb &off
+call &wadd &xq37
+:xq37 block
+copy &t1 &wxr
+copy &p2 &t1[0:20]
+copy &p1 &kk20
+copy &p3 &qd1
+call &lc &lg2
+:lg2 block
+copy &wxa &b2[0:20]
+copy &wxb &off
+call &wadd &xq38
+:xq38 block
+copy &t1 &wxr
+copy &p2 &t1[0:20]
+copy &p1 &kk20
+copy &p3 &qd1
+call &lc &lg3
+:lg3 block
+copy &wxa &off
+copy &wxb &kk20
+call &wadd &xq39
+:xq39 block
+copy &t1 &wxr
+copy &off &t1[0:20]
+lut &inc8 &li &li
+goto &lgl
+:lgend block
+call &pgap &lg4
+:lg4 block
+lut &qa &tn[0:2] &qd1
+copy &p1 &tout20
+if &lmode &lgs &lgl2
+:lgl2 block
+copy &p2 &qd1
+if &tbl &lgl3 &lgl4
+:lgl3 block
+copy &lk3 &y1
+goto &lgl5
+:lgl4 block
+copy &p3 &tadr
+goto &lgl5
+:lgl5 block
+call &lc &lgret
+:lgs block
+copy &p3 &qd1
+if &tbl &lgs1 &lgs2
+:lgs1 block
+copy &lk2 &y1
+goto &lgs3
+:lgs2 block
+copy &p2 &tadr
+goto &lgs3
+:lgs3 block
+call &lc &lgret
+:lgret block
+ret
+
+# --- the action of a word whose arguments are all in (wd is its code): the tree of the code
+:act word
+if &wd[4] &act1x &act0x
+:act1x block
+lut &or2 &wd[1:3] &q1
+if &q1 &a_lib &act1y
+:act1y block
+if &wd[0] &a_key &a_warn
+:act0x block
+if &wd[3] &act8 &act0
+:act8 block
+if &wd[2] &act12 &act8b
+:act8b block
+if &wd[1] &act10 &act8c
+:act8c block
+if &wd[0] &a_word &a_block
+:act10 block
+if &wd[0] &a_if &a_goto
+:act12 block
+if &wd[1] &act14 &act12b
+:act12b block
+if &wd[0] &a_ret &a_call
+:act14 block
+if &wd[0] &a_emit &a_halt
+:act0 block
+if &wd[2] &act4 &a_copy
+:act4 block
+if &wd[1] &act6 &act4b
+:act4b block
+if &wd[0] &a_shr &a_shl
+:act6 block
+if &wd[0] &a_store &a_lut
+
+:actret block
+ret
+
+:a_block block
+emit &s_cb
+copy &pnm &lbl
+call &pname &ab2
+:ab2 block
+emit &nl8
+copy &bopen &one1
+ret
+
+:a_word block
+copy &q &z20
+call &chk &aw1
+:aw1 block
+emit &s_cr
+copy &pnm &lbl
+call &pname &aw2
+:aw2 block
+emit &nl8
+emit &s_z28
+copy &wxa &pos
+copy &wxb &c40
+call &wadd &xq40
+:xq40 block
+copy &pr &wxr
+copy &pos &pr[0:20]
+emit &s_cb
+copy &pnm &lbl
+call &pname &aw3
+:aw3 block
+emit &nl8
+copy &curw &lbl
+copy &hasw &one1
+copy &bopen &one1
+ret
+
+:a_copy block
+lut &av &k0i &ga
+lut &av &k1i &gb
+copy &wxa &ga[20:40]
+copy &wxb &gb[20:40]
+call &weq &xq41
+:xq41 block
+if &q5[4] &ac2 &wid
+:ac2 block
+copy &q &z20
+call &chk &ac3
+:ac3 block
+copy &p1 &ga[20:40]
+copy &p2 &ga[0:20]
+copy &p3 &gb[0:20]
+call &lc &actret
+
+:a_emit block
+copy &qd1 &cs2
+goto &a_out
+:a_warn block
+copy &qd1 &cs3
+goto &a_out
+:a_out block
+lut &av &k0i &ga
+copy &q &z20
+call &chk &ao2
+:ao2 block
+copy &qd2 &qd1
+copy &qd3 &ga[0:20]
+copy &wxa &ga[0:20]
+copy &wxb &ga[20:40]
+call &wadd &xq42
+:xq42 block
+copy &s21 &wxr
+copy &qd4 &s21[0:20]
+call &lq &actret
+
+:a_key block
+lut &av &k0i &ga
+lut &nz3 &ga[20:23] &q1
+if &q1 &wid &ak2
+:ak2 block
+copy &q &z20
+call &chk &ak3
+:ak3 block
+copy &qd1 &ga[0:20]
+copy &wxa &ga[0:20]
+copy &wxb &ga[20:40]
+call &wadd &xq43
+:xq43 block
+copy &s21 &wxr
+copy &qd2 &s21[0:20]
+copy &qd3 &cs1
+copy &qd4 &cs1
+call &lq &actret
+
+:a_goto block
+copy &q &z20
+call &chk &ag2
+:ag2 block
+copy &jtv &y1
+copy &bopen &zero
+call &lastx &actret
+:a_halt block
+copy &q &z20
+call &chk &ah2
+:ah2 block
+copy &jtv &y2
+copy &bopen &zero
+call &lastx &actret
+
+# call w b: copy the link into the return link of w, then jump to w; the link (the pair of b) follows the last layer
+:a_call block
+copy &q &z20
+call &chk &acl1
+:acl1 block
+emit &s_c28r
+copy &pnm &bn0
+call &pname &acl2
+:acl2 block
+emit &sp
+copy &wxa &pos
+copy &wxb &c320
+call &wadd &xq44
+:xq44 block
+copy &pr &wxr
+copy &h &pr[0:20]
+call &puthex &acl3
+:acl3 block
+emit &nl8
+call &pjump &acl4
+:acl4 block
+copy &jtv &y1
+call &lastx &acl5
+:acl5 block
+emit &s_d14b
+copy &pnm &bn1
+call &pname &acl6
+:acl6 block
+emit &nl8
+emit &s_d14b
+copy &pnm &bn1
+call &pname &acl7
+:acl7 block
+emit &s_plus
+copy &wxa &pos
+copy &wxb &c40
+call &wadd &xq45
+:xq45 block
+copy &pr &wxr
+copy &pos &pr[0:20]
+copy &bopen &zero
+ret
+
+# ret: copy the return link of the word into the jump row of the last layer, one layer in between, the last layer
+:a_ret block
+copy &q &z20
+call &chk &ar1
+:ar1 block
+emit &s_c28
+copy &wxa &pos
+copy &wxb &c440
+call &wadd &xq46
+:xq46 block
+copy &pr &wxr
+copy &h &pr[0:20]
+call &puthex &ar2
+:ar2 block
+emit &sp
+emit &s_ar
+copy &pnm &curw
+call &pname &ar3
+:ar3 block
+emit &nl8
+call &pjump &ar4
+:ar4 block
+call &pgap &ar5
+:ar5 block
+copy &jtv &y3
+copy &bopen &zero
+call &lastx &actret
+
+# if c b1 b2: patch the index into the row, a layer, the row which copies the pair into the jump of the last layer (6 layers); the
+# table of two pairs (other, then) follows, at a multiple of 128 bits
+:a_if block
+lut &av &k0i &ga
+copy &wxa &ga[20:40]
+copy &wxb &one20
+call &weq &xq47
+:xq47 block
+if &q5[4] &ai2 &wid
+:ai2 block
+copy &q &z20
+call &chk &ai3
+:ai3 block
+copy &possv &pos
+copy &wxa &pos
+copy &wxb &c960
+call &wadd &xq48
+:xq48 block
+copy &pr &wxr
+copy &pos &pr[0:20]
+copy &ale &c7e
+call &padcalc &ai4
+:ai4 block
+copy &wxa &pos
+copy &wxb &pad
+call &wadd &xq49
+:xq49 block
+copy &pr &wxr
+copy &tabv &pr[0:20]
+copy &pos &possv
+copy &wxa &pos
+copy &wxb &c526
+call &wadd &xq50
+:xq50 block
+copy &pr &wxr
+copy &p2 &pr[0:20]
+copy &p1 &one20
+copy &p3 &ga[0:20]
+call &lc &ai5
+:ai5 block
+copy &wxa &pos
+copy &wxb &c386
+call &wadd &xq51
+:xq51 block
+copy &pr &wxr
+copy &p2 &pr[0:20]
+copy &p1 &one20
+copy &p3 &ga[0:20]
+call &lc &ai6
+:ai6 block
+call &pgap &ai7
+:ai7 block
+copy &p1 &c40
+copy &wxa &pos
+copy &wxb &c440
+call &wadd &xq52
+:xq52 block
+copy &pr &wxr
+copy &p2 &pr[0:20]
+copy &p3 &tabv
+call &lc &ai8
+:ai8 block
+call &pgap &ai9
+:ai9 block
+copy &jtv &y3
+call &lastx &ai10
+:ai10 block
+copy &ale &c7e
+call &align &ai11
+:ai11 block
+emit &s_d14b
+copy &pnm &bn1
+call &pname &ai12
+:ai12 block
+emit &nl8
+emit &s_d14b
+copy &pnm &bn1
+call &pname &ai13
+:ai13 block
+emit &s_plus
+emit &s_z18
+emit &s_d14b
+copy &pnm &bn0
+call &pname &ai14
+:ai14 block
+emit &nl8
+emit &s_d14b
+copy &pnm &bn0
+call &pname &ai15
+:ai15 block
+emit &s_plus
+emit &s_z18
+copy &wxa &pos
+copy &wxb &c128
+call &wadd &xq53
+:xq53 block
+copy &pr &wxr
+copy &pos &pr[0:20]
+copy &bopen &zero
+ret
+
+# lut and store: the widths of the indices and of the entry, then the addresses go to qa and the layers out
+:a_lut block
+copy &lmode &zero
+goto &a_ls
+:a_store block
+copy &lmode &one1
+goto &a_ls
+:a_ls block
+copy &li &zero8
+goto &wl
+:wl block
+eq &li &tn &q2
+if &q2[1] &wlo &wlb
+:wlb block
+lut &av &li[0:3] &ga
+lut &tks &li[0:2] &kk
+copy &kk20[0:4] &kk
+copy &wxa &ga[20:40]
+copy &wxb &kk20
+call &weq &xq54
+:xq54 block
+if &q5[4] &wl2 &wid
+:wl2 block
+lut &inc8 &li &li
+goto &wl
+:wlo block
+lut &av &li[0:3] &ga
+copy &wxa &ga[20:40]
+copy &wxb &tout20
+call &weq &xq55
+:xq55 block
+if &q5[4] &wl3 &wid
+:wl3 block
+copy &q &z20
+call &chk &wl4
+:wl4 block
+copy &ci8 &zero8
+goto &wql
+:wql block
+lut &av &ci8[0:3] &ga
+store &qa &ci8[0:2] &ga[0:20]
+eq &ci8 &tn &q2
+if &q2[1] &wgo &wq2
+:wq2 block
+lut &inc8 &ci8 &ci8
+goto &wql
+:wgo block
+call &lutgen &actret
+
+# shl x r k, shr x r k: copies and the bits of zero (the shared zero part of space is at 160)
+:a_shl block
+copy &dir &zero
+goto &a_sh
+:a_shr block
+copy &dir &one1
+goto &a_sh
+:a_sh block
+lut &av &k0i &ga
+lut &av &k1i &gb
+lut &av &k2i &gc
+copy &wxa &ga[20:40]
+copy &wxb &gb[20:40]
+call &weq &xq56
+:xq56 block
+if &q5[4] &sh2 &wid
+:sh2 block
+copy &q &z20
+call &chk &sh3
+:sh3 block
+copy &kv20 &gc[0:20]
+copy &wxa &kv20
+copy &wxb &ga[20:40]
+call &wlt &xq57
+:xq57 block
+if &ltc[5] &sh4 &sh3b
+:sh3b block
+copy &kv20 &ga[20:40]
+goto &sh4
+:sh4 block
+copy &wxa &kv20
+copy &wxb &ga[20:40]
+call &wlt &xq58
+:xq58 block
+copy &lkn &ltc[5]
+copy &wxa &kv20
+copy &wxb &z20
+call &weq &xq59
+:xq59 block
+copy &kz &q5[4]
+copy &wxa &ga[20:40]
+copy &wxb &kv20
+call &wsub &xq60
+:xq60 block
+copy &s21 &wxr
+copy &nmk &s21[0:20]
+if &lkn &sh5 &sh7
+:sh5 block
+copy &p1 &nmk
+if &dir &sh5r &sh5l
+:sh5l block
+copy &wxa &gb[0:20]
+copy &wxb &kv20
+call &wadd &xq61
+:xq61 block
+copy &s21 &wxr
+copy &p2 &s21[0:20]
+copy &p3 &ga[0:20]
+goto &sh6
+:sh5r block
+copy &p2 &gb[0:20]
+copy &wxa &ga[0:20]
+copy &wxb &kv20
+call &wadd &xq62
+:xq62 block
+copy &s21 &wxr
+copy &p3 &s21[0:20]
+goto &sh6
+:sh6 block
+call &lc &sh7
+:sh7 block
+if &kz &actret &sh8
+:sh8 block
+copy &p1 &kv20
+copy &p3 &c160
+if &dir &sh8r &sh8l
+:sh8l block
+copy &p2 &gb[0:20]
+call &lc &actret
+:sh8r block
+copy &wxa &gb[0:20]
+copy &wxb &nmk
+call &wadd &xq63
+:xq63 block
+copy &s21 &wxr
+copy &p2 &s21[0:20]
+call &lc &actret
+
+# add sub band lt eq x y r: one lut for each nibble (the parameters of the word are in the table lp)
+:a_lib block
+lut &av &k0i &ga
+lut &av &k1i &gb
+lut &av &k2i &gc
+lut &lp &wd[0:5] &lpv
+lut &or2 &ga[20:22] &q1
+if &q1 &wid &al2
+:al2 block
+copy &wxa &ga[20:40]
+copy &wxb &gb[20:40]
+call &weq &xq64
+:xq64 block
+if &q5[4] &al3 &wid
+:al3 block
+shr &ga[20:40] &kq 2
+if &lpv[13] &alr23 &alr01
+:alr01 block
+if &lpv[12] &alr1 &alr0
+:alr0 block
+copy &wxa &ga[20:40]
+copy &wxb &one20
+call &wadd &xq65
+:xq65 block
+copy &s21 &wxr
+copy &wantv &s21[0:20]
+goto &alcmp
+:alr1 block
+copy &wantv &ga[20:40]
+goto &alcmp
+:alr23 block
+if &lpv[12] &alr3 &alr2
+:alr2 block
+copy &wantv &kq
+goto &alcmp
+:alr3 block
+copy &wxa &kq
+copy &wxb &one20
+call &wadd &xq66
+:xq66 block
+copy &s21 &wxr
+copy &wantv &s21[0:20]
+copy &wxa &gc[20:40]
+copy &wxb &wantv
+call &wlt &xq67
+:xq67 block
+if &ltc[5] &wid &alok
+:alcmp block
+copy &wxa &gc[20:40]
+copy &wxb &wantv
+call &weq &xq68
+:xq68 block
+if &q5[4] &alok &wid
+:alok block
+copy &q &z20
+call &chk &al4
+:al4 block
+copy &bidx[0:3] &lpv[0:3]
+copy &bidx[3:8] &zero8[0:5]
+call &loadb &al5
+:al5 block
+copy &lmode &zero
+copy &xcur &ga[0:20]
+copy &ycur &gb[0:20]
+copy &ocur &gc[0:20]
+copy &lstep[0:3] &lpv[5:8]
+copy &lstep[3:20] &z20[0:17]
+copy &ii &z20
+goto &alloop
+:alloop block
+copy &wxa &ii
+copy &wxb &kq
+call &weq &xq69
+:xq69 block
+if &q5[4] &actret &alb
+:alb block
+store &qa &y0 &xcur
+store &qa &y1 &ycur
+if &lpv[8] &alo1 &alo0
+:alo0 block
+copy &oa &ocur
+goto &alc
+:alo1 block
+copy &wxa &ocur
+copy &wxb &one20
+call &wadd &xq70
+:xq70 block
+copy &s21 &wxr
+copy &oa &s21[0:20]
+goto &alc
+:alc block
+if &tn[0] &alcar &alout
+:alcar block
+copy &wxa &ii
+copy &wxb &z20
+call &weq &xq71
+:xq71 block
+copy &q2[0] &lpv[10]
+copy &q2[1] &q5[4]
+lut &and2 &q2 &q1
+if &q1 &alc0 &alc1
+:alc0 block
+if &lpv[11] &alcone &alczero
+:alcone block
+copy &ca &c224
+goto &alcst
+:alczero block
+copy &ca &c160
+goto &alcst
+:alc1 block
+if &lpv[9] &alc2 &alc3
+:alc2 block
+copy &wxa &oa
+copy &wxb &one20
+call &wsub &xq72
+:xq72 block
+copy &s21 &wxr
+copy &ca &s21[0:20]
+goto &alcst
+:alc3 block
+copy &ca &oa
+goto &alcst
+:alcst block
+store &qa &y2 &ca
+goto &alout
+:alout block
+store &qa &tn[0:2] &oa
+call &lutgen &alnext
+:alnext block
+copy &wxa &xcur
+copy &wxb &p4v
+call &wadd &xq73
+:xq73 block
+copy &s21 &wxr
+copy &xcur &s21[0:20]
+copy &wxa &ycur
+copy &wxb &p4v
+call &wadd &xq74
+:xq74 block
+copy &s21 &wxr
+copy &ycur &s21[0:20]
+copy &wxa &ocur
+copy &wxb &lstep
+call &wadd &xq75
+:xq75 block
+copy &s21 &wxr
+copy &ocur &s21[0:20]
+copy &wxa &ii
+copy &wxb &c1
+call &wadd &xq76
+:xq76 block
+copy &s21 &wxr
+copy &ii &s21[0:20]
+goto &alloop
+
+# --- the arithmetic of 20 bits as words (a copy of the arguments and a call cost less than a chain of five tables for each use)
+:wadd word
+add &wxa &wxb &wxr
+ret
+:wsub word
+sub &wxa &wxb &wxr
+ret
+:wlt word
+lt &wxa &wxb &ltc
+ret
+:weq word
+eq &wxa &wxb &q5
+ret

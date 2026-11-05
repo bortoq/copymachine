@@ -44,7 +44,7 @@ class Reference(unittest.TestCase):
     def test_every_program_to_text_and_back(self):
         """The text made from each program of programs/ gives its image byte for byte."""
         for f in sorted(os.listdir(PROGRAMS)):
-            if f.endswith('.tw'):
+            if f.endswith('.tw') and f != 'l3c.tw':       # l3c.tw is laid out serially (A=20): tests/test_l3c.py
                 with self.subTest(f):
                     p = compiled(f[:-3])
                     img, err = l1text.encode(l1text.program_text(p))

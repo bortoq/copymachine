@@ -153,7 +153,7 @@ python3 emulator/examples/write-byte.py --write A > /tmp/a.boot
 | `make` | эмулятор и L0 |
 | `make check-fast` | тесты эмулятора (с режимом `checked`), 37 программ на хосте, замкнутость, сверка `language.md`, `make check-tower` (цепочка языков 1–5) |
 | `make check` | + бут и `make -C language check` (около 10 минут) |
-| `make check-full` | + долгие цели: ядро, самосборка `check-self`, изоляция, доказательство, замена, программы пользователя (часы) |
+| `make check-full` | + долгие цели: ядро, самосборка `check-self`, изоляция, доказательство, замена, программы пользователя, `make check-tower-long` (часы) |
 | `make lint`, `make coverage` | ruff; покрытие эмулятора gcov |
 | `sh tools/ci/fast.sh` | то же, что быстрое задание CI: lint, `check-fast`, лицензии, документация, покрытие |
 | `sh tools/ci/docs.sh` | ссылки в Markdown и объём документации (меньше, чем в теге `archive-2026-10-30`) |

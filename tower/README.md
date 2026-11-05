@@ -28,10 +28,20 @@
   метки, вторая пишет текст языка 1 и нулевой байт; метка во второй копии обязана стоять там же, где в первой. Ошибки:
   `l2l: bad text` / `bad count` / `bad label` (повтор, неопределённая, 256-я, копии разные). Сборка без Python: `seed.img` на
   `l2l.l1` даёт образ; `l2c` на `l2l.l2` даёт `l2l.l1`; `l2l` на `l2l.l2` (дважды) даёт `l2l.l1` (неподвижная точка). Эталон —
-  `l2ltext.py`, пример — `hello_names.l2` (вывод равен выводу `l2c` на `hello.l2`). Дальше — компилятор языка 3 (части 2–3).
+  `l2ltext.py`, пример — `hello_names.l2` (вывод равен выводу `l2c` на `hello.l2`). - **Компилятор языка 3 (23.9, часть 2): `programs/l3c.tw`** — программа цепочки (языки 1–3), текст языка 3 → текст языка 2 с метками
+  (вход `l2l`; вывод кончается нулевым байтом, поэтому `cat out out` — это `text 0 text 0`). Цепочка сборки: **текст языка 3 → `l3c` → `l2l` → `seed` → образ**.
+  Раскладка **серийная** (строка = слой из двух слотов: строка и прыжок; P=2, A=20 фиксирован; планировщика нет — он вернётся в 23.10).
+  Вход — подмножество текста `text.py`: слова `data table array copy shl shr lut store block word goto if call ret halt emit warn key add sub
+  band lt eq`, числа десятичные, строки до 32 байт, ссылки `&имя[lo:hi]`, входной блок `main`, данные и таблицы вне блоков; нет языка 4,
+  `stack/rec`, `dec<n>`, `0x`. Таблицы `add4 sub4 hex4` (и `and4 lt4c eq4c` для слов библиотеки) порождаются в конце образа по
+  использованию. Ошибки: `l3c: bad text / bad label / bad width / bad block / too big`, вывод обрезан. Подмножество, раскладка и ошибки
+  подробно — в `l3ctext.py` (Python-эталон; `hoist` переносит данные программ `text.py` из блоков). Образ `l3c` (A=20, P=3, 84 465 байт)
+  пока собирает Python (`compile_program(..., serial=True, hi=22)`, как `seed.l1` когда-то), часть 3 — сборка цепочкой и `l3c` на себе;
+  мешают таблицы имён на 255 мест в `l3c` и `l2l` (в тексте `l3c.tw` 368 имён и 504 метки блоков). Тесты: `tests/test_l3c.py` (в `check-tower`),
+  `tests/long_l3c.py` (`make check-tower-long`: инструменты, собранные `l3c`, 300 порч).
 - **Временно** (заменяются в 23.9 программами цепочки): Python `l2.py`–`l5.py`, `lib.py`, `text.py` (разбор
   текста `.tw`, метки, проверки), `progs.py`, `l1.py`, `l1text.py` (генератор `seed.l1`, `l2c.l1`, Python-эталон
-  кодера), `l2text.py` (Python-эталон `l2c` и перевод текста языка 1 в язык 2), `l2ltext.py` (Python-эталон `l2l`).
+  кодера), `l2text.py` (Python-эталон `l2c` и перевод текста языка 1 в язык 2), `l2ltext.py` (Python-эталон `l2l`), `l3ctext.py` (Python-эталон `l3c`).
 - Ошибка текста языка 1 — сообщение в stderr (слово `warn`, канал S+3) и останов: образ обрывается на этом месте
   (7.2.28, без исключений). Не проверяются (определено, но дорого): число длиннее 5 цифр, значение шире `w` бит,
   `w`/`z` больше `ff`.
@@ -52,7 +62,12 @@
     python3 -B tower/l2ltext.py -e < prog.l2 > prog.l1z                           # эталон l2l (сам удваивает текст)
     # l2l.img = seed.img(l2l.l1); текст дважды на stdin эмулятора (A=19, P=20 печатает text.py):
     { cat l2l.img; cat prog.l2; printf '\0'; cat prog.l2; printf '\0'; } | emulator/build/bitcopy/emulator -s 524282 -p 20 > prog.l1z
-    make check-tower                                       # все тесты цепочки (checked, ~63 с)
+        # язык 3 цепочкой: l3c.img (Python: серийная раскладка) -> текст языка 2 -> l2l (дважды) -> seed -> образ (A=20, P=2)
+    python3 -B tower/l3ctext.py -t > l3c.img                                       # образ l3c (A=20, P=3)
+    python3 -B tower/l3ctext.py -e < prog.tw > prog.l2z                           # эталон l3c (программы с данными в блоках: l3ctext.hoist)
+    { cat l3c.img; cat prog.tw; printf '\0'; } | emulator/build/bitcopy/emulator -s 1048570 -p 3 > prog.l2z
+    make check-tower                                       # все тесты цепочки (checked, ~80 с)
+    make check-tower-long                                  # долгие: инструменты, собранные l3c (~40 с; входит в check-full, не в check-fast)
 
 Эмулятор получает `образ + текст + 0` на stdin, как в `common.run`. После правки `seed.tw`
 пересоздать `seed.l1` (тест `test_seed_text_is_current` скажет, если забыли).
