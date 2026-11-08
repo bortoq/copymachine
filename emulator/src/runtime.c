@@ -170,7 +170,10 @@ static inline void decode_record(size_t i)
     if(q[2]<q[3] && q[3]<=space_nbits) op[0]=q[3]-q[2];
   } else if(q[2]==q[3] && q[2]>=space_nbits) {
     if(q[0]<q[1] && q[1]<=space_nbits) op[0]=q[1]-q[0];
-  } else if(q[2]<q[3]) op[0]=q[3]-q[2];
+  } else if(q[2]<q[3] && q[0]<q[1]) { /* ordinary: the shorter of the two intervals */
+    size a=q[3]-q[2],b=q[1]-q[0];
+    op[0]=a<b?a:b;
+  }
 }
 static inline int record_changed(const unsigned char *a,const unsigned char *b)
 {

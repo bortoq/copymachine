@@ -49,6 +49,7 @@
 | [measurements/](measurements/) | действующие замеры: [минимум понятий](measurements/min-concepts.md) (18.1, ждёт автора); замеры завершённых пунктов (18.2–18.22, 21.1) и скрипты `*-tools/` — в теге `archive-2026-11-05` |
 | [measurements/tower.md](measurements/tower.md) | замеры цепочки языков по пунктам 23.x |
 | [measurements/tower-forth37.md](measurements/tower-forth37.md) | 37 программ нынешнего языка на цепочке (23.11) |
+| [measurements/level-proof.md](measurements/level-proof.md) | доказательство уровня: слово `copy n d s` (23.21, к 7.2.35) |
 | [research/](research/) | [граф определений ядра](research/definition-graph.md) (порождается `defgraph.py`) и данные `definition-graph.json`, `isolation-ticks.json` |
 
 Пути `docs/journal/`, `docs/design/`, `docs/measurements/` и `language/doc/` не меняются: на них ссылаются тесты и журналы.
