@@ -43,6 +43,7 @@ check-fast:
 	$(MAKE) -C language -j1 check-programs check-closure check-language-md check-fast-tests
 	$(MAKE) check-tower
 	$(MAKE) check-layout
+	sh tools/ci/contract.sh
 check: check-fast
 	$(MAKE) -C language -j1 boot
 	$(MAKE) -C language -j1 check

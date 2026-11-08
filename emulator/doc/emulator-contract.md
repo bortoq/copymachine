@@ -77,9 +77,6 @@ and manages later EOF/errors through the channel protocol.
 
 An ordinary operation copies `[src_low,src_high)` to `[dst_low,dst_high)`.
 Both lengths are positive and equal; all endpoints are within `[0,S]`.
-A program that breaks this is not a valid program and its meaning is not
-defined; the emulator only guarantees that it never leaves its memory on it
-(host safety, not semantics; `checked` reports such a program).
 An ordinary empty source denotes NOP and its destination fields are ignored.
 Canonical NOP is `[0,0,0,0]`.
 

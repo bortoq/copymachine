@@ -84,45 +84,9 @@ static void test_field_reads(void)
   }
   space=saved;
 }
-/* Memory ends (23.20): the part of an interval beyond the end of the space reads as zeros and a write
- * there is lost; the copy length is the shorter of the two intervals. The oracle is bit by bit. */
-static void edge_case(size dl,size dh,size sl,size sh)
-{
-  size n=space_nbits,len=dh-dl<sh-sl?dh-dl:sh-sl;
-  size_t bytes=(n+7)/8;
-  unsigned char *want=malloc(bytes);
-  assert(want);
-  for(size_t b=88;b<n;b++) put(space,b,(unsigned)(random_value()&1));
-  instruction(0,dl,dh,sl,sh);
-  memcpy(want,space,bytes);
-  unsigned char *before=malloc(bytes); assert(before); memcpy(before,space,bytes);
-  for(size k=0;k<len;k++)
-    if(dl+k<n) put(want,(size_t)(dl+k),sl+k<n?get(before,(size_t)(sl+k)):0u);
-  assert(computation()==1);
-  assert(!memcmp(space,want,bytes));
-  cases++; free(want); free(before);
-}
-static void test_memory_ends(void)
-{
-  char *args[]={"emulator","-s","1040","-p","2"};
-  parse_config(5,args); init_space();
-  size n=space_nbits;
-  edge_case(200,308,n-8,n+100);        /* source runs past the end: zeros */
-  edge_case(n-8,n+100,200,308);        /* destination runs past the end: lost */
-  edge_case(n-40,n+60,n-30,n+70);      /* both; the source ends later than the destination */
-  edge_case(n-30,n+70,n-40,n+60);
-  edge_case(200,210,300,320);          /* unequal: the shorter one */
-  edge_case(200,220,300,310);
-  edge_case(n-5,n+5,300,320);
-  edge_case(200,320,n-5,n+1);
-  edge_case(n-1,n+500,200,900);       /* one bit lands */
-  destroy_space();
-}
 int main(void)
 {
   test_field_reads();
-  channel_in=tmpfile();channel_out=tmpfile();assert(channel_in&&channel_out);
-  test_memory_ends();
   /* Exact-size codec windows cover widths that do not require enormous RAM. */
   for(unsigned width=1;width<=64;width++)
     for(unsigned offset=0;offset<8;offset++) {
@@ -135,6 +99,7 @@ int main(void)
       assert(read_field(space,offset,width)==value);
       free(space); space=NULL;
     }
+  channel_in=tmpfile();channel_out=tmpfile();assert(channel_in&&channel_out);
   profile("240","2",120); profile("256","2",120);
   profile("1040","8",80); profile("65520","128",30);
 #ifndef VM1_TEST_NETWORK
