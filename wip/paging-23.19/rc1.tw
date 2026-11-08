@@ -1,0 +1,39 @@
+:ls stack 4 0
+rec &cnt &ls
+:n data 4 0
+:r data 5 0
+:one data 4 1
+:zero4 data 4 0
+:c data 1 0
+:d data 8 0
+:nl data 8 "\n"
+:main block
+copy &n &one
+goto &start
+:start block
+copy &n[0:4] &one
+add &n &one &r
+copy &n &r[0:4]
+add &n &one &r
+copy &n &r[0:4]
+add &n &one &r
+copy &n &r[0:4]
+call &cnt &after
+:after block
+emit &nl
+halt
+:cnt word
+lut &hex4 &n &d
+emit &d
+sub &n &one &r
+copy &n &r[0:4]
+eq &n &zero4 &c
+if &c &base &again
+:again block
+call &cnt &back
+:back block
+lut &hex4 &n &d
+emit &d
+ret
+:base block
+ret

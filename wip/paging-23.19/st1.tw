@@ -1,0 +1,19 @@
+:s stack 3 8
+:ls stack 4 0
+:a data 8 "A"
+:b data 8 "B"
+:c data 8 "C"
+:x data 8 0
+:nl data 8 "\n"
+:main block
+push &s &a
+push &s &b
+push &s &c
+pop &s &x
+emit &x
+pop &s &x
+emit &x
+pop &s &x
+emit &x
+emit &nl
+halt
