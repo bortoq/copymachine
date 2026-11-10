@@ -1,10 +1,10 @@
-"""The 37 programs of the present language (language/tests/reference/forthc_programs.py) on the chain (23.11): `programs/forth37/*.tw`, texts of
+"""The 37 programs of the present language (tower/tests/forthc_programs.py) on the chain (23.11): `programs/forth37/*.tw`, texts of
 language 3 (the subset of l3c: no new word, no change of the languages), and `programs/forth37/expected.txt`, the output of each. Every program is
 built by the references of the chain (l3ctext, l2ltext, l1text: text -> image) in both layouts (serial and `pack`) and the image prints the
 expected bytes on the checked emulator; a few small ones are also built by the programs of the chain (l3c -> l2l -> seed on the emulator, no Python
 compiler); the long runs of all 37 through the chain are in long_forth37.py. The expected output is that of the Forth program but for `bytes`
 (a shift by 33 gives 0 here, the Forth language takes the amount modulo 32: the divergence is told in expected.txt and in
-docs/measurements/tower-forth37.md). If language/tests/reference/forthc_programs.py is there, its outputs are compared with expected.txt.
+docs/measurements/tower-forth37.md). Its outputs are compared with expected.txt.
 Run: make check-tower  or  python3 -B tower/tests/test_forth37.py"""
 import os
 import sys
@@ -54,17 +54,16 @@ class Texts(unittest.TestCase):
         want = expected()
         self.assertEqual(len(names()), 37)
         self.assertEqual(sorted(want), names())
-        ref = os.path.join(t.common.ROOT, 'language', 'tests', 'reference')
-        if os.path.isfile(os.path.join(ref, 'forthc_programs.py')):
-            sys.path.insert(0, ref)
-            try:
-                import forthc_programs as fp
-            finally:
-                sys.path.remove(ref)
-            self.assertEqual(sorted(n.replace('_', '-') for n in names()), sorted(set(fp.PROGRAMS) | set(fp.EXPECTED)))
-            for n, (_, out) in fp.EXPECTED.items():
-                if n.replace('-', '_') not in DIVERGENT:
-                    self.assertEqual(want[n.replace('-', '_')], out, n)
+        ref = os.path.dirname(os.path.abspath(__file__))
+        sys.path.insert(0, ref)
+        try:
+            import forthc_programs as fp
+        finally:
+            sys.path.remove(ref)
+        self.assertEqual(sorted(n.replace('_', '-') for n in names()), sorted(set(fp.PROGRAMS) | set(fp.EXPECTED)))
+        for n, (_, out) in fp.EXPECTED.items():
+            if n.replace('-', '_') not in DIVERGENT:
+                self.assertEqual(want[n.replace('-', '_')], out, n)
 
     def test_in_the_subset(self):
         """Each text is a text of the subset of l3c: the reference takes it, its image fits A = 20, the data come before the code (pack mode)."""

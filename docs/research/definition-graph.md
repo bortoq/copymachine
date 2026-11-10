@@ -1,6 +1,6 @@
 # Граф определений ядра K
 
-Сгенерировано `language/tests/reference/defgraph.py`; данные в `docs/research/definition-graph.json`.
+Сгенерировано `language/tests/reference/defgraph.py` (архив, тег `archive-2026-11-10`); данные в `docs/research/definition-graph.json`.
 
 Порядок компиляции K (из `forth/tests/test_kernel.py`): `prelude.fth`, `backend.fth`, `compute.fth`, `forthc.fth`, `main.fth`, `kernel.fth`. Прочие файлы `copycode/forth/` (группа aux) разобраны отдельно, в конце, со своим пространством имён; они не входят в K.
 

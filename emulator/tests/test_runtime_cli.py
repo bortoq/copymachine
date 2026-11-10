@@ -107,7 +107,7 @@ for binary in BINS:
 # LONG (18.25): off is HOST_POS_BITS wide, the area is the top 32 bits, the position in the area HOST_AREA_BITS bits. A position that
 # is not in a file (past 2^64 bits in the area, past what the file offset of the host holds, an area no path gives) reads as zeros, a
 # write is lost; the emulator ends with 0 and writes nothing to stderr. Positions in a file that is far are tested with the
-# language (language/tests/test_long_copy.py: sparse files of 100 MiB and 1.5 GiB).
+# language (tower/tests/test_long.py: sparse files of 100 MiB and 1.5 GiB).
 def long_off(area, bit=0):
     return area << AREA_BITS | bit
 

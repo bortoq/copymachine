@@ -96,21 +96,20 @@ class Texts(unittest.TestCase):
         self.assertEqual((len(words), len(set(words))), (WORDS, WORDS))
 
     def test_sources(self):
-        """37 Forth texts, one for each output of expected.txt; they are those of language/tests/reference/forthc_programs.py if it is there."""
+        """37 Forth texts, one for each output of expected.txt; they are those of tower/tests/forthc_programs.py."""
         want = f.expected()
         self.assertEqual(names(), sorted(want))
         self.assertEqual(len(names()), 37)
-        ref = os.path.join(t.common.ROOT, 'language', 'tests', 'reference')
-        if os.path.isfile(os.path.join(ref, 'forthc_programs.py')):
-            sys.path.insert(0, ref)
-            try:
-                import forthc_programs as fp
-            finally:
-                sys.path.remove(ref)
-            texts = dict(fp.PROGRAMS)
-            texts.update({n: tx for n, (tx, _) in fp.EXPECTED.items()})
-            for n in names():
-                self.assertEqual(source(n).decode(), fp.wrapped(texts[n.replace('_', '-')]) + '\n', n)
+        ref = os.path.dirname(os.path.abspath(__file__))
+        sys.path.insert(0, ref)
+        try:
+            import forthc_programs as fp
+        finally:
+            sys.path.remove(ref)
+        texts = dict(fp.PROGRAMS)
+        texts.update({n: tx for n, (tx, _) in fp.EXPECTED.items()})
+        for n in names():
+            self.assertEqual(source(n).decode(), fp.wrapped(texts[n.replace('_', '-')]) + '\n', n)
 
 
 class Chain(unittest.TestCase):

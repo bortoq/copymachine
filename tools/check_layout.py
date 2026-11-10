@@ -8,15 +8,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 args = parser.parse_args()
-for name in ('emulator', 'language', 'tower', 'tools', 'docs'):
+for name in ('emulator', 'tower', 'tools', 'docs'):
     assert (ROOT/name).is_dir() and not (ROOT/name).is_symlink(), name
 for name in ('space', 'vm2', 'copycode', 'rv32i', 'pforth'):
     assert not (ROOT/name).exists(), name
-allowed = {'emulator', 'language', 'tower', 'tools', 'docs', 'build', 'README.md', 'Makefile', 'project-git',
+allowed = {'emulator', 'tower', 'tools', 'docs', 'build', 'README.md', 'Makefile', 'project-git',
            '.gitignore', '.git', '.project-git', '.agents', '.codex', '.aws', '.claude', '.ruff_cache', '.opencode',
            'LICENSE', 'THIRD_PARTY_NOTICES.md', '.gitattributes', '.editorconfig', '.github', 'ROADMAP.md', 'pyproject.toml'}
 assert not {p.name for p in ROOT.iterdir()} - allowed, 'unexpected root entry'
-for top in ('emulator', 'language', 'tower', 'tools'):
+for top in ('emulator', 'tower', 'tools'):
     for current, children, files in os.walk(ROOT/top, followlinks=False):
         at = Path(current)
         children[:] = [n for n in children if n not in {'build', 'tmp', '__pycache__', 'csrc'}]
