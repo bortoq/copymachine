@@ -76,6 +76,15 @@ PROGRAMS = {
               'copy &t2 %(a)s\nlt &t2 &t1 &c\nif &c[16] &no &yes\n:yes block\nemit &y\nhalt\n:no block\nemit &n\nhalt\n') % {'a': host(0, 0)},
 }
 HOSTA = host(1, 8)
+# a channel from the end of the space: `+k` is S + k (the same text for every A); the program with the forms and the same with the words emit warn key
+CHAN_FORMS = ':a data 8 "A"\n:e data 8 "E"\n:b data 8 0\n:main block\ncopy +2 &a\ncopy +3 &e\ncopy &b +1\ncopy +2 &b\ncopy +3 &b\nhalt\n'
+CHAN_WORDS = ':a data 8 "A"\n:e data 8 "E"\n:b data 8 0\n:main block\nemit &a\nwarn &e\nkey &b\nemit &b\nwarn &b\nhalt\n'
+CHAN_EDGES = [
+    b':a data 8 0\n:main block\ncopy +2 &a\ncopy &a +1\ncopy +0 &a\ncopy +3 &a  # c\n:t data 8 "copy +2 &a"\n', b'copy +2', b'copy +2 +3', b'copy +5 +4 copy +1 +2',
+    b':a data 8 0\n:main block\ncopy +6 &a\ncopy +12 &a\ncopy + &a\ncopy +a &a\ncopy -2 &a\ncopy ++ &a\ncopy &a[0:4] +4\n',
+    b':a data 8 0\n:main block\ncopy +2 ' + HOSTA.encode() + b'\ncopy ' + HOSTA.encode() + b' +1\ncopy &a ' + HOSTA.encode() + b'\n',
+    b'pack\n:a data 8 0\n:main block\ncopy +2 &a\nhalt\n', b':a data 8 "+2"\n:main block\ncopy  +2   &a   copy &a\t+1\n',
+]
 # texts for the pass: what it must give as it is, and what it must leave unchanged
 EDGES = [
     b'', b'# only a comment', b'   ', b'copy', b'copy &a', b'copy &a &b', b'x copy &a 0x1000', b':a data 8 0\n:main block\ncopy &a 0x1000\nhalt\n',
@@ -164,6 +173,24 @@ class Reference(unittest.TestCase):
             if '0x1' in src.split('\n')[-2]:
                 self.assertIsNotNone(l3ctext.encode(out[:-1])[1], src)           # and l3c does not take it (a number which is not a channel)
 
+    def test_channel_from_the_end(self):
+        """`+k` (k 0..5) in `copy` is the channel S + k: l4c gives the number l3c reads (+1 stdin, +2 stdout, +3 stderr, +0 SYS), the rest of the operands as they are;
+        the text with the forms is, after l3c, the text with emit warn key (the same rows)."""
+        for k in range(6):
+            out = l3ctext.l4c(b':a data 8 0\n:main block\ncopy +%d &a\ncopy &a +%d\n\0' % (k, k))[0]
+            self.assertTrue(out.endswith(b'copy %d &a\ncopy &a %d\n\0' % (l3ctext.SYSC + k, l3ctext.SYSC + k)), out)
+        for tok in (b'+6', b'+9', b'+', b'+12', b'+a', b'-2', b'++', b'2', b'+0x', b'&a'):
+            out = l3ctext.l4c(b':a data 8 0\n:main block\ncopy ' + tok + b' &a\n\0')[0]
+            self.assertTrue(out.endswith(b'copy ' + tok + b' &a\n\0'), (tok, out))
+            if tok[:1] in b'+-':
+                self.assertIsNotNone(l3ctext.encode(out[:-1])[1], tok)                  # l3c does not take such a number
+        out = l3ctext.l4c(b':t data 8 "copy +2 &a" # copy +2 &a\n\0')[0]
+        self.assertTrue(out.endswith(b':t data 8 "copy +2 &a" # copy +2 &a\n\0'), out)                 # a string and a comment are not changed
+        forms = l3ctext.encode(l3ctext.l4c(CHAN_FORMS.encode() + b'\0')[0][:-1])
+        words = l3ctext.encode(CHAN_WORDS)
+        self.assertEqual((forms[1], words[1]), (None, None))
+        self.assertTrue(forms[0] and forms[0].count(b'\n') > 10)
+
     def test_chain_of_references(self):
         """The text of language 3 which the pass makes is a text l3c takes."""
         for name, src in PROGRAMS.items():
@@ -201,6 +228,15 @@ class Tool(unittest.TestCase):
                 self.check(src.encode())
         self.check(t.hoisted('echo').encode())                         # no address of the host: the text as it is
         self.check(b'pack\n' + readme_example().encode())
+
+    def test_channel_from_the_end(self):
+        """The forms `+k` of the channels: the same bytes as the reference (also in the pack mode, in a string, in a comment, with the host, a form spoiled)."""
+        for src in CHAN_EDGES:
+            with self.subTest(src):
+                self.check(src)
+        self.check(CHAN_FORMS.encode())
+        r = self.check(b':a data 8 0\n:main block\ncopy +2 &a\ncopy &a +1\ncopy +3 &a\ncopy +4 &a\ncopy +5 &a\ncopy +0 &a\n')
+        self.assertTrue(r.out.endswith(b'copy 1048572 &a\ncopy &a 1048571\ncopy 1048573 &a\ncopy 1048574 &a\ncopy 1048575 &a\ncopy 1048570 &a\n\0'), r.out)
 
     def test_edges(self):
         for src in EDGES:
@@ -300,6 +336,20 @@ class Programs(unittest.TestCase):
                     self.assertEqual(out, FILE[:24])
                 elif name == 'clock':
                     self.assertEqual(out, b'Y')
+
+    def test_channel_from_the_end(self):
+        """A program with `copy +2 &a` (stdout), `copy +3 &e` (stderr), `copy &b +1` (stdin) does what the same program with emit warn key does: the same
+        output, error, code, and the same image (the pass l4c gives the numbers of l3c, and the rows of a channel are the same); in the pack mode too. Only A = 20 is built by the chain (l3c has
+        A = 20), so the text is checked as one for every A by the reference: it has no number of A."""
+        for pack in ('', 'pack\n'):
+            forms, P = l5.chain_image(pack + CHAN_FORMS, True)
+            words, P2 = l5.chain_image(pack + CHAN_WORDS, True)
+            self.assertEqual((forms, P), (words, P2))
+            a, b = (run(img, 20, P, checked=True, limit=LIMIT, stdin=b'Z') for img in (forms, words))
+            self.assertEqual((a.rc, a.out, a.err), (b.rc, b.out, b.err))
+            self.assertEqual((a.rc, a.out), (0, b'AZ'))
+            self.assertIn('E', a.err)
+        self.assertNotRegex(CHAN_FORMS, r'10485')
 
     def test_packed_programs(self):
         """The same in pack mode (l4c, l3c, l3p): the output and the host file as the Python images, in fewer ticks than the serial."""

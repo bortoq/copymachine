@@ -7,7 +7,7 @@
 # buffer of the request l4q of 204 + 2048 bits, the zeros l4z, the constants of the nibbles l4n0..l4n3) is put at the start (after the word `pack`, if it stands first).
 # The width n of the data is that of the part `&x[lo:hi]` (hi - lo), `&x[k]` (1) or of `&x` whole: the pass remembers the widths of `:name data n ...` (the table of
 # names: a tree of tables by the hash of the name, 25.3.1). A copy with no address of the host, or with two, or with a width which is not known or not 1..2048, goes out unchanged (l3c reports it). Not a word of the
-# text, not an address: it goes through as it is (but the blanks between `copy` and its operands do not go out: the copy goes out as `copy a b`). No errors. The reference in Python is tower/l3ctext.py (l4c, host_copy); this text does the same on the chain and a
+# text, not an address: it goes through as it is (an operand `+k`, k 0..5, of a copy without the host is the channel S + k from the end of the space: it goes out as the number 104857k, +2 stdout, +3 stderr, +1 stdin, +0 SYS, emitch; but the blanks between `copy` and its operands do not go out: the copy goes out as `copy a b`). No errors. The reference in Python is tower/l3ctext.py (l4c, host_copy); this text does the same on the chain and a
 # test compares the bytes. How it reads: a character at a time (key); a token is held (the array tk, the two operands of a copy in its two halves) and goes out when
 # it ends; `copy` is held with its two operands. The tables between the marks are made by tower/l3ctext.py (x_tables_text).
 
@@ -77,6 +77,7 @@
 # --- small tables
 :nzt table 4 1  0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
 :is14 table 4 1  0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0
+:le5 table 4 1  1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0
 :xor2 table 2 1  0 1 1 0
 :lvdec table 3 3  7 0 1 2 3 4 5 6
 :lz3 table 3 1  1 0 0 0 0 0 0 0
@@ -251,6 +252,8 @@
 :s_colon data 8 ":"
 :s_0 data 8 "0"
 :s_x data 8 "x"
+:s_plus data 8 "+"
+:s_chan data 48 "104857"
 :w_copy data 32 "copy"
 :w_pack data 32 "pack"
 :w_data data 32 "data"
@@ -638,12 +641,41 @@ ret
 emit &s_copy
 copy &ob &zero
 copy &ol &l1
-call &emitop &tru2
+call &emitch &tru2
 :tru2 block
 emit &sp
 copy &ob &one1
 copy &ol &l2
-call &emitop &trx
+call &emitch &trx
+
+# the operand (ob, ol) goes out; `+k` (k from 0 to 5) is the address of a channel from the end of the space: S + k, the number 104857k (A = 20, as l3c)
+:emitch word
+eq &ol &two8 &q2
+if &q2[1] &ec1 &ec9
+:ec1 block
+copy &mi &zero8
+call &peek &ec2
+:ec2 block
+eq &tc &s_plus &q2
+if &q2[1] &ec3 &ec9
+:ec3 block
+copy &mi &one8
+call &peek &ec4
+:ec4 block
+lut &cc &tc &tcl
+if &tcl[7] &ec5 &ec9
+:ec5 block
+lut &hexv &tc &hv
+lut &le5 &hv[0:4] &q1
+if &q1 &ec6 &ec9
+:ec6 block
+emit &s_chan
+emit &tc
+ret
+:ec9 block
+call &emitop &ecx
+:ecx block
+ret
 
 # is the operand (ob, ol) an address of the host: 0x and at least one hex digit, nothing else (hok)
 :ishost word

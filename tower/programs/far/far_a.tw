@@ -1,0 +1,13 @@
+# Far copy, step 26.2 (7.2.44): the space A without an answerer. One program of language 3, nothing new: data, copy, emit, halt.
+# A copies 8 bits four times (four different values, one after another) from its memory into the channel stdout (S+2); the shell
+# connects this stdout to the stdin of the space B (far_b.tw). A reads nothing and waits for nothing: the channel is a copy of a byte.
+:v0 data 8 165
+:v1 data 8 60
+:v2 data 8 1
+:v3 data 8 200
+:main block
+emit &v0
+emit &v1
+emit &v2
+emit &v3
+halt

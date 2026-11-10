@@ -1087,6 +1087,8 @@ def pack_pass(data):
 # remembers the widths of `:name data n ...`); a copy which has no host address, or has two, or a width that is not known or not 1..NBUF, goes out unchanged (l3c reports it).
 # Not a word, not an address: the rest goes through as it is (tokens as l3c reads them: blanks, `#` comments, strings "..." with escapes); but the blanks
 # between `copy` and its operands are not put out (the copy goes out as `copy a b` or as the words of language 3, the blank after the second operand follows it).
+# The address of a channel in `copy` may be written from the end of the space: `+k` (k 0..5) is S + k, the number 104857k of l3c, so that the text does not depend on A
+# (the channels are the codes at the end of the space: +1 stdin, +2 stdout, +3 stderr, +0 SYS); `copy +2 &x` is `emit &x`, `copy &x +1` is `key &x`. Not a word: a form of the address.
 # No errors, no report.
 NBUF = 2048                           # the bits of data of a long copy (the buffer l4q has 204 + NBUF)
 L4Q, L4Z = 'l4q', 'l4z'
@@ -1152,6 +1154,13 @@ def _width(tok, syms):
     return hi - lo if hi > lo else None
 
 
+def _chan(tok):
+    """An operand `+k` (k 0..5) is the address of a channel from the end of the space, S + k (stdin +1, stdout +2, stderr +3, SYS +0): the number of l3c; the rest as it is."""
+    if len(tok) == 2 and tok[:1] == b'+' and tok[1:] in (b'0', b'1', b'2', b'3', b'4', b'5'):
+        return str(SYSC + tok[1] - 48).encode()
+    return tok
+
+
 def host_copy(put, other, n, digits):
     """The text of language 3 for a long copy of n bits (the part of space `other`) to (put) or from the host, at the position of the hex `digits`."""
     out = ['copy &%s[0:204] &%s[0:204]\n' % (L4Q, L4Z), 'copy &%s[0:4] %s\n' % (L4Q, _nib(6))]
@@ -1208,7 +1217,7 @@ def l4c(data):
                 if n is not None and 1 <= n <= NBUF:
                     put(host_copy(ha is not None, other, n, digits))
                     return
-            put(b'copy ' + a + b' ' + b)
+            put(b'copy ' + _chan(a) + b' ' + _chan(b))
             return
         if first:
             first = False

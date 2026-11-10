@@ -1,0 +1,16 @@
+# Far copy, step 26.2 (7.2.44): the space B. Reads four bytes from its stdin (the channel S+1, filled by the stdout of far_a.tw:
+# a read blocks until the byte is there; at EOF the place keeps its old value, here zeros) into its memory and prints them to stderr.
+:r0 data 8 0
+:r1 data 8 0
+:r2 data 8 0
+:r3 data 8 0
+:main block
+key &r0
+key &r1
+key &r2
+key &r3
+warn &r0
+warn &r1
+warn &r2
+warn &r3
+halt

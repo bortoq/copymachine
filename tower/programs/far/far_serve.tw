@@ -1,0 +1,64 @@
+# Far copy, step 26.3 (7.2.44): the answerer. One program of language 3, nothing new: data, array, lut, store, lt, if, key, emit, copy.
+# It serves a window of 8 cells of 8 bits (the array win) over its stdin/stdout: the answers go to stdout, so the shell must connect the
+# stdout of the asker to this stdin and this stdout to the stdin of the asker.
+# The record of a request: fixed size, 3 bytes, read by three `key`:   op (8 bits)   pos (POS bits)   dat (8 bits)
+#   op = 0  stop (no answer)      op bit 0 = 1 (op = 1)  get: answer one byte, win[pos]      op bit 1 = 1 (op = 2)  put: win[pos] = dat (no answer)
+#   a number is stored as `key` stores it: the first bit of the stream is the lowest bit.
+#   pos out of the window (pos >= 8): get answers a byte of ones (255) = the prohibitive price; put changes nothing.
+#   The end of the stdin (the channel is closed) is a stop: op is zeroed before every read and a read at EOF leaves it as it was.
+# pos is 8 bits here (the least that the channel can carry: whole bytes; the window has 3 bits of position). To 96 bits: pos becomes
+# `data 96 0` read by 12 `key` (the record is 14 bytes), `eight` becomes `data 96 8`; lt works over 24 nibbles (c3 is 25 bits, the
+# test is c3[24]), the index stays pos[0:3]; nothing else changes. A bigger window: the array and the index width (K up to 10).
+:op data 8 0
+:pos data 8 0
+:dat data 8 0
+:ans data 8 0
+:zero8 data 8 0
+:ones data 8 255
+:eight data 8 8
+:c3 data 3 0
+:win array 3 8
+:init data 64 "COPYMACH"
+:i0 data 3 0
+:i1 data 3 1
+:i2 data 3 2
+:i3 data 3 3
+:i4 data 3 4
+:i5 data 3 5
+:i6 data 3 6
+:i7 data 3 7
+:main block
+store &win &i0 &init[0:8]
+store &win &i1 &init[8:16]
+store &win &i2 &init[16:24]
+store &win &i3 &init[24:32]
+store &win &i4 &init[32:40]
+store &win &i5 &init[40:48]
+store &win &i6 &init[48:56]
+store &win &i7 &init[56:64]
+goto &loop
+:loop block
+copy &op &zero8
+key &op
+key &pos
+key &dat
+lt &pos &eight &c3
+if &op[0] &get &notget
+:get block
+if &c3[2] &getin &getout
+:getin block
+lut &win &pos[0:3] &ans
+emit &ans
+goto &loop
+:getout block
+emit &ones
+goto &loop
+:notget block
+if &op[1] &put &done
+:put block
+if &c3[2] &putin &loop
+:putin block
+store &win &pos[0:3] &dat
+goto &loop
+:done block
+halt
