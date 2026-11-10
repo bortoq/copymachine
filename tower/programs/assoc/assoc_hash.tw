@@ -1,0 +1,483 @@
+# Associative space (25.2, 7.2.43), the method: hash. One program of language 3: a small space of cells with two indexes and
+# versions, read from stdin as a sequence of commands, the answers go to stdout. Nothing is new: tables, lut, store,
+# words, blocks, copy, eq, shr; sizes (widths and tables) are between the lines `sizes begin/end`, tests/assoc_gen.py
+# makes them for other sizes.
+#   cells 1..2^C-1 (0 means "none"): ce[cell, sel] = key (sel 0) or value (sel 1), cp[cell] = the cell of the previous version
+#   of the same key (the stack of versions: the top is the one in force; free cells are a list through cp), sy[cell] = the next
+#   cell of a ring of the cells (top versions) with the same value (the table of synonyms);
+#   index F: key -> the cell of its top version (the direct table); index R: value -> one cell of the ring of this value
+#   (the reverse table, a representative). the index: hash (the low bits of the key or value are the number of a bucket, a chain goes through the cells).
+#   The price of "no such key / value" is the prohibitive one: all ones (the cell 0 holds all ones, so the lookup of 0 needs no
+#   special case); a key or a value of all ones is not stored (W does nothing), a write with no free cell does nothing.
+# stdin: a command byte, then its arguments: key = KB/8 bytes, value = VB/8 bytes (the numbers are as `key` stores them);
+#   0 stop        1 W key value   2 K key   3 V value   4 R key   5 P key   6 Q cell   7 S key   (+8: nothing, the byte is skipped)
+#   W: a new top version value for the key        K: the value of the top version        V: the key of a cell with this value
+#   R: remove the top version of the key          P: the cell of the top version (a byte)  Q: key, value, cp, sy of the cell
+#   S: the next synonym key (the key with the same top value, ring order)
+# stdout: K: VB/8 bytes; V, S: KB/8 bytes; P: 1 byte; Q: key, value, cp, sy; no answer is "all ones" (P: 255).
+# === sizes begin (made by tower/tests/assoc_gen.py: hash, key 8 bits, value 8 bits, 16 cells)
+# the entity of a cell: key (sel=0) or value (sel=1) padded with zeros to W bits
+:cmd data 8 0
+:k data 8 0
+:v data 8 0
+:e data 8 0
+:t data 8 0
+:zw data 8 0
+:onesw data 8 255
+:onesk data 8 255
+:onesv data 8 255
+:mk data 2 0
+:mv data 2 0
+:mq data 2 0
+:mp data 2 0
+:sel data 1 0
+:selone data 1 1
+:fl data 1 0
+:fz data 1 0
+:ic data 4 0
+:ac data 4 0
+:dc data 4 0
+:nc data 4 0
+:wc data 4 0
+:ot data 4 0
+:pv data 4 0
+:xr data 4 0
+:yr data 4 0
+:qa data 4 0
+:qb data 4 0
+:pr data 4 0
+:tc data 4 0
+:zc data 4 0
+:fh data 4 0
+:tp data 4 1
+:ix data 5 0
+:ixc0 data 5 0
+:ixc1 data 5 16
+:pa data 8 0
+:pb8 data 8 0
+:pb data 8 0
+:pq data 8 0
+:ffb data 8 255
+:ce array 5 8
+:cp array 4 4
+:sy array 4 4
+:isz table 4 1
+  1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:inc table 4 4
+  1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0
+:hx data 5 0
+:hd array 5 4
+:cn array 5 4
+# === sizes end
+
+# --- the main loop: a command byte (bits 0-2: 0 stop, 1 W, 2 K, 3 V, 4 R, 5 P, 6 Q, 7 S; bit 3: nothing to do)
+:main block
+store &ce &ixc0 &onesw
+store &ce &ixc1 &onesw
+goto &next
+
+:next block
+key &cmd
+if &cmd[3] &next &dec
+
+:dec block
+if &cmd[2] &dec_hi &dec_lo
+:dec_hi block
+if &cmd[1] &dec_hh &dec_hl
+:dec_hh block
+if &cmd[0] &op_s &op_q
+:dec_hl block
+if &cmd[0] &op_p &op_r
+:dec_lo block
+if &cmd[1] &dec_lh &dec_ll
+:dec_lh block
+if &cmd[0] &op_v &op_k
+:dec_ll block
+if &cmd[0] &op_w &fin
+:fin block
+halt
+
+# --- W key value: a new version of the key (nothing happens if there is no free cell or the key or the value is all ones)
+:op_w block
+key &k
+key &v
+call &chk_k &w1
+:w1 block
+if &fl &next &w2
+:w2 block
+call &chk_v &w3
+:w3 block
+if &fl &next &w4
+:w4 block
+call &mke_k &w5
+:w5 block
+copy &sel &zero
+call &ix_find &w6
+:w6 block
+copy &ot &ic
+call &alloc &w7
+:w7 block
+lut &isz &nc &fz
+if &fz &next &w8
+:w8 block
+copy &ic &nc
+call &mkix &w9
+:w9 block
+store &ce &ix &e
+call &mke_v &w10
+:w10 block
+copy &sel &selone
+call &mkix &w11
+:w11 block
+store &ce &ix &e
+store &cp &nc &ot
+copy &wc &nc
+lut &isz &ot &fz
+if &fz &w13 &w12
+:w12 block
+copy &dc &ot
+call &deact &w13
+:w13 block
+call &mke_k &w14
+:w14 block
+copy &sel &zero
+copy &nc &wc
+call &ix_set &w15
+:w15 block
+copy &ac &wc
+call &act &next
+
+# --- R key: removes the top version of the key
+:op_r block
+key &k
+call &mke_k &r1
+:r1 block
+copy &sel &zero
+call &ix_find &r2
+:r2 block
+lut &isz &ic &fz
+if &fz &next &r3
+:r3 block
+copy &ot &ic
+copy &dc &ic
+call &deact &r4
+:r4 block
+lut &cp &ot &pv
+call &mke_k &r5
+:r5 block
+copy &sel &zero
+lut &isz &pv &fz
+if &fz &r6 &r7
+:r6 block
+call &ix_del &r9
+:r7 block
+copy &nc &pv
+call &ix_set &r8
+:r8 block
+copy &ac &pv
+call &act &r9
+:r9 block
+copy &dc &ot
+call &freec &next
+
+# --- K key: the value of the top version (all ones: there is none)
+:op_k block
+key &k
+call &mke_k &k1
+:k1 block
+copy &sel &zero
+call &ix_find &k2
+:k2 block
+copy &sel &selone
+call &mkix &k3
+:k3 block
+lut &ce &ix &t
+call &outv &next
+
+# --- V value: the key whose top version has this value (one of the synonyms; all ones: there is none)
+:op_v block
+key &v
+call &mke_v &v1
+:v1 block
+copy &sel &selone
+call &ix_find &v2
+:v2 block
+copy &sel &zero
+call &mkix &v3
+:v3 block
+lut &ce &ix &t
+call &outk &next
+
+# --- P key: the position (cell) of the top version, as a byte (all ones: there is none)
+:op_p block
+key &k
+call &mke_k &p1
+:p1 block
+copy &sel &zero
+call &ix_find &p2
+:p2 block
+lut &isz &ic &fz
+if &fz &p3 &p4
+:p3 block
+emit &ffb
+goto &next
+:p4 block
+copy &qa &ic
+call &outc &next
+
+# --- Q position: the key, the value, the position of the previous version and of the next synonym (bytes)
+:op_q block
+key &pq
+call &getq &q1
+:q1 block
+copy &sel &zero
+call &mkix &q2
+:q2 block
+lut &ce &ix &t
+call &outk &q3
+:q3 block
+copy &sel &selone
+call &mkix &q4
+:q4 block
+lut &ce &ix &t
+call &outv &q5
+:q5 block
+lut &cp &ic &qa
+call &outc &q6
+:q6 block
+lut &sy &ic &qa
+call &outc &next
+
+# --- S key: the next key with the same value (a ring through the synonyms; the key itself if alone)
+:op_s block
+key &k
+call &mke_k &s1
+:s1 block
+copy &sel &zero
+call &ix_find &s2
+:s2 block
+lut &sy &ic &tc
+copy &ic &tc
+call &mkix &s3
+:s3 block
+lut &ce &ix &t
+call &outk &next
+
+# --- a free cell: nc (0 if there is none); the free ones are a list through cp, then the counter tp counts up to 2^C
+:alloc word
+lut &isz &fh &fz
+if &fz &al1 &al2
+:al1 block
+copy &nc &tp
+lut &isz &tp &fz
+if &fz &al3 &al4
+:al3 block
+ret
+:al4 block
+lut &inc &tp &tp
+ret
+:al2 block
+copy &nc &fh
+lut &cp &nc &fh
+ret
+
+:freec word
+store &cp &dc &fh
+copy &fh &dc
+ret
+
+# --- act: the cell ac (the top version of its key) enters the value structures: the table of values (a representative of
+# every value) and the ring of synonyms (sy) of the cells with the same value
+:act word
+copy &sel &selone
+copy &ic &ac
+call &mkix &a1
+:a1 block
+lut &ce &ix &e
+call &ix_find &a2
+:a2 block
+lut &isz &ic &fz
+if &fz &a3 &a4
+:a3 block
+store &sy &ac &ac
+copy &nc &ac
+call &ix_set &a5
+:a5 block
+ret
+:a4 block
+lut &sy &ic &tc
+store &sy &ac &tc
+store &sy &ic &ac
+ret
+
+# --- deact: the cell dc (a top version) leaves the value structures; the ring loses it, a new representative if it was one
+:deact word
+copy &xr &dc
+goto &d1
+:d1 block
+lut &sy &xr &yr
+copy &qa &yr
+copy &qb &dc
+call &eqp &d2
+:d2 block
+if &fl &d3 &d4
+:d4 block
+copy &xr &yr
+goto &d1
+:d3 block
+copy &qa &xr
+copy &qb &dc
+call &eqp &d5
+:d5 block
+if &fl &d6 &d7
+:d6 block
+copy &sel &selone
+copy &ic &dc
+call &mkix &d8
+:d8 block
+lut &ce &ix &e
+call &ix_del &d9
+:d9 block
+ret
+:d7 block
+lut &sy &dc &yr
+store &sy &xr &yr
+copy &sel &selone
+copy &ic &dc
+call &mkix &d10
+:d10 block
+lut &ce &ix &e
+call &ix_find &d11
+:d11 block
+copy &qa &ic
+copy &qb &dc
+call &eqp &d12
+:d12 block
+if &fl &d13 &d9
+:d13 block
+copy &nc &yr
+call &ix_set &d9
+
+# --- the index (hash): the table hd by the low H bits of the entity (and sel: the table of keys or of values) gives the first
+# cell of a chain; the chain goes through cn; a cell is in a chain by its entity (ce). Interface of the index (the tree has
+# the same): ix_find (sel, e -> ic, 0 if none), ix_set (sel, e, nc: the entity leads to the cell nc), ix_del (sel, e)
+:hwalk word
+call &mkh &hw1
+:hw1 block
+lut &hd &hx &ic
+copy &pr &zc
+goto &hw2
+:hw2 block
+lut &isz &ic &fz
+if &fz &hwr &hw3
+:hwr block
+ret
+:hw3 block
+call &mkix &hw4
+:hw4 block
+lut &ce &ix &t
+call &eqe &hw5
+:hw5 block
+if &fl &hwr &hw6
+:hw6 block
+copy &pr &ic
+lut &cn &ix &ic
+goto &hw2
+
+:ix_find word
+call &hwalk &hf1
+:hf1 block
+ret
+
+:hunlink word
+call &mkix &hu1
+:hu1 block
+lut &cn &ix &tc
+lut &isz &pr &fz
+if &fz &hu2 &hu3
+:hu2 block
+store &hd &hx &tc
+ret
+:hu3 block
+copy &ic &pr
+call &mkix &hu4
+:hu4 block
+store &cn &ix &tc
+ret
+
+:ix_set word
+call &hwalk &is1
+:is1 block
+lut &isz &ic &fz
+if &fz &is3 &is2
+:is2 block
+call &hunlink &is3
+:is3 block
+lut &hd &hx &tc
+copy &ic &nc
+call &mkix &is4
+:is4 block
+store &cn &ix &tc
+store &hd &hx &nc
+ret
+
+:ix_del word
+call &hwalk &id1
+:id1 block
+lut &isz &ic &fz
+if &fz &id3 &id2
+:id2 block
+call &hunlink &id3
+:id3 block
+ret
+
+# --- small words which depend on the widths
+# === words begin (made by tower/tests/assoc_gen.py)
+:mke_k word
+copy &e &zw
+copy &e[0:8] &k
+ret
+:mke_v word
+copy &e &zw
+copy &e[0:8] &v
+ret
+:mkix word
+copy &ix[0:4] &ic
+copy &ix[4:5] &sel
+ret
+:eqe word
+eq &e &t &mq
+copy &fl &mq[1]
+ret
+:eqp word
+copy &pa[0:4] &qa
+copy &pb8[0:4] &qb
+eq &pa &pb8 &mp
+copy &fl &mp[1]
+ret
+:chk_k word
+eq &k &onesk &mk
+copy &fl &mk[1]
+ret
+:chk_v word
+eq &v &onesv &mv
+copy &fl &mv[1]
+ret
+:outk word
+emit &t[0:8]
+ret
+:outv word
+emit &t[0:8]
+ret
+:outc word
+copy &pb[0:4] &qa
+emit &pb
+ret
+:getq word
+copy &ic &pq[0:4]
+ret
+:mkh word
+copy &hx[0:4] &e[0:4]
+copy &hx[4:5] &sel
+ret
+# === words end

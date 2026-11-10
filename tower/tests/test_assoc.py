@@ -1,0 +1,354 @@
+"""Tests of the associative space (25.2, 7.2.43): the programs tower/programs/assoc/assoc_hash.tw and assoc_tree.tw (language 3) keep
+a small space of cells: the direct table key -> the top version, the stack of versions, the reverse table value -> key (the top
+version), the ring of synonyms; there is "no such key / value" = the prohibitive price (all ones). The tests run them on the emulator
+and compare every answer with a simple model (a dictionary of stacks of values), then read the whole space back (every key,
+every value, every cell) and check the consistency: the value at the cell p is what the key of p gives and what the search of this
+value finds, the stack goes down the cells to the first version, the synonyms are exactly the keys with the same top value.
+Python is here only: the programs are language 3.
+Run: make check-tower  or  python3 -B tower/tests/test_assoc.py"""
+import os
+import random
+import sys
+
+sys.dont_write_bytecode = True
+import unittest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, '..'))
+import assoc_gen
+import common
+import l3ctext
+import text
+from common import rev, stream
+from test_l3c import image_of
+
+STOP, W, K, V, R, P, Q, S = range(8)
+SIZES = [(8, 8, 4), (8, 8, 5), (16, 8, 4)]            # key bits, value bits, cell bits (16 and 32 cells, 8 and 16 bits of key)
+_CACHE = {}
+
+
+def setUpModule():
+    common.ensure_built()
+
+
+class Space:
+    """A program of the space of the size (kb, vb, c) and the method; session() runs a list of commands and decodes the answers."""
+
+    def __init__(self, method, kb=8, vb=8, c=4):
+        self.method, self.kb, self.vb, self.c = method, kb, vb, c
+        self.n = (1 << c) - 1                          # cells 1..n
+        self.onesk, self.onesv = (1 << kb) - 1, (1 << vb) - 1
+        p, errs = text.compile_text(assoc_gen.source(method, kb, vb, c))
+        assert not errs, errs
+        self.prog, self.stats = p, p.stats
+
+    @staticmethod
+    def get(method, size):
+        if (method, size) not in _CACHE:
+            _CACHE[method, size] = Space(method, *size)
+        return _CACHE[method, size]
+
+    def encode(self, ops):
+        out = bytearray()
+        for op in ops:
+            out += stream(op[0], 8)
+            if op[0] == W:
+                out += stream(op[1], self.kb) + stream(op[2], self.vb)
+            elif op[0] in (K, R, P, S):
+                out += stream(op[1], self.kb)
+            elif op[0] == V:
+                out += stream(op[1], self.vb)
+            elif op[0] == Q:
+                out += stream(op[1], 8)
+        return bytes(out) + stream(STOP, 8)
+
+    def sizes(self, op):
+        return {K: self.vb // 8, V: self.kb // 8, S: self.kb // 8, P: 1, Q: self.kb // 8 + self.vb // 8 + 2}.get(op[0], 0)
+
+    def number(self, bs):
+        return sum(rev(b, 8) << 8 * i for i, b in enumerate(bs))
+
+    def session(self, ops, checked=False):
+        st = self.stats
+        limit = 3000 * (len(ops) + 1) + 100000                 # far above the work of a command: a hang is an error
+        r = common.run(st['image'], st['A'], st['P'], checked=checked, stdin=self.encode(ops), limit=limit)
+        assert r.rc == 0, (r.rc, r.err)
+        assert len(r.out) == sum(self.sizes(op) for op in ops), 'the program did not stop in time or answers wrongly'
+        i, res = 0, []
+        for op in ops:
+            n = self.sizes(op)
+            b = r.out[i:i + n]
+            i += n
+            if op[0] == Q:
+                kb, vb = self.kb // 8, self.vb // 8
+                res.append((self.number(b[:kb]), self.number(b[kb:kb + vb]), b[kb + vb], b[kb + vb + 1]))
+                res[-1] = (res[-1][0], res[-1][1], rev(res[-1][2], 8), rev(res[-1][3], 8))
+            else:
+                res.append(self.number(b) if n else None)
+        assert i == len(r.out), 'extra output'
+        return res, r
+
+
+class Model:
+    """The dictionary of stacks. A write is ignored if the key or the value is all ones or if all cells are in use."""
+
+    def __init__(self, sp):
+        self.sp, self.st, self.used = sp, {}, 0
+
+    def write(self, k, v):
+        if k == self.sp.onesk or v == self.sp.onesv or self.used >= self.sp.n:
+            return
+        self.st.setdefault(k, []).append(v)
+        self.used += 1
+
+    def roll(self, k):
+        if k in self.st:
+            self.st[k].pop()
+            self.used -= 1
+            if not self.st[k]:
+                del self.st[k]
+
+    def value(self, k):
+        return self.st[k][-1] if k in self.st else self.sp.onesv
+
+    def keys_of(self, v):
+        return sorted(k for k, s in self.st.items() if s[-1] == v)
+
+
+def apply(m, op):
+    if op[0] == W:
+        m.write(op[1], op[2])
+    elif op[0] == R:
+        m.roll(op[1])
+
+
+def check_inline(tc, m, op, got):
+    """The answer to one command against the model before the command (the commands which change the model are applied after)."""
+    sp = m.sp
+    if op[0] == K:
+        tc.assertEqual(got, m.value(op[1]), op)
+    elif op[0] == V:
+        ks = m.keys_of(op[1])
+        tc.assertTrue(got in ks if ks else got == sp.onesk, (op, got, ks))
+    elif op[0] == S:
+        if op[1] in m.st:
+            tc.assertIn(got, m.keys_of(m.value(op[1])), op)
+        else:
+            tc.assertEqual(got, sp.onesk, op)
+    elif op[0] == P:
+        tc.assertEqual(got == 255, op[1] not in m.st, op)
+        tc.assertTrue(got == 255 or 1 <= got <= sp.n, (op, got))
+    elif op[0] == Q:
+        tc.assertEqual(len(got), 4)
+
+
+def sweep_ops(sp, keys, values=None):
+    ops = [(K, k) for k in keys] + [(P, k) for k in keys] + [(S, k) for k in keys]
+    ops += [(V, v) for v in (range(1 << sp.vb) if values is None else values)] + [(Q, p) for p in range(sp.n + 1)]
+    return ops
+
+
+def check_sweep(tc, m, sp, keys, values, res):
+    """The consistency of the whole space against the model: res are the answers to sweep_ops(sp, keys, values)."""
+    nk, nv = len(keys), len(values)
+    kk, pp, ss = res[:nk], res[nk:2 * nk], res[2 * nk:3 * nk]
+    vv, qq = res[3 * nk:3 * nk + nv], res[3 * nk + nv:]
+    pos = {}
+    for i, k in enumerate(keys):
+        tc.assertEqual(kk[i], m.value(k), ('K', k))                       # the value of the key
+        if k not in m.st:
+            tc.assertEqual((pp[i], ss[i]), (255, sp.onesk), k)             # no key: the prohibitive price
+            continue
+        p = pp[i]
+        tc.assertTrue(1 <= p <= sp.n, (k, p))
+        tc.assertNotIn(p, pos)
+        pos[p] = k
+        tc.assertEqual(qq[p][:2], (k, m.value(k)), ('Q', k, p))            # the cell p holds the key and its value
+        stack, q, seen = [], p, set()
+        while q:                                                          # the stack of versions: down the cells to the first
+            tc.assertNotIn(q, seen)
+            seen.add(q)
+            tc.assertEqual(qq[q][0], k, (k, q))
+            stack.append(qq[q][1])
+            q = qq[q][2]
+        tc.assertEqual(stack[::-1], m.st[k], ('stack', k))
+        ring, q = [], k                                                   # the synonyms: the ring of the keys with the same value
+        for _ in range(sp.n + 1):
+            ring.append(q)
+            q = ss[keys.index(q)] if q in keys else None
+            if q is None or q == k:
+                break
+        tc.assertEqual(q, k, ('ring', k, ring))
+        tc.assertEqual(sorted(ring), m.keys_of(m.value(k)), ('ring', k))
+    for i, v in enumerate(values):
+        ks = m.keys_of(v)
+        if ks:                                                            # the search of a value finds a key whose top version is it
+            tc.assertIn(vv[i], ks, ('V', v))
+            if vv[i] in keys:
+                tc.assertEqual(qq[pp[keys.index(vv[i])]][1], v, ('V', v))
+        else:
+            tc.assertEqual(vv[i], sp.onesk, ('V', v))
+
+
+def pools(rng, sp):
+    """Keys and values with collisions: the same low bits (the hash), the same upper parts (the tree), equal values."""
+    h = sp.c
+    ks = set()
+    base = rng.randrange(sp.onesk)
+    for j in range(3):
+        ks.add(base ^ (j << h) & sp.onesk)                                 # same low H bits
+    for j in range(3):
+        ks.add(base ^ (j + 1) & sp.onesk)                                  # differ in the lowest part only
+    while len(ks) < 12:
+        ks.add(rng.randrange(sp.onesk))
+    vs = [rng.randrange(sp.onesv) for _ in range(5)]
+    vs += [vs[0] ^ (1 << h) & sp.onesv, vs[1] ^ 1]
+    return sorted(ks - {sp.onesk}), sorted(set(vs) - {sp.onesv})
+
+
+def random_ops(rng, sp, n):
+    ks, vs = pools(rng, sp)
+    ops = []
+    for _ in range(n):
+        k = rng.choice(ks) if rng.random() < 0.85 else rng.randrange(1 << sp.kb)
+        v = rng.choice(vs) if rng.random() < 0.85 else rng.randrange(1 << sp.vb)
+        x = rng.random()
+        if x < 0.5:
+            ops.append((W, k, v))
+        elif x < 0.7:
+            ops.append((R, k))
+        elif x < 0.8:
+            ops.append((K, k))
+        elif x < 0.88:
+            ops.append((V, v))
+        elif x < 0.93:
+            ops.append((S, k))
+        elif x < 0.97:
+            ops.append((P, k))
+        else:
+            ops.append((Q, rng.randrange(sp.n + 1)))
+    return ops
+
+
+def run_checked(tc, sp, ops, checked=False, extra=0, rng=None, only=None):
+    """The commands, then the sweep of the whole space; all answers against the model."""
+    m = Model(sp)
+    for op in ops:
+        apply(m, op)
+    if only is not None:
+        keys = sorted(set(only) | set(m.st) | {sp.onesk})
+    elif sp.kb <= 8:
+        keys = list(range(1 << sp.kb))
+    else:
+        rng = rng or random.Random(5)
+        keys = set(m.st) | {sp.onesk, 0} | {rng.randrange(1 << sp.kb) for _ in range(extra or 30)}
+        keys |= {k ^ (1 << j) for k in list(m.st) for j in (0, 1, 2, sp.c, sp.kb - 1)}
+        keys = sorted(keys)
+    values = list(range(1 << sp.vb))
+    res, r = sp.session(list(ops) + sweep_ops(sp, keys, values), checked=checked)
+    m = Model(sp)
+    for op, got in zip(ops, res[:len(ops)], strict=True):
+        check_inline(tc, m, op, got)
+        apply(m, op)
+    check_sweep(tc, m, sp, keys, values, res[len(ops):])
+    return r
+
+
+class Programs(unittest.TestCase):
+    def test_sizes_are_current(self):
+        """The sizes in the committed programs are what assoc_gen makes for the default size."""
+        for method in ('hash', 'tree'):
+            with open(os.path.join(assoc_gen.PROGRAMS, 'assoc_%s.tw' % method), encoding='utf-8') as h:
+                src = h.read()
+            self.assertEqual(src, assoc_gen.source(method), method)
+
+    def test_same_text_but_the_index(self):
+        """The two programs share everything but the index (the tables of the hash or of the tree and the words around them)."""
+        def part(method):
+            with open(os.path.join(assoc_gen.PROGRAMS, 'assoc_%s.tw' % method), encoding='utf-8') as h:
+                src = h.read()
+            return src[src.index(':main block'):src.index('# --- the index')]
+        self.assertEqual(part('hash'), part('tree'))
+
+    def test_hello(self):
+        for method in ('hash', 'tree'):
+            sp = Space.get(method, SIZES[0])
+            res, r = sp.session([(W, 5, 7), (W, 6, 7), (K, 5), (V, 7), (S, 5), (W, 5, 9), (K, 5), (V, 7), (V, 9), (R, 5), (K, 5), (V, 9),
+                                 (K, 200), (V, 100)], checked=True)
+            self.assertEqual(res[2], 7)
+            self.assertIn(res[3], (5, 6))
+            self.assertEqual(res[4], 6)
+            self.assertEqual((res[6], res[7], res[8], res[10], res[11]), (9, 6, 5, 7, 255))
+            self.assertEqual((res[12], res[13]), (255, 255))
+            self.assertLess(r.ticks, 5000)
+
+    def test_the_chain_compiler_reads_them(self):
+        """The texts are in the subset of l3c (the reference of the compiler of the chain accepts them); its image (A=20, serial layout) gives the same answers."""
+        for method in ('hash', 'tree'):
+            with self.subTest(method):
+                sp = Space.get(method, SIZES[0])
+                out, err = l3ctext.encode(l3ctext.hoist(assoc_gen.source(method)))
+                self.assertIsNone(err)
+                ops = random_ops(random.Random(3), sp, 60) + sweep_ops(sp, range(0, 256, 5), range(0, 256, 5))
+                a = common.run(image_of(out), 20, 2, checked=True, limit=200 * 10 ** 6, stdin=sp.encode(ops))
+                b = common.run(sp.stats['image'], sp.stats['A'], sp.stats['P'], checked=True, limit=200 * 10 ** 6, stdin=sp.encode(ops))
+                self.assertEqual((a.rc, b.rc), (0, 0))
+                self.assertEqual(a.out, b.out)
+                self.assertGreater(len(a.out), 100)
+
+
+class Random(unittest.TestCase):
+    def test_random_sessions(self):
+        """Random sessions with colliding keys, repeated values, absent keys and rollbacks; the first two of every kind on the checked emulator."""
+        for method in ('hash', 'tree'):
+            for size in SIZES:
+                sp = Space.get(method, size)
+                rng = random.Random(25 * 1000 + size[0] * 10 + size[2])
+                for i in range(14 if size == SIZES[0] else 6):
+                    with self.subTest(method=method, size=size, i=i):
+                        run_checked(self, sp, random_ops(rng, sp, rng.choice([40, 90, 160])), checked=i < 2)
+
+    def test_pool_and_cells_are_full(self):
+        """Every cell in use (distinct keys with nothing in common, repeated rounds), then everything is taken back: nothing is lost."""
+        for method in ('hash', 'tree'):
+            for size in SIZES:
+                sp = Space.get(method, size)
+                rng = random.Random(11)
+                ops = []
+                for _ in range(4):
+                    ks = rng.sample(range(sp.onesk), sp.n + 2)
+                    vs = rng.sample(range(sp.onesv), sp.n + 2)
+                    ops += [(W, k, v) for k, v in zip(ks, vs, strict=True)]          # two writes over the capacity are ignored
+                    ops += [(R, k) for k in ks[::2]] + [(W, k, vs[0]) for k in ks[1::2]]
+                    ops += [(R, k) for k in ks] + [(R, k) for k in ks]
+                with self.subTest(method=method, size=size):
+                    run_checked(self, sp, ops, checked=True)
+
+    def test_same_value_and_same_bucket(self):
+        """The long chains and rings: all keys with the same value (the ring), all keys and values with the same low bits (the hash chain)."""
+        for method in ('hash', 'tree'):
+            for size in SIZES:
+                sp = Space.get(method, size)
+                kk, vv = (lambda j, sp=sp: ((j << sp.c) + 3) & sp.onesk), (lambda j, sp=sp: ((j << sp.c) + 5) & sp.onesv)
+                ops = [(W, kk(j), 9) for j in range(1, sp.n + 1)] + [(R, kk(3)), (R, kk(5)), (W, 7, 9), (W, 7, 17)]
+                ops += [(W, kk(j), vv(j)) for j in range(1, 5)] + [(R, 7), (R, 7), (R, kk(1))]
+                with self.subTest(method=method, size=size):
+                    run_checked(self, sp, ops, checked=True)
+
+
+class Exhaustive(unittest.TestCase):
+    def test_every_key_and_every_value(self):
+        """The small size (8-bit keys): for every key k and every value v a fresh space: a background, then k written twice, v written
+        under another key, a rollback; the whole space is read back and compared with the model."""
+        for method in ('hash', 'tree'):
+            sp = Space.get(method, SIZES[0])
+            bg = [(W, 17, 4), (W, 33, 4), (W, 1, 200), (W, 18, 4)]
+            for i in range(0, 255):
+                k, v = i, 254 - i
+                ops = bg + [(W, k, v), (W, k, i), (W, 100, v), (R, k), (W, k, 4), (R, 17), (W, v, k)]
+                with self.subTest(method=method, i=i):
+                    run_checked(self, sp, ops, only=[17, 33, 1, 18, 100, 7, k, v])
+
+
+if __name__ == '__main__':
+    unittest.main()
