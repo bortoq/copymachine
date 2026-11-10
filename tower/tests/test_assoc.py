@@ -1,6 +1,7 @@
 """Tests of the associative space (25.2, 7.2.43): the programs tower/programs/assoc/assoc_hash.tw and assoc_tree.tw (language 3) keep
 a small space of cells: the direct table key -> the top version, the stack of versions, the reverse table value -> key (the top
-version), the ring of synonyms; there is "no such key / value" = the prohibitive price (all ones). The tests run them on the emulator
+version), the ring of synonyms (two links: next and previous); there is "no such key / value" = the prohibitive price (all ones),
+and a write which cannot be done (no free cell, the key or the value all ones) answers it too. The tests run them on the emulator
 and compare every answer with a simple model (a dictionary of stacks of values), then read the whole space back (every key,
 every value, every cell) and check the consistency: the value at the cell p is what the key of p gives and what the search of this
 value finds, the stack goes down the cells to the first version, the synonyms are exactly the keys with the same top value.
@@ -62,8 +63,11 @@ class Space:
                 out += stream(op[1], 8)
         return bytes(out) + stream(STOP, 8)
 
-    def sizes(self, op):
-        return {K: self.vb // 8, V: self.kb // 8, S: self.kb // 8, P: 1, Q: self.kb // 8 + self.vb // 8 + 2}.get(op[0], 0)
+    def sizes(self, op, fails=False):
+        """The bytes of the answer to op; fails: a write which cannot be done (it answers the prohibitive price, VB/8 bytes of ones)."""
+        if op[0] == W:
+            return self.vb // 8 if fails else 0
+        return {K: self.vb // 8, V: self.kb // 8, S: self.kb // 8, P: 1, Q: self.kb // 8 + self.vb // 8 + 3}.get(op[0], 0)
 
     def number(self, bs):
         return sum(rev(b, 8) << 8 * i for i, b in enumerate(bs))
@@ -73,16 +77,19 @@ class Space:
         limit = 3000 * (len(ops) + 1) + 100000                 # far above the work of a command: a hang is an error
         r = common.run(st['image'], st['A'], st['P'], checked=checked, stdin=self.encode(ops), limit=limit)
         assert r.rc == 0, (r.rc, r.err)
-        assert len(r.out) == sum(self.sizes(op) for op in ops), 'the program did not stop in time or answers wrongly'
+        m, fails = Model(self), []
+        for op in ops:                                          # which writes cannot be done: the model knows
+            fails.append(op[0] == W and m.refuses(op[1], op[2]))
+            apply(m, op)
+        assert len(r.out) == sum(self.sizes(op, f) for op, f in zip(ops, fails, strict=True)), 'the program did not stop in time or answers wrongly'
         i, res = 0, []
-        for op in ops:
-            n = self.sizes(op)
+        for op, f in zip(ops, fails, strict=True):
+            n = self.sizes(op, f)
             b = r.out[i:i + n]
             i += n
             if op[0] == Q:
                 kb, vb = self.kb // 8, self.vb // 8
-                res.append((self.number(b[:kb]), self.number(b[kb:kb + vb]), b[kb + vb], b[kb + vb + 1]))
-                res[-1] = (res[-1][0], res[-1][1], rev(res[-1][2], 8), rev(res[-1][3], 8))
+                res.append((self.number(b[:kb]), self.number(b[kb:kb + vb])) + tuple(rev(x, 8) for x in b[kb + vb:kb + vb + 3]))
             else:
                 res.append(self.number(b) if n else None)
         assert i == len(r.out), 'extra output'
@@ -90,13 +97,17 @@ class Space:
 
 
 class Model:
-    """The dictionary of stacks. A write is ignored if the key or the value is all ones or if all cells are in use."""
+    """The dictionary of stacks. A write is refused (nothing changes, the answer is the prohibitive price) if the key or the value is
+    all ones or if all cells are in use."""
 
     def __init__(self, sp):
         self.sp, self.st, self.used = sp, {}, 0
 
+    def refuses(self, k, v):
+        return k == self.sp.onesk or v == self.sp.onesv or self.used >= self.sp.n
+
     def write(self, k, v):
-        if k == self.sp.onesk or v == self.sp.onesv or self.used >= self.sp.n:
+        if self.refuses(k, v):
             return
         self.st.setdefault(k, []).append(v)
         self.used += 1
@@ -125,7 +136,9 @@ def apply(m, op):
 def check_inline(tc, m, op, got):
     """The answer to one command against the model before the command (the commands which change the model are applied after)."""
     sp = m.sp
-    if op[0] == K:
+    if op[0] == W:
+        tc.assertEqual(got, sp.onesv if m.refuses(op[1], op[2]) else None, op)
+    elif op[0] == K:
         tc.assertEqual(got, m.value(op[1]), op)
     elif op[0] == V:
         ks = m.keys_of(op[1])
@@ -139,7 +152,7 @@ def check_inline(tc, m, op, got):
         tc.assertEqual(got == 255, op[1] not in m.st, op)
         tc.assertTrue(got == 255 or 1 <= got <= sp.n, (op, got))
     elif op[0] == Q:
-        tc.assertEqual(len(got), 4)
+        tc.assertEqual(len(got), 5)
 
 
 def sweep_ops(sp, keys, values=None):
@@ -180,6 +193,11 @@ def check_sweep(tc, m, sp, keys, values, res):
                 break
         tc.assertEqual(q, k, ('ring', k, ring))
         tc.assertEqual(sorted(ring), m.keys_of(m.value(k)), ('ring', k))
+    for p, k in pos.items():                                              # the ring has two links: next and previous agree
+        nx, pr = qq[p][3], qq[p][4]
+        tc.assertEqual(pos.get(nx), ss[keys.index(k)], ('next', k))
+        tc.assertEqual((qq[nx][4], qq[pr][3]), (p, p), ('links', k))
+        tc.assertEqual((qq[nx][1], qq[pr][1]), (qq[p][1], qq[p][1]), ('values', k))
     for i, v in enumerate(values):
         ks = m.keys_of(v)
         if ks:                                                            # the search of a value finds a key whose top version is it
@@ -274,12 +292,13 @@ class Programs(unittest.TestCase):
         for method in ('hash', 'tree'):
             sp = Space.get(method, SIZES[0])
             res, r = sp.session([(W, 5, 7), (W, 6, 7), (K, 5), (V, 7), (S, 5), (W, 5, 9), (K, 5), (V, 7), (V, 9), (R, 5), (K, 5), (V, 9),
-                                 (K, 200), (V, 100)], checked=True)
+                                 (K, 200), (V, 100), (W, 255, 5), (W, 5, 255), (K, 5), (W, 6, 8), (K, 6)], checked=True)
             self.assertEqual(res[2], 7)
             self.assertIn(res[3], (5, 6))
             self.assertEqual(res[4], 6)
             self.assertEqual((res[6], res[7], res[8], res[10], res[11]), (9, 6, 5, 7, 255))
             self.assertEqual((res[12], res[13]), (255, 255))
+            self.assertEqual((res[14], res[15], res[16], res[17], res[18]), (255, 255, 7, None, 8))   # the refused writes answer all ones
             self.assertLess(r.ticks, 5000)
 
     def test_the_chain_compiler_reads_them(self):
@@ -323,6 +342,30 @@ class Random(unittest.TestCase):
                     ops += [(R, k) for k in ks] + [(R, k) for k in ks]
                 with self.subTest(method=method, size=size):
                     run_checked(self, sp, ops, checked=True)
+
+    def test_full_space_refuses_the_write(self):
+        """With every cell in use a write answers the prohibitive price and changes nothing; after a rollback it is done."""
+        for method in ('hash', 'tree'):
+            for size in SIZES:
+                sp = Space.get(method, size)
+                ops = [(W, j, j) for j in range(1, sp.n + 1)] + [(W, 100, 5), (W, 3, 5), (K, 100), (K, 3), (R, 3), (W, 100, 5), (K, 100), (K, 3)]
+                with self.subTest(method=method, size=size):
+                    res, _ = sp.session(ops, checked=True)
+                    self.assertEqual(res[sp.n:], [sp.onesv, sp.onesv, sp.onesv, 3, None, None, 5, sp.onesv])
+                    run_checked(self, sp, ops, checked=True)
+
+    def test_ring_length_does_not_cost_ticks(self):
+        """The ring of synonyms has two links: a rollback and an overwrite of a key (W over a top version) take no more ticks in a
+        ring of 12 cells than in a ring of 2 (the first written key, the farthest from its predecessor in a ring with one link)."""
+        sp = Space.get('tree', SIZES[0])
+
+        def cost(length, last):
+            ks = [17 * j % 251 + 1 for j in range(length)]
+            pre = [(W, k, 7) for k in ks]
+            base = sp.session(pre, checked=True)[1].ticks
+            return sp.session(pre + [last(ks[0])], checked=True)[1].ticks - base
+        for last in (lambda k: (R, k), lambda k: (W, k, 9)):
+            self.assertLessEqual(cost(12, last), cost(2, last), last(0))
 
     def test_same_value_and_same_bucket(self):
         """The long chains and rings: all keys with the same value (the ring), all keys and values with the same low bits (the hash chain)."""

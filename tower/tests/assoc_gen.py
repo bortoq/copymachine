@@ -50,7 +50,7 @@ def sizes(method, kb, vb, c):
          ':fh data %d 0' % c, ':tp data %d 1' % c, ':ix data %d 0' % (c + 1),
          ':ixc0 data %d 0' % (c + 1), ':ixc1 data %d %d' % (c + 1, 1 << c),
          ':pa data 8 0', ':pb8 data 8 0', ':pb data 8 0', ':pq data 8 0', ':ffb data 8 255',
-         ':ce array %d %d' % (c + 1, w), ':cp array %d %d' % (c, c), ':sy array %d %d' % (c, c),
+         ':ce array %d %d' % (c + 1, w), ':cp array %d %d' % (c, c), ':sy array %d %d' % (c, c), ':sb array %d %d' % (c, c),
          tab('isz', c, 1, [1] + [0] * (n - 1)).rstrip('\n'), tab('inc', c, c, [(i + 1) % n for i in range(n)]).rstrip('\n')]
     words = [
         ':mke_k word', 'copy &e &zw', 'copy &e[0:%d] &k' % kb, 'ret',
