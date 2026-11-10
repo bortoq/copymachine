@@ -17,11 +17,23 @@ import common
 import l3
 import progs
 import text
-from common import stream
+from common import bytes_value, stream
 from l4 import host_pos
 from test_tower import arith_want, intervals, once
 
 PROGRAMS = os.path.join(common.HERE, 'programs')
+def cat_flat(area, chunks, nbytes):
+    """The program long_cat.tw: the same as progs.long_cat but for the loop; the address of the host is a constant of the text, so every read is written out."""
+    def build(p):
+        buf = p.var('buf', 8 * nbytes, bytes_value(b'?' * nbytes))
+        p.block('main')
+        for k in range(chunks):
+            p.long_get(p.var('hostpos%d' % (k + 1), 128, host_pos(area, 8 * nbytes * k)), buf.ref())
+            p.emit(buf.ref())
+        p.halt()
+    return build
+
+
 BUILDERS = {
     'add': progs.add_print(200, 100), 'branch': progs.branch(3, 9), 'loop_digits': progs.loop_digits(),
     'loop_sum': progs.loop_sum(), 'calls': progs.calls(), 'and_hex': progs.and_hex(0xac, 0x3f),
@@ -29,7 +41,7 @@ BUILDERS = {
     'arith8': progs.arith(8, 3, 5), 'arith16': progs.arith(16, 7, 9), 'echo': progs.echo(), 'fib': progs.fib(),
     'long_rw': progs.long_rw(host_pos(1, 8), b'hello', host_pos(1, 8)),
     'long_read': progs.long_rw(0, b'', host_pos(1, 8), 4),
-    'long_clock': progs.long_clock(), 'long_cat': progs.long_cat(1, 5, 8),
+    'long_clock': progs.long_clock(), 'long_cat': cat_flat(1, 5, 8),
 }
 
 
@@ -47,12 +59,13 @@ def errors(src, level=4):
 
 
 MAIN = ':main block\n'
+HOST = '0x100000001000000000000000000000008'           # the address of the host: 2^128 + the position of the bit 8 of the area 1
 
 
 class Programs(unittest.TestCase):
     def test_every_program_is_in_text(self):
         names = sorted(f[:-3] for f in os.listdir(PROGRAMS) if f.endswith('.tw'))
-        self.assertEqual(names, sorted(list(BUILDERS) + ['dict', 'seed', 'l2c', 'l2l', 'l3c', 'l3p', 'l4p', 'forth', 'forthgen']))
+        self.assertEqual(names, sorted(list(BUILDERS) + ['dict', 'seed', 'l2c', 'l2l', 'l3c', 'l3p', 'l4c', 'forth', 'forthgen']))
 
     def test_parse_and_bytes(self):
         """Each text is accepted and gives the image of its builder byte for byte (and the same A and P)."""
@@ -112,9 +125,10 @@ class Rejected(unittest.TestCase):
     def test_words(self):
         self.bad(MAIN + 'foo\nhalt\n', '2:1: unknown word foo')
         self.bad(MAIN + 'copy &a\nhalt\n', 'undefined label &a')
-        self.bad(':main block\nlong! halt\n', 'missing argument 1 of long!')
-        self.bad(':a data 8 0\n:main block\nlong! &a &a\nhalt\n', 'the position', level=4)
-        self.bad(':a data 8 0\n:main block\nlong! &a &a\nhalt\n', 'unknown word long! (in language 3)', level=3)
+        self.bad(':main block\ncopy %s halt\n' % HOST, 'missing argument 2 of copy')
+        self.bad(':a data 8 0\n:main block\ncopy &a 0x1\nhalt\n', 'an address of the host is 0x1 and 32 hex digits', level=4)
+        self.bad(':a data 8 0\n:main block\ncopy &a %s\nhalt\n' % HOST, 'an address of the host is a word of language 4', level=3)
+        self.bad(':a data 8 0\n:main block\nlong! &a &a\nhalt\n', 'unknown word long! (in language 4)')
         self.bad(':a data 8 0\n:main block\nhalt\n', 'unknown word block (in language 2)', level=2)
         self.assertEqual(errors(':a data 8 1\n:b data 8 0\ncopy &a &b\n', level=2), [])
 
@@ -177,7 +191,9 @@ class Rejected(unittest.TestCase):
         self.bad(d + MAIN + 'if &a &main &main\n', 'if: the condition: 1 bits expected')
         self.bad(d + ':ar array 3 8\n' + MAIN + 'store &ar &b &a\nhalt\n', 'store ar, index 1: 3 bits expected, found 4')
         self.bad(d + ':t table 2 4  0 1 2 3\n' + MAIN + 'store &t &b[0:2] &b\nhalt\n', 'is a table, not an array')
-        self.bad(d + MAIN + 'long@ &c &a\nhalt\n', 'the position: 128 bits expected')
+        self.bad(d + MAIN + 'copy %s %s\nhalt\n' % (HOST, HOST), 'the host is on one side')
+        self.bad(d + MAIN + 'copy &c %s\nhalt\n' % HOST.replace('0x1', '0x2'), 'an address of the host is 0x1 and 32 hex digits')
+        self.bad(d + MAIN + 'copy &zero %s\nhalt\n' % HOST, 'zero is read-only')
 
     def test_blocks(self):
         d = ':a data 8 0\n'

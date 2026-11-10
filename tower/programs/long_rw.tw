@@ -1,12 +1,10 @@
-# long! writes "hello" to the area 1 (the file -r) at the bit 8, long@ reads 5 bytes back from the same place,
-# stdout gets them (progs.long_rw(host_pos(1, 8), b"hello", host_pos(1, 8))). The position is 128 bits:
-# the area in the high 32 bits, the bit in the low 96: 1 << 96 | 8.
+# Language 4: a copy with the address of the host. "hello" is written to the area 1 (the file -r) at the bit 8, 5 bytes are read back from the
+# same place, stdout gets them (progs.long_rw(host_pos(1, 8), b"hello", host_pos(1, 8))). The address of the host is 2^128 + the position, the
+# position is the area in the top 32 bits and the bit in the area in the low 96: 2^128 | 1 << 96 | 8 (0x1, then 32 hex digits).
 :got data 40 "\xff\xff\xff\xff\xff"
 :main block
-:wpos data 128 0x1000000000000000000000008
 :out data 40 "hello"
-long! &wpos &out
-:rpos data 128 0x1000000000000000000000008
-long@ &rpos &got
+copy 0x100000001000000000000000000000008 &out
+copy &got 0x100000001000000000000000000000008
 emit &got
 halt

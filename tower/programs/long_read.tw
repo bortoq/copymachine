@@ -1,8 +1,7 @@
-# long@ of 4 bytes from the area 1 at the bit 8 (the file -r), written to stdout
+# Reading 4 bytes from the area 1 (the file -r) at the bit 8 by a copy with the address of the host, written to stdout
 # (progs.long_rw(0, b"", host_pos(1, 8), 4)); where the host has no file the bytes are zeros.
 :got data 32 "\xff\xff\xff\xff"
 :main block
-:rpos data 128 0x1000000000000000000000008
-long@ &rpos &got
+copy &got 0x100000001000000000000000000000008
 emit &got
 halt

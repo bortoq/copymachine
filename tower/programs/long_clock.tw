@@ -1,10 +1,9 @@
 # The clock (area 0, 64 bits) read twice, one after the other, both go to stdout (progs.long_clock()).
 :t1 data 64 0
 :t2 data 64 0
-:pos data 128 0
 :main block
-long@ &pos &t1
-long@ &pos &t2
+copy &t1 0x100000000000000000000000000000000
+copy &t2 0x100000000000000000000000000000000
 emit &t1
 emit &t2
 halt

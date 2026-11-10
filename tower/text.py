@@ -10,7 +10,7 @@ is turned into calls of the constructors of the same languages (Parsed.build), w
   2 (copy, data): data copy shl shr
   3 (tables, blocks, library): table array lut store block word goto if call ret halt emit warn key
     add sub band lt eq stack push pop rec
-  4 (long copy): long! long@
+  4 (the host): no word of its own: `copy` may have the address of the host, a number 0x1... (2^128 + the position area * 2^96 + bit)
 Run: python3 -m tower.text [-l LEVEL] < prog.tw > image   (A and P of the image go to stderr)."""
 import os
 import re
@@ -25,6 +25,7 @@ from common import bytes_value, rev
 TOKEN = re.compile(r'''\s+|#[^\n]*|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|\S+)''')
 NAME = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 RESERVED = re.compile(r'(add4|sub4|and4|lt4c|eq4c|hex4|dec\d+|inc\d+_\d|dec\d+_\d|if\d+|zero)\Z')
+HOST = re.compile(r'0x([0-9a-fA-F]+)\Z')            # the address of the host: 2^128 + the position (the area in the top 32 bits, the bit in the area)
 REF = re.compile(r'&([A-Za-z_][A-Za-z0-9_]*)(?:\[(\d+)(?::(\d+))?\])?\Z')
 ESC = {'n': 10, 't': 9, 'r': 13, '0': 0, '\\': 92, '"': 34, "'": 39}
 Tok = namedtuple('Tok', 'text line col')
@@ -32,6 +33,7 @@ Tab = namedtuple('Tab', 'name ins out array')            # a table which lut and
 Stk = namedtuple('Stk', 'k w')                           # a stack: pointer bits, entry bits (0: a link)
 Lab = namedtuple('Lab', 'kind bits tab stk')
 Rf = namedtuple('Rf', 'name lo hi')
+Hs = namedtuple('Hs', 'pos')                             # the address of the host in a copy
 
 
 def tokens(text):
@@ -103,6 +105,7 @@ class Parser:
         self.defined = {t.text[1:] for t in self.toks if t.text[0] == ':'}
         self.labels, self.pending, self.cur = {'zero': Lab('data', 1, None, None)}, None, None   # cur: [name, word, ended]
         self.touched, self.recs, self.uses = set(), set(), []      # words used (rec must come first)
+        self.hosts = 0                                             # the copies with the address of the host
 
     def err(self, t, msg):
         self.errors.append('%d:%d: %s' % (t.line, t.col, msg))
@@ -122,6 +125,16 @@ class Parser:
             if s == 'link':
                 return 0, None
             return self.arg('num:1:64', t, args)
+        if k[0] == 'adr':
+            if s[:2] == '0x':
+                m = HOST.match(s)
+                v = int(m.group(1), 16) if m else 0
+                if v >> 128 != 1:
+                    return None, 'an address of the host is 0x1 and 32 hex digits (2^128 plus the position), found %s' % s
+                if self.level < 4:
+                    return None, 'an address of the host is a word of language 4, found %s' % s
+                return Hs(v & (1 << 128) - 1), None
+            k = ['ref']
         m = REF.match(s)
         if not m:
             return None, 'a reference &name expected, found %s' % s
@@ -194,7 +207,7 @@ class Parser:
                 if kind is None:
                     break
                 if i >= n or wordlike(toks[i]) and not (kind == 'wid' and toks[i].text == 'link'):
-                    self.err(t, 'missing argument %d of %s (%s expected)' % (len(args) + 1, t.text, kind.split(':')[0]))
+                    self.err(t, 'missing argument %d of %s (%s expected)' % (len(args) + 1, t.text, kind.split(':')[0].replace('adr', 'ref')))
                     ok = False
                     break
                 a, e = self.arg(kind, toks[i], args)
@@ -317,6 +330,19 @@ def w_stack(c, t, a):
 def w_copy(c, t, a):
     if c.inblock(t):
         d, s = a
+        if isinstance(d, Hs) or isinstance(s, Hs):
+            if isinstance(d, Hs) and isinstance(s, Hs):
+                c.err(t, 'copy: the host is on one side, a part of space on the other')
+                return
+            put, host, x = isinstance(d, Hs), (d if isinstance(d, Hs) else s), (s if isinstance(d, Hs) else d)
+            if not 0 < x.hi - x.lo < 1 << 32:
+                c.err(t, 'copy: the length is 1..2^32-1 bits')
+            if not put:
+                c.write(t, x)
+            c.hosts += 1
+            k = c.hosts
+            c.steps.append(lambda p, e: (p.long_put if put else p.long_get)(p.var('hostpos%d' % k, 128, host.pos), R(x)(e)))
+            return
         c.width(t, s, d.hi - d.lo, 'copy')
         c.write(t, d)
         if d.name == s.name and d.lo < s.hi and s.lo < d.hi:
@@ -468,20 +494,9 @@ def w_shift(c, t, a):
         c.steps.append(lambda p, e: getattr(p, t.text)(R(x)(e), R(r)(e), k))
 
 
-def w_long(c, t, a):
-    if c.inblock(t):
-        pos, d = a
-        c.width(t, pos, 128, '%s: the position' % t.text)
-        if not 0 < d.hi - d.lo < 1 << 32:
-            c.err(t, '%s: the length is 1..2^32-1 bits' % t.text)
-        if t.text == 'long@':
-            c.write(t, d)
-        c.steps.append(lambda p, e: (p.long_put if t.text == 'long!' else p.long_get)(R(pos)(e), R(d)(e)))
-
-
 WORDS = {
     'data': (2, fixed('num:1:65536', 'val'), w_data),
-    'copy': (2, fixed('ref', 'ref'), w_copy),
+    'copy': (2, fixed('adr', 'adr'), w_copy),
     'shl': (2, fixed('ref', 'ref', 'num:0:65536'), w_shift),
     'shr': (2, fixed('ref', 'ref', 'num:0:65536'), w_shift),
     'table': (3, table_shape, w_table),
@@ -502,8 +517,6 @@ WORDS = {
     'push': (3, fixed('stk', 'ref'), w_push),
     'pop': (3, fixed('stk', 'ref'), w_push),
     'rec': (3, fixed('wrd', 'stk'), w_rec),
-    'long!': (4, fixed('ref', 'ref'), w_long),
-    'long@': (4, fixed('ref', 'ref'), w_long),
 }
 for _op in ('add', 'sub', 'band', 'lt', 'eq'):
     WORDS[_op] = (3, fixed('ref', 'ref', 'ref'), lib(_op))

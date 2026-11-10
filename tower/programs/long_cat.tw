@@ -1,22 +1,15 @@
-# cat: a loop reads the area 1 (the file -r) in 5 chunks of 8 bytes, the position grows by a 128-bit add,
-# every chunk goes to stdout (progs.long_cat(1, 5, 8)).
-:pos data 128 0x1000000000000000000000000
-:step data 128 64
-:nxt data 129 0
+# cat: the area 1 (the file -r) is read in 5 chunks of 8 bytes, every chunk goes to stdout. The address of the host is a constant of the text,
+# so the five reads are written one by one: the positions are the bits 0, 64, 128, 192, 256 of the area 1.
 :buf data 64 "????????"
-:i data 5 0
-:one data 4 1
-:c data 1 0
-:lt5 table 4 1  1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
 :main block
-goto &loop
-:loop block
-long@ &pos &buf
+copy &buf 0x100000001000000000000000000000000
 emit &buf
-add &pos &step &nxt
-copy &pos &nxt[0:128]
-lut &add4 &i[0:4] &one &zero &i
-lut &lt5 &i[0:4] &c
-if &c &loop &done
-:done block
+copy &buf 0x100000001000000000000000000000040
+emit &buf
+copy &buf 0x100000001000000000000000000000080
+emit &buf
+copy &buf 0x1000000010000000000000000000000c0
+emit &buf
+copy &buf 0x100000001000000000000000000000100
+emit &buf
 halt

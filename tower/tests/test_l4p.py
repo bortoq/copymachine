@@ -1,10 +1,9 @@
-"""Tests of language 4 on the chain (23.17): `long!` and `long@`, the long copy to and from the host. l3c has no room for the whole word (98 % of
-A = 20): it checks the two arguments and writes a placeholder (the line `long` and a layer with four numbers, ten layers of room); the pass
-`programs/l4p.tw` puts the 11 layers there: the request of the SYS channel, built of copies (the numbers op, direction and length are 4 bits
-copied from the table add4), the row to SYS, for `long@` the row which reads the answer. The chain is: text of language 3 -> l3c -> l4p ->
-[l3p] -> l2l -> seed -> the image. Here: the reference (the layers, the errors), the tool l4p against it byte for byte (also on spoiled texts), the
-images of the chain against the images of the Python compiler (the output and the host files are the same), the example of tower/README.md
-(section 3.5). The long runs (the tools made by the chain itself) are in long_l3c.py.
+"""Tests of language 4 on the chain: the copy with the address of the host (a number 0x1... in `copy`, the long copy to and from the host). Language 4 has no
+words of its own: its compiler is the pass `programs/l4c.tw` over the text of language 3, which makes of such a copy the words of language 3 and the copy with the address
+of the channel SYS (1048570; l3c writes the row of a channel by the address, as for emit and key); the chain is: text of language 4 -> l4c -> l3c -> [l3p] -> l2l -> seed ->
+the image. Here: the reference (the text which the pass makes, the unchanged rest, the edges), the tool l4c against it byte for byte (also on spoiled texts), the images of
+the chain against the images of the Python compiler (the output and the host files are the same), the example of tower/README.md (section 3.5). The long runs (the tools
+made by the chain itself) are in long_l3c.py.
 Run: make check-tower  or  python3 -B tower/tests/test_l4p.py"""
 import os
 import random
@@ -33,17 +32,23 @@ def setUpModule():
     t.setUpModule()
 
 
+def host(area, bit):
+    """The address of the host: 2^128 + the position (the area in the top 32 bits, the bit in the area), 0x1 and 32 hex digits."""
+    return '0x%x' % (1 << 128 | area << 96 | bit)
+
+
 def pass_tool():
-    """The image of l4p.tw made by the references of the chain (l3c, l2l, the seed; the long test runs the tools themselves)."""
+    """The image of l4c.tw made by the references of the chain (l3c, l2l, the seed; the long test runs the tools themselves)."""
     if not _PASS:
-        img, P = l5.chain_image(t.read('l4p.tw'))
+        img, P = l5.chain_image(t.read('l4c.tw'))
         _PASS.update(image=img, A=20, P=P)
     return _PASS
 
 
-def l4p(l2, limit=LIMIT):
+def l4c(src, limit=LIMIT):
+    """What the tool l4c gives for a text of language 4 (bytes; the zero byte is added)."""
     st = pass_tool()
-    return run(st['image'], st['A'], st['P'], checked=True, limit=limit, stdin=l2)
+    return run(st['image'], st['A'], st['P'], checked=True, limit=limit, stdin=src + b'\0')
 
 
 def readme_example():
@@ -53,126 +58,135 @@ def readme_example():
     return re.search(r'### 3\.5\..*?```tw\n(.*?)```', doc, re.S).group(1)
 
 
-# the position of the bit 8 of the area 1 (the file): 2^96 + 8, made of two bits
-HEAD = ':pos data 128 0\n:one data 1 1\n:main block\ncopy &pos[96:97] &one\n'
-
 PROGRAMS = {
-    # put 40 bits at the bit 8, get them back (less than 117 bits: through the buffer of the answer)
-    'rw': ':pos data 128 0\n:one data 1 1\n:out data 40 "hello"\n:got data 40 "\\0\\0\\0\\0\\0"\n:main block\ncopy &pos[96:97] &one\ncopy &pos[3:4] &one\n'
-          'long! &pos &out\nlong@ &pos &got\nemit &got\nhalt\n',
-    # three reads of 8 bytes, the position moved by 64 with add (128 bits)
-    'cat': ':pos data 128 0\n:one data 1 1\n:step data 128 0\n:pos2 data 129 0\n:buf data 64 0\n:main block\ncopy &pos[96:97] &one\ncopy &step[6:7] &one\n'
-           'long@ &pos &buf\nemit &buf\nadd &pos &step &pos2\ncopy &pos &pos2[0:128]\nlong@ &pos &buf\nemit &buf\nadd &pos &step &pos2\n'
-           'copy &pos &pos2[0:128]\nlong@ &pos &buf\nemit &buf\nhalt\n',
-    # 200 bits (a whole answer is read into the data): put, get; 117 and 116 bits (the edge of the buffer), 1 bit, 5 bits at the bit 3
-    'sizes': ':pos data 128 0\n:one data 1 1\n:x data 200 "abcdefghijklmnopqrstuvwxy"\n:w data 200 0\n:v data 120 0\n:u data 8 0\n:main block\n'
-             'copy &pos[96:97] &one\ncopy &pos[1:2] &one\nlong! &pos &x\nlong@ &pos &w\nemit &w\nlong@ &pos &v[0:117]\nemit &v[0:112]\n'
-             'long@ &pos &v[0:116]\nemit &v[0:112]\nlong! &pos &x[0:1]\nlong@ &pos &u[0:5]\nemit &u\ncopy &pos[0:1] &one\ncopy &pos[2:3] &one\n'
-             'long! &pos &x[8:13]\nlong@ &pos &u\nemit &u\nhalt\n',
-    # outside the file (past its end, far above it, an area which is not there), the clock: reads give zeros, writes are lost, the clock goes on
-    'outside': ':pos data 128 0\n:one data 1 1\n:x data 16 "ab"\n:z data 16 "\\0\\0"\n:main block\ncopy &pos[96:97] &one\ncopy &pos[20:21] &one\nlong! &pos &x\n'
-               'long@ &pos &z\nemit &z\ncopy &pos[100:101] &one\nlong@ &pos &z\nemit &z\nhalt\n',
+    # put 40 bits at the bit 8 of the area 1 (the file), get them back (less than 117 bits: through the buffer of the answer)
+    'rw': ':out data 40 "hello"\n:got data 40 "\\0\\0\\0\\0\\0"\n:main block\ncopy %s &out\ncopy &got %s\nemit &got\nhalt\n' % (host(1, 8), host(1, 8)),
+    # three reads of 8 bytes, the position moved by 64: a constant in the text
+    'cat': ':buf data 64 0\n:main block\n' + ''.join('copy &buf %s\nemit &buf\n' % host(1, 64 * k) for k in range(3)) + 'halt\n',
+    # 200 bits (a whole answer is read into the data): put, get; 117 and 116 bits (the edge of the buffer), 1 bit, 5 bits at the bit 2
+    'sizes': (':x data 200 "abcdefghijklmnopqrstuvwxy"\n:w data 200 0\n:v data 120 0\n:u data 8 0\n:main block\n'
+              'copy %(a)s &x\ncopy &w %(a)s\nemit &w\ncopy &v[0:117] %(a)s\nemit &v[0:112]\n'
+              'copy &v[0:116] %(a)s\nemit &v[0:112]\ncopy %(a)s &x[0:1]\ncopy &u[0:5] %(a)s\nemit &u\n'
+              'copy %(b)s &x[8:13]\ncopy &u %(b)s\nemit &u\nhalt\n') % {'a': host(1, 2), 'b': host(1, 7)},
+    # outside the file (past its end, far above it, an area which is not there): reads give zeros, writes are lost
+    'outside': (':x data 16 "ab"\n:z data 16 "\\0\\0"\n:main block\ncopy %(a)s &x\ncopy &z %(a)s\nemit &z\ncopy &z %(b)s\nemit &z\nhalt\n')
+               % {'a': host(1, 1 << 20), 'b': host(17, 1 << 20)},
     # the clock (the area 0): two reads, the second is not less than the first
-    'clock': (':pos data 128 0\n:t1 data 64 0\n:t2 data 64 0\n:c data 17 0\n:y data 8 "Y"\n:n data 8 "N"\n:main block\nlong@ &pos &t1\n'
-              'long@ &pos &t2\nlt &t2 &t1 &c\nif &c[16] &no &yes\n:yes block\nemit &y\nhalt\n:no block\nemit &n\nhalt\n'),
+    'clock': (':t1 data 64 0\n:t2 data 64 0\n:c data 17 0\n:y data 8 "Y"\n:n data 8 "N"\n:main block\ncopy &t1 %(a)s\n'
+              'copy &t2 %(a)s\nlt &t2 &t1 &c\nif &c[16] &no &yes\n:yes block\nemit &y\nhalt\n:no block\nemit &n\nhalt\n') % {'a': host(0, 0)},
 }
+HOSTA = host(1, 8)
+# texts for the pass: what it must give as it is, and what it must leave unchanged
+EDGES = [
+    b'', b'# only a comment', b'   ', b'copy', b'copy &a', b'copy &a &b', b'x copy &a 0x1000', b':a data 8 0\n:main block\ncopy &a 0x1000\nhalt\n',
+    ':a data 8 0 :main block copy &a {h} halt'.format(h=HOSTA).encode(),
+    (':a data 8 0\n:b data 300 0\n:main block\ncopy &a {h}\ncopy {h} &b[0:117]\ncopy &b[3:4]  {h}\ncopy &b[3] {h}\nhalt\n'.format(h=HOSTA)).encode(),
+    (':a data 8 0\n:main block\ncopy &zz {h}\ncopy &a[2:2] {h}\ncopy &a[3:9] {h}\ncopy &a[:] {h}\ncopy &a[1:2:3] {h}\ncopy &a[1:2]x {h}\n'.format(h=HOSTA)).encode(),
+    (':a data 3000 0\n:b data 2048 0\n:c data 2049 0\n:main block\ncopy &a {h}\ncopy &b {h}\ncopy &c {h}\ncopy &c[0:100] {h}\n'.format(h=HOSTA)).encode(),
+    (':a data 8 "copy &b 0x1"\n# copy &a 0x1\n:main block\ncopy &a {h}  # trailing\nhalt\n'.format(h=HOSTA)).encode(),
+    (':a data 8 "q\\"copy"\n:main block\ncopy {h} &a\n copy 0x1 0x1\ncopy 0x1 &a\ncopy {h} {h}\ncopy 0x0x &a\n'.format(h=HOSTA)).encode(),
+    (':abcdefghijklmnop data 8 0\n:abcdefghijklmn data 9 0\n:main block\ncopy &abcdefghijklmn {h}\ncopy &abcdefghijklmnop {h}\ncopy &1a {h}\n'.format(h=HOSTA)).encode(),
+    (':a data 8 0\n:a data 16 0\n:t table 2 8 1 2 3 4\n:q data 5 0\n:r array 2 8\n:main block\ncopy &a {h}\ncopy &t {h}\ncopy &r {h}\ncopy &q {h}\n'.format(h=HOSTA)).encode(),
+    b':w data 0x10 5\n:v data 12 7\n:main block\ncopy 0X1000000010000000000000000000000ff &v\ncopy &v 0x1000000010000000000000000000000FF\n'
+    b'copy &v 0x1000000010000000000000000000000fg\ncopy &v 0x\ncopy &v 0xf\n',
+    b'copy &a ' + HOSTA.encode(), b':a data 8 0\ncopy ' + HOSTA.encode(), b':a data 8 0\ncopy ' + HOSTA.encode() + b' &a', b':a data 8 "unfinished',
+    b':a data 8 1099511627776 :b data 12 4095 :main block copy &b ' + HOSTA.encode() + b' copy &a ' + HOSTA.encode(),
+]
 
 
 class Reference(unittest.TestCase):
     """The reference (no emulator)."""
 
     def test_tables_are_current(self):
-        """The numbers of the tables in l4p.tw are what l3ctext.x_tables_text makes."""
-        src = t.read('l4p.tw')
+        """The numbers of the tables in l4c.tw are what l3ctext.x_tables_text makes."""
+        src = t.read('l4c.tw')
         a, b = src.index('# --- begin generated\n'), src.index('# --- end generated')
         self.assertEqual(src[a + len('# --- begin generated\n'):b], l3ctext.x_tables_text())
 
+    def test_strings_have_their_width(self):
+        """The data of l4c.tw which are strings have exactly the bits of their bytes (emit sends all of them)."""
+        n = 0
+        for m in re.finditer(r'^:\w+ data (\d+) "((?:[^"\\]|\\.)*)"', t.read('l4c.tw'), re.M):
+            self.assertEqual(int(m.group(1)), 8 * len(m.group(2).replace('\\n', '\n').replace('\\0', '\0').replace('\\"', '"')), m.group(0))
+            n += 1
+        self.assertGreater(n, 20)
+
     def test_tool_is_in_its_subset(self):
-        src = t.read('l4p.tw')
+        src = t.read('l4c.tw')
         out, err = l3ctext.encode(src)
         self.assertIsNone(err)
         c = l3ctext.Compiler()
         c.put(l3ctext.prelude())
         l3ctext.run(c, src.encode())
-        self.assertLess(c.pos, l3ctext.LIMIT // 4)
+        self.assertLess(c.pos, l3ctext.LIMIT)
 
-    def test_the_request(self):
-        """The layers of a put and of a get: the nibbles of op (6), direction, n; the position; the data or the answer; the jumps."""
-        n, p, d, first = 0x2a5, 0xe1, 0x1e0, 0x300
-        put = l3ctext.long_text(True, n, p, d, first).split('\n')
-        get = l3ctext.long_text(False, n, p, d, first).split('\n')
-        jumps = ['c a0 0 %x' % (first + 160 * (j + 1)) for j in range(11)]
-        for lines in (put, get):
-            self.assertEqual([x for x in lines if x.startswith('c a0 0')], jumps)
-            self.assertEqual(lines[:2], ['c 4 fd200 &ta+30', jumps[0]])
-            self.assertEqual(lines[-1], '')
-        self.assertEqual(put[2:4], ['c 4 fd21c &ta+0', jumps[1]])
-        self.assertEqual(get[2:4], ['c 4 fd21c &ta+8', jumps[1]])
-        self.assertEqual([x for x in put if x.startswith('c 4 ')][2:], ['c 4 fd22c &ta+28', 'c 4 fd230 &ta+50', 'c 4 fd234 &ta+10',
-                                                                       'c 4 fd238 &ta+0', 'c 4 fd23c &ta+0'])         # 8 times 5, a, 2, 0, 0
-        self.assertEqual(put[14:16], ['c 80 fd24c e1', jumps[7]])
-        self.assertEqual(put[16:], ['c 2a5 fd2cc 1e0', jumps[8], 'd 14 ffffa', 'd 14 ffffa', 'd 14 fd200', 'd 14 %x' % (l3ctext.QB + 204 + n), jumps[9],
-                                    'z 50', jumps[10], ''])
-        self.assertEqual(get[16:], ['d 14 ffffa', 'd 14 ffffa', 'd 14 fd200', 'd 14 fd2cc', jumps[8], 'd 14 fd2cc', 'd 14 %x' % (l3ctext.QB + 204 + n),
-                                    'd 14 ffffa', 'd 14 ffffa', jumps[9], 'c 2a5 1e0 fd2cc', jumps[10], ''])
-        # a read of less than 117 bits reads 117
-        short = l3ctext.long_text(False, 8, p, d, first)
-        self.assertIn('d 14 %x\nd 14 %x\nd 14 ffffa\nd 14 ffffa\n' % (l3ctext.QB + 204, l3ctext.QB + 204 + 117), short)
-        self.assertEqual([x.count('\n') for x in (l3ctext.long_text(True, 5, p, d, first), l3ctext.long_text(False, 5, p, d, first))], [25, 28])
+    def test_the_text_of_a_long_copy(self):
+        """The words of language 3 for a put and a get: the buffer is zeroed, the nonzero nibbles of op, flags, n and the position are copied from the constants
+        l4n0..l4n3, the data after the record, the row to SYS; a get reads max(n, 117) bits of the answer."""
+        put, get = (l3ctext.host_copy(p, b'&x', 40, [1, 0, 0, 0, 0, 0, 0, 0, 0, 8]) for p in (True, False))
+        self.assertEqual(put, 'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n1[4:8]\ncopy &l4q[44:48] &l4n1[12:16]\ncopy &l4q[48:52] &l4n0[8:12]\n'
+                              'copy &l4q[76:80] &l4n1[12:16]\ncopy &l4q[112:116] &l4n0[4:8]\ncopy &l4q[204:244] &x\ncopy 1048570 &l4q[0:244]\n')
+        self.assertEqual(get, 'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n1[4:8]\ncopy &l4q[28:32] &l4n0[4:8]\ncopy &l4q[44:48] &l4n1[12:16]\n'
+                              'copy &l4q[48:52] &l4n0[8:12]\ncopy &l4q[76:80] &l4n1[12:16]\ncopy &l4q[112:116] &l4n0[4:8]\ncopy 1048570 &l4q[0:204]\n'
+                              'copy &l4q[204:321] 1048570\ncopy &x &l4q[204:244]\n')
+        self.assertEqual(l3ctext.host_copy(False, b"&x", 300, [0]).split("\n")[-3], 'copy &l4q[204:504] 1048570')      # a whole answer: n bits
+        for n, v in enumerate(l3ctext.L4N):                  # the constants: the nibble k is the bits 4k.. of the number
+            self.assertEqual([v >> 4 * k & 15 for k in range(5)], [5 * n + k if 5 * n + k < 16 else 0 for k in range(5)])
+
+    def test_a_text_without_the_host_is_as_it_is(self):
+        """Nothing is changed but the prelude (after the word `pack` if it stands first); the prelude is what l4c_prelude says."""
+        for name in ('echo', 'branch', 'arith8', 'loop_digits'):
+            src = t.hoisted(name).encode()
+            out = l3ctext.l4c(src + b'\0')[0]
+            self.assertEqual(out, l3ctext.l4c_prelude().encode() + src + b'\0')
+        self.assertEqual(l3ctext.l4c(b'pack\n:a data 1 0\n\0')[0], b'pack' + l3ctext.l4c_prelude().encode() + b'\n:a data 1 0\n\0')
+        self.assertEqual(l3ctext.l4c(b'\0')[0], l3ctext.l4c_prelude().encode() + b'\0')
+        self.assertTrue(l3ctext.l4c_prelude().encode() in l3ctext.l4c(b'  # a comment\n:a data 1 0\n\0')[0])
 
     def test_the_pass(self):
-        """The text goes out as it is but for the placeholders; no placeholder, no change; the position of the next layer is 11 layers on."""
-        for name in ('echo', 'branch', 'arith8'):
-            l2 = l3ctext.encode(t.hoisted(name))[0]
-            self.assertEqual(l3ctext.long_pass(l2), (l2, None))
-        src = HEAD + 'long! &pos &pos\ncopy &pos[0:8] &pos[8:16]\nhalt\n'
-        l2, err = l3ctext.encode(src)
-        self.assertIsNone(err)
-        out, perr = l3ctext.long_pass(l2)
-        self.assertIsNone(perr)
-        a, b = l2.decode(), out.decode()
-        self.assertEqual(a.count('long\n'), 1)
-        self.assertNotIn('long', b)
-        i = a.index('long\n')
-        first = int(re.search(r'd 14 [0-9a-f]+\nd 14 [0-9a-f]+\nd 14 [0-9a-f]+\nd 14 ([0-9a-f]+)\n', a[i:]).group(1), 16)
-        j = b.index('c a0 0 %x\n' % (first + 160 * 11))
-        self.assertTrue(re.match(r'c a0 0 %x\nc 8 [0-9a-f]+ [0-9a-f]+\nc a0 0 %x\n' % (first + 160 * 11, first + 160 * 12), b[j:]))
+        """A put and a get: the words of language 3, the rest as it is (blanks, comments, strings with the word copy in them)."""
+        src = (':a data 8 "copy &a 0x1"\n:out data 40 "hello"  # x\n:main block\ncopy &a %s\n  copy %s &out[0:8]\nhalt\n' % (HOSTA, HOSTA))
+        out = l3ctext.l4c(src.encode() + b'\0')[0].decode()
+        self.assertEqual(out.count('copy &l4q[0:204] &l4z[0:204]\n'), 2)           # the blanks which come before the end of the copy go out as they come
+        self.assertIn(':a data 8 "copy &a 0x1"\n:out data 40 "hello"  # x\n:main block\n', out)
+        self.assertIn('copy &a &l4q[204:212]\n', out)                      # n is the width of &a; the data of the put is &out[0:8]
+        self.assertIn('copy &l4q[204:212] &out[0:8]\n', out)
+        self.assertTrue(out.endswith('\nhalt\n\0'), out[-40:])
 
-    def test_errors(self):
-        """A placeholder cut or wrong: the report, the text before it stays."""
-        head = 'ab\nc a0 0 0\n'
-        for tail in ('long\n', 'long\nd 14 1\nd 14 2\nd 14 3\nd 14 4\n', 'long\nd 14 1\nd 14 2\nd 14 zz\nd 14 4\nc a0 0 5\n',
-                     'long\nd 14 1\nd 14 2\nd 14 3\nd 14 4\nc a0 0 5', 'long\nd 14 A\nd 14 2\nd 14 3\nd 14 4\nc a0 0 5\n', 'long\nd 14 1\t\n'):
-            out, err = l3ctext.long_pass((head + tail).encode() + b'\0')
-            self.assertEqual((err, out), ('bad', head.encode()), tail)
-        good = 'long\nd 14 1\nd 14 2 \nd 14 3\n d 14 04\n  c a0 0 0b\n'
-        out, err = l3ctext.long_pass((head + good + 'x\0').encode())
-        self.assertEqual(err, None)
-        self.assertTrue(out.endswith(b'x\0'))
-        self.assertEqual(l3ctext.long_pass(b'longer\nlon\nlong\0'), (b'longer\nlon\nlong\0', None))      # not lines of a placeholder
+    def test_the_rest_goes_out_unchanged(self):
+        """Two hosts, none, a width which is not known (a table, an array, a name not defined, 2049 bits) or a spoiled operand: `copy a b` as it was."""
+        for src, tail in ((':main block\ncopy 0x1 0x1\n', 'copy 0x1 0x1\n'), (':a data 8 0\n:main block\ncopy &a &a\n', 'copy &a &a\n'),
+                          (':t table 1 8 1 2\n:main block\ncopy &t %s\n' % HOSTA, 'copy &t %s\n' % HOSTA),
+                          (':main block\ncopy &q %s\n' % HOSTA, 'copy &q %s\n' % HOSTA), (':c data 2049 0\n:main block\ncopy &c %s\n' % HOSTA, 'copy &c %s\n' % HOSTA),
+                          (':c data 8 0\n:main block\ncopy &c[3:3] %s\n' % HOSTA, 'copy &c[3:3] %s\n' % HOSTA)):
+            out = l3ctext.l4c(src.encode() + b'\0')[0].decode()
+            self.assertTrue(out.endswith(tail + '\0'), (src, out[-50:]))
+            if '0x1' in src.split('\n')[-2]:
+                self.assertIsNotNone(l3ctext.encode(out[:-1])[1], src)           # and l3c does not take it (a number which is not a channel)
+
+    def test_chain_of_references(self):
+        """The text of language 3 which the pass makes is a text l3c takes."""
+        for name, src in PROGRAMS.items():
+            with self.subTest(name):
+                out = l3ctext.l4c(src.encode() + b'\0')[0]
+                self.assertNotIn(b'0x1', out[out.index(b':main'):])
+                self.assertIsNone(l3ctext.encode(out[:-1])[1])
+                self.assertIsNone(l3ctext.encode(b'pack\n' + out[:-1])[1])
 
     def test_cli(self):
         import subprocess
         root = os.path.dirname(os.path.dirname(HERE))
-        l2 = l3ctext.encode(HEAD + 'long@ &pos &pos\nhalt\n')[0]
-        e = subprocess.run([sys.executable, '-B', 'tower/l3ctext.py', '-x'], input=l2, cwd=root, check=False, capture_output=True, timeout=120)
-        self.assertEqual((e.returncode, e.stdout), (0, l3ctext.long_pass(l2)[0]))
-        e = subprocess.run([sys.executable, '-B', 'tower/l3ctext.py', '-x'], input=b'long\n\0', cwd=root, check=False, capture_output=True, timeout=120)
-        self.assertEqual((e.returncode, e.stderr), (1, b'l4p: bad text\n'))
+        src = ':a data 8 0\n:main block\ncopy &a %s\nhalt\n' % HOSTA
+        e = subprocess.run([sys.executable, '-B', 'tower/l3ctext.py', '-x'], input=src.encode() + b'\0', cwd=root, check=False, capture_output=True, timeout=120)
+        self.assertEqual((e.returncode, e.stdout), (0, l3ctext.l4c(src.encode() + b'\0')[0]))
 
 
 class Tool(unittest.TestCase):
     """The pass on the chain against the reference."""
 
-    def check(self, l2):
-        r = l4p(l2)
-        want, err = l3ctext.long_pass(l2)
-        self.assertEqual(r.out, want, l2[-100:])
-        self.assertEqual('l4p: ' in r.err, err is not None, (l2[-100:], r.err))
-        if err:
-            self.assertIn(l3ctext.LPMESSAGES[err], r.err)
-        else:
-            self.assertEqual(r.rc, 0)
+    def check(self, src):
+        r = l4c(src)
+        self.assertEqual((r.rc, r.out), (0, l3ctext.l4c(src + b'\0')[0]), src[:100])
         return r
 
     def test_tool_image(self):
@@ -183,50 +197,39 @@ class Tool(unittest.TestCase):
     def test_programs(self):
         for name, src in PROGRAMS.items():
             with self.subTest(name):
-                l2, err = l3ctext.encode(src)
-                self.assertIsNone(err)
-                self.assertGreater(l2.count(b'long\n'), 0)
-                self.check(l2)
-        self.check(l3ctext.encode(t.hoisted('echo'))[0])           # no placeholder: the text as it is
-        self.check(l3ctext.encode('pack\n' + readme_example())[0])
+                self.assertIn(b'0x1', src.encode())
+                self.check(src.encode())
+        self.check(t.hoisted('echo').encode())                         # no address of the host: the text as it is
+        self.check(b'pack\n' + readme_example().encode())
 
-    def test_errors_and_edges(self):
-        for l2 in (b'\0', b'long\0', b'long\nd 14 1\n\0', b'lon\0', b'lonf\nlong\nd 14 1\nd 14 2\nd 14 3\nd 14 400\nc a0 0 560\n\0',
-                   b'long\nd 14 1\nd 14 2\nd 14 3\nd 14 400\nc a0 0 560\n\0', b'long\nd 14 80001\nd 14 e1\nd 14 1e0\nd 14 400\nc a0 0 560\nz 50\n\0',
-                   b'long\nd 14 1\nd 14 zz\nd 14 3\nd 14 400\nc a0 0 560\n\0', b'ab\nlong\nd 14 1\nd 14 2 \nd 14 3\n d 14 04\n  c a0 0 0b\nlong\n\0',
-                   b'long\nd 14 1\nd 14 2\nd 14 3\nd 14 400\nc a0 0\0', b'x long\nlong \nlong\nlong\n\0', b'd 14 A\nlong\nd 14 B\nlong\0'):
-            with self.subTest(l2):
-                self.check(l2)
+    def test_edges(self):
+        for src in EDGES:
+            with self.subTest(src):
+                self.check(src)
 
     def test_mutations(self):
-        """Texts of language 2 with placeholders spoiled at random (a character replaced, dropped, doubled, the text cut): the same bytes and reports."""
+        """Texts spoiled at random (a character replaced, dropped, doubled): the same bytes."""
         rng = random.Random(2317)
-        bases = [l3ctext.encode(PROGRAMS['rw'])[0].decode('latin-1'), l3ctext.encode(PROGRAMS['sizes'])[0].decode('latin-1')]
+        bases = [EDGES[9], EDGES[10], EDGES[12], PROGRAMS['rw'].encode()]
         for _ in range(30):
-            s = rng.choice(bases)
-            marks = [m.start() for m in re.finditer('long\n', s)]
-            for _ in range(rng.choice((1, 1, 2))):
-                i = rng.choice(marks) + rng.randrange(40)
-                m = rng.randrange(4)
+            b = bytearray(rng.choice(bases))
+            for _ in range(rng.choice((1, 2, 3))):
+                i = rng.randrange(len(b))
+                m = rng.randrange(3)
                 if m == 0:
-                    s = s[:i] + rng.choice('0123456789abcdefg xl\n#') + s[i + 1:]
+                    b[i] = rng.choice(b'0123456789abcdefx&[]:# "\n\\')
                 elif m == 1:
-                    s = s[:i] + s[i + 1:]
-                elif m == 2:
-                    s = s[:i] + s[i] + s[i:]
+                    del b[i]
                 else:
-                    s = s[:i] + '\0'
-                    break
-            if s.endswith('\0'):
-                s = s[:-1]
-            self.check(s.replace('\0', '').encode('latin-1') + b'\0')
+                    b.insert(i, rng.choice(b'0x&[]: "\n\\#'))
+            self.check(bytes(b).replace(b'\0', b' '))
 
 
 class Programs(unittest.TestCase):
-    """The images of the chain (l3c, l4p, l2l, seed) do the long copies as the images of the Python compiler: the same output and the same host file."""
+    """The images of the chain (l4c, l3c, l2l, seed) do the long copies as the images of the Python compiler: the same output and the same host file."""
 
     def both(self, src, data=FILE, pack=False):
-        img, P = l5.chain_image(('pack\n' if pack else '') + src)
+        img, P = l5.chain_image(('pack\n' if pack else '') + src, True)
         py, errs = text.compile_text(src)
         self.assertEqual(errs, [])
         res = []
@@ -246,18 +249,18 @@ class Programs(unittest.TestCase):
     def test_programs(self):
         for name, src in PROGRAMS.items():
             with self.subTest(name):
-                rc, out, host, ticks = self.both(src)
+                rc, out, host_file, ticks = self.both(src)
                 self.assertTrue(out)
                 if name == 'rw':
-                    self.assertEqual((out, host[:6]), (b'hello', bytes([FILE[0]]) + b'hello'))
+                    self.assertEqual((out, host_file[:6]), (b'hello', bytes([FILE[0]]) + b'hello'))
                 elif name == 'cat':
                     self.assertEqual(out, FILE[:24])
                 elif name == 'clock':
                     self.assertEqual(out, b'Y')
 
     def test_packed_programs(self):
-        """The same in pack mode (l3c, l4p, l3p): the output and the host file as the Python images, in fewer ticks than the serial."""
-        for name in ('rw', 'sizes', 'outside'):
+        """The same in pack mode (l4c, l3c, l3p): the output and the host file as the Python images, in fewer ticks than the serial."""
+        for name in ('rw', 'sizes', 'outside', 'cat'):
             with self.subTest(name):
                 a = self.both(PROGRAMS[name])
                 b = self.both(PROGRAMS[name], pack=True)
@@ -267,23 +270,23 @@ class Programs(unittest.TestCase):
     def test_readme_example(self):
         """The example of the README: `hello` is written at the bit 8 of the file and read back; the pack mode gives the same, in fewer ticks."""
         src = readme_example()
-        rc, out, host, ticks = self.both(src)
-        self.assertEqual((out, host[:6]), (b'hello', bytes([FILE[0]]) + b'hello'))
-        self.assertEqual(host[6:], FILE[6:])
+        rc, out, host_file, ticks = self.both(src)
+        self.assertEqual((out, host_file[:6]), (b'hello', bytes([FILE[0]]) + b'hello'))
+        self.assertEqual(host_file[6:], FILE[6:])
         _, out2, host2, ticks2 = self.both(src, pack=True)
-        self.assertEqual((out2, host2), (out, host))
+        self.assertEqual((out2, host2), (out, host_file))
         self.assertLess(ticks2, ticks)
 
     def test_the_tools_of_the_chain(self):
-        """The tools themselves: l3c (the image of Python) and l4p (made by the references) make the text, l2l and the seed the image."""
+        """The tools themselves: l4c (the image of the references) and l3c (the image of Python) make the text, l2l and the seed the image."""
         src = PROGRAMS['rw']
-        a = t.l3c(src)
-        b = l4p(a.out)
-        want, err = l3ctext.encode(src)
+        a = l4c(src.encode())
+        want = l3ctext.l4c(src.encode() + b'\0')[0]
         self.assertEqual(a.out, want)
-        self.assertEqual(b.out, l3ctext.long_pass(want)[0])
+        b = t.l3c(a.out[:-1])
+        self.assertEqual(b.out, l3ctext.encode(want[:-1])[0])
         img = t.image_of(b.out)
-        self.assertEqual(img, l5.chain_image(src)[0])
+        self.assertEqual(img, l5.chain_image(src, True)[0])
 
 
 if __name__ == '__main__':

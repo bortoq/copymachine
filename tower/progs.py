@@ -246,7 +246,8 @@ def long_rw(wpos, data, rpos, n=None):
         got = p.var('got', 8 * m, bytes_value(b'\xff' * m))
         p.block('main')
         if data:
-            p.long_put(p.var('wpos', 128, wpos), p.var('out', 8 * len(data), bytes_value(data)))
+            out = p.var('out', 8 * len(data), bytes_value(data))
+            p.long_put(p.var('wpos', 128, wpos), out)
         p.long_get(p.var('rpos', 128, rpos), got.ref())
         p.emit(got.ref())
         p.halt()
@@ -257,10 +258,9 @@ def long_clock():
     """Two reads of the clock (area 0, 64 bits) one after the other; both are written to stdout."""
     def build(p):
         t1, t2 = p.var('t1', 64), p.var('t2', 64)
-        pos = p.var('pos', 128, host_pos(0, 0))
         p.block('main')
-        p.long_get(pos, t1.ref())
-        p.long_get(pos, t2.ref())
+        p.long_get(p.var('pos1', 128, host_pos(0, 0)), t1.ref())
+        p.long_get(p.var('pos2', 128, host_pos(0, 0)), t2.ref())
         p.emit(t1.ref())
         p.emit(t2.ref())
         p.halt()

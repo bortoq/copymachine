@@ -210,9 +210,10 @@ def replace(*defs, inputs=(b'',)):
     return Choice(i, prices, made[i][0])
 
 
-def chain_image(src):
-    """The image of a text of language 3 by the chain (the Python references of l3c, l3p, l2l, the seed) and its P: 3 in the pack mode, else 2."""
-    l1_text, err = l3ctext.language1(src)
+def chain_image(src, lang4=False):
+    """The image of a text of language 3 by the chain (the Python references of l3c, l3p, l2l, the seed) and its P: 3 in the pack mode, else 2;
+    a text of language 4 (the copies with the address of the host) goes through the pass l4c first (lang4)."""
+    l1_text, err = l3ctext.language1(src, lang4)
     if err:
         raise ValueError('the chain: ' + err)
     img, err = l1text.encode(l1_text + b'\0')
