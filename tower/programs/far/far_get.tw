@@ -1,5 +1,5 @@
 # Far copy, step 26.3 (7.2.44): the asker. One program of language 3, nothing new: data, emit, key, warn, goto, halt. It sends the requests by hand
-# (the record of far_serve.tw: op, pos, dat, 3 bytes, every one by `emit`), puts every answer (`key`) into its own cell g1..g6
+# (the record of far_serve.tw: op 8 bits, pos 32 bits, dat 8 bits, 6 bytes, every field by `emit`), puts every answer (`key`) into its own cell g1..g6
 # and at the end sends op = 0 and prints the cells to stderr. Its stdout must go to the stdin of far_serve.tw and its stdin must be
 # the stdout of far_serve.tw. A cell starts as all ones (the prohibitive price): if the channel is closed (EOF) a read leaves it as it
 # was, so "no answer" is the same as the answer "no such cell"; if the answerer is alive but silent, the read waits (no tick passes).
@@ -10,13 +10,14 @@
 :opget data 8 1
 :opput data 8 2
 :opstop data 8 0
-:p1 data 8 1
-:p2 data 8 2
-:p3 data 8 3
-:p5 data 8 5
-:p8 data 8 8
-:p9 data 8 9
-:p200 data 8 200
+:p0 data 32 0
+:p1 data 32 1
+:p2 data 32 2
+:p3 data 32 3
+:p5 data 32 5
+:p8 data 32 8
+:p9 data 32 9
+:p200 data 32 200
 :d0 data 8 0
 :d77 data 8 77
 :d165 data 8 165
@@ -88,7 +89,7 @@ key &g6
 goto &stop
 :stop block
 emit &opstop
-emit &d0
+emit &p0
 emit &d0
 goto &show
 :show block

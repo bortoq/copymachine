@@ -1089,6 +1089,7 @@ def pack_pass(data):
 # between `copy` and its operands are not put out (the copy goes out as `copy a b` or as the words of language 3, the blank after the second operand follows it).
 # The address of a channel in `copy` may be written from the end of the space: `+k` (k 0..5) is S + k, the number 104857k of l3c, so that the text does not depend on A
 # (the channels are the codes at the end of the space: +1 stdin, +2 stdout, +3 stderr, +0 SYS); `copy +2 &x` is `emit &x`, `copy &x +1` is `key &x`. Not a word: a form of the address.
+# The far copy (26.4): an address 0x2 and 32 hex digits (far_copy below) is translated into the requests of the neighbour; the forms which are not as told go out as they were.
 # No errors, no report.
 NBUF = 2048                           # the bits of data of a long copy (the buffer l4q has 204 + NBUF)
 L4Q, L4Z = 'l4q', 'l4z'
@@ -1132,8 +1133,8 @@ def _host_digits(tok):
     return [int(chr(c), 16) for c in tok[2:]]
 
 
-def _width(tok, syms):
-    """The width of the part of space `tok` (&name, &name[k], &name[lo:hi]) or None."""
+def _part(tok, syms):
+    """The part of space `tok` (&name, &name[k], &name[lo:hi]) as (the end of the name in tok, lo, the width) or None."""
     if tok[:1] != b'&':
         return None
     nm = _name_of(tok, 1)
@@ -1142,16 +1143,23 @@ def _width(tok, syms):
     name, j = nm
     rest = tok[j:]
     if not rest:
-        return next((w for nm, w in syms if nm == name), None)
+        w = next((w for nm, w in syms if nm == name), None)
+        return None if w is None else (j, 0, w)
     if rest[:1] != b'[' or rest[-1:] != b']':
         return None
     parts = rest[1:-1].split(b':')
     if len(parts) > 2 or not all(p and all(c in DIGITS for c in p) for p in parts):
         return None
     if len(parts) == 1:
-        return 1
+        return j, _decimal(parts[0]), 1
     lo, hi = _decimal(parts[0]), _decimal(parts[1])
-    return hi - lo if hi > lo else None
+    return (j, lo, hi - lo) if hi > lo else None
+
+
+def _width(tok, syms):
+    """The width of the part of space `tok` (&name, &name[k], &name[lo:hi]) or None."""
+    r = _part(tok, syms)
+    return None if r is None else r[2]
 
 
 def _chan(tok):
@@ -1182,9 +1190,68 @@ def host_copy(put, other, n, digits):
     return ''.join(out)
 
 
+FARMAX = 64                           # the bits of a far copy (whole bytes: 8 .. 64)
+FARLAB = 2048                         # the labels l4f<c> of the far gets: past this number a far copy is not translated
+FARLO = 9900                          # the position of a part &x[lo:hi] of a far copy: lo < 9900 (the numbers of the text are written by putdec, under 10000)
+FARQ = 48                             # the record of a far request: op 8 bits, pos 32 bits (the number of the byte), dat 8 bits: the bits 0..48 of l4q
+
+
+def _far(tok):
+    """An address of the far space `0x2` and 32 hex digits (the link in the top 32 bits, the position in the low 96) or None."""
+    return tok if len(tok) == 35 and tok[:3] == b'0x2' and _host_digits(tok) is not None else None
+
+
+def far_pos(tok):
+    """The number of the byte of a far address as 8 nibbles (the low first), or None: the link (the top 8 digits) is 0 (the neighbour by stdin and stdout), the position
+    is a multiple of 8 bits and under 2^32, the byte is the position / 8."""
+    d = _host_digits(tok)[1:]                  # the 32 digits after the 2
+    if any(d[:24]) or d[31] & 7:
+        return None
+    bits = [(d[31 - j] >> i) & 1 for j in range(9) for i in range(4)]
+    return [bits[4 * t + 3] | bits[4 * t + 4] << 1 | bits[4 * t + 5] << 2 | bits[4 * t + 6] << 3 for t in range(8)]
+
+
+def far_copy(put, other, syms, tok, label):
+    """The text of language 3 for a far copy (the far space is the neighbour of stdin and stdout, which answers by the protocol of far_serve.tw): one request of 6 bytes
+    (op 8 bits, the number of the byte 32 bits, dat 8 bits) for a byte of the part `other` (a width of 8 .. 64 bits, whole bytes). The record is the bits 0..48 of l4q.
+    get: the request goes out, then (after a goto: a read must not stand before the write that it answers) the byte is read into its place in `other`, the number of
+    the byte is increased (the nibbles which change are copied from the constants: the carry stops the copies) and the request of the next byte goes out;
+    put: the byte is copied into dat and the request goes out, the number of the byte is increased. The labels are l4f<label>, l4f<label + 1> ...
+    Returns (the text, the labels used) or None (the width is not 8 .. 64 whole bytes, the position or the link is not as told, lo >= FARLO, no more labels)."""
+    r = _part(other, syms)
+    pos = far_pos(tok)
+    if r is None or pos is None or r[2] % 8 or not 8 <= r[2] <= FARMAX or r[1] >= FARLO or label >= FARLAB:
+        return None
+    j, lo, n = r
+    name = other[:j].decode('latin-1')
+    out = ['copy &%s[0:204] &%s[0:204]\n' % (L4Q, L4Z), 'copy &%s[0:4] %s\n' % (L4Q, _nib(2 if put else 1))]
+    for i in range(8):
+        if pos[i]:
+            out.append('copy &%s[%d:%d] %s\n' % (L4Q, 8 + 4 * i, 12 + 4 * i, _nib(pos[i])))
+    req = 'emit &%s[0:48]\n' % L4Q
+    if not put:
+        out.append(req)
+    for k in range(n // 8):
+        part = '%s[%d:%d]' % (name, lo + 8 * k, lo + 8 * k + 8)
+        if put:
+            out += ['copy &%s[40:48] %s\n' % (L4Q, part), req]
+        else:
+            out.append('goto &l4f%d\n:l4f%d block\nkey %s\n' % (label + k, label + k, part))
+        if k < n // 8 - 1:
+            for i in range(8):                      # the number of the byte + 1: the nibbles up to the end of the carry
+                v = pos[i] + 1
+                pos[i] = v & 15
+                out.append('copy &%s[%d:%d] %s\n' % (L4Q, 8 + 4 * i, 12 + 4 * i, _nib(pos[i])))
+                if v < 16:
+                    break
+            if not put:
+                out.append(req)
+    return ''.join(out), 0 if put else n // 8
+
+
 def l4c(data):
     """The pass: data is a text of language 4 and a zero byte (a byte string); returns (the text of language 3 and a zero byte, None)."""
-    out, tok, syms, prelude, first = [], bytearray(), [], False, True
+    out, tok, syms, prelude, first, label = [], bytearray(), [], False, True, 0
     state = 'idle'                          # idle, tok, str (in a string), com
     esc = False
     copy_ops = None                         # None, or the list of the operands read after `copy` (0, 1 or 2 of them)
@@ -1201,7 +1268,7 @@ def l4c(data):
             put(l4c_prelude())
 
     def end_token(t, sep):
-        nonlocal first, copy_ops, track
+        nonlocal first, copy_ops, track, label
         t = bytes(t)
         if copy_ops is not None:
             copy_ops.append(t)
@@ -1213,10 +1280,18 @@ def l4c(data):
             ha, hb = _host_digits(a), _host_digits(b)
             if (ha is None) != (hb is None):
                 other, digits = (b, ha) if ha is not None else (a, hb)
-                n = _width(other, syms)
-                if n is not None and 1 <= n <= NBUF:
-                    put(host_copy(ha is not None, other, n, digits))
-                    return
+                addr = a if ha is not None else b
+                if _far(addr):                  # the far space: its own translation, never the host's (an address which is not as told goes out unchanged)
+                    f = far_copy(ha is not None, other, syms, addr, label)
+                    if f is not None:
+                        put(f[0])
+                        label += f[1]
+                        return
+                else:
+                    n = _width(other, syms)
+                    if n is not None and 1 <= n <= NBUF:
+                        put(host_copy(ha is not None, other, n, digits))
+                        return
             put(b'copy ' + _chan(a) + b' ' + _chan(b))
             return
         if first:

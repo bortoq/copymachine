@@ -5,6 +5,10 @@
 # Language 4 has no word of its own: the pass gives the text as it is (tokens as l3c reads them: blanks, `#` comments, strings with escapes) and makes of
 # `copy &x 0x...` (get) and `copy 0x... &x` (put) copies of language 3, the copy with the address of a channel (the number 1048570, S) among them; the prelude (the
 # buffer of the request l4q of 204 + 2048 bits, the zeros l4z, the constants of the nibbles l4n0..l4n3) is put at the start (after the word `pack`, if it stands first).
+# The far copy (26.4, 7.2.44): an address of 0x2 and 32 hex digits (the link in the top 32 bits, the position in bits in the low 96) is not the host's: `copy &x 0x2...` and
+# `copy 0x2... &x` are n/8 requests of one byte to the neighbour by stdin and stdout (the protocol of programs/far/far_serve.tw: op 8 bits, the number of the byte 32 bits, dat 8 bits;
+# the words isfar, farcheck, farcopy below). It is made when the link is 0, the position is a multiple of 8 and under 2^32, the width of &x is 8..64 bits in whole bytes (&x, &x[lo:hi],
+# lo < 9900), the labels l4f<k> of the gets are under 2048; else the copy goes out unchanged (never as a host copy). 0x2 with another number of digits is a host address as before.
 # The width n of the data is that of the part `&x[lo:hi]` (hi - lo), `&x[k]` (1) or of `&x` whole: the pass remembers the widths of `:name data n ...` (the table of
 # names: a tree of tables by the hash of the name, 25.3.1). A copy with no address of the host, or with two, or with a width which is not known or not 1..2048, goes out unchanged (l3c reports it). Not a word of the
 # text, not an address: it goes through as it is (an operand `+k`, k 0..5, of a copy without the host is the channel S + k from the end of the space: it goes out as the number 104857k, +2 stdout, +3 stderr, +1 stdin, +0 SYS, emitch; but the blanks between `copy` and its operands do not go out: the copy goes out as `copy a b`). No errors. The reference in Python is tower/l3ctext.py (l4c, host_copy); this text does the same on the chain and a
@@ -79,6 +83,7 @@
 :is14 table 4 1  0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0
 :le5 table 4 1  1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0
 :xor2 table 2 1  0 1 1 0
+:or2 table 2 1  0 1 1 1
 :lvdec table 3 3  7 0 1 2 3 4 5 6
 :lz3 table 3 1  1 0 0 0 0 0 0 0
 :dch table 4 8  "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" 0 0 0 0 0 0
@@ -208,6 +213,22 @@
 :q2 data 2 0
 :q2b data 2 0
 
+# --- the far copy (0x2...): the flags, the label counter, the byte, the end of the name of the data operand
+:farf1 data 1 0
+:farf2 data 1 0
+:farr data 1 0
+:farok data 1 0
+:farb data 1 0
+:farn array 3 4
+:farcn data 20 0
+:fara data 20 0
+:farnb data 8 0
+:fi data 8 0
+:fj data 8 0
+:fe data 8 0
+:fnl data 20 0
+:xe data 8 0
+
 # --- the arithmetic (20 bits)
 :wxa data 20 0
 :wxb data 20 0
@@ -229,6 +250,14 @@
 :y1 data 2 1
 :y2 data 2 2
 :c3b data 8 3
+:c8b data 8 8
+:c27b data 8 27
+:c34b data 8 34
+:c35b data 8 35
+:two4 data 4 2
+:c8w data 20 8
+:c65 data 20 65
+:c9900 data 20 9900
 :c4b data 8 4
 :c4 data 8 4
 :c5 data 8 5
@@ -252,6 +281,7 @@
 :s_colon data 8 ":"
 :s_0 data 8 "0"
 :s_x data 8 "x"
+:s_2 data 8 "2"
 :s_plus data 8 "+"
 :s_chan data 48 "104857"
 :w_copy data 32 "copy"
@@ -274,6 +304,11 @@
 :p4 data 168 ":l4n1 data 20 624485\n"
 :p5 data 168 ":l4n2 data 20 974010\n"
 :p6 data 136 ":l4n3 data 20 15\n"
+:s_emq data 128 "emit &l4q[0:48]\n"
+:s_cd data 136 "copy &l4q[40:48] "
+:s_gt data 72 "goto &l4f"
+:s_lbl data 40 "\n:l4f"
+:s_blk data 88 " block\nkey "
 
 :main block
 goto &rd
@@ -590,11 +625,17 @@ copy &ol &l1
 call &ishost &tr1
 :tr1 block
 copy &h1 &hok
+call &isfar &tr1b
+:tr1b block
+copy &farf1 &farr
 copy &ob &one1
 copy &ol &l2
 call &ishost &tr2
 :tr2 block
 copy &h2 &hok
+call &isfar &tr2b
+:tr2b block
+copy &farf2 &farr
 copy &q2[0] &h1
 copy &q2[1] &h2
 lut &xor2 &q2 &q1
@@ -633,7 +674,19 @@ call &wlt &tr11
 if &ltc[5] &trun &tr12
 :tr12 block
 copy &hput &h1
+copy &q2[0] &farf1
+copy &q2[1] &farf2
+lut &or2 &q2 &q1
+if &q1 &trf1 &trh
+:trh block
 call &hostcopy &trx
+# an address 0x2 and 32 digits is a far one: its own copy, or the text as it was (never the host)
+:trf1 block
+call &farcheck &trf2
+:trf2 block
+if &farok &trf3 &trun
+:trf3 block
+call &farcopy &trx
 :trx block
 ret
 # unchanged
@@ -647,6 +700,242 @@ emit &sp
 copy &ob &one1
 copy &ol &l2
 call &emitch &trx
+
+# --- the far copy: the address of the far space is 0x2 and 32 digits: the link (8 digits, 0: the neighbour by stdin and stdout) and the position (24 digits).
+# The neighbour answers the requests of 6 bytes (op 8 bits, the number of the byte 32 bits, dat 8 bits); a copy of n bits (8..64, whole bytes) is n/8 requests, one byte
+# each. get: the request goes out (emit), the goto, the byte is read (key) into its place, the number of the byte is increased (the nibbles which change are copied from
+# the constants, the carry stops the copies: farinc; the nibbles of the number are kept in the array farn), the next request goes out;
+# put: the byte goes into dat, the request goes out. The pass makes the text; the labels are l4f<number>.
+
+# is the operand (ob, ol) a far address: a host address (hok) of 35 characters, the third is 2 (farr)
+:isfar word
+copy &farr &zero
+if &hok &fia1 &fiax
+:fia1 block
+eq &ol &c35b &q2
+if &q2[1] &fia2 &fiax
+:fia2 block
+copy &mi &two8
+call &peek &fia3
+:fia3 block
+eq &tc &s_2 &q2
+copy &farr &q2[1]
+ret
+:fiax block
+ret
+
+# may the far copy be made (farok): the width of the data is 8..64 bits in whole bytes, lo < 9900, the labels are not out, the address (hb, hl) has the link and the top
+# of the position 0 (the characters 3..26) and the position is a multiple of 8 bits (the low 3 bits of the last digit)
+:farcheck word
+copy &farok &zero
+lut &lz3 &wv[0:3] &q1
+if &q1 &fck1 &fckx
+:fck1 block
+copy &wxa &wv
+copy &wxb &z20
+call &weq &fck2
+:fck2 block
+if &q5[4] &fckx &fck3
+:fck3 block
+copy &wxa &wv
+copy &wxb &c65
+call &wlt &fck4
+:fck4 block
+if &ltc[5] &fck5 &fckx
+:fck5 block
+copy &wxa &lo
+copy &wxb &c9900
+call &wlt &fck6
+:fck6 block
+if &ltc[5] &fck7 &fckx
+:fck7 block
+copy &wxa &farcn
+copy &wxb &c2048
+call &wlt &fck8
+:fck8 block
+if &ltc[5] &fck9 &fckx
+:fck9 block
+copy &ob &hb
+copy &ol &hl
+copy &mi &c3b
+goto &fckl
+:fckl block
+eq &mi &c27b &q2
+if &q2[1] &fckm &fck10
+:fck10 block
+call &peek &fck11
+:fck11 block
+eq &tc &s_0 &q2
+if &q2[1] &fck12 &fckx
+:fck12 block
+lut &inc8 &mi &mi
+goto &fckl
+:fckm block
+copy &mi &c34b
+call &peek &fckm2
+:fckm2 block
+lut &hexv &tc &hv
+lut &lz3 &hv[0:3] &q1
+copy &farok &q1
+ret
+:fckx block
+ret
+
+# the part of the data operand for the byte at fara: the name (xb, the first xe characters), [fara:fara+8]
+:farpart word
+copy &ob &xb
+copy &ol &xe
+call &emitop &fpa1
+:fpa1 block
+emit &s_lb
+copy &pv &fara
+call &putdec &fpa2
+:fpa2 block
+emit &s_colon
+copy &wxa &fara
+copy &wxb &c8w
+call &wadd &fpa3
+:fpa3 block
+copy &pv &wxr[0:20]
+call &putdec &fpa4
+:fpa4 block
+emit &s_rbk
+ret
+
+# the number of the byte + 1 in the record: from the nibble 0 up, the nibble + 1 (inc8: the bit 4 is the carry) is kept in farn and copied from the constants (nibline) while the carry goes
+:farinc word
+copy &fj &zero8
+copy &fnl &c8w
+goto &fin1
+:fin1 block
+lut &farn &fj[0:3] &nv4
+copy &fe &zero8
+copy &fe[0:4] &nv4
+lut &inc8 &fe &fe
+copy &nv4 &fe[0:4]
+store &farn &fj[0:3] &nv4
+copy &nlo &fnl
+call &nibline &fin2
+:fin2 block
+copy &wxa &fnl
+copy &wxb &c4a
+call &wadd &fin3
+:fin3 block
+copy &fnl &wxr[0:20]
+lut &inc8 &fj &fj
+if &fe[4] &fin1 &finx
+:finx block
+ret
+
+# the far copy (hput: the far address is the destination; xb, xl, xe: the data operand; hb, hl: the address; wv: n; lo)
+:farcopy word
+emit &s_z1
+copy &nlo &z20
+if &hput &fz1 &fz2
+:fz1 block
+copy &nv4 &two4
+goto &fz3
+:fz2 block
+copy &nv4 &one4
+goto &fz3
+:fz3 block
+call &nibline &fz4
+# the number of the byte = the position / 8: the nibble t is bit 3 of the digit t and bits 0..2 of the digit t + 1 (the digit t is the character 34 - t)
+:fz4 block
+copy &ob &hb
+copy &ol &hl
+copy &mi &c34b
+copy &fnl &c8w
+copy &fi &zero8
+goto &fzn
+:fzn block
+call &peek &fzn1
+:fzn1 block
+lut &hexv &tc &hv
+copy &farb &hv[3]
+sub &mi &one8 &s9
+copy &mi &s9[0:8]
+call &peek &fzn2
+:fzn2 block
+lut &hexv &tc &hv
+copy &nv4[0] &farb
+copy &nv4[1:4] &hv[0:3]
+store &farn &fi[0:3] &nv4
+lut &nzt &nv4 &q1
+if &q1 &fzn3 &fzn4
+:fzn3 block
+copy &nlo &fnl
+call &nibline &fzn4
+:fzn4 block
+copy &wxa &fnl
+copy &wxb &c4a
+call &wadd &fzn5
+:fzn5 block
+copy &fnl &wxr[0:20]
+lut &inc8 &fi &fi
+eq &fi &c8b &q2
+if &q2[1] &fz5 &fzn
+:fz5 block
+copy &farnb &zero8
+copy &farnb[0:4] &wv[3:7]
+copy &fara &lo
+copy &fi &zero8
+if &hput &fzp &fz7
+:fz7 block
+emit &s_emq
+goto &fzg
+# get: the request is out, the goto, the byte, the increase, the next request
+:fzg block
+emit &s_gt
+copy &pv &farcn
+call &putdec &fzg1
+:fzg1 block
+emit &s_lbl
+copy &pv &farcn
+call &putdec &fzg2
+:fzg2 block
+emit &s_blk
+call &farpart &fzg3
+:fzg3 block
+emit &nl8
+copy &wxa &farcn
+copy &wxb &c1
+call &wadd &fzg4
+:fzg4 block
+copy &farcn &wxr[0:20]
+lut &inc8 &fi &fi
+copy &wxa &fara
+copy &wxb &c8w
+call &wadd &fzg5
+:fzg5 block
+copy &fara &wxr[0:20]
+eq &fi &farnb &q2
+if &q2[1] &fzx &fzg6
+:fzg6 block
+call &farinc &fzg7
+:fzg7 block
+emit &s_emq
+goto &fzg
+# put: the byte into dat, the request, the increase
+:fzp block
+emit &s_cd
+call &farpart &fzp1
+:fzp1 block
+emit &nl8
+emit &s_emq
+lut &inc8 &fi &fi
+copy &wxa &fara
+copy &wxb &c8w
+call &wadd &fzp2
+:fzp2 block
+copy &fara &wxr[0:20]
+eq &fi &farnb &q2
+if &q2[1] &fzx &fzp3
+:fzp3 block
+call &farinc &fzp
+
+:fzx block
+ret
 
 # the operand (ob, ol) goes out; `+k` (k from 0 to 5) is the address of a channel from the end of the space: S + k, the number 104857k (A = 20, as l3c)
 :emitch word
@@ -820,6 +1109,7 @@ ret
 # the width of the part of space of the operand (ob, ol): wok, wv
 :opwidth word
 copy &wok &zero
+copy &lo &z20
 copy &mi &zero8
 call &peek &ow1
 :ow1 block
@@ -831,6 +1121,7 @@ call &mkname &ow3
 :ow3 block
 if &nok &ow4 &owend
 :ow4 block
+copy &xe &mi
 eq &mi &ol &q2
 if &q2[1] &owwhole &owbr
 :owwhole block

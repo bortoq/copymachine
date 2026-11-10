@@ -1,0 +1,99 @@
+# Far copy, step 26.6 (7.2.38, 7.2.44): the answerer with the check, the faults of the channel. One program of language 3, nothing new: data, array, lut, store, add, sub, eq, lt, if, key, emit, copy.
+# It is far_serve.tw (26.3) with a checked protocol; far_serve.tw is kept as it was: the pass l4c (far_copy.tw: `copy ... 0x2...`) makes the requests of that protocol (6 bytes, no check),
+# so the answerer of the checked protocol is a program of its own (the asker of it is far_get_ck.tw). Its window is the same: 8 cells of 8 bits, COPYMACH.
+# The record of a request: 7 bytes, read by four `key`:   op (8 bits)   pos (32 bits, the number of the byte)   dat (8 bits)   ck (8 bits)
+#   ck = op + pos[0:8] + pos[8:16] + pos[16:24] + pos[24:32] + dat, modulo 256 (five `add`). A byte changed in the record changes the sum: the fault is seen.
+#   op = 1 (bit 0) get      op = 2 (bit 1) put      op = 0 and the record whole and right (ck = 0 for the record of zeros): stop (no answer).
+# The answer to every record is two bytes, always (so the asker never waits for more or less):   v (8 bits)   w = 255 - v (8 bits, the complement of v: `sub`)
+#   get: v = win[pos] (outside the window, pos >= 8: 255, w = 0: the prohibitive price is an answer as right as any); put: win[pos] = dat, and the answer is the cell read back (v = dat, w = ~dat;
+#   outside the window nothing is written and the answer is 255, 0): the put is confirmed by what the window holds now. A record with a wrong ck (or an op not 0, 1, 2 with a right ck)
+#   changes nothing and is answered by the two bytes 0, 0: they are never a pair (0 and 255 - 0 = 255), so the asker sees it and asks again.
+#   The requests are idempotent (7.2.38): the same get gives the same answer, the same put leaves the same window: a repeat is harmless.
+#   The end of the stdin (the channel is closed) is a stop: the whole record is zeroed before every read and a read at EOF leaves it as it was (all zeros: the sum 0 = ck 0, op 0).
+# The sum goes through the cells s1..s4, s (every `add` has a result cell of its own): `add` into one of its own arguments loses the carry between the nibbles (the carry bit lands on a bit still to be read).
+:op data 8 0
+:pos data 32 0
+:dat data 8 0
+:ck data 8 0
+:s1 data 9 0
+:s2 data 9 0
+:s3 data 9 0
+:s4 data 9 0
+:s data 9 0
+:e data 2 0
+:ans data 8 0
+:inv data 9 0
+:zero8 data 8 0
+:zero32 data 32 0
+:ones data 8 255
+:eight data 32 8
+:c3 data 9 0
+:win array 3 8
+:init data 64 "COPYMACH"
+:i0 data 3 0
+:i1 data 3 1
+:i2 data 3 2
+:i3 data 3 3
+:i4 data 3 4
+:i5 data 3 5
+:i6 data 3 6
+:i7 data 3 7
+:main block
+store &win &i0 &init[0:8]
+store &win &i1 &init[8:16]
+store &win &i2 &init[16:24]
+store &win &i3 &init[24:32]
+store &win &i4 &init[32:40]
+store &win &i5 &init[40:48]
+store &win &i6 &init[48:56]
+store &win &i7 &init[56:64]
+goto &loop
+:loop block
+copy &op &zero8
+copy &pos &zero32
+copy &dat &zero8
+copy &ck &zero8
+key &op
+key &pos
+key &dat
+key &ck
+goto &verify
+:verify block
+add &op &pos[0:8] &s1
+add &s1[0:8] &pos[8:16] &s2
+add &s2[0:8] &pos[16:24] &s3
+add &s3[0:8] &pos[24:32] &s4
+add &s4[0:8] &dat &s
+eq &s[0:8] &ck &e
+if &e[1] &good &bad
+:bad block
+emit &zero8
+emit &zero8
+goto &loop
+:good block
+lt &pos &eight &c3
+if &op[0] &get &notget
+:get block
+if &c3[8] &getin &getout
+:getin block
+lut &win &pos[0:3] &ans
+sub &ones &ans &inv
+emit &ans
+emit &inv[0:8]
+goto &loop
+:getout block
+emit &ones
+emit &zero8
+goto &loop
+:notget block
+if &op[1] &put &notput
+:put block
+if &c3[8] &putin &getout
+:putin block
+store &win &pos[0:3] &dat
+goto &getin
+:notput block
+eq &op &zero8 &e
+if &e[1] &done &bad
+:done block
+halt

@@ -1,0 +1,37 @@
+# Far copy, step 26.5 (7.2.34, 7.2.44): the space B of the common file (A is far_file_a.tw; the same `-r path` for both). B polls the flag (byte 4 of the file, bit 32) by the long copy
+# `copy &flag 0x1...`: a failed poll counts in n (32 bits: `add` into m, 33 bits, then n is m without the carry; `add` into its own argument would lose the carry between nibbles), and while n < limit the poll goes on; the flag is 1 (its bit 0): only then B reads the data (bytes 0..3,
+# 32 bits) `copy &y 0x1...` into y. n is the number of the failed polls, y = the data. The limit (the timeout) is the cell `limit`: if the flag does not come in `limit`
+# polls, the data are not read, y becomes all ones (the prohibitive price: four copies of a byte of ones, a 32-bit decimal literal of ones is not read by l3c) and the program goes on (does not hang). At the end: y and n to stderr (8 bytes: the data,
+# the number of the failed polls, the lowest byte first: as `key` stores a number).
+# The loop is one block of the language (the polling copy, `add`, `lt`, `if`): the address of the copy is a constant of the text, so a loop by a counter needs no computed address.
+:y data 32 0
+:flag data 8 0
+:n data 32 0
+:m data 33 0
+:one data 32 1
+:limit data 32 300000
+:lo data 9 0
+:ones data 8 255
+:main block
+goto &poll
+:poll block
+copy &flag 0x100000001000000000000000000000020
+if &flag[0] &read &miss
+:miss block
+add &n &one &m
+copy &n &m[0:32]
+lt &n &limit &lo
+if &lo[8] &poll &giveup
+:read block
+copy &y 0x100000001000000000000000000000000
+goto &show
+:giveup block
+copy &y[0:8] &ones
+copy &y[8:16] &ones
+copy &y[16:24] &ones
+copy &y[24:32] &ones
+goto &show
+:show block
+warn &y
+warn &n
+halt

@@ -1,0 +1,55 @@
+# Far copy, step 26.4 (7.2.44): the asker in language 4. The far copy is the usual `copy` with the address of the far space `0x2` + 32 hex digits (the link in
+# the top 32 bits, 0 = the neighbour by stdin and stdout; the position in the low 96 bits: here the bit of the byte, a multiple of 8). The pass l4c makes of
+# `copy &x <far>` the requests get (one byte each, the answer is read into &x) and of `copy <far> &x` the requests put. The protocol is that of far_serve.tw
+# (op 8 bits, pos 32 bits = the number of the byte, dat 8 bits). The stdout of this program is the stdin of far_serve.tw and its stdin is the stdout of far_serve.tw;
+# the cells are written to stderr (warn) at the end. A cell starts as zeros: the answer outside the window is ones, no answer at all (the channel is closed) leaves zeros.
+# The window of the answerer is COPYMACH (8 bytes). The copies, the byte numbers in the window and what must be read:
+#   w8   <- bytes 0..7                       COPYMACH
+#   x4   <- bytes 2..5                       PYMA
+#   bytes 5, 6 <- "OK" (put)
+#   y2   <- bytes 5, 6                       OK
+#   x4b  <- bytes 4..7                       MOKH
+#   o1   <- byte 8 (outside)                 255
+#   t4   <- bytes 6..9 (7 is the last cell)  K H 255 255
+#   bytes 8, 9 <- "OK" (put outside: nothing changes)
+#   hi4  <- byte 2^28 + 3 (outside; the low bits are the cell 3, the 32-bit number must not be cut)   255 x 4
+#   byte 2^28 + 3 <- "O" (put outside: the cell 3 stays)
+#   y1   <- byte 3                           Y
+:w8 data 64 0
+:x4 data 32 0
+:ok data 16 "OK"
+:y2 data 16 0
+:x4b data 32 0
+:o1 data 8 0
+:t4 data 32 0
+:hi4 data 32 0
+:oo data 8 "O"
+:y1 data 8 0
+:stop data 48 0
+:main block
+copy &w8 0x200000000000000000000000000000000
+copy &x4 0x200000000000000000000000000000010
+copy 0x200000000000000000000000000000028 &ok
+copy &y2 0x200000000000000000000000000000028
+copy &x4b 0x200000000000000000000000000000020
+copy &o1 0x200000000000000000000000000000040
+copy &t4 0x200000000000000000000000000000030
+copy 0x200000000000000000000000000000040 &ok
+copy &hi4 0x200000000000000000000000080000018
+copy 0x200000000000000000000000080000018 &oo
+copy &y1 0x200000000000000000000000000000018
+goto &fin
+# the stop (op = 0, a whole record), then the cells to stderr
+:fin block
+emit &stop
+goto &show
+:show block
+warn &w8
+warn &x4
+warn &y2
+warn &x4b
+warn &o1
+warn &t4
+warn &hi4
+warn &y1
+halt

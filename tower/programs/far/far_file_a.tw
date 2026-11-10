@@ -1,0 +1,15 @@
+# Far copy, step 26.5 (7.2.34, 7.2.44): the second definition of the same copy: the common file `-r path` (the area 1 of the host). The space A, language 4 (nothing new:
+# the copy with the address of the host, `copy 0x1... &x`, the pass l4c makes the request of it). The two spaces are two emulators run with the same `-r path`; the file is
+# the common memory: A writes the data by the long copy (bytes 0..3 of the file, 32 bits), and then the flag of readiness (byte 4 of the file, 8 bits, the value 1).
+# The flag is written by a copy of its own, after the `goto`: a tick boundary, so the data are in the file before the flag is (the file is written by the request
+# at the tick of the copy, a reader sees the flag only after that). The file may be new (a missing part reads as zeros: the flag 0 = not ready) and must be zero at the start.
+# The flag and the data are cells of the area 1: the data at the bit 0, the flag at the bit 32 (a position is a constant of the text: no address computed at run time).
+# B is far_file_b.tw. A prints nothing and stops after the flag.
+:v data 32 "FILE"
+:ready data 8 1
+:main block
+copy 0x100000001000000000000000000000000 &v
+goto &flag
+:flag block
+copy 0x100000001000000000000000000000020 &ready
+halt

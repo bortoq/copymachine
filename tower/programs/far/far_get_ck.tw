@@ -1,0 +1,140 @@
+# Far copy, step 26.6 (7.2.38, 7.2.44): the asker with the check and the repeat (the answerer is far_serve_ck.tw; read its comment for the records). One program of language 3, nothing new:
+# (the entry is the first block: main, then the word ask at the end) data, copy, add, sub, eq, lt, if, word, call, ret, emit, key, warn, goto, halt. Its stdout must go to the stdin of far_serve_ck.tw and its stdin must be the stdout of far_serve_ck.tw.
+# The word `ask` makes one request: the cells op, pos, dat are set by the caller; ask sends the record (op, pos, dat, ck: ck = the sum of the six bytes modulo 256, five `add`), reads the two bytes of
+# the answer into a1, a2 and takes it if a2 = 255 - a1 (`sub`, `eq`): the answer is in res. If it is not a pair (a byte of the answer or of the request was changed, the channel was closed: a1, a2 are
+# zeroed before every read and the read at EOF leaves them zeros, which is not a pair) the same request is sent again (it is idempotent, 7.2.38), 4 tries at most (the cell lim); when the tries are
+# out the answer is all ones (the prohibitive price) and the program goes on. An answer to a put is the cell read back: res = the data written (outside the window: 255). Every `key` is a block of its own (as in far_get.tw).
+# The requests: get 2, get 5, put 3 <- 165, get 3, get 8 (outside the window), put 9 <- 77 (outside: nothing changes, the answer is 255), get 1, get 200; the 8 results go to stderr (warn), one byte each.
+:opget data 8 1
+:opput data 8 2
+:p1 data 32 1
+:p2 data 32 2
+:p3 data 32 3
+:p5 data 32 5
+:p8 data 32 8
+:p9 data 32 9
+:p200 data 32 200
+:d0 data 8 0
+:d77 data 8 77
+:d165 data 8 165
+# The sum goes through the cells s1..s4, s (every `add` has a result cell of its own): `add` into one of its own arguments loses the carry between the nibbles (the carry bit lands on a bit still to be read).
+:op data 8 0
+:pos data 32 0
+:dat data 8 0
+:s1 data 9 0
+:s2 data 9 0
+:s3 data 9 0
+:s4 data 9 0
+:s data 9 0
+:a1 data 8 0
+:a2 data 8 0
+:inv data 9 0
+:e data 2 0
+:c data 3 0
+:t9 data 9 0
+:tries data 8 0
+:one8 data 8 1
+:lim data 8 4
+:zero8 data 8 0
+:ones data 8 255
+:res data 8 255
+:g1 data 8 255
+:g2 data 8 255
+:g3 data 8 255
+:g4 data 8 255
+:g5 data 8 255
+:g6 data 8 255
+:g7 data 8 255
+:g8 data 8 255
+:stop data 56 0
+:main block
+copy &op &opget
+copy &pos &p2
+copy &dat &d0
+call &ask &r1
+:r1 block
+copy &g1 &res
+copy &pos &p5
+call &ask &r2
+:r2 block
+copy &g2 &res
+copy &op &opput
+copy &pos &p3
+copy &dat &d165
+call &ask &r3
+:r3 block
+copy &g3 &res
+copy &op &opget
+copy &dat &d0
+call &ask &r4
+:r4 block
+copy &g4 &res
+copy &pos &p8
+call &ask &r5
+:r5 block
+copy &g5 &res
+copy &op &opput
+copy &pos &p9
+copy &dat &d77
+call &ask &r6
+:r6 block
+copy &g6 &res
+copy &op &opget
+copy &pos &p1
+copy &dat &d0
+call &ask &r7
+:r7 block
+copy &g7 &res
+copy &pos &p200
+call &ask &r8
+:r8 block
+copy &g8 &res
+goto &fin
+:fin block
+emit &stop
+goto &show
+:show block
+warn &g1
+warn &g2
+warn &g3
+warn &g4
+warn &g5
+warn &g6
+warn &g7
+warn &g8
+halt
+:ask word
+copy &tries &zero8
+goto &try
+:try block
+copy &a1 &zero8
+copy &a2 &zero8
+add &op &pos[0:8] &s1
+add &s1[0:8] &pos[8:16] &s2
+add &s2[0:8] &pos[16:24] &s3
+add &s3[0:8] &pos[24:32] &s4
+add &s4[0:8] &dat &s
+emit &op
+emit &pos
+emit &dat
+emit &s[0:8]
+goto &rd
+:rd block
+key &a1
+key &a2
+goto &chk
+:chk block
+sub &ones &a1 &inv
+eq &inv[0:8] &a2 &e
+if &e[1] &ok &bad
+:ok block
+copy &res &a1
+ret
+:bad block
+add &tries &one8 &t9
+copy &tries &t9[0:8]
+lt &tries &lim &c
+if &c[2] &try &fail
+:fail block
+copy &res &ones
+ret

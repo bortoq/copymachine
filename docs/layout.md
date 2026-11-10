@@ -3,7 +3,7 @@
 | Каталог | Содержимое |
 |---|---|
 | `emulator/` | один эмулятор (bitcopy, длинное копирование LONG, SYS, режим `checked`), его тесты, [контракт](../emulator/doc/emulator-contract.md) |
-| `tower/` | цепочка вложенных языков 1–5: [`README.md`](../tower/README.md) (определение), эталоны `*.py` и `tests/`, тексты инструментов и программ `programs/`; замеры — `docs/measurements/tower.md`; проверка — `make check-tower` |
+| `tower/` | цепочка вложенных языков 1–5: [`README.md`](../tower/README.md) (определение), эталоны `*.py` и `tests/`, тексты инструментов и программ `programs/` (в том числе `programs/assoc/` — ассоциативное пространство, 25.2; `programs/far/` — дальнее копирование, этап 26); замеры — `docs/measurements/tower.md`; проверка — `make check-tower` |
 | `tools/` | `limited_run.py`, `check_layout.py`, `gcov_summary.py`, `ci/*.sh` |
 | `docs/` | [`README.md`](README.md) — указатель двух частей документации; изучение: `guide/` (руководство по шагам), `dictionary.md`, `layout.md`; сопровождение разработки: `journal/` (журнал плана), `design/` (журнал дизайна), `measurements/` (замеры), `research/` |
 | `build/` | результаты сборки; в Git не входят |
