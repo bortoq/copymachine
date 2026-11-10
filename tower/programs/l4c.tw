@@ -6,7 +6,7 @@
 # `copy &x 0x...` (get) and `copy 0x... &x` (put) copies of language 3, the copy with the address of a channel (the number 1048570, S) among them; the prelude (the
 # buffer of the request l4q of 204 + 2048 bits, the zeros l4z, the constants of the nibbles l4n0..l4n3) is put at the start (after the word `pack`, if it stands first).
 # The width n of the data is that of the part `&x[lo:hi]` (hi - lo), `&x[k]` (1) or of `&x` whole: the pass remembers the widths of `:name data n ...` (the table of
-# names, linear). A copy with no address of the host, or with two, or with a width which is not known or not 1..2048, goes out unchanged (l3c reports it). Not a word of the
+# names: a tree of tables by the hash of the name, 25.3.1). A copy with no address of the host, or with two, or with a width which is not known or not 1..2048, goes out unchanged (l3c reports it). Not a word of the
 # text, not an address: it goes through as it is (but the blanks between `copy` and its operands do not go out: the copy goes out as `copy a b`). No errors. The reference in Python is tower/l3ctext.py (l4c, host_copy); this text does the same on the chain and a
 # test compares the bytes. How it reads: a character at a time (key); a token is held (the array tk, the two operands of a copy in its two halves) and goes out when
 # it ends; `copy` is held with its two operands. The tables between the marks are made by tower/l3ctext.py (x_tables_text).
@@ -78,6 +78,8 @@
 :nzt table 4 1  0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
 :is14 table 4 1  0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0
 :xor2 table 2 1  0 1 1 0
+:lvdec table 3 3  7 0 1 2 3 4 5 6
+:lz3 table 3 1  1 0 0 0 0 0 0 0
 :dch table 4 8  "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" 0 0 0 0 0 0
 :pl table 2 20  1000 100 10 1
 :inc8 table 8 8
@@ -98,11 +100,15 @@
   225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240
   241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 0
 
-# --- arrays: the token (the operands of a copy in its two halves), the names of the data and their widths
+# --- arrays: the token (the operands of a copy in its two halves); the names of the data (the cells 1..63: the name in two halves, its width, the previous
+# cell with the same hash) and the tree of tables over them (the hash of the name, 12 bits, by parts of 2 bits: 6 levels, a node is 4 entries; the node 1 is the root,
+# the nodes 2..255 are taken as a path needs them; an entry holds the next node, at the last level the top cell of the hash; 0 is none)
 :tk array 8 8
-:sna array 10 56
-:snb array 10 56
-:swd array 10 20
+:sna array 6 56
+:snb array 6 56
+:swd array 6 20
+:scp array 6 6
+:trn array 10 8
 
 # --- the character, the state of the reading
 :ch data 8 0
@@ -174,11 +180,24 @@
 :dgt data 8 0
 :chd data 8 0
 :ix data 8 0
-:nsym data 12 0
-:fj data 12 0
-:fr data 13 0
+:hh data 12 0
+:hh2 data 12 0
+:hx data 12 0
+:hr data 13 0
+:lh data 12 0
+:wh data 12 0
+:wh2 data 12 0
+:tx data 10 0
+:ent data 8 0
+:ndn data 8 0
+:lv data 3 0
+:ntp data 8 2
+:ncl data 8 0
+:nc data 8 0
+:ot data 8 0
+:ptc data 6 0
+:tok data 1 0
 :fo data 1 0
-:fq data 3 0
 :fm data 14 0
 :fn data 14 0
 :fw data 20 0
@@ -201,7 +220,6 @@
 :z20 data 20 0
 :z112 data 112 0
 :zero12 data 12 0
-:one12 data 12 1
 :one1 data 1 1
 :one4 data 4 1
 :one8 data 8 1
@@ -223,6 +241,8 @@
 :c204 data 20 204
 :c2048 data 20 2048
 :c6 data 4 6
+:c5v data 3 5
+:c63 data 8 63
 :sp data 8 " "
 :nl8 data 8 "\n"
 :s_amp data 8 "&"
@@ -509,13 +529,26 @@ if &alld &trk2a &trkend
 eq &tl &zero8 &q2
 if &q2[1] &trkend &trk2b
 :trk2b block
-if &nsym[10] &trkend &trk2c
+copy &nm &lbl
+copy &hh &lh
+call &find &trk2c
+# the first definition of a name stays; no free cell or node: the name is not kept
 :trk2c block
-store &sna &nsym[0:10] &lbl[0:56]
-store &snb &nsym[0:10] &lbl[56:112]
-store &swd &nsym[0:10] &num
-add &nsym &one12 &fr
-copy &nsym &fr[0:12]
+if &fo &trkend &trk2d
+:trk2d block
+eq &ncl &c63 &q2
+if &q2[1] &trkend &trk2e
+:trk2e block
+lut &inc8 &ncl &nc
+call &tins &trk2f
+:trk2f block
+if &tok &trk2g &trkend
+:trk2g block
+copy &ncl &nc
+store &sna &nc[0:6] &lbl[0:56]
+store &snb &nc[0:6] &lbl[56:112]
+store &swd &nc[0:6] &num
+store &scp &nc[0:6] &ot[0:6]
 ret
 :trk01 block
 if &tr[0] &trk1 &trk0
@@ -541,6 +574,7 @@ eq &mi &tl &q2
 if &q2[1] &trkl4 &trkend
 :trkl4 block
 copy &lbl &nm
+copy &lh &hh
 copy &tr &y1
 ret
 :trkend block
@@ -666,6 +700,7 @@ ret
 # a name from mi: nm (the characters shifted in), nlen, nok (1..14 bytes, not a digit first), mi after it
 :mkname word
 copy &nm &z112
+copy &hh &zero12
 copy &nlen &zero8
 copy &nbad &zero
 goto &mkl
@@ -696,6 +731,10 @@ copy &nt[0:104] &nm[8:112]
 copy &nt[104:112] &tc
 copy &nm &nt
 lut &inc8 &nlen &nlen
+shl &hh &hh2 3
+copy &hx[0:8] &tc
+add &hh2 &hx &hr
+copy &hh &hr[0:12]
 goto &mk6
 :mk6 block
 lut &inc8 &mi &mi
@@ -831,32 +870,88 @@ ret
 :owend block
 ret
 
-# the name in nm among the names of data: fo, fw
+# the name in nm (its hash in hh) among the names of data: fo, fw. The tree gives the top cell of the hash; the names with this hash are the versions of the key
+# (down by scp), the name is compared with each
 :find word
-copy &fj &zero12
 copy &fo &zero
-goto &floop
-:floop block
-eq &fj &nsym &fq
-if &fq[2] &fnone &fcmp
-:fnone block
-ret
-:fcmp block
-lut &sna &fj[0:10] &ea
+copy &ndn &one8
+copy &lv &c5v
+copy &wh &hh
+goto &fl1
+:fl1 block
+copy &tx[0:2] &wh[0:2]
+copy &tx[2:10] &ndn
+shr &wh &wh2 2
+copy &wh &wh2
+lut &trn &tx &ent
+lut &lz3 &lv &q1
+if &q1 &fv &fl2
+:fl2 block
+eq &ent &zero8 &q2
+if &q2[1] &fend &fl3
+:fl3 block
+copy &ndn &ent
+lut &lvdec &lv &lv
+goto &fl1
+:fv block
+eq &ent &zero8 &q2
+if &q2[1] &fend &fv1
+:fv1 block
+lut &sna &ent[0:6] &ea
 eq &nm[0:56] &ea &fm
-if &fm[13] &fc2 &fnext
-:fc2 block
-lut &snb &fj[0:10] &eb
+if &fm[13] &fv2 &fvn
+:fv2 block
+lut &snb &ent[0:6] &eb
 eq &nm[56:112] &eb &fn
-if &fn[13] &fc3 &fnext
-:fc3 block
-lut &swd &fj[0:10] &fw
+if &fn[13] &fv3 &fvn
+:fv3 block
+lut &swd &ent[0:6] &fw
 copy &fo &one1
 ret
-:fnext block
-add &fj &one12 &fr
-copy &fj &fr[0:12]
-goto &floop
+:fvn block
+lut &scp &ent[0:6] &ptc
+copy &ent[0:6] &ptc
+goto &fv
+:fend block
+ret
+
+# a new top cell nc for the hash hh: tok = 1 if it is kept (a node is missing: 0), ot = the cell which was the top before (0: none)
+:tins word
+copy &tok &zero
+copy &ndn &one8
+copy &lv &c5v
+copy &wh &hh
+goto &ti1
+:ti1 block
+copy &tx[0:2] &wh[0:2]
+copy &tx[2:10] &ndn
+shr &wh &wh2 2
+copy &wh &wh2
+lut &trn &tx &ent
+lut &lz3 &lv &q1
+if &q1 &ti2 &ti3
+:ti2 block
+copy &ot &ent
+store &trn &tx &nc
+copy &tok &one1
+ret
+:ti3 block
+eq &ent &zero8 &q2
+if &q2[1] &ti4 &ti6
+:ti4 block
+eq &ntp &zero8 &q2
+if &q2[1] &tiend &ti5
+:ti5 block
+copy &ent &ntp
+store &trn &tx &ent
+lut &inc8 &ntp &ntp
+goto &ti6
+:ti6 block
+copy &ndn &ent
+lut &lvdec &lv &lv
+goto &ti1
+:tiend block
+ret
 
 # --- a long copy: the words of language 3 (hput: the host is the destination; xb, xl: the data operand; hb, hl: the address; wv: n)
 :hostcopy word

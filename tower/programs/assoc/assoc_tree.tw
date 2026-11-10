@@ -1,7 +1,6 @@
 # Associative space (25.2, 7.2.43), the method: tree. One program of language 3: a small space of cells with two indexes and
 # versions, read from stdin as a sequence of commands, the answers go to stdout. Nothing is new: tables, lut, store,
-# words, blocks, copy, eq, shr; sizes (widths and tables) are between the lines `sizes begin/end`, tests/assoc_gen.py
-# makes them for other sizes.
+# words, blocks, copy, eq, shr; one size: key 8 bits, value 8 bits, 16 cells (the sizes are the data and tables between the lines `sizes begin/end`).
 #   cells 1..2^C-1 (0 means "none"): ce[cell, sel] = key (sel 0) or value (sel 1), cp[cell] = the cell of the previous version
 #   of the same key (the stack of versions: the top is the one in force; free cells are a list through cp), sy[cell] = the next
 #   and sb[cell] = the previous cell of a ring of the cells (top versions) with the same value (the table of synonyms; two links,
@@ -9,14 +8,14 @@
 #   index F: key -> the cell of its top version (the direct table); index R: value -> one cell of the ring of this value
 #   (the reverse table, a representative). the index: a tree of tables (the key or value by parts of 2 bits, a table of 4 entries per node).
 #   The price of "no such key / value" is the prohibitive one: all ones (the cell 0 holds all ones, so the lookup of 0 needs no
-#   special case); a key or a value of all ones is not stored and a write with no free cell is not done: W answers the prohibitive price (VB/8 bytes of ones), changing nothing.
+#   special case); a key or a value of all ones is not stored and a write with no free cell is not done: W answers the prohibitive price (a byte of ones), changing nothing.
 # stdin: a command byte, then its arguments: key = KB/8 bytes, value = VB/8 bytes (the numbers are as `key` stores them);
 #   0 stop        1 W key value   2 K key   3 V value   4 R key   5 P key   6 Q cell   7 S key   (+8: nothing, the byte is skipped)
-#   W: a new top version value for the key (no answer, or all ones if not done)   K: the value of the top version        V: the key of a cell with this value
+#   W: a new top version value for the key (the answer: the cell of the new version, a byte; all ones if not done)   K: the value of the top version        V: the key of a cell with this value
 #   R: remove the top version of the key          P: the cell of the top version (a byte)  Q: key, value, cp, sy, sb of the cell
 #   S: the next synonym key (the key with the same top value, ring order)
-# stdout: K: VB/8 bytes; V, S: KB/8 bytes; P: 1 byte; W: nothing, or VB/8 bytes of ones if the write is not done; Q: key, value, cp, sy, sb; no answer is "all ones" (P: 255).
-# === sizes begin (made by tower/tests/assoc_gen.py: tree, key 8 bits, value 8 bits, 16 cells)
+# stdout: K: VB/8 bytes; V, S: KB/8 bytes; P: 1 byte; W: 1 byte, the cell of the new version, or 255 (all ones) if the write is not done; Q: key, value, cp, sy, sb; no answer is "all ones" (P: 255).
+# === sizes begin (tree, key 8 bits, value 8 bits, 16 cells)
 # the entity of a cell: key (sel=0) or value (sel=1) padded with zeros to W bits
 :cmd data 8 0
 :k data 8 0
@@ -144,7 +143,7 @@ if &cmd[0] &op_w &fin
 :fin block
 halt
 
-# --- W key value: a new version of the key (not done, with the answer all ones, if there is no free cell or the key or the value is all ones)
+# --- W key value: a new version of the key; the answer is its cell (a byte), or all ones (a byte, 255) if it is not done (no free cell, the key or the value is all ones)
 :op_w block
 key &k
 key &v
@@ -192,9 +191,12 @@ copy &nc &wc
 call &ix_set &w15
 :w15 block
 copy &ac &wc
-call &act &next
+call &act &w16
+:w16 block
+copy &qa &wc
+call &outc &next
 :wno block
-emit &onesv
+emit &ffb
 goto &next
 
 # --- R key: removes the top version of the key
@@ -551,7 +553,7 @@ lut &down3 &li &li
 goto &tu1
 
 # --- small words which depend on the widths
-# === words begin (made by tower/tests/assoc_gen.py)
+# === words begin
 :mke_k word
 copy &e &zw
 copy &e[0:8] &k

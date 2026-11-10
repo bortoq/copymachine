@@ -207,6 +207,49 @@ class Tool(unittest.TestCase):
             with self.subTest(src):
                 self.check(src)
 
+    @staticmethod
+    def name_hash(name):
+        """The hash of a name in l4c.tw (mkname): h = 8h + c modulo 2^12 over the bytes; the tree of the names is keyed by it."""
+        h = 0
+        for c in name.encode():
+            h = (h * 8 + c) & 4095
+        return h
+
+    @staticmethod
+    def names_program(names, widths):
+        """The data `names` of the widths and two copies with the host for each (the whole name, a part of it)."""
+        a = host(1, 8)
+        return (''.join(':%s data %d 0\n' % (n, w) for n, w in zip(names, widths, strict=True)) + ':main block\n'
+                + ''.join('copy &%s %s\ncopy %s &%s[1:3]\n' % (n, a, a, n) for n in names) + 'halt\n').encode()
+
+    def test_names_with_the_same_hash(self):
+        """The names of data are a tree of tables by the hash of the name (12 bits); names with the same hash are the versions of one key (the name is compared
+        with each); a repeated name keeps its first width: the same bytes as the reference."""
+        by = {}
+        for a in 'abcdefghijklmnopqrstuvwxyz':
+            for b in 'abcdefghijklmnopqrstuvwxyz':
+                for c in 'abcdefghijkl':
+                    by.setdefault(self.name_hash(a + b + c), []).append(a + b + c)
+        groups = [v for v in by.values() if len(v) >= 4][:6]
+        self.assertEqual(len(groups), 6)
+        names = [n for g in groups for n in g[:4]]
+        self.check(self.names_program(names, list(range(5, 5 + len(names)))))
+        self.check(self.names_program(names + names[::-1], list(range(5, 5 + 2 * len(names)))))
+        rng = random.Random(2531)
+        for _ in range(4):
+            pool = [n for g in groups for n in g] + [''.join(rng.choice('abxyz_09') for _ in range(rng.randrange(1, 15))) for _ in range(10)]
+            names = [n for n in rng.sample(pool, 30) if n[0] not in '0123456789']
+            self.check(self.names_program(names, [rng.randrange(1, 300) for _ in names]))
+
+    def test_table_of_names_is_full(self):
+        """63 names are kept (cells 1..63); a name past them is not kept, its copy goes out unchanged (as for a name which is not known)."""
+        names = ['n%d' % i for i in range(70)]
+        out = l4c(self.names_program(names, [8] * 70)).out
+        self.assertEqual(out.count(b'copy 1048570 &l4q[0:204]\n'), 63)
+        self.assertEqual(out.count(b'copy &n63 0x'), 1)
+        self.assertEqual(out.count(b'copy &n69 0x'), 1)
+        self.assertEqual(out.count(b'copy &n62 0x'), 0)
+
     def test_mutations(self):
         """Texts spoiled at random (a character replaced, dropped, doubled): the same bytes."""
         rng = random.Random(2317)
