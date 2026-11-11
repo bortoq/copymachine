@@ -138,6 +138,15 @@ class Level3(unittest.TestCase):
             self.assertEqual(r.out, b'%03d\n' % (a + b), (a, b))
         intervals(p)
 
+    def test_warn_raw_bytes(self):
+        """A byte >= 0x80 sent by `warn` is in Result.err_bytes as it is (Result.err replaces it)."""
+        def build(p):
+            b = p.var('b', 8)
+            p.block('main'); p.key(b.ref()); p.warn(b.ref()); p.halt()
+        p, r = go(build, plain=False, stdin=b'\xa5')
+        self.assertIn(b'\xa5', r.err_bytes)
+        self.assertNotIn('\xa5', r.err)
+
     def test_branch(self):
         for a, b in ((3, 9), (9, 3), (5, 5), (16, 15), (15, 16), (0, 255), (255, 0), (0x80, 0x7f)):
             p, r = go(progs.branch(a, b), plain=False)

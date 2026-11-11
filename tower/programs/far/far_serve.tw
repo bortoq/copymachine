@@ -2,7 +2,8 @@
 # It serves a window of 8 cells of 8 bits (the array win) over its stdin/stdout: the answers go to stdout, so the shell must connect the
 # stdout of the asker to this stdin and this stdout to the stdin of the asker.
 # The record of a request: fixed size, 6 bytes, read by three `key`:   op (8 bits)   pos (32 bits)   dat (8 bits)
-#   op = 0  stop (no answer)      op bit 0 = 1 (op = 1)  get: answer one byte, win[pos]      op bit 1 = 1 (op = 2)  put: win[pos] = dat (no answer)
+#   op = 0 (all 8 bits)  stop (no answer)      op = 1  get: answer one byte, win[pos]      op = 2  put: win[pos] = dat (no answer)
+#   any other op (3, 4, 16, 255 ...) is a spoiled record: it is skipped, nothing is answered, the next record is read (only op = 0 whole stops the answerer).
 #   a number is stored as `key` stores it: the first bit of the stream is the lowest bit (pos: 4 bytes, the lowest byte first).
 #   pos is the number of a byte; out of the window (pos >= 8): get answers a byte of ones (255) = the prohibitive price; put changes nothing.
 #   The end of the stdin (the channel is closed) is a stop: op is zeroed before every read and a read at EOF leaves it as it was.
@@ -13,6 +14,9 @@
 :dat data 8 0
 :ans data 8 0
 :zero8 data 8 0
+:one8 data 8 1
+:two8 data 8 2
+:e data 2 0
 :ones data 8 255
 :eight data 32 8
 :c3 data 9 0
@@ -42,7 +46,11 @@ key &op
 key &pos
 key &dat
 lt &pos &eight &c3
-if &op[0] &get &notget
+eq &op &zero8 &e
+if &e[1] &done &isget
+:isget block
+eq &op &one8 &e
+if &e[1] &get &notget
 :get block
 if &c3[8] &getin &getout
 :getin block
@@ -53,7 +61,8 @@ goto &loop
 emit &ones
 goto &loop
 :notget block
-if &op[1] &put &done
+eq &op &two8 &e
+if &e[1] &put &loop
 :put block
 if &c3[8] &putin &loop
 :putin block

@@ -147,9 +147,9 @@ def model(window, ops):
     for op, pos, dat in ops:
         if op == STOP:
             break
-        if op & 1:
+        if op == GET:
             out += bytes([w[pos]]) if pos < 8 else ONES
-        elif op & 2 and pos < 8:
+        elif op == PUT and pos < 8:
             w[pos] = rev(dat, 8)
     return bytes(out), bytes(w)
 
@@ -252,6 +252,13 @@ class Answerer(unittest.TestCase):
                 r = single('far_serve', b''.join(rec(*o) for o in ops))
                 self.assertEqual((r.rc, r.out), (0, model(WINDOW, ops)[0]))
 
+    def test_other_op_is_skipped(self):
+        """Only op = 0 (all 8 bits) stops; op = 3, 4, 16, 255 ... is a spoiled record: nothing is answered, the next right request is served."""
+        for bad in (3, 4, 16, 255, 128):
+            with self.subTest(op=bad):
+                r = single('far_serve', rec(bad, 1, 9) + rec(GET, 2) + rec(PUT, 0, 7) + rec(bad, 0, 5) + rec(GET, 0) + rec(STOP, 0), limit=100000)
+                self.assertEqual((r.rc, r.out), (0, WINDOW[2:3] + bytes([rev(7, 8)])))
+
     def test_end_of_stdin_is_a_stop(self):
         """The channel is closed with no op = 0 (or in the middle of a record): the answerer answers what it has and stops by itself."""
         for tail in (b'', rec(GET, 1)[:1], rec(GET, 1)[:2]):
@@ -268,8 +275,8 @@ class Answerer(unittest.TestCase):
         self.assertTrue(0 < len(r.out) < 300, len(r.out))
 
     def test_ticks(self):
-        """The measure (checked emulator): the ticks of one request. At the time of writing (pos of 32 bits, 26.4): stop only 44, get 35 (outside the
-        window 32), put 38 (outside 35); with pos of 8 bits (26.3) they were 26, 17 (14), 20 (17); the bounds here are loose."""
+        """The measure (checked emulator): the ticks of one request. At the time of writing (pos of 32 bits, 26.4; op compared whole, 27.2): stop only 40, get 45 (outside the
+        window 42), put 54 (outside 51); with the op bits tested (26.4) they were 44, 35 (32), 38 (35); with pos of 8 bits (26.3) they were 26, 17 (14), 20 (17); the bounds here are loose."""
         base = single('far_serve', rec(STOP, 0)).ticks
         cost = {}
         for name, o in [('get', (GET, 3)), ('get_out', (GET, 9)), ('put', (PUT, 3, 7)), ('put_out', (PUT, 9, 7))]:
@@ -454,7 +461,7 @@ class FarCopy(unittest.TestCase):
     def test_ticks(self):
         """The measure: the ticks of one far copy of 8 and of 32 bits (the checked emulator): the asker (the copy between the two `halt`s: the difference to a program with
         no copy; the answers are given) and the answerer (the requests of the copy: the difference to the stop alone). At the time of writing the asker needs
-        6 ticks for 8 bits and 18 for 32 bits for a get (the put: 5 and 14), the answerer 35 ticks per byte for a get and 38 for a put (35 and 140, 38 and 152)."""
+        6 ticks for 8 bits and 18 for 32 bits for a get (the put: 5 and 14), the answerer 45 ticks per byte for a get and 54 for a put (45 and 180, 54 and 216; before 27.2: 35, 38)."""
         base_ask = single_ticks(chain_text(':x data 8 0\n:main block\nhalt\n'), b'')
         stop = single('far_serve', rec(STOP, 0)).ticks
         res = {}
@@ -671,9 +678,9 @@ def model_ck(window, recs):
     for op, pos, dat, ck in recs:
         if ck != ck_sum(op, pos, dat):
             out += BAD
-        elif op & 1:
+        elif op == GET:
             out += pair(w[pos]) if pos < 8 else pair(255)
-        elif op & 2:
+        elif op == PUT:
             if pos < 8:
                 w[pos] = rev(dat, 8)
             out += pair(w[pos]) if pos < 8 else pair(255)
@@ -788,9 +795,14 @@ class CheckedAnswerer(unittest.TestCase):
                     self.assertEqual((r.rc, r.out), (0, BAD + pair(WINDOW[3])))
 
     def test_op_not_0_1_2(self):
-        """A record with the right sum but another op (4, 8, 3 is a get as op bit 0): 0, 0 for 4 and 8; op 0 with a right sum stops, with a wrong one it does not."""
+        """A record with the right sum but another op (4, 8): 0, 0 for 4 and 8; op 0 with a right sum stops, with a wrong one it does not."""
         r = single('far_serve_ck', rec_ck(4, 1) + rec_ck(8, 1) + rec_ck(STOP, 0, 0, ck=5) + rec_ck(GET, 1) + rec_ck(STOP, 0))
         self.assertEqual((r.rc, r.out), (0, BAD * 3 + pair(WINDOW[1])))
+
+    def test_op_3_16_255_do_not_stop(self):
+        """op = 3 (was a get by its bit 0), 16, 255 with a right sum: 0, 0 like a wrong sum, nothing is changed, the answerer goes on and serves the next right record."""
+        r = single('far_serve_ck', rec_ck(3, 1) + rec_ck(PUT, 1, 9) + rec_ck(16, 1, 9) + rec_ck(255, 0, 0) + rec_ck(GET, 1) + rec_ck(STOP, 0), limit=100000)
+        self.assertEqual((r.rc, r.out), (0, BAD + pair(rev(9, 8)) + BAD * 2 + pair(rev(9, 8))))
 
     def test_random_sessions(self):
         rnd = random.Random(266)

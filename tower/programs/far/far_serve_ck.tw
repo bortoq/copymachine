@@ -3,10 +3,10 @@
 # so the answerer of the checked protocol is a program of its own (the asker of it is far_get_ck.tw). Its window is the same: 8 cells of 8 bits, COPYMACH.
 # The record of a request: 7 bytes, read by four `key`:   op (8 bits)   pos (32 bits, the number of the byte)   dat (8 bits)   ck (8 bits)
 #   ck = op + pos[0:8] + pos[8:16] + pos[16:24] + pos[24:32] + dat, modulo 256 (five `add`). A byte changed in the record changes the sum: the fault is seen.
-#   op = 1 (bit 0) get      op = 2 (bit 1) put      op = 0 and the record whole and right (ck = 0 for the record of zeros): stop (no answer).
+#   op = 1 get      op = 2 put      op = 0 (all 8 bits) and the record whole and right (ck = 0 for the record of zeros): stop (no answer).
 # The answer to every record is two bytes, always (so the asker never waits for more or less):   v (8 bits)   w = 255 - v (8 bits, the complement of v: `sub`)
 #   get: v = win[pos] (outside the window, pos >= 8: 255, w = 0: the prohibitive price is an answer as right as any); put: win[pos] = dat, and the answer is the cell read back (v = dat, w = ~dat;
-#   outside the window nothing is written and the answer is 255, 0): the put is confirmed by what the window holds now. A record with a wrong ck (or an op not 0, 1, 2 with a right ck)
+#   outside the window nothing is written and the answer is 255, 0): the put is confirmed by what the window holds now. A record with a wrong ck (or an op not 0, 1, 2 with a right ck: 3, 4, 16 ...; the answer 0, 0 is the one answer to every record which is not served, and the answerer goes on)
 #   changes nothing and is answered by the two bytes 0, 0: they are never a pair (0 and 255 - 0 = 255), so the asker sees it and asks again.
 #   The requests are idempotent (7.2.38): the same get gives the same answer, the same put leaves the same window: a repeat is harmless.
 #   The end of the stdin (the channel is closed) is a stop: the whole record is zeroed before every read and a read at EOF leaves it as it was (all zeros: the sum 0 = ck 0, op 0).
@@ -24,6 +24,8 @@
 :ans data 8 0
 :inv data 9 0
 :zero8 data 8 0
+:one8 data 8 1
+:two8 data 8 2
 :zero32 data 32 0
 :ones data 8 255
 :eight data 32 8
@@ -72,7 +74,8 @@ emit &zero8
 goto &loop
 :good block
 lt &pos &eight &c3
-if &op[0] &get &notget
+eq &op &one8 &e
+if &e[1] &get &notget
 :get block
 if &c3[8] &getin &getout
 :getin block
@@ -86,7 +89,8 @@ emit &ones
 emit &zero8
 goto &loop
 :notget block
-if &op[1] &put &notput
+eq &op &two8 &e
+if &e[1] &put &notput
 :put block
 if &c3[8] &putin &getout
 :putin block

@@ -1,4 +1,4 @@
-"""Proof of a level (23.21), the large sweeps (a one-off experiment, not in check-tower-long: 544 s on 12 cores; the numbers are in docs/measurements/level-proof.md): every
+"""Proof of a level (23.21), the large sweeps (in check-tower-long: 408 s on 12 cores; the numbers are in docs/measurements/level-proof.md): every
 valid (n, d, s) of 56-bit windows at four values of A, all (d, s) of n = 0 at A=8, all overlaps of a 16-bit window, 200 000
 random triples through l2c.
 Run: python3 -B tower/tests/exp_level_proof.py"""

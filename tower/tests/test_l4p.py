@@ -45,6 +45,11 @@ def pass_tool():
     return _PASS
 
 
+def says(r):
+    """What the tool wrote to stderr (without the audit line of the checking emulator)."""
+    return r.err.split('VM1_AUDIT')[0]
+
+
 def l4c(src, limit=LIMIT):
     """What the tool l4c gives for a text of language 4 (bytes; the zero byte is added)."""
     st = pass_tool()
@@ -307,6 +312,27 @@ class Tool(unittest.TestCase):
         self.check(PROGRAMS['rw'].encode() + b'\n' + FAR_EDGES[0])                  # the host and the far one in a text; the labels go on after the gets of the text before it
         out = self.check(b':x data 64 0\n:main block\n' + (b'copy &x ' + FAR.encode() + b'\n') * 257, limit=10 ** 9).out      # the labels end at 2048: the 257th is not made
         self.assertEqual((out.count(b'goto &l4f'), out.count(b'\ncopy &x 0x2')), (2048, 1))
+
+    def test_far_refusal_reason(self):
+        """A far copy which is not made (26.4) says why to stderr, one line, once per copy; the text on the output is the copy as it was and l3c does not take it.
+        The reference (l3ctext) does not say it: it has no stderr of its own."""
+        pre = ':x data 64 0\n:b data 4 0\n:y data 9000 0\n:t table 1 8 1 2\n:main block\n'
+        for reason, copies in (('far link', ['&x %s' % farad(0, 1), '%s &x' % farad(5, 7)]),
+                               ('far pos', ['&x %s' % farad(12), '%s &x' % farad(1 << 32), '&x %s' % farad(1 << 64), '&x %s' % farad(8 * 3 + 4)]),
+                               ('far width', ['&b %s' % FAR, '&x[3] %s' % FAR, '&t %s' % FAR, '&q %s' % FAR, '%s &x[0:12]' % FAR, '%s %s' % (FAR, FAR), '%s %s' % (FAR, HOSTA)]),
+                               ('far limit', ['&y[9900:9908] %s' % FAR, '%s &y[9950:9958]' % FAR])):
+            for pair in copies:
+                with self.subTest(reason=reason, pair=pair):
+                    src = (pre + 'copy %s\nhalt\n' % pair).encode()
+                    r = self.check(src)
+                    self.assertEqual(says(r), 'l4c: %s\n' % reason)
+                    self.assertTrue(r.out.endswith(('copy %s\nhalt\n' % pair).encode() + b'\0'))
+                    self.assertIsNotNone(l3ctext.encode(r.out[:-1].decode('latin-1'))[1])
+        src = (':x data 64 0\n:main block\n' + 'copy &x %s\n' % FAR * 257).encode()          # the labels end at 2048: the last of 257 gets is refused
+        self.assertEqual(says(self.check(src, limit=10 ** 9)), 'l4c: far limit\n')
+        for src in FAR_EDGES[:4] + [PROGRAMS['rw'].encode()]:                              # what is made, and a host copy, say nothing
+            self.assertEqual(says(self.check(src)), '')
+        self.assertEqual(says(self.check((pre + 'copy &t %s\ncopy %s &x\n' % (HOSTA, farad(12))).encode())), 'l4c: far pos\n')      # a refusal of one copy among others
 
     def test_far_mutations(self):
         """Texts with far addresses spoiled at random (a character replaced, dropped, doubled): the same bytes."""

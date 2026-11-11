@@ -61,12 +61,12 @@ COV = $(BUILD_DIR)/cov
 COVFLAGS = -std=c11 -O0 -g --coverage
 coverage:
 	rm -rf "$(COV)"
-	mkdir -p "$(COV)/emulator" "$(COV)/test_runtime" "$(COV)/test_sys" "$(COV)/test_bitcopy"
+	mkdir -p "$(COV)/emulator" "$(COV)/test_runtime" "$(COV)/test_sys" "$(COV)/test_bitcopy" "$(COV)/checked_vm1"
 	cd "$(COV)/emulator" && $(CC) $(COVFLAGS) $(addprefix $(CURDIR)/,$(SRC_COMMON)) -o emulator
 	cd "$(COV)/test_runtime" && $(CC) $(COVFLAGS) -DVM1_NO_MAIN $(CURDIR)/tests/test_runtime.c $(addprefix $(CURDIR)/,$(SRC_COMMON)) -o t
 	cd "$(COV)/test_sys" && $(CC) $(COVFLAGS) -DVM1_NO_MAIN $(CURDIR)/tests/test_runtime_sys.c $(addprefix $(CURDIR)/,$(SRC_COMMON)) -o t
 	cd "$(COV)/test_bitcopy" && $(CC) $(COVFLAGS) $(CURDIR)/tests/test_runtime_bitcopy.c $(CURDIR)/src/bitcopy.c -o t
-	cd && $(CC) $(COVFLAGS) -DVM1_NO_MAIN -I $(CURDIR)/src $(CURDIR)/tests/checked_vm1.c $(addprefix $(CURDIR)/,$(SRC_COMMON)) -o t
+	cd "$(COV)/checked_vm1" && $(CC) $(COVFLAGS) -DVM1_NO_MAIN -I $(CURDIR)/src $(CURDIR)/tests/checked_vm1.c $(addprefix $(CURDIR)/,$(SRC_COMMON)) -o t
 	for t in test_bitcopy test_runtime test_sys; do (cd "$(COV)/$$t" && ./t >/dev/null); done
 	EMULATOR_BIN="$(CURDIR)/$(COV)/emulator/emulator" python3 -B tests/test_runtime_cli.py
 	@python3 -B ../tools/gcov_summary.py "$(COV)" $(SRC_COMMON)

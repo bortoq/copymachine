@@ -117,6 +117,7 @@ def run(image, A, P, checked=True, limit=200000, stdin=b'', files=()):
                        input=image + stdin, capture_output=True, timeout=120)
     res = Result()
     res.out, res.rc, res.err = r.stdout, r.returncode, r.stderr.decode(errors='replace')
+    res.err_bytes = r.stderr    # raw stderr: the bytes >= 0x80 are not replaced
     m = re.search(r'VM1_AUDIT_TICKS=(\d+)', res.err)
     res.ticks = int(m.group(1)) if m else None
     return res

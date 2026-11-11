@@ -8,10 +8,10 @@
 # The far copy (26.4, 7.2.44): an address of 0x2 and 32 hex digits (the link in the top 32 bits, the position in bits in the low 96) is not the host's: `copy &x 0x2...` and
 # `copy 0x2... &x` are n/8 requests of one byte to the neighbour by stdin and stdout (the protocol of programs/far/far_serve.tw: op 8 bits, the number of the byte 32 bits, dat 8 bits;
 # the words isfar, farcheck, farcopy below). It is made when the link is 0, the position is a multiple of 8 and under 2^32, the width of &x is 8..64 bits in whole bytes (&x, &x[lo:hi],
-# lo < 9900), the labels l4f<k> of the gets are under 2048; else the copy goes out unchanged (never as a host copy). 0x2 with another number of digits is a host address as before.
+# lo < 9900), the labels l4f<k> of the gets are under 2048; else the copy goes out unchanged (never as a host copy). The reason of the refusal goes to stderr, one line: `l4c: far link` (the link is not 0), `far pos` (not a multiple of 8 bits or 2^32 and over), `far width` (not 8..64 bits in whole bytes, the operand is not found), `far limit` (lo of 9900 or more, no more labels); the text goes out as before. 0x2 with another number of digits is a host address as before.
 # The width n of the data is that of the part `&x[lo:hi]` (hi - lo), `&x[k]` (1) or of `&x` whole: the pass remembers the widths of `:name data n ...` (the table of
 # names: a tree of tables by the hash of the name, 25.3.1). A copy with no address of the host, or with two, or with a width which is not known or not 1..2048, goes out unchanged (l3c reports it). Not a word of the
-# text, not an address: it goes through as it is (an operand `+k`, k 0..5, of a copy without the host is the channel S + k from the end of the space: it goes out as the number 104857k, +2 stdout, +3 stderr, +1 stdin, +0 SYS, emitch; but the blanks between `copy` and its operands do not go out: the copy goes out as `copy a b`). No errors. The reference in Python is tower/l3ctext.py (l4c, host_copy); this text does the same on the chain and a
+# text, not an address: it goes through as it is (an operand `+k`, k 0..5, of a copy without the host is the channel S + k from the end of the space: it goes out as the number 104857k, +2 stdout, +3 stderr, +1 stdin, +0 SYS, emitch; but the blanks between `copy` and its operands do not go out: the copy goes out as `copy a b`). No other errors. The reference in Python is tower/l3ctext.py (l4c, host_copy); this text does the same on the chain and a
 # test compares the bytes. How it reads: a character at a time (key); a token is held (the array tk, the two operands of a copy in its two halves) and goes out when
 # it ends; `copy` is held with its two operands. The tables between the marks are made by tower/l3ctext.py (x_tables_text).
 
@@ -84,6 +84,7 @@
 :le5 table 4 1  1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0
 :xor2 table 2 1  0 1 1 0
 :or2 table 2 1  0 1 1 1
+:lt11 table 5 1  1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 :lvdec table 3 3  7 0 1 2 3 4 5 6
 :lz3 table 3 1  1 0 0 0 0 0 0 0
 :dch table 4 8  "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" 0 0 0 0 0 0
@@ -214,8 +215,7 @@
 :q2b data 2 0
 
 # --- the far copy (0x2...): the flags, the label counter, the byte, the end of the name of the data operand
-:farf1 data 1 0
-:farf2 data 1 0
+:farf data 2 0
 :farr data 1 0
 :farok data 1 0
 :farb data 1 0
@@ -289,6 +289,10 @@
 :w_data data 32 "data"
 :s_copy4 data 32 "copy"
 :s_copy data 40 "copy "
+:m_link data 112 "l4c: far link\n"
+:m_pos data 104 "l4c: far pos\n"
+:m_wid data 120 "l4c: far width\n"
+:m_lim data 120 "l4c: far limit\n"
 :s_cq data 80 "copy &l4q["
 :s_rb data 16 "] "
 :s_z1 data 232 "copy &l4q[0:204] &l4z[0:204]\n"
@@ -627,7 +631,7 @@ call &ishost &tr1
 copy &h1 &hok
 call &isfar &tr1b
 :tr1b block
-copy &farf1 &farr
+copy &farf[0] &farr
 copy &ob &one1
 copy &ol &l2
 call &ishost &tr2
@@ -635,11 +639,11 @@ call &ishost &tr2
 copy &h2 &hok
 call &isfar &tr2b
 :tr2b block
-copy &farf2 &farr
+copy &farf[1] &farr
 copy &q2[0] &h1
 copy &q2[1] &h2
 lut &xor2 &q2 &q1
-if &q1 &tr3 &trun
+if &q1 &tr3 &trw
 :tr3 block
 if &h1 &tr4 &tr5
 :tr4 block
@@ -659,24 +663,22 @@ copy &ob &xb
 copy &ol &xl
 call &opwidth &tr7
 :tr7 block
-if &wok &tr8 &trun
+if &wok &tr8 &trw
 :tr8 block
 copy &wxa &wv
 copy &wxb &z20
 call &weq &tr9
 :tr9 block
-if &q5[4] &trun &tr10
+if &q5[4] &trw &tr10
 :tr10 block
 copy &wxa &c2048
 copy &wxb &wv
 call &wlt &tr11
 :tr11 block
-if &ltc[5] &trun &tr12
+if &ltc[5] &trw &tr12
 :tr12 block
 copy &hput &h1
-copy &q2[0] &farf1
-copy &q2[1] &farf2
-lut &or2 &q2 &q1
+lut &or2 &farf &q1
 if &q1 &trf1 &trh
 :trh block
 call &hostcopy &trx
@@ -689,6 +691,13 @@ if &farok &trf3 &trun
 call &farcopy &trx
 :trx block
 ret
+# a far address which is not made: the reason goes to stderr (farcheck says link, pos, limit; the rest, the operands, the data width, is here: width)
+:trw block
+lut &or2 &farf &q1
+if &q1 &trw2 &trun
+:trw2 block
+warn &m_wid
+goto &trun
 # unchanged
 :trun block
 emit &s_copy
@@ -729,31 +738,31 @@ ret
 :farcheck word
 copy &farok &zero
 lut &lz3 &wv[0:3] &q1
-if &q1 &fck1 &fckx
+if &q1 &fck1 &fckw
 :fck1 block
 copy &wxa &wv
 copy &wxb &z20
 call &weq &fck2
 :fck2 block
-if &q5[4] &fckx &fck3
+if &q5[4] &fckw &fck3
 :fck3 block
 copy &wxa &wv
 copy &wxb &c65
 call &wlt &fck4
 :fck4 block
-if &ltc[5] &fck5 &fckx
+if &ltc[5] &fck5 &fckw
 :fck5 block
 copy &wxa &lo
 copy &wxb &c9900
 call &wlt &fck6
 :fck6 block
-if &ltc[5] &fck7 &fckx
+if &ltc[5] &fck7 &fcki
 :fck7 block
 copy &wxa &farcn
 copy &wxb &c2048
 call &wlt &fck8
 :fck8 block
-if &ltc[5] &fck9 &fckx
+if &ltc[5] &fck9 &fcki
 :fck9 block
 copy &ob &hb
 copy &ol &hl
@@ -766,7 +775,7 @@ if &q2[1] &fckm &fck10
 call &peek &fck11
 :fck11 block
 eq &tc &s_0 &q2
-if &q2[1] &fck12 &fckx
+if &q2[1] &fck12 &fckd
 :fck12 block
 lut &inc8 &mi &mi
 goto &fckl
@@ -777,6 +786,22 @@ call &peek &fckm2
 lut &hexv &tc &hv
 lut &lz3 &hv[0:3] &q1
 copy &farok &q1
+if &q1 &fckx &fckp
+# the reasons (stderr): the width, the limit (lo, the labels), the link (the first 8 digits), the position
+:fckw block
+warn &m_wid
+ret
+:fcki block
+warn &m_lim
+ret
+:fckd block
+lut &lt11 &mi[0:5] &q1
+if &q1 &fckl2 &fckp
+:fckl2 block
+warn &m_link
+ret
+:fckp block
+warn &m_pos
 ret
 :fckx block
 ret

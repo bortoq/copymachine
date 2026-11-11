@@ -28,6 +28,7 @@ check-tower:
 # the fixed points of l3c: serial (23.9) and with the planner l3p (23.10), the 37 programs by hand (23.11) and as Forth texts (23.15).
 check-tower-long:
 	$(LIMIT_LONG) $(PYTHON) -B -m unittest discover -s tower/tests -p 'long_*.py'
+	$(LIMIT_LONG) $(PYTHON) -B tower/tests/exp_level_proof.py
 check-fast:
 	$(LIMIT) $(MAKE) -C emulator -j1 check checked
 	$(MAKE) check-tower
