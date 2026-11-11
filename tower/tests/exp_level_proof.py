@@ -1,7 +1,7 @@
-"""Proof of a level (23.21), the large sweeps (in check-tower-long: 408 s on 12 cores; the numbers are in docs/measurements/level-proof.md): every
+"""Proof of a level (23.21), the large sweeps (not in check-tower-long and not in the nightly run: 722 s on 4 CPUs by make check-level-proof, 408 s on 12 cores directly; the numbers are in docs/measurements/level-proof.md): every
 valid (n, d, s) of 56-bit windows at four values of A, all (d, s) of n = 0 at A=8, all overlaps of a 16-bit window, 200 000
 random triples through l2c.
-Run: python3 -B tower/tests/exp_level_proof.py"""
+Run: make check-level-proof (or python3 -B tower/tests/exp_level_proof.py)"""
 import os
 import random
 import sys
@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import levelproof as L
 
-THREADS = min(12, os.cpu_count() or 4)
+THREADS = min(12, len(os.sched_getaffinity(0)))
 
 
 def setUpModule():

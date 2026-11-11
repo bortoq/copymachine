@@ -1,6 +1,6 @@
 # 23.21. Доказательство уровня: слово `copy n d s`
 
-Опыт к 7.2.35: доказать уровень на простейшем слове — `copy n d s` языка 2, определённом строкой `r d d+n s s+n` (как у `l2c`). Инструменты: `tower/tests/levelproof.py`; проверки `test_level_proof.py` (в `check-tower`, 15 с) и `exp_level_proof.py` (`check-tower-long`, 6,8 мин на 12 ядрах, замер 2026-11-11). Текст и образ делает цепочка (`l2c` → `seed` → `checked`); Python строит тексты и сравнивает байты.
+Опыт к 7.2.35: доказать уровень на простейшем слове — `copy n d s` языка 2, определённом строкой `r d d+n s s+n` (как у `l2c`). Инструменты: `tower/tests/levelproof.py`; проверки `test_level_proof.py` (в `check-tower`, 15 с) и `exp_level_proof.py` (`make check-level-proof`, 12 мин на 4 ядрах под обёрткой `limited_run`, 722 с; 6,8 мин напрямую на 12 ядрах; замер 2026-11-11; не входит в `check-tower-long` и ночной прогон). Текст и образ делает цепочка (`l2c` → `seed` → `checked`); Python строит тексты и сравнивает байты.
 
 ## 1. Обещание
 

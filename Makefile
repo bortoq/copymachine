@@ -6,7 +6,7 @@ PYTHON ?= python3
 RUFF ?= ruff
 LIMIT = $(PYTHON) -B tools/limited_run.py --seconds 600 --memory-mib 768
 LIMIT_LONG = $(PYTHON) -B tools/limited_run.py --seconds 1800 --memory-mib 768
-.PHONY: all emulator check-fast check check-full check-layout check-tower check-tower-long lint coverage clean
+.PHONY: all emulator check-fast check check-full check-layout check-tower check-tower-long check-level-proof lint coverage clean
 all: emulator
 emulator:
 	$(LIMIT) $(MAKE) -C emulator -j1
@@ -28,7 +28,10 @@ check-tower:
 # the fixed points of l3c: serial (23.9) and with the planner l3p (23.10), the 37 programs by hand (23.11) and as Forth texts (23.15).
 check-tower-long:
 	$(LIMIT_LONG) $(PYTHON) -B -m unittest discover -s tower/tests -p 'long_*.py'
-	$(LIMIT_LONG) $(PYTHON) -B tower/tests/exp_level_proof.py
+# Proof of a level (23.21), not in check-tower-long or the nightly run: ~12 min on 4 CPUs (722 s measured), ~27 min on one; 4 CPUs, 4 GiB, 3600 s.
+# MALLOC_ARENA_MAX: glibc reserves 64 MiB of address space per arena (8 per CPU), which the memory limit counts.
+check-level-proof:
+	MALLOC_ARENA_MAX=2 $(PYTHON) -B tools/limited_run.py --seconds 3600 --memory-mib 4096 --cpus 4 $(PYTHON) -B tower/tests/exp_level_proof.py
 check-fast:
 	$(LIMIT) $(MAKE) -C emulator -j1 check checked
 	$(MAKE) check-tower
