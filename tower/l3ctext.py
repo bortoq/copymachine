@@ -819,6 +819,8 @@ S1, S2, S3 = (1 << A) - 5, (1 << A) - 4, (1 << A) - 3
 TBASE = 0xfa000                          # the place of the table of the library 'ta ts tn tl te th' (a, s, n, l, e, h): +0x1000 * its number
 TNUM = {'a': 0, 's': 1, 'n': 2, 'l': 3, 'e': 4, 'h': 5}
 WINDOW = 8
+CHEND = (1 << A) - 1                     # every access to a channel writes [S, S+5): two of them touch the same bits and keep the order of the text (the rows of
+                                         # different channels are not ordered by data; S+5 is the end of the space and is not a number of A bits: no word uses S+4, S+5)
 STATS = {}                               # (rows, layers, bits) of the blocks of the last pass, laid out serially and packed
 
 
@@ -977,10 +979,10 @@ def _block(lines, i, po, pn):
         if o.q is None and o.s[2] == 0 and bs <= o.s[1] < be:
             raise Stop('bad')                                 # a row does not read the text of its block
         if o.q is not None:
-            if o.q[2] in (S1, SYSC):                      # key, the read of the answer of SYS: the channel is read, from the destination to it written
-                o.r, o.w = (o.q[2], o.q[2] + 1), (o.q[0], o.q[2] + 1)
-            else:                                         # emit, warn: the channel is written
-                o.r, o.w = (o.q[2], o.q[3]), (o.q[0], o.q[0] + 1)
+            if o.q[2] in (S1, SYSC):                      # key, the read of the answer of SYS: the channel is read, from the destination to the channels written
+                o.r, o.w = (o.q[2], o.q[2] + 1), (o.q[0], CHEND)
+            else:                                         # emit, warn, the request of SYS: the channels are written
+                o.r, o.w = (o.q[2], o.q[3]), (SYSC, CHEND)
         else:
             o.r = (o.s[1], o.s[1] + ((1 << es[x]) if es[x] else o.n)) if o.s[2] != 2 else (0, 0)
             o.w = (o.d[1], o.d[1] + ((1 << ed[x]) if ed[x] else o.n)) if o.d[2] != 2 else (0, 0)

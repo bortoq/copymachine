@@ -45,25 +45,14 @@ def if_prog(p):
     p.halt()
 
 
-def call_prog(rec):
+def call_prog():
     def build(p):
-        if rec:
-            p.rec('w', p.stack('st', 3, 2 * p.A))
         p.block('main')
         p.call('w', 'back')
         p.block('back')
         p.halt()
         p.word('w')
         p.ret()
-    return build
-
-
-def stack_prog(op):
-    def build(p):
-        s, v = p.stack('st', 3, 8), p.var('v', 8)
-        p.block('main')
-        (p.push if op == 'push' else p.pop)(s, v.ref())
-        p.halt()
     return build
 
 
@@ -75,9 +64,7 @@ CONSTRUCTS = {
     'lut, 1 arg': (minimal(lambda p: p.lut(p.table('t1', (4,), 8, lambda x: x), [p.var('a', 4)], p.var('r', 8).ref())), 3, 5),
     'store': (minimal(lambda p: p.store(p.array('arr', (3,), 8), [p.var('i', 3)], p.var('v', 8).ref())), 3, 5),
     'if': (if_prog, 6, 7),
-    'call + ret': (call_prog(False), 4, 6),
-    'push': (stack_prog('push'), 3, 5),
-    'pop': (stack_prog('pop'), 4, 6),
+    'call + ret': (call_prog(), 4, 6),
     'long! 48': (minimal(lambda p: p.long_put(p.var('pos', 128, POS), p.var('d', 48, 7))), 2, 4),
     'long@ 48 (buffer)': (minimal(lambda p: p.long_get(p.var('pos', 128, POS), p.var('d', 48))), 4, 6),
     'long@ 128 (direct)': (minimal(lambda p: p.long_get(p.var('pos', 128, POS), p.var('d', 128))), 3, 5),
@@ -104,15 +91,6 @@ class Cost(unittest.TestCase):
             self.assertEqual((c.layers, c.ticks), (layers, ticks), name)
             self.assertEqual(c.ticks, ticks_of(p), name)                    # and the emulator agrees
             self.assertEqual(c.rows, sum(len(l.rows) + len(l.jumps) for l in p.layers), name)
-
-    def test_recursion_is_forbidden_but_stored(self):
-        p = l3.compile_program(call_prog(True))        # 23.3: call + ret recursive, 9 layers (the ticks: 11)
-        c = l5.cost(p)
-        self.assertEqual(c.layers, 9)
-        self.assertEqual(c.ticks, l5.FORBID)
-        self.assertEqual(l5.price(c), l5.FORBID)
-        q = l3.compile_program(progs.fib())            # fib(10) recursion: 53 layers (23.3)
-        self.assertEqual((l5.cost(q).layers, l5.cost(q).ticks), (53, l5.FORBID))
 
     def test_ticks_of_programs(self):
         for name, (build, passes, stdin) in PROGRAMS.items():

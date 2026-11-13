@@ -1,0 +1,5 @@
+Замороженные сверки проходов цепочки (seed, l2c, l2l, l3c, l3p, l4c) вместо Python-эталонов: <проход>.jsonl, строка на вход:
+name, mode (twice: вход подаётся дважды), in (текст, latin-1) или file (in/... или programs/...), rc, err (stderr), out (выход целиком, до 2 КБ)
+либо len и sha (sha256), long (долгая часть: tower/tests/long_golden.py; остальное — tower/tests/test_golden.py).
+Обновить (после правки прохода или входа; нужны Python-эталоны, расхождения цепочки с ними печатаются, не чинятся):
+    GOLDEN_UPDATE=1 python3 -B tower/tests/test_golden.py

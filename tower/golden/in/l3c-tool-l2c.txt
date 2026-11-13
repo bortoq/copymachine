@@ -1,0 +1,362 @@
+:cls table 8 14
+  8204 0 0 0 4 0 0 0 0 0 0 0 3 0 4096 0
+  0 0 0 0 0 0 4096 0 0 0 0 0 130 0 4096 0
+  0 0 0 0 0 0 6098 0 0 0 0 0 66 0 4096 0
+  0 0 0 0 0 0 4096 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 4274 0 0 0 0 0 34 0 4608 0
+  12 0 0 0 0 0 4096 0 0 0 0 0 2304 0 4864 0
+  0 0 0 0 32 0 4338 0 0 0 0 0 98 0 4096 0
+  0 0 0 0 0 0 4096 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 4258 0 0 0 0 0 19 0 4096 0
+  4 0 0 0 0 0 4096 0 0 0 0 0 146 0 4096 0
+  0 0 0 0 0 0 4322 0 0 0 0 0 82 0 4096 0
+  4 0 0 0 0 0 4096 0 0 0 0 0 0 0 0 0
+  0 0 0 0 1280 0 5826 0 0 0 0 0 50 0 5120 0
+  0 0 0 0 64 0 4096 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 4096 0 0 0 0 0 114 0 4352 0
+  0 0 0 0 0 0 6144 0 0 0 0 0 0 0 0 0
+:attr table 4 12
+  0 593 1632 593 864 608 531 530 528 2560 0 0 0 0 0 0
+:nzt table 4 1  0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+:and2 table 2 1  0 0 0 1
+:or2 table 2 1  0 1 1 1
+:ne table 2 1  0 1 0 0
+:stt table 3 1  1 1 1 1 0 1 1 1
+:lab array 5 21
+:ch data 8 0
+:cl data 14 0
+:de data 1 0
+:at data 12 0
+:cmd data 4 0
+:need data 4 0
+:nzf data 1 0
+:nr data 5 0
+:busy data 1 0
+:fl data 6 0
+:z6 data 6 0
+:sn data 3 0
+:inLab data 1 0
+:tv data 43 0
+:W2 data 20 0
+:lv data 21 0
+:ent data 21 1048576
+:S1 data 21 0
+:S2 data 21 0
+:X0 data 20 0
+:X1 data 20 0
+:X2 data 20 0
+:pos data 20 0
+:pr data 21 0
+:RB data 20 0
+:Q data 20 0
+:N20 data 20 0
+:b20 data 20 0
+:H data 20 0
+:H2 data 20 0
+:nib data 4 0
+:st2 data 1 0
+:cnt data 5 0
+:cnt2 data 5 0
+:hch data 8 0
+:Y data 20 0
+:Y2 data 20 0
+:K data 8 0
+:kr data 9 0
+:chr data 8 "0"
+:one1 data 1 1
+:t01 data 2 2
+:z8 data 8 0
+:z20 data 20 0
+:z43 data 43 0
+:f4 data 4 15
+:c5 data 5 31
+:ff data 8 255
+:sp data 8 " "
+:nl8 data 8 "\n"
+:str_r data 16 "r "
+:str_s data 16 "s "
+:msg_bad data 104 "l2: bad text\n"
+:msg_cnt data 112 "l2: bad count\n"
+:msg_lab data 112 "l2: bad label\n"
+# The compiler of language 2 (23.8), a program of the chain (languages 1-3), as hex2 of stage0 is a program of its own
+# language. stdin: the text of language 2 (tower/l2text.py) and a zero byte; stdout: the text of language 1 (what the seed
+# programs/seed.tw reads) and a zero byte. Language 2 is language 1 with two words and names of parts of space:
+#   c n d s    copy: the row  r d d+n s s+n  (the sums are made here, by add)
+#   d n v      data: n bits of v, the lowest first, as a line `s 0101...`
+#   :x         a label: x is the position of the text, counted in bits of the image from the start (or from `o`)
+#   o          the origin: the position is 0 from here
+#   w r z s #  as in language 1: they go out as they stand, the compiler counts their bits (w: A, a row is 4A bits,
+#              z: N bits, s: the 0 and 1 characters, d: n bits); the rest of an r, s, # line is not looked at
+# A number is hex (at most 5 digits), or &x (a label defined before), or &x+k. A wrong text is reported to stderr and the
+# compiler halts (7.2.28): bad text (a letter that is no command, a wrong character), bad count (a wrong number of
+# numbers in a line), bad label (repeated, or not defined yet). What is not checked: numbers over 5 digits, w z d over ff.
+# The tables: cls turns a byte into its class (flags, the value of a digit, the code of the command letter), attr gives the
+# attributes of a command: the number of numbers, echo (the line goes out as it stands), numeric, skipping, bits, valid, row,
+# label. Their numbers are made by tower/l2text.py (cls_table, attr); a test compares them with this text.
+# One state of the line is flags in a row (fl): numeric, skipping, echo, (the zero byte), bits, (a bit character); the token
+# (V, W, amp, lbl, dig) is one register tv, so a line or a token ends with one copy. A table has one index: two flags that
+# make it are copied side by side.
+
+# --- cls: the byte (the first bit of the stream is the lowest) -> bit 0 a character 0 or 1, 1 hex digit, 2 separator,
+#   3 line break or zero byte, 4-7 the value of a digit (or 5 &, 6 +), 8-11 the code of the command letter (: is 9)
+#   (w 1, r 2, z 3, s 4, # 5, c 6, d 7, o 8), 12 a lowercase letter, 13 the zero byte
+
+# --- attr: the code of a command -> bits 0-3 the number of numbers, 4 numeric, 5 skipping, 6 echo, 8 bits, 9 valid, 10 row, 11 label
+
+
+# --- the character, the class
+
+# --- the state of the line: echo, numeric, skipping, bits (fl); a label is expected (inLab)
+# --- the token: V (a label), W (digits), amp, lbl, dig
+
+# --- the position, the width of a row (4A), the arguments of addpos
+
+# --- hex and bits
+
+# --- constants
+
+:main block
+goto &read
+
+# --- a character: the class; a line that is echoed goes out char by char (not the zero byte)
+:read block
+key &ch
+lut &cls &ch &cl
+copy &fl[3] &cl[13]
+lut &ne &fl[2:4] &de
+if &de &ech &dis
+:ech block
+emit &ch
+goto &dis
+:dis block
+if &fl[0] &nch &d1
+:d1 block
+if &fl[1] &kch &lstart
+
+# --- a skipping line (r, s, # ): the 0 and 1 of an s line are bits of the position
+:kch block
+copy &fl[5] &cl[0]
+lut &and2 &fl[4:6] &b20[0:1]
+add &pos &b20 &pr
+copy &pos &pr[0:20]
+if &cl[3] &endline &read
+
+# --- the end of a line: the flags are cleared; the zero byte ends the text and goes out
+:endline block
+copy &fl &z6
+if &cl[13] &finish &read
+:finish block
+emit &z8
+halt
+
+# --- the start of a line: a label, a blank, a command letter
+:lstart block
+if &inLab &labc &ls1
+:labc block
+if &cl[12] &labc2 &bad
+:labc2 block
+lut &lab &ch[3:8] &lv
+if &lv[20] &badl &labc3
+:labc3 block
+copy &ent[0:20] &pos
+store &lab &ch[3:8] &ent
+copy &inLab &zero
+goto &read
+:ls1 block
+if &cl[3] &endline &ls2
+:ls2 block
+if &cl[2] &read &ls4
+:ls4 block
+lut &attr &cl[8:12] &at
+copy &cmd &cl[8:12]
+if &at[9] &ls4b &bad
+:ls4b block
+if &at[11] &colon &ls5
+:colon block
+copy &inLab &one1
+goto &read
+:ls5 block
+copy &need &at[0:4]
+copy &fl[0:5] &at[4:9]
+if &at[6] &lecho &ls6
+:lecho block
+emit &ch
+goto &ls6
+:ls6 block
+if &at[10] &rrow &read
+:rrow block
+copy &Q &RB
+call &addpos &read
+
+# --- a numeric line: tokens are hex numbers or &x or &x+k; amp = a label is expected, lbl = a label was read, dig = digits
+:nch block
+if &tv[40] &alab &n1
+:alab block
+if &cl[12] &alab2 &bad
+:alab2 block
+lut &lab &ch[3:8] &lv
+if &lv[20] &alab3 &badl
+:alab3 block
+copy &tv[0:20] &lv[0:20]
+copy &tv[40:42] &t01
+goto &read
+:n1 block
+if &cl[1] &nhex &n2
+:nhex block
+if &tv[41] &bad &nhex2
+:nhex2 block
+copy &W2[4:20] &tv[20:36]
+copy &W2[0:4] &cl[4:8]
+copy &tv[20:40] &W2
+copy &tv[42] &one1
+goto &read
+:n2 block
+if &cl[2] &nsep &n3
+:n3 block
+if &cl[6] &nplus &n4
+:nplus block
+if &tv[41] &nplus2 &bad
+:nplus2 block
+copy &tv[41:43] &t01
+goto &read
+:n4 block
+if &cl[5] &namp &bad
+:namp block
+lut &or2 &tv[41:43] &busy
+if &busy &bad &namp2
+:namp2 block
+copy &tv[40] &one1
+goto &read
+
+# --- a separator: a token is complete (one number too many is an error); at the end of the line the numbers are all there
+:nsep block
+if &tv[40] &bad &nsep2
+:nsep2 block
+lut &or2 &tv[41:43] &busy
+if &busy &ncomp &nsep3
+:ncomp block
+lut &nzt &need &nzf
+if &nzf &ncomp2 &badc
+:ncomp2 block
+add &tv[0:20] &tv[20:40] &S1
+copy &X0 &X1
+copy &X1 &X2
+copy &X2 &S1[0:20]
+lut &add4 &need &f4 &zero &nr
+copy &need &nr[0:4]
+copy &tv &z43
+goto &nsep3
+:nsep3 block
+if &cl[3] &nend &read
+:nend block
+lut &nzt &need &nzf
+if &nzf &badc &act
+
+# --- the action of a line: w 1, z 3, c 6, d 7, o 8
+:act block
+if &cmd[3] &acto &act1
+:act1 block
+if &cmd[2] &act2 &act3
+:act2 block
+if &cmd[0] &actd &actc
+:act3 block
+if &cmd[1] &actz &actw
+
+:actw block
+copy &RB[2:10] &X2[0:8]
+goto &endline
+:actz block
+copy &N20[0:8] &X2[0:8]
+copy &Q &N20
+call &addpos &endline
+:acto block
+copy &pos &z20
+goto &endline
+
+# --- c n d s: r d d+n s s+n
+:actc block
+add &X1 &X0 &S1
+add &X2 &X0 &S2
+emit &str_r
+copy &H &X1
+call &puthex &c1
+:c1 block
+emit &sp
+copy &H &S1[0:20]
+call &puthex &c2
+:c2 block
+emit &sp
+copy &H &X2
+call &puthex &c3
+:c3 block
+emit &sp
+copy &H &S2[0:20]
+call &puthex &c4
+:c4 block
+emit &nl8
+copy &Q &RB
+call &addpos &endline
+
+# --- d n v: n bits of v, the lowest first (K is counted down by adding ff: the carry says K was not 0)
+:actd block
+copy &K &X1[0:8]
+copy &Y &X2
+copy &N20[0:8] &X1[0:8]
+emit &str_s
+copy &Q &N20
+call &addpos &dloop
+:dloop block
+add &K &ff &kr
+if &kr[8] &dbody &dend
+:dbody block
+copy &K &kr[0:8]
+copy &chr[7] &Y[0]
+emit &chr
+shr &Y &Y2 1
+copy &Y &Y2
+goto &dloop
+:dend block
+emit &nl8
+goto &endline
+
+# --- pos += Q
+:addpos word
+add &pos &Q &pr
+copy &pos &pr[0:20]
+ret
+
+# --- H as hex digits without leading zeros (the last digit is always written); cnt counts five digits
+:puthex word
+copy &cnt &c5
+copy &sn[0] &zero
+goto &phl
+:phl block
+copy &nib &H[16:20]
+shl &H &H2 4
+shr &cnt &cnt2 1
+lut &nzt &nib &sn[1:2]
+copy &sn[2] &cnt2[0]
+lut &stt &sn &st2
+copy &H &H2
+copy &cnt &cnt2
+if &st2 &phpr &phnp
+:phpr block
+lut &hex4 &nib &hch
+emit &hch
+goto &phnp
+:phnp block
+copy &sn[0] &st2
+if &cnt[0] &phl &phend
+:phend block
+ret
+
+# --- reports
+:bad block
+warn &msg_bad
+halt
+:badc block
+warn &msg_cnt
+halt
+:badl block
+warn &msg_lab
+halt

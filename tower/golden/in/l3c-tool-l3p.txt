@@ -1,0 +1,1958 @@
+# The planner (23.10), a program of the chain (languages 1-3): the pass over the text of language 2 that `l3c` writes in pack mode (the
+# first word of the text of language 3 is `pack`). stdin: that text and its zero byte; stdout: the same text with the blocks packed
+# into fewer layers, and a zero byte (what `l2l` reads, twice). The chain of the build with the planner is
+#     text of language 3 (pack ...) -> l3c -> l3p -> l2l -> seed -> the image (P = 3)
+# The reference in Python is tower/l3ctext.py (pack_pass), which also tells what is done and why; this text does the same on the
+# chain and a test compares the bytes. A line is read whole (getline: the characters in lb, the first four blank-separated tokens: their
+# values, text and kind); the lines outside a block go out as they are (the positions po of the text and pn of the new text
+# move together), a marker `# a <k> <pad>` is a pad to recount, a block (the label :b...) is read to the jump which leaves it, planned
+# (rows to layers: the list scheduler of l3.py without direct writes, over the window of 8 rows before) and written. The rows of the
+# block are the units 0..nu-1 (a row of the text and its jump), the rows which do something are the ops 0..nx-1; the tables hold
+# for each op the bits it reads and writes (rlo rhi wlo whi) as intervals of numbers. Errors (stderr, halt; the lines of the blocks before the one in hand are out): `l3p: bad text`
+# (a line that is not of the format, the zero byte inside a block or a pad, a block that reads the text of its own rows), `l3p: too big` (a block of more than 254 layers).
+# The tables: cls (a byte: zero, blank, line break, &), hexv (a hex digit and 16), fcl (the first byte of a line), tbase (the place of a table
+# of the library above the memory), mu (80 bits for a slot), mask, p2e, inc8 as in l3c.tw. Their numbers are made by tower/l3ctext.py (p_tables_text); a test compares them.
+
+# --- begin generated
+:cls table 8 4
+  1 0 0 0 2 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  4 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 8 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:hexv table 8 5
+  0 0 0 0 0 0 0 0 0 0 0 0 16 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 24 0 0 0
+  0 0 0 0 0 0 29 0 0 0 0 0 20 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 27 0 0 0 0 0 18 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 31 0 0 0 0 0 22 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 26 0 0 0 0 0 17 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 25 0 0 0
+  0 0 0 0 0 0 30 0 0 0 0 0 21 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 28 0 0 0 0 0 19 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 23 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:fcl table 8 3
+  7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 6 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 1 0 5 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 2 0 4 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 3 0 0 0 0 0 0 0 0 0
+:tbase table 8 20
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 1044480 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 1036288 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 1032192 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 1024000 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 1040384 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 1028096 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+:mu table 2 20
+  0 80 160 240
+:mask table 5 20
+  0 1 3 7 15 31 63 127 255 511 1023 2047 4095 8191 16383 32767
+  65535 131071 262143 524287 0 0 0 0 0 0 0 0 0 0 0 0
+:p2e table 5 20
+  1 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768
+  65536 131072 262144 524288 0 0 0 0 0 0 0 0 0 0 0 0
+:inc8 table 8 8
+  1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+  17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32
+  33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48
+  49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64
+  65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80
+  81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96
+  97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112
+  113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128
+  129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144
+  145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160
+  161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176
+  177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192
+  193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208
+  209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224
+  225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240
+  241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 0
+# --- end generated
+
+# --- small tables (index: the first argument is the lowest)
+:nzt table 4 1  0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+:and2 table 2 1  0 0 0 1
+:or2 table 2 1  0 1 1 1
+:stt table 3 1  1 1 1 1 0 1 1 1
+:nz5 table 5 1  0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+:inc2 table 2 2  1 2 3 3
+:inc3 table 3 3  1 2 3 4 5 6 7 7
+:ge3 table 3 1  0 0 0 1 1 1 1 1
+:ne2 table 4 1  0 1 1 1 1 0 1 1 1 1 0 1 1 1 1 0
+:mx2 table 4 2  0 1 2 3 1 1 2 3 2 2 2 3 3 3 3 3
+
+# --- arrays: the line (the characters and the first four tokens: value, & first, text, 2nd and 3rd characters, length), the layers of a
+# block as units (what the text has: kind 0 empty row, 1 copy, 2 four numbers; the numbers n d s, the kinds of d and s: 0 number, 1 table
+# of the library, 2 other label; the position in the text, the texts of the labels), the ops (a unit that is not empty), their bits read and
+# written, their layers; the layers of the new block (rows, slots, widths, starts)
+:lb array 6 8
+:tn array 2 20
+:tlk array 2 1
+:tta array 2 64
+:ttb array 2 64
+:tc2 array 2 8
+:tc3 array 2 8
+:tcl array 2 8
+:ukind array 8 2
+:un array 8 20
+:ud array 8 20
+:us array 8 20
+:uq3 array 8 20
+:ulk array 8 4
+:uadr array 8 20
+:udta array 8 64
+:udtb array 8 64
+:usta array 8 64
+:ustb array 8 64
+:ux array 8 8
+:xu array 8 8
+:es array 8 5
+:ed array 8 5
+:rlo array 8 20
+:rhi array 8 20
+:wlo array 8 20
+:whi array 8 20
+:olo array 8 20
+:xat array 8 20
+:xpm array 8 20
+:ox array 8 20
+:lcnt array 10 2
+:lu array 10 2
+:lst array 10 20
+:lop0 array 10 8
+:lop1 array 10 8
+
+# --- the character, the line
+:ch data 8 0
+:cc data 4 0
+:li data 8 0
+:lt data 3 0
+:ntk data 3 0
+:cv data 20 0
+:cv2 data 20 0
+:dg data 20 0
+:cx data 128 0
+:ct data 128 0
+:ci data 8 0
+:amp data 1 0
+:c2c data 8 0
+:c3c data 8 0
+:hv data 5 0
+:lc0 data 8 0
+:pend data 1 0
+
+# --- the position of the text (old) and of the new text, sizes
+:po data 20 0
+:pn data 20 0
+:sz data 20 0
+:bs data 20 0
+:be data 20 0
+:bej data 20 0
+:uad data 20 0
+:nu data 8 0
+:nx data 8 0
+:nx20 data 20 0
+:jtk data 1 0
+:jt data 128 0
+
+# --- the arithmetic and the helpers
+:wxa data 20 0
+:wxb data 20 0
+:wxr data 21 0
+:ltc data 6 0
+:q5 data 5 0
+:aa data 20 0
+:ab data 20 0
+:ar data 20 0
+:mr data 20 0
+:lr data 1 0
+:er data 1 0
+:q1 data 1 0
+:q2 data 2 0
+:oa0 data 20 0
+:oa1 data 20 0
+:ob0 data 20 0
+:ob1 data 20 0
+:ovr data 1 0
+:ovt data 1 0
+
+# --- output: the number in h, the characters
+:h data 20 0
+:h2 data 20 0
+:nib data 4 0
+:st2 data 1 0
+:cnt data 5 0
+:cnt2 data 5 0
+:sn data 3 0
+:hch data 8 0
+:zc data 20 0
+:zr data 21 0
+:ei data 8 0
+:pnm data 128 0
+:pnt data 128 0
+:pi data 8 0
+:pby data 8 0
+:pz data 2 0
+:pnz data 1 0
+
+# --- the unit in hand
+:tki data 2 0
+:tkk data 2 0
+:tkb data 20 0
+:ta data 1 0
+:tc2v data 8 0
+:tc3v data 8 0
+:tclv data 8 0
+:tv data 20 0
+:tx data 128 0
+:kd data 2 0
+:lk data 4 0
+:dk data 2 0
+:sk data 2 0
+:bk data 8 0
+:bk20 data 20 0
+:bu data 8 0
+
+# --- the plan
+:xi data 20 0
+:xj data 20 0
+:j0 data 20 0
+:lbv data 20 0
+:pmv data 20 0
+:atj data 20 0
+:oi0 data 20 0
+:oi1 data 20 0
+:ri0 data 20 0
+:ri1 data 20 0
+:wi0 data 20 0
+:wi1 data 20 0
+:rj0 data 20 0
+:rj1 data 20 0
+:wj0 data 20 0
+:wj1 data 20 0
+:dp data 1 0
+:cl20 data 20 0
+:cn data 2 0
+:cp data 2 0
+:cmx data 2 0
+:yy data 8 0
+:nei data 4 0
+:nl data 20 0
+:need data 20 0
+:nlay data 20 0
+:curv data 20 0
+:pw data 1 0
+:py data 8 0
+:pv data 20 0
+:dvv data 20 0
+:dq data 20 0
+:dr data 20 0
+:dvb data 20 0
+:cf data 1 0
+:kk data 20 0
+:lq data 20 0
+:ku data 2 0
+:stl data 20 0
+:ukv data 8 0
+
+# --- the emission and the remap
+:opad data 20 0
+:npad2 data 20 0
+:shift20 data 20 0
+:bkn data 20 0
+:ux8 data 8 0
+:rv data 20 0
+:rn data 20 0
+:wr data 20 0
+:slot data 1 0
+:left data 20 0
+:mkk data 20 0
+:mkp data 20 0
+:mkm data 20 0
+:pnx data 20 0
+:mka data 1 0
+:mkw data 1 0
+:k1b6 data 6 1
+:k0b6 data 6 0
+:chb data 8 "b"
+
+# --- constants
+:zero8 data 8 0
+:z2 data 2 0
+:z3 data 3 0
+:z5 data 5 0
+:z6 data 6 0
+:z20 data 20 0
+:z128 data 128 0
+:one1 data 1 1
+:one20 data 20 1
+:k0i data 2 0
+:k1i data 2 1
+:k2i data 2 2
+:k3i data 2 3
+:y1 data 2 1
+:y2 data 2 2
+:y3 data 2 3
+:c255 data 20 255
+:c255b data 8 255
+:c254 data 8 254
+:c1b data 8 1
+:c2b data 8 2
+:c3b data 8 3
+:c2 data 20 2
+:c3 data 20 3
+:c8 data 20 8
+:c9 data 20 9
+:c10 data 20 10
+:c20x data 20 20
+:c20 data 20 20
+:c40 data 20 40
+:c60 data 20 60
+:c80 data 20 80
+:c160 data 20 160
+:c240 data 20 240
+:c7 data 3 7
+:c16 data 8 16
+:c5 data 5 31
+:cht data 8 "t"
+:s1v data 20 1048571
+:s0v data 20 1048570
+:cend data 20 1048575
+:limc data 20 1024000
+:s1w data 20 1048572
+:sp data 8 " "
+:nl8 data 8 "\n"
+:zz8 data 8 0
+:s_c data 16 "c "
+:s_d14 data 40 "d 14 "
+:s_z data 16 "z "
+:s_zff data 40 "z ff\n"
+:s_z50 data 40 "z 50\n"
+:s_jmp0 data 24 " 0 "
+:s_cf0 data 56 "c f0 0 "
+:s_nl9 data 8 "\n"
+:kk20 data 20 0
+:z4 data 4 0
+:bx data 8 0
+:rcn data 2 0
+:bkj data 20 0
+:s_zero data 8 "0"
+:msg_bad data 112 "l3p: bad text\n"
+:msg_big data 104 "l3p: too big\n"
+
+:main block
+goto &top
+
+# --- one line at a time: the lines outside a block go out as they are, the position moves
+:top block
+if &pend &topp &topn
+:topp block
+copy &pend &zero
+goto &top1
+:topn block
+call &getline &top1
+:top1 block
+if &lt[2] &t4x &t0x
+:t0x block
+if &lt[1] &t23 &t01
+:t01 block
+if &lt[0] &colon &plain
+:t23 block
+if &lt[0] &origin &marker
+:t4x block
+if &lt[1] &t67 &t45
+:t45 block
+if &lt[0] &zline &cline
+:t67 block
+if &lt[0] &eot &dline
+
+:eot block
+emit &zz8
+halt
+
+:plain block
+call &echo &top
+:origin block
+copy &po &z20
+copy &pn &z20
+call &echo &top
+:cline block
+copy &sz &c80
+goto &adds
+:zline block
+lut &tn &k1i &sz
+goto &adds
+:dline block
+lut &tn &k1i &sz
+goto &adds
+:adds block
+copy &aa &po
+copy &ab &sz
+call &addw &ad1
+:ad1 block
+copy &po &ar
+copy &aa &pn
+copy &ab &sz
+call &addw &ad2
+:ad2 block
+copy &pn &ar
+call &echo &top
+:colon block
+lut &lb &k1b6 &lc0
+eq &lc0 &chb &q2
+if &q2[1] &blockst &plain
+
+# --- a marker `# a<k> <pad>`: the zeros that follow (pad bits) are read, the pad is made anew for the new position pn
+:marker block
+call &mkchk &mkc1
+:mkc1 block
+if &mka &mkc2 &plain
+:mkc2 block
+if &mkw &mk0 &bad
+:mk0 block
+lut &tn &k2i &mkk
+lut &tn &k3i &mkp
+copy &left &mkp
+goto &mkl
+:mkl block
+copy &aa &left
+copy &ab &z20
+call &eqw &mk1
+:mk1 block
+if &er &mkd &mkb
+:mkb block
+call &getline &mk2
+:mk2 block
+if &lt[2] &mk3 &bad
+:mk3 block
+if &lt[1] &bad &mk4
+:mk4 block
+if &lt[0] &mk5 &bad
+:mk5 block
+lut &tn &k1i &sz
+copy &aa &left
+copy &ab &sz
+call &subw &mk6
+:mk6 block
+copy &left &ar
+goto &mkl
+:mkd block
+copy &pnx &pn
+call &padn &mk7
+:mk7 block
+copy &zc &npad2
+call &zrun &mk8
+:mk8 block
+copy &aa &po
+copy &ab &mkp
+call &addw &mk9
+:mk9 block
+copy &po &ar
+copy &aa &pn
+copy &ab &npad2
+call &addw &mk10
+:mk10 block
+copy &pn &ar
+goto &top
+
+# the line is a marker `# a <k> <pad>`? mka: it is a comment whose first two tokens are # and a; mkw: and it has four tokens
+:mkchk word
+copy &mka &zero
+copy &mkw &zero
+lut &tcl &k0i &tclv
+eq &tclv &c1b &q2
+if &q2[1] &mkk1 &mkkx
+:mkk1 block
+lut &tcl &k1i &tclv
+eq &tclv &c1b &q2
+if &q2[1] &mkk2 &mkkx
+:mkk2 block
+lut &tn &k1i &tv
+copy &aa &tv
+copy &ab &c10
+call &eqw &mkk3
+:mkk3 block
+if &er &mkk4 &mkkx
+:mkk4 block
+copy &mka &one1
+copy &mkw &ntk[2]
+ret
+:mkkx block
+ret
+
+# npad2 = (-pn) mod 2^mkk
+:padn word
+copy &aa &z20
+copy &ab &pnx
+call &subw &pd1
+:pd1 block
+lut &mask &mkk[0:5] &mkm
+band &ar &mkm &npad2
+ret
+
+# --- the errors: the report to stderr and the halt
+:bad block
+warn &msg_bad
+halt
+:big block
+warn &msg_big
+halt
+
+# --- a line: the characters in lb (without the line break), the first four tokens (value of the hex digits, & first, text, 2nd and 3rd
+# characters, length), lt = the class of the first character (fcl: 7 is the zero byte, which ends the text)
+:getline word
+store &tn &k0i &z20
+store &tn &k1i &z20
+store &tn &k2i &z20
+store &tn &k3i &z20
+copy &li &zero8
+copy &ntk[0:2] &z2
+copy &ntk[2] &zero
+copy &cv &z20
+copy &cx &z128
+copy &ci &zero8
+copy &amp &zero
+copy &c2c &zero8
+copy &c3c &zero8
+goto &gl
+:gl block
+key &ch
+lut &cls &ch &cc
+if &cc[0] &glz &gl1
+:glz block
+eq &li &zero8 &q2
+if &q2[1] &glz2 &bad
+:glz2 block
+copy &lt &c7
+ret
+:gl1 block
+if &cc[2] &glnl &gl2
+:glnl block
+call &tokfin &glend
+:glend block
+eq &li &zero8 &q2
+if &q2[1] &glend0 &glend1
+:glend0 block
+copy &lt &z3
+ret
+:glend1 block
+lut &lb &k0b6 &lc0
+lut &fcl &lc0 &lt
+ret
+:gl2 block
+store &lb &li[0:6] &ch
+lut &inc8 &li &li
+copy &q2[0] &li[6]
+copy &q2[1] &li[7]
+lut &or2 &q2 &q1
+if &q1 &bad &gl3
+:gl3 block
+if &cc[1] &glsp &gl4
+:glsp block
+call &tokfin &gl
+:gl4 block
+call &tokch &gl
+
+# a character of a token: the text (the new byte comes in at the high end), the value (hex digits), the first, second, third character
+:tokch word
+copy &ct[0:120] &cx[8:128]
+copy &ct[120:128] &ch
+copy &cx &ct
+lut &hexv &ch &hv
+if &hv[4] &tch1 &tch2
+:tch1 block
+shl &cv &cv2 4
+copy &dg[0:4] &hv[0:4]
+copy &aa &cv2
+copy &ab &dg
+call &addw &tch1b
+:tch1b block
+copy &cv &ar
+goto &tch2
+:tch2 block
+eq &ci &zero8 &q2
+if &q2[1] &tchp0 &tchp1
+:tchp0 block
+copy &amp &cc[3]
+goto &tchpe
+:tchp1 block
+eq &ci &c1b &q2
+if &q2[1] &tchp1a &tchp2
+:tchp1a block
+copy &c2c &ch
+goto &tchpe
+:tchp2 block
+eq &ci &c2b &q2
+if &q2[1] &tchp2a &tchpe
+:tchp2a block
+copy &c3c &ch
+goto &tchpe
+:tchpe block
+lut &inc8 &ci &ci
+ret
+
+# the end of a token (a blank or the line break): it goes to the arrays at ntk (at most four)
+:tokfin word
+eq &ci &zero8 &q2
+if &q2[1] &tfx &tf1
+:tfx block
+ret
+:tf1 block
+if &ntk[2] &bad &tf2
+:tf2 block
+store &tn &ntk[0:2] &cv
+store &tlk &ntk[0:2] &amp
+store &tta &ntk[0:2] &cx[0:64]
+store &ttb &ntk[0:2] &cx[64:128]
+store &tc2 &ntk[0:2] &c2c
+store &tc3 &ntk[0:2] &c3c
+store &tcl &ntk[0:2] &ci
+lut &inc3 &ntk &ntk
+copy &cv &z20
+copy &cx &z128
+copy &ci &zero8
+copy &amp &zero
+copy &c2c &zero8
+copy &c3c &zero8
+ret
+
+# --- the line in lb goes out, then a line break
+:echo word
+copy &ei &zero8
+goto &el
+:el block
+eq &ei &li &q2
+if &q2[1] &eend &eb
+:eb block
+lut &lb &ei[0:6] &ch
+emit &ch
+lut &inc8 &ei &ei
+goto &el
+:eend block
+emit &nl8
+ret
+
+# --- the number in h, in hex (the zeros first are left out), and the zeros z <zc> as the lines z ff and the rest
+:puthex word
+copy &cnt &c5
+copy &sn[0] &zero
+goto &phl
+:phl block
+copy &nib &h[16:20]
+shl &h &h2 4
+shr &cnt &cnt2 1
+lut &nzt &nib &sn[1:2]
+copy &sn[2] &cnt2[0]
+lut &stt &sn &st2
+copy &h &h2
+copy &cnt &cnt2
+if &st2 &phpr &phnp
+:phpr block
+lut &hex4 &nib &hch
+emit &hch
+goto &phnp
+:phnp block
+copy &sn[0] &st2
+if &cnt[0] &phl &phend
+:phend block
+ret
+
+:zrun word
+goto &zl
+:zl block
+copy &aa &zc
+copy &ab &c255
+call &subw &zl2
+:zl2 block
+copy &zr &wxr
+if &zr[20] &zend &zbody
+:zbody block
+emit &s_zff
+copy &zc &zr[0:20]
+goto &zl
+:zend block
+eq &zc[0:8] &zero8 &q2
+if &q2[1] &zfin &zprint
+:zprint block
+emit &s_z
+copy &h &zc
+call &puthex &zp2
+:zp2 block
+emit &nl8
+ret
+:zfin block
+ret
+
+# a label in pnm (128 bits, the name at the low end, zero bytes first) goes out
+:ptxt word
+copy &pi &zero8
+goto &pt1
+:pt1 block
+lut &nzt &pnm[0:4] &pz[0]
+lut &nzt &pnm[4:8] &pz[1]
+lut &or2 &pz &pnz
+if &pnz &ptem &ptx
+:ptem block
+copy &pby &pnm[0:8]
+emit &pby
+goto &ptx
+:ptx block
+copy &pnt[0:120] &pnm[8:128]
+copy &pnt[120:128] &zero8
+copy &pnm &pnt
+lut &inc8 &pi &pi
+eq &pi &c16 &q2
+if &q2[1] &ptend &pt1
+:ptend block
+ret
+
+# --- the 20 bit arithmetic: ar = aa + ab, aa - ab (mod 2^20), lr = aa < ab, er = aa = ab, mr = the larger of aa ab, ovr = the intervals
+# [oa0, oa1) and [ob0, ob1) touch
+:addw word
+copy &wxa &aa
+copy &wxb &ab
+call &wadd &adw1
+:adw1 block
+copy &ar &wxr[0:20]
+ret
+:subw word
+copy &wxa &aa
+copy &wxb &ab
+call &wsub &sbw1
+:sbw1 block
+copy &ar &wxr[0:20]
+ret
+:ltw word
+copy &wxa &aa
+copy &wxb &ab
+call &wlt &ltw1
+:ltw1 block
+copy &lr &ltc[5]
+ret
+:eqw word
+copy &wxa &aa
+copy &wxb &ab
+call &weq &eqw1
+:eqw1 block
+copy &er &q5[4]
+ret
+:maxw word
+call &ltw &mxw1
+:mxw1 block
+if &lr &mxw2 &mxw3
+:mxw2 block
+copy &mr &ab
+ret
+:mxw3 block
+copy &mr &aa
+ret
+:ov word
+copy &aa &oa0
+copy &ab &ob1
+call &ltw &ov1
+:ov1 block
+copy &ovt &lr
+copy &aa &ob0
+copy &ab &oa1
+call &ltw &ov2
+:ov2 block
+copy &q2[0] &ovt
+copy &q2[1] &lr
+lut &and2 &q2 &ovr
+ret
+
+# dvv divided by 160: dq the quotient, dr the rest
+:div160 word
+copy &dq &z20
+goto &dvl
+:dvl block
+copy &aa &dvv
+copy &ab &c160
+call &ltw &dv1
+:dv1 block
+if &lr &dvend &dv2
+:dv2 block
+copy &aa &dvv
+copy &ab &c160
+call &subw &dv3
+:dv3 block
+copy &dvv &ar
+copy &aa &dq
+copy &ab &one20
+call &addw &dv4
+:dv4 block
+copy &dq &ar
+goto &dvl
+:dvend block
+copy &dr &dvv
+ret
+
+# ======================= a block =======================
+# The label :b... is in lb: it goes out first. Then the units are read (a row and its jump, to the jump that leaves the block: a label
+# or the patched 0), the ops made, the bits they read and write, the plan made (layers), the block written; po and pn move to its end.
+:blockst block
+call &echo &bk1
+:bk1 block
+call &bcollect &bk2
+:bk2 block
+call &bops &bk3
+:bk3 block
+call &bspans &bk4
+:bk4 block
+call &bchk &bk4b
+:bk4b block
+call &bregs &bk5
+:bk5 block
+call &bplan &bk6
+:bk6 block
+call &bemit &top
+
+# the units. A row: c n d s (kind 1), z 50 (kind 0, empty), or four lines d 14 x (kind 2); then its jump c a0 0 <where>
+:bcollect word
+copy &nu &zero8
+copy &uad &po
+copy &bs &po
+goto &bcl
+:bcl block
+call &getline &bc1
+:bc1 block
+if &lt[2] &bc2 &bad
+:bc2 block
+if &lt[1] &bc3 &bc4
+:bc3 block
+if &lt[0] &bad &bcq
+:bc4 block
+if &lt[0] &bcg &bcc
+:bcg block
+lut &tn &k1i &tv
+copy &aa &tv
+copy &ab &c80
+call &eqw &bcg1
+:bcg1 block
+if &er &bcg2 &bad
+:bcg2 block
+store &ukind &nu &k0i
+goto &bcj
+:bcc block
+if &ntk[2] &bcc1 &bad
+:bcc1 block
+lut &tn &k1i &tv
+store &un &nu &tv
+lut &tn &k2i &tv
+store &ud &nu &tv
+lut &tn &k3i &tv
+store &us &nu &tv
+copy &tki &k2i
+call &tokkind &bcc2
+:bcc2 block
+copy &dk &tkk
+lut &tta &k2i &tx[0:64]
+lut &ttb &k2i &tx[64:128]
+store &udta &nu &tx[0:64]
+store &udtb &nu &tx[64:128]
+copy &tki &k3i
+call &tokkind &bcc3
+:bcc3 block
+copy &sk &tkk
+lut &tta &k3i &tx[0:64]
+lut &ttb &k3i &tx[64:128]
+store &usta &nu &tx[0:64]
+store &ustb &nu &tx[64:128]
+if &sk[1] &bcc5 &bcc4
+:bcc4 block
+if &sk[0] &bcc6 &bcc5
+:bcc6 block
+store &us &nu &tkb
+goto &bcc5
+:bcc5 block
+copy &lk[0:2] &dk
+copy &lk[2:4] &sk
+store &ulk &nu &lk
+store &ukind &nu &k1i
+goto &bcj
+:bcq block
+call &needw &bcq00
+:bcq00 block
+lut &ge3 &ntk &q1
+if &q1 &bcq0 &bad
+:bcq0 block
+lut &tn &k2i &tv
+store &un &nu &tv
+call &getline &bq1
+:bq1 block
+call &needd &bq1b
+:bq1b block
+lut &tn &k2i &tv
+store &ud &nu &tv
+call &getline &bq2
+:bq2 block
+call &needd &bq2b
+:bq2b block
+lut &tn &k2i &tv
+store &us &nu &tv
+call &getline &bq3
+:bq3 block
+call &needd &bq3b
+:bq3b block
+lut &tn &k2i &tv
+store &uq3 &nu &tv
+store &ulk &nu &z4
+store &ukind &nu &k2i
+goto &bcj
+:bcj block
+store &uadr &nu &uad
+call &getline &bj1
+:bj1 block
+if &lt[2] &bj2 &bad
+:bj2 block
+if &lt[1] &bad &bj3
+:bj3 block
+if &lt[0] &bad &bj4
+:bj4 block
+if &ntk[2] &bj5 &bad
+:bj5 block
+lut &tlk &k3i &ta
+if &ta &bjl &bj6
+:bj6 block
+lut &tn &k3i &tv
+copy &aa &tv
+copy &ab &z20
+call &eqw &bj7
+:bj7 block
+if &er &bjz &bjn
+:bjl block
+copy &jtk &one1
+lut &tta &k3i &jt[0:64]
+lut &ttb &k3i &jt[64:128]
+goto &bjend
+:bjz block
+copy &jtk &zero
+goto &bjend
+:bjn block
+copy &aa &uad
+copy &ab &c160
+call &addw &bjn1
+:bjn1 block
+copy &uad &ar
+lut &inc8 &nu &nu
+eq &nu &c254 &q2
+if &q2[1] &big &bcl
+:bjend block
+copy &aa &uad
+copy &ab &c160
+call &addw &bje1
+:bje1 block
+copy &uad &ar
+copy &be &ar
+lut &inc8 &nu &nu
+copy &aa &be
+copy &ab &c80
+call &subw &bje2
+:bje2 block
+copy &bej &ar
+ret
+
+# the line is a d line with three tokens
+:needd word
+if &lt[2] &nd1 &bad
+:nd1 block
+if &lt[1] &nd2 &bad
+:nd2 block
+if &lt[0] &bad &nd3
+:nd3 block
+lut &ge3 &ntk &q1
+if &q1 &nd4 &bad
+:nd4 block
+call &needw &nd5
+:nd5 block
+ret
+
+# the width of a number in a d line is 14 (hex): the numbers of a row of four
+:needw word
+lut &tn &k1i &tv
+copy &aa &tv
+copy &ab &c20x
+call &eqw &nw1
+:nw1 block
+if &er &nw2 &bad
+:nw2 block
+ret
+
+# the kind of the token tki of the line: 0 a number, 1 a reference to a table of the library (&t and a letter: tkb its place above the
+# memory), 2 another label
+:tokkind word
+lut &tlk &tki &ta
+if &ta &tkd1 &tkd0
+:tkd0 block
+copy &tkk &z2
+ret
+:tkd1 block
+lut &tc2 &tki &tc2v
+lut &tcl &tki &tclv
+eq &tc2v &cht &q2
+if &q2[1] &tkd2 &tkd3
+:tkd2 block
+eq &tclv &c2b &q2
+if &q2[1] &tkd3 &tkd4
+:tkd4 block
+copy &tkk &y1
+lut &tc3 &tki &tc3v
+lut &tbase &tc3v &tkb
+ret
+:tkd3 block
+copy &tkk &y2
+ret
+
+# the ops: the units which are not empty, in order (ux: the op of a unit, xu: the unit of an op)
+:bops word
+copy &bk &zero8
+copy &nx &zero8
+goto &bol
+:bol block
+eq &bk &nu &q2
+if &q2[1] &boe &bob
+:bob block
+lut &ukind &bk &kd
+lut &or2 &kd &q1
+if &q1 &bo1 &bo0
+:bo0 block
+store &ux &bk &c255b
+goto &bon
+:bo1 block
+store &ux &bk &nx
+store &xu &nx &bk
+store &es &nx &z5
+store &ed &nx &z5
+lut &inc8 &nx &nx
+goto &bon
+:bon block
+lut &inc8 &bk &bk
+goto &bol
+:boe block
+copy &nx20[0:8] &nx
+ret
+
+# the spans of the tables: a copy whose destination is in the text of a row of the block (a patch) tells how many bits of the field sl (dl)
+# of that row are the index: es (ed) = the highest bit of the index + 1
+:bspans word
+copy &bk &zero8
+goto &bsl
+:bsl block
+eq &bk &nx &q2
+if &q2[1] &bse &bsb
+:bsb block
+lut &xu &bk &bu
+lut &ukind &bu &kd
+if &kd[1] &bsn &bs1
+:bs1 block
+if &kd[0] &bs2 &bsn
+:bs2 block
+lut &ulk &bu &lk
+lut &or2 &lk[0:2] &q1
+if &q1 &bsn &bs3
+:bs3 block
+lut &ud &bu &tv
+copy &aa &tv
+copy &ab &bs
+call &ltw &bs4
+:bs4 block
+if &lr &bsn &bs5
+:bs5 block
+copy &aa &tv
+copy &ab &bej
+call &ltw &bs6
+:bs6 block
+if &lr &bs7 &bsn
+:bs7 block
+copy &aa &tv
+copy &ab &bs
+call &subw &bs8
+:bs8 block
+copy &dvv &ar
+call &div160 &bs9
+:bs9 block
+lut &ux &dq[0:8] &py
+eq &py &c255b &q2
+if &q2[1] &bad &bs9b
+:bs9b block
+lut &un &bu &tv
+copy &aa &dr
+copy &ab &c20
+call &ltw &bsa
+:bsa block
+if &lr &bsd &bsb2
+:bsb2 block
+copy &aa &dr
+copy &ab &c40
+call &ltw &bsc
+:bsc block
+if &lr &bsn &bsc2
+:bsc2 block
+copy &aa &dr
+copy &ab &c60
+call &ltw &bsc3
+:bsc3 block
+if &lr &bsf &bsn
+:bsf block
+copy &aa &dr
+copy &ab &c40
+call &subw &bsf1
+:bsf1 block
+copy &aa &ar
+copy &ab &tv
+call &addw &bsf2
+:bsf2 block
+copy &pv &ar
+copy &pw &zero
+call &bump &bsn
+:bsd block
+copy &aa &dr
+copy &ab &tv
+call &addw &bsd1
+:bsd1 block
+copy &pv &ar
+copy &pw &one1
+call &bump &bsn
+:bsn block
+lut &inc8 &bk &bk
+goto &bsl
+:bse block
+ret
+
+# a row does not read the text of its block: a number s of a copy in [bs, be) is an error
+:bchk word
+copy &bk &zero8
+goto &ckl
+:ckl block
+eq &bk &nx &q2
+if &q2[1] &cke &ckb
+:ckb block
+lut &xu &bk &bu
+lut &ukind &bu &kd
+if &kd[1] &ckn &ck1
+:ck1 block
+if &kd[0] &ck2 &ckn
+:ck2 block
+lut &ulk &bu &lk
+lut &or2 &lk[2:4] &q1
+if &q1 &ckn &ck3
+:ck3 block
+lut &us &bu &tv
+copy &aa &tv
+copy &ab &bs
+call &ltw &ck4a
+:ck4a block
+if &lr &ckn &ck5
+:ck5 block
+copy &aa &tv
+copy &ab &be
+call &ltw &ck6
+:ck6 block
+if &lr &bad &ckn
+:ckn block
+lut &inc8 &bk &bk
+goto &ckl
+:cke block
+ret
+
+# the array es (pw 0) or ed (pw 1) at the op py becomes the larger of it and pv
+:bump word
+if &pw &bpe &bps
+:bps block
+lut &es &py &hv
+copy &curv[0:5] &hv
+copy &aa &curv
+copy &ab &pv
+call &ltw &bps1
+:bps1 block
+if &lr &bps2 &bpx
+:bps2 block
+store &es &py &pv[0:5]
+ret
+:bpe block
+lut &ed &py &hv
+copy &curv[0:5] &hv
+copy &aa &curv
+copy &ab &pv
+call &ltw &bpe1
+:bpe1 block
+if &lr &bpe2 &bpx
+:bpe2 block
+store &ed &py &pv[0:5]
+ret
+:bpx block
+ret
+
+# the bits every op reads (rlo rhi) and writes (wlo whi), the place of its row in the old text (olo)
+# (every access to a channel writes the channels S .. cend: two of them touch the same bits, so the rows of a block that use channels keep the order of the text)
+:bregs word
+copy &bk &zero8
+goto &brl
+:brl block
+eq &bk &nx &q2
+if &q2[1] &bre &brb
+:brb block
+lut &xu &bk &bu
+lut &uadr &bu &tv
+store &olo &bk &tv
+lut &ukind &bu &kd
+if &kd[1] &brq &brc
+:brq block
+lut &un &bu &kk
+lut &ud &bu &lq
+lut &us &bu &stl
+lut &uq3 &bu &tv
+copy &aa &stl
+copy &ab &s1v
+call &eqw &brq1
+:brq1 block
+if &er &brk &brq0
+:brq0 block
+copy &aa &stl
+copy &ab &s0v
+call &eqw &brq0b
+:brq0b block
+if &er &brk &brq2
+:brk block
+store &rlo &bk &stl
+copy &aa &stl
+copy &ab &one20
+call &addw &brk1
+:brk1 block
+store &rhi &bk &ar
+store &wlo &bk &kk
+store &whi &bk &cend
+goto &brn
+:brq2 block
+store &rlo &bk &stl
+store &rhi &bk &tv
+store &wlo &bk &s0v
+store &whi &bk &cend
+goto &brn
+:brc block
+lut &ulk &bu &lk
+copy &dk &lk[0:2]
+copy &sk &lk[2:4]
+lut &un &bu &kk
+lut &us &bu &stl
+lut &ud &bu &lq
+lut &es &bk &hv
+lut &nz5 &hv &q1
+if &q1 &brc1 &brc2
+:brc1 block
+lut &p2e &hv &kk20
+goto &brc3
+:brc2 block
+copy &kk20 &kk
+goto &brc3
+:brc3 block
+if &sk[1] &brs2 &brs1
+:brs1 block
+store &rlo &bk &stl
+copy &aa &stl
+copy &ab &kk20
+call &addw &brs1b
+:brs1b block
+store &rhi &bk &ar
+goto &brd
+:brs2 block
+store &rlo &bk &z20
+store &rhi &bk &z20
+goto &brd
+:brd block
+lut &ed &bk &hv
+lut &nz5 &hv &q1
+if &q1 &brd1 &brd2
+:brd1 block
+lut &p2e &hv &kk20
+goto &brd3
+:brd2 block
+copy &kk20 &kk
+goto &brd3
+:brd3 block
+if &dk[1] &bre2 &brd4
+:brd4 block
+store &wlo &bk &lq
+copy &aa &lq
+copy &ab &kk20
+call &addw &brd5
+:brd5 block
+store &whi &bk &ar
+goto &brn
+:bre2 block
+store &wlo &bk &z20
+store &whi &bk &z20
+goto &brn
+:brn block
+lut &inc8 &bk &bk
+goto &brl
+:bre block
+ret
+
+# ======================= the plan =======================
+# the list scheduler: op i goes to the first layer (from the earliest the ops before it allow) where there is room (two rows) and
+# nothing is touched twice. The ops j in the window of 8 before it are looked at: after an op which writes into the text of its row
+# 2 layers later, after one which touches the same bits 1 layer later; farther back: after the layer of all of them (xpm: the largest
+# layer up to op). The last layer is 2 layers after an op which writes into the text of the jump of the block.
+:bplan word
+copy &xi &z20
+copy &nl &z20
+copy &need &one20
+goto &pl
+:pl block
+copy &aa &xi
+copy &ab &nx20
+call &eqw &pl1
+:pl1 block
+if &er &plend &plb
+:plb block
+lut &rlo &xi[0:8] &ri0
+lut &rhi &xi[0:8] &ri1
+lut &wlo &xi[0:8] &wi0
+lut &whi &xi[0:8] &wi1
+lut &olo &xi[0:8] &oi0
+copy &aa &oi0
+copy &ab &c80
+call &addw &plb1
+:plb1 block
+copy &oi1 &ar
+copy &aa &c8
+copy &ab &xi
+call &ltw &plb2
+:plb2 block
+if &lr &plb3 &plb4
+:plb3 block
+copy &aa &xi
+copy &ab &c8
+call &subw &plb3a
+:plb3a block
+copy &j0 &ar
+copy &aa &xi
+copy &ab &c9
+call &subw &plb3b
+:plb3b block
+lut &xpm &ar[0:8] &pmv
+copy &aa &pmv
+copy &ab &c2
+call &addw &plb3c
+:plb3c block
+copy &lbv &ar
+goto &plj
+:plb4 block
+copy &j0 &z20
+copy &lbv &z20
+goto &plj
+:plj block
+copy &xj &j0
+goto &pj
+:pj block
+copy &aa &xj
+copy &ab &xi
+call &eqw &pj1
+:pj1 block
+if &er &pjend &pjb
+:pjb block
+lut &rlo &xj[0:8] &rj0
+lut &rhi &xj[0:8] &rj1
+lut &wlo &xj[0:8] &wj0
+lut &whi &xj[0:8] &wj1
+lut &xat &xj[0:8] &atj
+copy &oa0 &wj0
+copy &oa1 &wj1
+copy &ob0 &oi0
+copy &ob1 &oi1
+call &ov &pj2
+:pj2 block
+if &ovr &pj3 &pj4
+:pj3 block
+copy &aa &atj
+copy &ab &c2
+call &addw &pj3a
+:pj3a block
+copy &ab &ar
+copy &aa &lbv
+call &maxw &pj3b
+:pj3b block
+copy &lbv &mr
+goto &pj4
+:pj4 block
+call &dep3 &pj5
+:pj5 block
+if &cf &pj6 &pj7
+:pj6 block
+copy &aa &atj
+copy &ab &one20
+call &addw &pj6a
+:pj6a block
+copy &ab &ar
+copy &aa &lbv
+call &maxw &pj6b
+:pj6b block
+copy &lbv &mr
+goto &pj7
+:pj7 block
+copy &aa &xj
+copy &ab &one20
+call &addw &pj8
+:pj8 block
+copy &xj &ar
+goto &pj
+:pjend block
+copy &cl20 &lbv
+goto &pp
+:pp block
+lut &lcnt &cl20[0:10] &cn
+if &cn[1] &ppn &pp1
+:pp1 block
+if &cn[0] &pp2 &ppok
+:pp2 block
+lut &lop0 &cl20[0:10] &yy
+lut &rlo &yy &rj0
+lut &rhi &yy &rj1
+lut &wlo &yy &wj0
+lut &whi &yy &wj1
+call &conf4 &pp3
+:pp3 block
+if &cf &ppn &ppok
+:ppn block
+copy &aa &cl20
+copy &ab &one20
+call &addw &ppn1
+:ppn1 block
+copy &cl20 &ar
+goto &pp
+:ppok block
+if &cn[0] &ppo1 &ppo0
+:ppo0 block
+store &lop0 &cl20[0:10] &xi[0:8]
+goto &ppo2
+:ppo1 block
+store &lop1 &cl20[0:10] &xi[0:8]
+goto &ppo2
+:ppo2 block
+lut &inc2 &cn &cp
+store &lcnt &cl20[0:10] &cp
+store &xat &xi[0:8] &cl20
+copy &aa &xi
+copy &ab &z20
+call &eqw &ppk1
+:ppk1 block
+if &er &ppk2 &ppk3
+:ppk2 block
+copy &pmv &cl20
+goto &ppk5
+:ppk3 block
+copy &aa &xi
+copy &ab &one20
+call &subw &ppk4
+:ppk4 block
+lut &xpm &ar[0:8] &pmv
+copy &aa &pmv
+copy &ab &cl20
+call &maxw &ppk4b
+:ppk4b block
+copy &pmv &mr
+goto &ppk5
+:ppk5 block
+store &xpm &xi[0:8] &pmv
+copy &aa &cl20
+copy &ab &one20
+call &addw &ppk6
+:ppk6 block
+copy &ab &ar
+copy &aa &nl
+call &maxw &ppk7
+:ppk7 block
+copy &nl &mr
+copy &oa0 &wi0
+copy &oa1 &wi1
+copy &ob0 &bej
+copy &ob1 &be
+call &ov &ppk8
+:ppk8 block
+if &ovr &ppk9 &ppk11
+:ppk9 block
+copy &aa &cl20
+copy &ab &c3
+call &addw &ppk10
+:ppk10 block
+copy &ab &ar
+copy &aa &need
+call &maxw &ppk10b
+:ppk10b block
+copy &need &mr
+goto &ppk11
+:ppk11 block
+copy &aa &xi
+copy &ab &one20
+call &addw &ppk12
+:ppk12 block
+copy &xi &ar
+goto &pl
+:plend block
+copy &aa &nl
+copy &ab &need
+call &maxw &plend1
+:plend1 block
+copy &nlay &mr
+ret
+
+# cf = the bits read or written by op i (ri wi) touch the bits read or written by the op in hand (rj wj)
+:conf4 word
+copy &cf &zero
+copy &oa0 &ri0
+copy &oa1 &ri1
+copy &ob0 &rj0
+copy &ob1 &rj1
+call &ova &cf1
+:cf1 block
+copy &oa0 &ri0
+copy &oa1 &ri1
+copy &ob0 &wj0
+copy &ob1 &wj1
+call &ova &cf2
+:cf2 block
+copy &oa0 &wi0
+copy &oa1 &wi1
+copy &ob0 &rj0
+copy &ob1 &rj1
+call &ova &cf3
+:cf3 block
+copy &oa0 &wi0
+copy &oa1 &wi1
+copy &ob0 &wj0
+copy &ob1 &wj1
+call &ova &cf4
+:cf4 block
+ret
+
+# cf = op j writes what op i reads or writes, or reads what it writes (the data hand over: i goes 1 layer later)
+:dep3 word
+copy &cf &zero
+copy &oa0 &wj0
+copy &oa1 &wj1
+copy &ob0 &ri0
+copy &ob1 &ri1
+call &ova &dp1
+:dp1 block
+copy &oa0 &rj0
+copy &oa1 &rj1
+copy &ob0 &wi0
+copy &ob1 &wi1
+call &ova &dp2
+:dp2 block
+copy &oa0 &wj0
+copy &oa1 &wj1
+copy &ob0 &wi0
+copy &ob1 &wi1
+call &ova &dp3
+:dp3 block
+ret
+
+:ova word
+call &ov &ova1
+:ova1 block
+copy &q2[0] &cf
+copy &q2[1] &ovr
+lut &or2 &q2 &cf
+ret
+
+# ======================= the block goes out =======================
+# The widths of the layers (the first has 3 slots, the others as many as they need and not fewer than the layer before), their starts and
+# the places of the rows; the line after the block is read (a marker of the pad of the table of `if`?) to know where the table goes;
+# then the layers: the rows, the jump, the empty slots.
+:bemit word
+copy &bk20 &z20
+copy &stl &pn
+copy &cp &z2
+goto &bel
+:bel block
+copy &aa &bk20
+copy &ab &nlay
+call &eqw &bel1
+:bel1 block
+if &er &beend &belb
+:belb block
+lut &lcnt &bk20[0:10] &cn
+store &lst &bk20[0:10] &stl
+copy &aa &bk20
+copy &ab &z20
+call &eqw &bel2
+:bel2 block
+if &er &bel3 &bel4
+:bel3 block
+copy &ku &y3
+goto &bel5
+:bel4 block
+copy &nei[0:2] &cn
+copy &nei[2:4] &cp
+lut &mx2 &nei &cmx
+lut &inc2 &cmx &ku
+goto &bel5
+:bel5 block
+store &lu &bk20[0:10] &ku
+lut &mu &ku &sz
+lut &or2 &cn &q1
+if &q1 &bel6 &bel9
+:bel6 block
+lut &lop0 &bk20[0:10] &yy
+store &ox &yy &stl
+if &cn[1] &bel7 &bel9
+:bel7 block
+lut &lop1 &bk20[0:10] &yy
+copy &aa &stl
+copy &ab &c80
+call &addw &bel8
+:bel8 block
+store &ox &yy &ar
+goto &bel9
+:bel9 block
+copy &aa &stl
+copy &ab &sz
+call &addw &bel10
+:bel10 block
+copy &stl &ar
+copy &cp &cn
+copy &aa &bk20
+copy &ab &one20
+call &addw &bel11
+:bel11 block
+copy &bk20 &ar
+goto &bel
+:beend block
+store &lst &bk20[0:10] &stl
+copy &bkn &stl
+call &getline &be1
+:be1 block
+copy &pend &one1
+copy &opad &z20
+copy &npad2 &z20
+if &lt[2] &bepn &be2
+:be2 block
+if &lt[1] &be3 &bepn
+:be3 block
+if &lt[0] &bepn &bemk0
+:bemk0 block
+call &mkchk &bemk0b
+:bemk0b block
+copy &q2[0] &mka
+copy &q2[1] &mkw
+lut &and2 &q2 &q1
+if &q1 &bemk &bepn
+:bemk block
+lut &tn &k2i &mkk
+lut &tn &k3i &opad
+copy &pnx &bkn
+call &padn &bepn
+:bepn block
+copy &aa &bkn
+copy &ab &npad2
+call &addw &bes1
+:bes1 block
+copy &lq &ar
+copy &aa &be
+copy &ab &opad
+call &addw &bes2
+:bes2 block
+copy &kk20 &ar
+copy &aa &lq
+copy &ab &kk20
+call &subw &bes3
+:bes3 block
+copy &shift20 &ar
+copy &bk20 &z20
+goto &bpl
+:bpl block
+copy &aa &bk20
+copy &ab &nlay
+call &eqw &bpl1
+:bpl1 block
+if &er &bpend &bpb
+:bpb block
+lut &lcnt &bk20[0:10] &cn
+lut &or2 &cn &q1
+if &q1 &bpr0 &bpj
+:bpr0 block
+lut &lop0 &bk20[0:10] &bx
+call &prow &bpr1
+:bpr1 block
+if &cn[1] &bpr2 &bpj
+:bpr2 block
+lut &lop1 &bk20[0:10] &bx
+call &prow &bpj
+:bpj block
+copy &aa &bk20
+copy &ab &one20
+call &addw &bpj1
+:bpj1 block
+copy &bkj &ar
+copy &aa &nlay
+call &subw &bpj2
+:bpj2 block
+copy &aa &bk20
+copy &ab &ar
+call &eqw &bpj3
+:bpj3 block
+if &er &bpjl &bpjn
+:bpjl block
+emit &s_cf0
+if &jtk &bpjl2 &bpjl3
+:bpjl2 block
+copy &pnm &jt
+call &ptxt &bpjl4
+:bpjl3 block
+emit &s_zero
+goto &bpjl4
+:bpjl4 block
+emit &nl8
+goto &bpp
+:bpjn block
+emit &s_c
+lut &lu &bkj[0:10] &ku
+lut &mu &ku &h
+call &puthex &bpjn1
+:bpjn1 block
+emit &s_jmp0
+lut &lst &bkj[0:10] &h
+call &puthex &bpjn2
+:bpjn2 block
+emit &nl8
+goto &bpp
+:bpp block
+lut &lu &bk20[0:10] &ku
+copy &cp &cn
+lut &inc2 &cn &cmx
+goto &bppl
+:bppl block
+copy &nei[0:2] &cmx
+copy &nei[2:4] &ku
+lut &ne2 &nei &q1
+if &q1 &bpp1 &bpn
+:bpp1 block
+emit &s_z50
+lut &inc2 &cmx &cmx
+goto &bppl
+:bpn block
+copy &aa &bk20
+copy &ab &one20
+call &addw &bpn1
+:bpn1 block
+copy &bk20 &ar
+goto &bpl
+:bpend block
+copy &po &be
+copy &pn &bkn
+copy &bk20 &z20
+goto &bcz
+:bcz block
+copy &aa &bk20
+copy &ab &nlay
+call &eqw &bcz1
+:bcz1 block
+if &er &bczend &bcz2
+:bcz2 block
+store &lcnt &bk20[0:10] &z2
+copy &aa &bk20
+copy &ab &one20
+call &addw &bcz3
+:bcz3 block
+copy &bk20 &ar
+goto &bcz
+:bczend block
+ret
+
+# the row of op bx goes out: c n d s, or four lines d 14 x; a number that points into the old block or after it is moved
+:prow word
+lut &xu &bx &bu
+lut &ukind &bu &kd
+if &kd[1] &pq0 &pc0
+:pq0 block
+emit &s_d14
+lut &un &bu &h
+call &puthex &pq1
+:pq1 block
+emit &nl8
+emit &s_d14
+lut &ud &bu &h
+call &puthex &pq2
+:pq2 block
+emit &nl8
+emit &s_d14
+lut &us &bu &h
+call &puthex &pq3
+:pq3 block
+emit &nl8
+emit &s_d14
+lut &uq3 &bu &h
+call &puthex &pq4
+:pq4 block
+emit &nl8
+ret
+:pc0 block
+emit &s_c
+lut &un &bu &h
+call &puthex &pc1
+:pc1 block
+emit &sp
+lut &ulk &bu &lk
+lut &or2 &lk[0:2] &q1
+if &q1 &pc2 &pc3
+:pc2 block
+lut &udta &bu &pnm[0:64]
+lut &udtb &bu &pnm[64:128]
+call &ptxt &pc5
+:pc3 block
+lut &ud &bu &rv
+call &remap &pc4
+:pc4 block
+copy &h &rn
+call &puthex &pc5
+:pc5 block
+emit &sp
+lut &or2 &lk[2:4] &q1
+if &q1 &pc6 &pc7
+:pc6 block
+lut &usta &bu &pnm[0:64]
+lut &ustb &bu &pnm[64:128]
+call &ptxt &pc9
+:pc7 block
+lut &us &bu &rv
+call &remap &pc8
+:pc8 block
+copy &h &rn
+call &puthex &pc9
+:pc9 block
+emit &nl8
+ret
+
+# rn = the new place of rv: before the block it stays; in the block it is the place of the same bit of the same row (or of the jump of the
+# last layer); after the block (the table of `if`, the pair of `call`) it moves with the end of the block; the channels stay
+:remap word
+copy &aa &rv
+copy &ab &bs
+call &ltw &rm1
+:rm1 block
+if &lr &rmsame &rm2
+:rm2 block
+copy &aa &rv
+copy &ab &be
+call &ltw &rm3
+:rm3 block
+if &lr &rmcode &rm4
+:rm4 block
+copy &aa &rv
+copy &ab &limc
+call &ltw &rm5
+:rm5 block
+if &lr &rmtail &rmsame
+:rmsame block
+copy &rn &rv
+ret
+:rmtail block
+copy &aa &rv
+copy &ab &shift20
+call &addw &rm6
+:rm6 block
+copy &rn &ar
+ret
+:rmcode block
+copy &aa &rv
+copy &ab &bs
+call &subw &rm7
+:rm7 block
+copy &dvv &ar
+call &div160 &rm8
+:rm8 block
+copy &aa &dr
+copy &ab &c80
+call &ltw &rm9
+:rm9 block
+if &lr &rmrow &rmjmp
+:rmrow block
+lut &ux &dq[0:8] &ux8
+eq &ux8 &c255b &q2
+if &q2[1] &bad &rmrow2
+:rmrow2 block
+lut &ox &ux8 &tv
+copy &aa &tv
+copy &ab &dr
+call &addw &rm10
+:rm10 block
+copy &rn &ar
+ret
+:rmjmp block
+copy &aa &nlay
+copy &ab &one20
+call &subw &rm11
+:rm11 block
+lut &lst &ar[0:10] &tv
+lut &lcnt &ar[0:10] &rcn
+lut &mu &rcn &kk20
+copy &aa &tv
+copy &ab &kk20
+call &addw &rm12
+:rm12 block
+copy &aa &ar
+copy &ab &dr
+call &addw &rm13
+:rm13 block
+copy &aa &ar
+copy &ab &c80
+call &subw &rm14
+:rm14 block
+copy &rn &ar
+ret
+
+# --- the arithmetic of 20 bits as words (a copy of the arguments and a call cost less than a chain of five tables for each use)
+:wadd word
+add &wxa &wxb &wxr
+ret
+:wsub word
+sub &wxa &wxb &wxr
+ret
+:wlt word
+lt &wxa &wxb &ltc
+ret
+:weq word
+eq &wxa &wxb &q5
+ret

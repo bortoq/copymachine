@@ -1,0 +1,197 @@
+# The proof of an associative space through the channel (28.1, 7.2.45). One program of language 3, nothing new: data, table, lut, copy, add, eq, emit,
+# key, warn, goto, if, halt. It is the second space: its stdout is the stdin of a definition of the associative space (assoc_hash.tw or assoc_tree.tw,
+# the same protocol: a command byte, then its arguments) and its stdin is the stdout of the definition. It sends a script fixed in advance (the
+# tables sop, sa, sb: one step is an operation, a key, a value; the operation is the command byte of the protocol: 1 W, 2 K, 3 V, 4 R) and checks every
+# answer against the value known in advance (the table exp: 4 x 256 entries, the index is the row number and the key or the value):
+#   steps 0-7    W: 8 pairs key-value (the keys 0, 16, 32 have the same low bits, 0 and 1 the same upper bits; the values are all different, no synonyms);
+#                an answer of a write is a cell, any but all ones (the refusal);
+#   step 8       K for ALL 256 keys: the value of the pair, the other keys answer all ones (no such key = the prohibitive price);
+#   step 9       V for ALL 256 values: the key of the pair, the other values answer all ones;
+#   steps 10-14  W: 5 more versions (4 keys get a second version, a new key 99); step 15: K for all 256 keys against the second table (row 1);
+#   steps 16-20  R: take the 5 versions back; steps 21, 22: the same K and V sweeps against the first table: the old versions are in force again.
+# The answers are numbered from 0 in the order of the answers (a write counts, a rollback has no answer): 8 + 256 + 256 + 5 + 256 + 256 + 256 = 1293.
+# The first answer which is not what is known stops the script (the stop command, 0, to the definition) and stderr gets `not proved at XXX` (the number of
+# that answer, 3 hex digits), if all answers are right `proved`. A cell for an answer starts as all ones before every read: if the definition is silent
+# for ever, the channel is closed (EOF), the read leaves the cell as it was, so "no answer" is the prohibitive price and the first present key fails.
+# The row 3 of exp is not used. Every `key` is a block of its own after a `goto` (the layout would put a read before the write of the request in the same block: a deadlock).
+:sop table 5 8
+  1 1 1 1 1 1 1 1 2 3 1 1 1 1 1 2
+  4 4 4 4 4 2 3 0 0 0 0 0 0 0 0 0
+:sa table 5 8
+  0 16 32 1 77 128 200 254 0 0 16 77 1 254 99 0
+  99 254 77 1 16 0 0 0 0 0 0 0 0 0 0 0
+:sb table 5 8
+  0 17 34 3 77 1 100 254 0 2 170 171 172 173 60 1
+  0 0 0 0 0 0 2 0 0 0 0 0 0 0 0 0
+:exp table 10 8
+  0 3 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  17 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  34 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 77 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  1 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 100 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 254 255
+  0 172 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  170 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  34 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 171 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 60 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  1 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 100 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 173 255
+  0 128 255 1 255 255 255 255 255 255 255 255 255 255 255 255
+  255 16 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 32 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 77 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 200 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 254 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+  255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255
+:step data 8 0
+:op data 8 0
+:a data 8 0
+:b data 8 0
+:x data 8 0
+:ans data 8 255
+:e data 8 0
+:ones data 8 255
+:zero8 data 8 0
+:one8 data 8 1
+:one12 data 12 1
+:cnt data 12 0
+:cnt2 data 13 0
+:x2 data 9 0
+:s2 data 9 0
+:c data 2 0
+:ix data 10 0
+:h0 data 8 0
+:h1 data 8 0
+:h2 data 8 0
+:nl data 8 "\n"
+:m_ok data 56 "proved\n"
+:m_bad data 112 "not proved at "
+
+:main block
+goto &next
+
+:next block
+lut &sop &step[0:5] &op
+lut &sa &step[0:5] &a
+lut &sb &step[0:5] &b
+if &op[2] &do_r &d1
+:d1 block
+if &op[1] &do_sw &d2
+:d2 block
+if &op[0] &do_w &finish
+
+# W key value: the answer must not be all ones
+:do_w block
+emit &op
+emit &a
+emit &b
+copy &ans &ones
+goto &w_get
+:w_get block
+key &ans
+eq &ans &ones &c
+if &c[1] &fail &adv_cnt
+
+# R key: no answer
+:do_r block
+emit &op
+emit &a
+goto &adv_step
+
+# K or V for the whole range 0..255, the row b of exp
+:do_sw block
+copy &x &zero8
+copy &ix[8:10] &b[0:2]
+goto &sw_ask
+:sw_ask block
+emit &op
+emit &x
+copy &ans &ones
+goto &sw_get
+:sw_get block
+key &ans
+copy &ix[0:8] &x
+lut &exp &ix &e
+eq &ans &e &c
+if &c[1] &sw_ok &fail
+:sw_ok block
+add &cnt &one12 &cnt2
+copy &cnt &cnt2[0:12]
+add &x &one8 &x2
+copy &x &x2[0:8]
+if &x2[8] &adv_step &sw_ask
+
+:adv_cnt block
+add &cnt &one12 &cnt2
+copy &cnt &cnt2[0:12]
+goto &adv_step
+:adv_step block
+add &step &one8 &s2
+copy &step &s2[0:8]
+goto &next
+
+:fail block
+emit &zero8
+goto &report_bad
+:report_bad block
+lut &hex4 &cnt[8:12] &h0
+lut &hex4 &cnt[4:8] &h1
+lut &hex4 &cnt[0:4] &h2
+warn &m_bad
+warn &h0
+warn &h1
+warn &h2
+warn &nl
+halt
+
+:finish block
+emit &zero8
+goto &report_ok
+:report_ok block
+warn &m_ok
+halt

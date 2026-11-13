@@ -123,7 +123,7 @@ def add16_hex(a, b):
     return build
 
 
-# --- 23.2: arrays, subtraction, equality, shifts, stdin, stack and recursion
+# --- 23.2: arrays, subtraction, equality, shifts, stdin
 
 def print_hex(p, v, tag):
     """Print the nibbles of v, the most significant first."""
@@ -202,37 +202,6 @@ def echo():
         p.if_(r, 'done', 'out')
         p.block('out'); p.emit(b.ref()); p.goto('loop')
         p.block('done'); p.halt()
-    return build
-
-
-def fib():
-    """Fibonacci of the byte n from stdin, by double recursion: return links in the stack rs,
-    saved values (n, then fib(n-1)) in the stack ds; prints three decimal digits."""
-    def build(p):
-        rs, ds = p.stack('rs', 4, 2 * p.A), p.stack('ds', 4, 8)
-        p.rec('fib', rs)
-        n, r, t = p.var('n', 8), p.var('r', 8), p.var('t', 8)
-        one, two = p.var('one8', 8, 1), p.var('two8', 8, 2)
-        c, s = p.var('c', 3), p.var('s', 9)
-        p.block('main'); p.key(n.ref()); p.call('fib', 'show')
-        p.block('show'); print3(p, r.ref()); p.halt()
-        p.word('fib')
-        p.lt(n, two, c)
-        p.if_(c[2], 'base', 'more')
-        p.block('base'); p.copy(r.ref(), n.ref()); p.ret()
-        p.block('more')
-        p.push(ds, n.ref())
-        p.sub(n, one, s); p.copy(n.ref(), s[0:8])
-        p.call('fib', 'back1')
-        p.block('back1')
-        p.pop(ds, t.ref())
-        p.push(ds, r.ref())
-        p.sub(t, two, s); p.copy(n.ref(), s[0:8])
-        p.call('fib', 'back2')
-        p.block('back2')
-        p.pop(ds, t.ref())
-        p.add(r, t, s); p.copy(r.ref(), s[0:8])
-        p.ret()
     return build
 
 

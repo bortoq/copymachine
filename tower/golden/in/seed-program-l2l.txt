@@ -1,0 +1,4342 @@
+# the image of l2l.tw
+w 13
+# boot packet: the row which copies the rest of the image
+r 0 74b18 7fffb 7fffb
+z ff
+z ff
+z ff
+z ff
+z ff
+z a9
+# snapshot
+r 0 5f0 46dc 4ccc
+z ff
+z ff
+z ff
+z ff
+z ff
+z a9
+# data et, 16 bits
+z 10
+# tables attr (12-bit entries at +0, step 16)
+z c
+# data cmd, 4 bits
+s 00001000 101001
+z 2
+# data need, 4 bits
+s 00000000 0110011
+z 1
+# data ft, 4 bits
+s 00001000 101001
+z 2
+# data nib, 4 bits
+s 00000000 011011
+z 2
+# data f4, 4 bits
+s 11110000 011001
+z 2
+# data zeros, 4 bits
+s 00001100 100001
+z 2
+# data sn, 3 bits
+z 3
+# data zero, 1 bits
+s 00100100 001
+z 2
+# data fq, 3 bits
+z 3
+# data de, 1 bits
+s 00000100 001
+z 2
+# data o2, 2 bits
+z 2
+# data t01, 2 bits
+s 01000000 000101
+# data nzf, 1 bits
+z 1
+# data busy, 1 bits
+z 1
+# data pass, 1 bits
+z 1
+# data inLab, 1 bits
+z d
+# data fo, 1 bits
+z 1
+# data ov, 1 bits
+z 1
+# data st2, 1 bits
+z 1
+# data one1, 1 bits
+s 1
+z c
+# data one1, 1 bits
+s 1
+z 43
+# tables hex4 (8-bit entries at +0, step 16)
+s 0011
+z 4
+# data ch, 8 bits
+s 00000000 00110001
+# data hch, 8 bits
+s 00000000 0011001
+z 1
+# data K, 8 bits
+s 00000000 00110011
+# data chr, 8 bits
+s 00110000 001101
+z 2
+# data z8, 8 bits
+s 00000000 00110101
+# data ff, 8 bits
+s 11111111 0011011
+z 1
+# data sp, 8 bits
+s 00100000 00110111
+# data nl8, 8 bits
+s 00001010 00111
+z 3
+# data fl, 6 bits
+s 00000000 00111001
+# data z6, 6 bits
+s 00000000 01100001
+# data nr, 5 bits
+s 00000000 0110001
+z 1
+# data m5, 5 bits
+s 00000000 01100011
+# data cnt, 5 bits
+s 00000000 011001
+z 2
+# data cnt2, 5 bits
+s 00000000 01100101
+# data c5, 5 bits
+s 11111000 0110011
+z 9
+# tables if13 (38-bit entries at +0, step 64)
+s 00101111 11000110 00000100 11110010 11
+z 4
+# data S1, 21 bits
+z 1d
+s 10110101 01010000 00011010 1101101
+z 4
+# data S2, 21 bits
+z 1a
+# tables if14 (38-bit entries at +0, step 64)
+s 00101111 11000110 00000100 11110010 11
+z 4
+# data pr, 21 bits
+z 1c
+s 10000001 11101000 00010111 11100011
+z 4
+# data W2, 20 bits
+z 1a
+# tables if15 (38-bit entries at +0, step 64)
+s 00001001 00110110 00000000 00101001 11
+z 4
+# data X0, 20 bits
+z 1a
+s 11100001 10111110 00111101 11011000 001001
+# data X1, 20 bits
+z 1a
+# tables if16 (38-bit entries at +0, step 64)
+s 11001100 11110101 11011000 10010101 10111
+z 1
+# data X2, 20 bits
+z 1c
+s 11010010 10111000 00011100 01101111
+z 4
+# data fv, 20 bits
+z 1a
+# tables if18 (38-bit entries at +0, step 64)
+s 00111011 01100010 00000110 01100110 01
+z 4
+# data pos, 20 bits
+z 1a
+s 11101100 10001001 11011100 10011101 00111
+z 1
+# data RB, 20 bits
+z 1a
+# tables if19 (38-bit entries at +0, step 64)
+s 00111011 01100010 00000110 01100110 01
+z 4
+# data Q, 20 bits
+z 1a
+s 11001011 10011001 11011000 01111111 00111
+z 1
+# data N20, 20 bits
+z 1a
+# tables if20 (38-bit entries at +0, step 64)
+s 11111010 00010101 11011110 01001110 10111
+z 1
+# data b20, 20 bits
+z 1a
+s 11110110 01000101 11011111 01000010 10111
+z 1
+# data H, 20 bits
+z 1a
+# tables if21 (38-bit entries at +0, step 64)
+s 11000111 11010100 00111001 01110001 100001
+# data H2, 20 bits
+z 1a
+s 11110011 11101101 11011111 10110111 10111
+z 1
+# data Y, 20 bits
+z 1a
+# tables if22 (38-bit entries at +0, step 64)
+s 11111100 11100011 11011110 10010110 01111
+z 1
+# data Y2, 20 bits
+z 1a
+s 11010110 00000011 11011011 01001100 01111
+z 1
+# data z20, 20 bits
+z 1a
+# tables if23 (38-bit entries at +0, step 64)
+s 11010011 10101011 11011011 10111011 01111
+z 1
+# data str_r, 16 bits
+s 01110010 001
+z 5
+# data kr, 9 bits
+s 00000000 00110101 11010000 00001110 11011000 10000001
+# data str_s, 16 bits
+s 01110011 001
+z f
+# tables if24 (38-bit entries at +0, step 64)
+s 11100110 01111011 11011101 01000100 11111
+z 1
+# data fm, 15 bits
+z f
+# data hold, 11 bits
+s 00000000 00011011 11001010 01011111 01011000 00101011 1
+# data fn, 15 bits
+z 1a
+# tables if25 (38-bit entries at +0, step 64)
+s 11000000 11100111 11011001 11100110 11111
+z 1
+# data cl, 14 bits
+z e
+# data at, 12 bits
+s 00000000 00001101 11100101 00101111 10101100 00010101 11
+# data hz, 13 bits
+z d
+# data fr, 13 bits
+z d
+# tables if26 (38-bit entries at +0, step 64)
+s 11011110 01010010 11111010 11000001 010111
+# data hx, 12 bits
+z c
+# data hy, 12 bits
+s 00000000 00000011 10000111 01000000 11110111 01000100 0001
+# data fj, 12 bits
+z c
+# data ncnt, 12 bits
+z e
+# tables if28 (38-bit entries at +0, step 64)
+s 11011110 01010010 11111010 11000001 010111
+# data one12, 12 bits
+s 1
+z b
+# data zero12, 12 bits
+s 00000000 00000011 00111110 10010000 11100011 11101010 0001
+z 1a
+# tables if29 (38-bit entries at +0, step 64)
+s 11111110 00101100 00111110 11001011 100001
+z 1a
+s 11101100 10001001 11011100 10011101 00111
+z 1b
+# tables if30 (38-bit entries at +0, step 64)
+s 11011000 10111100 00111010 00011000 010001
+z 1c
+s 11101101 10001000 00011001 10011001
+z 1e
+# tables cls (14-bit entries at +0, step 16)
+s 00110000 000001
+z 34
+s 1
+z 7d
+s 11000000 00001
+z 1f
+s 1
+z 7f
+s 1
+z 54
+s 10000010 0001
+z 1f
+s 1
+z 74
+s 10010111 1101
+z 54
+s 10000100 0001
+z 1f
+s 1
+z 7f
+s 1
+z f4
+s 10011010 0001
+z 54
+s 10001000 0001
+z 1c
+s 1001
+z 15
+s 11
+z 68
+s 1
+z 5b
+s 1001
+z 1c
+s 11001
+z 58
+s 1
+z 1b
+s 10011110 0001
+z 54
+s 10001100 0001
+z 1f
+s 1
+z 7f
+s 1
+z f4
+s 10001010 0001
+z 53
+s 11001000 00001
+z 1f
+s 1
+z 15
+s 1
+z 69
+s 1
+z 54
+s 10010010 0001
+z 1f
+s 1
+z 74
+s 10001110 0001
+z 54
+s 10010100 0001
+z 1f
+s 1
+z 15
+s 1
+z 69
+s 1
+z db
+s 101
+z 16
+s 10000110 1101
+z 54
+s 10011000 0001
+z 1d
+s 101
+z 59
+s 1
+z 25
+s 1
+z ff
+s 1
+z 54
+s 10011100 0001
+z 1b
+s 10001
+z 7e
+s 11
+z 3f
+s 1
+z 53
+# tables add4 (5-bit entries at +0, step 8)
+s 00000000 10000000 01000000 11000000 00100000 10100000 01100000 11100000
+s 00010000 10010000 01010000 11010000 00110000 10110000 01110000 11110000
+s 10000000 01000000 11000000 00100000 10100000 01100000 11100000 00010000
+s 10010000 01010000 11010000 00110000 10110000 01110000 11110000 00001000
+s 01000000 11000000 00100000 10100000 01100000 11100000 00010000 10010000
+s 01010000 11010000 00110000 10110000 01110000 11110000 00001000 10001000
+s 11000000 00100000 10100000 01100000 11100000 00010000 10010000 01010000
+s 11010000 00110000 10110000 01110000 11110000 00001000 10001000 01001000
+s 00100000 10100000 01100000 11100000 00010000 10010000 01010000 11010000
+s 00110000 10110000 01110000 11110000 00001000 10001000 01001000 11001000
+s 10100000 01100000 11100000 00010000 10010000 01010000 11010000 00110000
+s 10110000 01110000 11110000 00001000 10001000 01001000 11001000 00101000
+s 01100000 11100000 00010000 10010000 01010000 11010000 00110000 10110000
+s 01110000 11110000 00001000 10001000 01001000 11001000 00101000 10101000
+s 11100000 00010000 10010000 01010000 11010000 00110000 10110000 01110000
+s 11110000 00001000 10001000 01001000 11001000 00101000 10101000 01101000
+s 00010000 10010000 01010000 11010000 00110000 10110000 01110000 11110000
+s 00001000 10001000 01001000 11001000 00101000 10101000 01101000 11101000
+s 10010000 01010000 11010000 00110000 10110000 01110000 11110000 00001000
+s 10001000 01001000 11001000 00101000 10101000 01101000 11101000 00011000
+s 01010000 11010000 00110000 10110000 01110000 11110000 00001000 10001000
+s 01001000 11001000 00101000 10101000 01101000 11101000 00011000 10011000
+s 11010000 00110000 10110000 01110000 11110000 00001000 10001000 01001000
+s 11001000 00101000 10101000 01101000 11101000 00011000 10011000 01011000
+s 00110000 10110000 01110000 11110000 00001000 10001000 01001000 11001000
+s 00101000 10101000 01101000 11101000 00011000 10011000 01011000 11011000
+s 10110000 01110000 11110000 00001000 10001000 01001000 11001000 00101000
+s 10101000 01101000 11101000 00011000 10011000 01011000 11011000 00111000
+s 01110000 11110000 00001000 10001000 01001000 11001000 00101000 10101000
+s 01101000 11101000 00011000 10011000 01011000 11011000 00111000 10111000
+s 11110000 00001000 10001000 01001000 11001000 00101000 10101000 01101000
+s 11101000 00011000 10011000 01011000 11011000 00111000 10111000 01111000
+s 10000000 01000000 11000000 00100000 10100000 01100000 11100000 00010000
+s 10010000 01010000 11010000 00110000 10110000 01110000 11110000 00001000
+s 01000000 11000000 00100000 10100000 01100000 11100000 00010000 10010000
+s 01010000 11010000 00110000 10110000 01110000 11110000 00001000 10001000
+s 11000000 00100000 10100000 01100000 11100000 00010000 10010000 01010000
+s 11010000 00110000 10110000 01110000 11110000 00001000 10001000 01001000
+s 00100000 10100000 01100000 11100000 00010000 10010000 01010000 11010000
+s 00110000 10110000 01110000 11110000 00001000 10001000 01001000 11001000
+s 10100000 01100000 11100000 00010000 10010000 01010000 11010000 00110000
+s 10110000 01110000 11110000 00001000 10001000 01001000 11001000 00101000
+s 01100000 11100000 00010000 10010000 01010000 11010000 00110000 10110000
+s 01110000 11110000 00001000 10001000 01001000 11001000 00101000 10101000
+s 11100000 00010000 10010000 01010000 11010000 00110000 10110000 01110000
+s 11110000 00001000 10001000 01001000 11001000 00101000 10101000 01101000
+s 00010000 10010000 01010000 11010000 00110000 10110000 01110000 11110000
+s 00001000 10001000 01001000 11001000 00101000 10101000 01101000 11101000
+s 10010000 01010000 11010000 00110000 10110000 01110000 11110000 00001000
+s 10001000 01001000 11001000 00101000 10101000 01101000 11101000 00011000
+s 01010000 11010000 00110000 10110000 01110000 11110000 00001000 10001000
+s 01001000 11001000 00101000 10101000 01101000 11101000 00011000 10011000
+s 11010000 00110000 10110000 01110000 11110000 00001000 10001000 01001000
+s 11001000 00101000 10101000 01101000 11101000 00011000 10011000 01011000
+s 00110000 10110000 01110000 11110000 00001000 10001000 01001000 11001000
+s 00101000 10101000 01101000 11101000 00011000 10011000 01011000 11011000
+s 10110000 01110000 11110000 00001000 10001000 01001000 11001000 00101000
+s 10101000 01101000 11101000 00011000 10011000 01011000 11011000 00111000
+s 01110000 11110000 00001000 10001000 01001000 11001000 00101000 10101000
+s 01101000 11101000 00011000 10011000 01011000 11011000 00111000 10111000
+s 11110000 00001000 10001000 01001000 11001000 00101000 10101000 01101000
+s 11101000 00011000 10011000 01011000 11011000 00111000 10111000 01111000
+s 00001000 10001000 01001000 11001000 00101000 10101000 01101000 11101000
+s 00011000 10011000 01011000 11011000 00111000 10111000 01111000 11111
+z 3
+# tables if31 (38-bit entries at +0, step 64)
+s 11011001 01111100 11111010 00100100 010111
+z 1a
+s 11000110 00010010 00111001 01001110 010001
+z 1a
+# tables if32 (38-bit entries at +0, step 64)
+s 11110111 01101010 00111111 01100111 010001
+z 1a
+s 11111111 00001010 00111110 11101101 010001
+z 1a
+# tables if33 (38-bit entries at +0, step 64)
+s 11011111 01110110 00111010 11100101 110001
+z 1a
+s 11110110 00000110 00111111 01001100 110001
+z 1a
+# tables if34 (38-bit entries at +0, step 64)
+s 11011111 01110110 00111010 11100101 110001
+z 1a
+s 11010000 10010110 00111011 11101110 110001
+z 1a
+# tables if35 (38-bit entries at +0, step 64)
+s 00111011 01100010 00000110 01100110 01
+z 1e
+s 11101001 11101110 00111100 00110111 110001
+z 1a
+# tables if36 (38-bit entries at +0, step 64)
+s 11100011 10001101 00111101 10111101 101001
+z 1a
+s 11000100 01100001 00111001 00000110 001001
+z 1a
+# tables if37 (38-bit entries at +0, step 64)
+s 11111101 01110001 00111110 10100101 001001
+z 1a
+s 11010110 00000011 11011011 01001100 01111
+z 1b
+# tables if38 (38-bit entries at +0, step 64)
+s 11010010 10111001 00111011 10011000 101001
+z 1a
+s 11101011 11010101 00111100 01110001 101001
+z 1a
+# tables if39 (38-bit entries at +0, step 64)
+s 11100111 10100101 00111101 01111010 101001
+z 1a
+s 11011110 01010010 11111010 11000001 010111
+z 1a
+# tables if40 (38-bit entries at +0, step 64)
+s 11111000 01010011 00111110 00000001 011001
+z 1a
+s 11000110 01011101 00111001 01000000 011001
+z 1a
+# tables if41 (38-bit entries at +0, step 64)
+s 11111111 01000011 00111110 11100010 011001
+z 1a
+s 11011001 01111100 11111010 00100100 010111
+z 1a
+# tables if42 (38-bit entries at +0, step 64)
+s 11011101 01001011 00111010 10100011 011001
+z 1a
+s 11010110 11000000 10111011 01010010 000101
+z 1a
+# tables if43 (38-bit entries at +0, step 64)
+s 11000111 10010111 00111001 01111110 111001
+z 1a
+s 11101010 11011011 00111100 01010000 111001
+z 1a
+# tables if44 (38-bit entries at +0, step 64)
+s 11011001 01111100 11111010 00100100 010111
+z 1a
+s 11001111 11000111 00111000 11110010 111001
+z 1a
+# tables if45 (38-bit entries at +0, step 64)
+s 11011001 01111100 11111010 00100100 010111
+z 1a
+s 11111110 01001111 00111110 11000011 111001
+z 1a
+# tables if46 (38-bit entries at +0, step 64)
+s 11011110 10111111 00111010 11011000 000101
+z 1a
+s 11011001 01111100 11111010 00100100 010111
+z 1a
+# tables if47 (38-bit entries at +0, step 64)
+s 11100110 00101100 10111101 01001011 100101
+z 1a
+s 11100110 01110000 10111101 01000101 000101
+z 1a
+# tables if48 (38-bit entries at +0, step 64)
+s 11010001 00100010 11111011 11001010 010111
+z 1a
+s 11000110 10011000 10111001 01011111 000101
+z 1a
+# tables if49 (38-bit entries at +0, step 64)
+s 00111011 01100010 00000110 01100110 01
+z 1e
+s 11000000 10111100 10111001 11101000 010101
+z 1a
+# tables if50 (38-bit entries at +0, step 64)
+s 11111111 11100010 10111110 11110110 010101
+z 1a
+s 11010001 00100010 11111011 11001010 010111
+z 1a
+# tables if51 (38-bit entries at +0, step 64)
+s 11011001 00001010 10111010 00101101 010101
+z 1a
+s 11001100 11101110 10111000 10010111 110101
+z 1a
+# tables if52 (38-bit entries at +0, step 64)
+s 11001011 10000110 10111000 01111100 110101
+z 1a
+s 11101100 10011010 10111100 10011111 010101
+z 1a
+# tables if53 (38-bit entries at +0, step 64)
+s 11000100 10111110 10111001 00011000 001101
+z 1a
+s 11011010 11100011 10111010 01010110 011101
+z 1a
+# tables if54 (38-bit entries at +0, step 64)
+s 11110110 01010110 10111111 01000001 110101
+z 1a
+s 11111010 00001110 10111110 01001101 110101
+z 1a
+# tables if55 (38-bit entries at +0, step 64)
+s 11111101 10100001 10111110 10111010 001101
+z 1a
+s 11110101 11010001 10111111 00110001 001101
+z 1a
+# tables if56 (38-bit entries at +0, step 64)
+s 11110001 00001011 10111111 11001101 011101
+z 1a
+s 11111110 01101011 10111110 11000111 011101
+z 1a
+# tables if57 (38-bit entries at +0, step 64)
+s 11101001 11001111 10111100 00110011 111101
+z 1a
+s 11010100 00110111 10111011 00001001 111101
+z 1a
+# tables if58 (38-bit entries at +0, step 64)
+s 11001011 11111000 01111000 01110100 100011
+z 1a
+s 11011001 01111100 11111010 00100100 010111
+z 1a
+# tables if59 (38-bit entries at +0, step 64)
+s 11011001 01111100 11111010 00100100 010111
+z 1a
+s 11111010 01110100 01111110 01000101 100011
+z 1a
+# tables if60 (38-bit entries at +0, step 64)
+s 11010000 11101010 01111011 11100111 010011
+z 1a
+s 11110000 01010000 11111111 11111110 000111
+z 1a
+# tables if61 (38-bit entries at +0, step 64)
+s 11001010 01011111 01111000 01000000 000111
+z 1a
+s 11010100 10001110 01111011 00011101 110011
+z 1a
+# tables if62 (38-bit entries at +0, step 64)
+s 11001010 01011111 01111000 01000000 000111
+z 1a
+s 11111101 10101101 01111110 10111011 101011
+z 1a
+# tables if63 (38-bit entries at +0, step 64)
+s 11001010 01011111 01111000 01000000 000111
+z 1a
+s 11010000 01000000 11111011 11111100 000111
+z 1a
+# tables if64 (38-bit entries at +0, step 64)
+s 11010100 11110100 11111011 00010101 100111
+z 1a
+s 11011011 01100100 11111010 01100110 100111
+z 1a
+# tables if66 (38-bit entries at +0, step 64)
+s 11100011 11101100 11111101 10110111 100111
+z 1a
+s 11111000 11101000 11111110 00010111 000111
+# data nm, 128 bits
+z 80
+# data nt, 128 bits
+z 80
+# data z128, 128 bits
+z 80
+# data msg_cnt, 120 bits
+s 01101100 00110010 01101100 00111010 00100000 01100010 01100001 01100100
+s 00100000 01100011 01101111 01110101 01101110 01110100 0000101
+z 1
+# data msg_lab, 120 bits
+s 01101100 00110010 01101100 00111010 00100000 01100010 01100001 01100100
+s 00100000 01101100 01100001 01100010 01100101 01101100 0000101
+z 1
+# data msg_bad, 112 bits
+s 01101100 00110010 01101100 00111010 00100000 01100010 01100001 01100100
+s 00100000 01110100 01100101 01111000 01110100 0000101
+z 1
+# data enh, 60 bits
+z 3c
+# data ent, 60 bits
+z 3c
+# data tv, 43 bits
+z 2b
+# data z43, 43 bits
+z 2b
+# data rl_find, 38 bits
+z 26
+# data lk_lterm2, 38 bits
+s 11110100 10110011 11011111 00011001 01111
+z 1
+# data rl_addpos, 38 bits
+z 26
+# data lk_read, 38 bits
+s 00111011 01100010 00000110 01100110 01
+z 4
+# data lk_rterm2, 38 bits
+s 11110101 00101001 00111111 00101011 001001
+# data lk_endline, 38 bits
+s 11101100 10001001 11011100 10011101 00111
+z 1
+# data rl_puthex, 38 bits
+z 26
+# data lk_c1, 38 bits
+s 11011001 11110101 10111010 00110101 101101
+# data lk_c2, 38 bits
+s 11010001 10101101 10111011 11011011 101101
+# data lk_c3, 38 bits
+s 11011110 11011101 10111010 11010000 011101
+# data lk_c4, 38 bits
+s 11010110 10000011 10111011 01011100 011101
+# data lk_dloop, 38 bits
+s 11110110 00111011 10111111 01001000 111101
+# layer 0 of read
+r 708 710 7fffb 7fffb
+r 0 98 4ccc 4d64
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of read
+r 4e72 4e7a 708 710
+r 0 e4 4d64 4e48
+# layer 2 of read
+r 3d 45 708 710
+r 0 3d 4e48 4e85
+r 45 e4 4e8d 4f2c
+# layer 3 of read
+r da6 db4 1000 100e
+r 0 98 4f2c 4fc4
+z 4c
+# layer 4 of read
+r 78b 78c db3 db4
+r 0 98 4fc4 505c
+# layer 5 of read
+r 516c 516e 78a 78c
+r 0 e4 505c 5140
+# layer 6 of read
+r 3f 41 78a 78c
+r 0 3f 5140 517f
+r 41 e4 5181 5224
+# layer 7 of read
+r 67f 680 2003d 2003e
+r 0 98 5224 52bc
+z 4c
+# layer 8 of read
+r 53cc 53cd 67f 680
+r 0 e4 52bc 53a0
+# layer 9 of read
+r 3f 40 67f 680
+r 0 3f 53a0 53df
+r 40 e4 53e0 5484
+# layer 10 of read
+r 26 4c 800 826
+r 0 26 5484 54aa
+r 4c e4 54d0 5568
+# layer 11 of read
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of ech
+r 5c68 5c69 69e 69f
+r 0 e4 5b58 5c3c
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of ech
+r 3f 40 69e 69f
+r 0 3f 5c3c 5c7b
+r 40 e4 5c7c 5d20
+# layer 2 of ech
+r 26 4c 880 8a6
+r 0 26 5d20 5d46
+r 4c e4 5d6c 5e04
+# layer 3 of ech
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of ech2
+r 7fffc 7fffc 708 710
+r 0 5f0 63f4 69e4
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of dis
+r 6af4 6af5 788 789
+r 0 e4 69e4 6ac8
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of dis
+r 3f 40 788 789
+r 0 3f 6ac8 6b07
+r 40 e4 6b08 6bac
+# layer 2 of dis
+r 26 4c 900 926
+r 0 26 6bac 6bd2
+r 4c e4 6bf8 6c90
+# layer 3 of dis
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of d1
+r 7390 7391 789 78a
+r 0 e4 7280 7364
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of d1
+r 3f 40 789 78a
+r 0 3f 7364 73a3
+r 40 e4 73a4 7448
+# layer 2 of d1
+r 26 4c 980 9a6
+r 0 26 7448 746e
+r 4c e4 7494 752c
+# layer 3 of d1
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of kch
+r 78d 78e da6 da7
+r 38664 38668 a26 a2a
+r 3866c 3866d 66f 670
+r 388c4 388c8 a2a a2e
+r 388c8 388cc b2a b2e
+r 38b24 38b28 a2e a32
+r 38b28 38b2c b2e b32
+r 38d84 38d88 a32 a36
+r 38d88 38d8c b32 b36
+r 38fe4 38fe8 a36 a3a
+r 38fe8 38fec b36 b3a
+r 38077 38078 da9 daa
+r 0 428 7b1c 7f44
+z ff
+z ff
+z 16
+# layer 1 of kch
+r 38453 38455 78c 78e
+r 38677 3867b a26 a2a
+r 3867f 38680 66f 670
+r 388d7 388db a2a a2e
+r 388db 388df b2a b2e
+r 38b37 38b3b a2e a32
+r 38b3b 38b3f b2e b32
+r 38d97 38d9b a32 a36
+r 38d9b 38d9f b32 b36
+r 38ff7 38ffb a36 a3a
+r 38ffb 38fff b36 b3a
+r 8b 8c da9 daa
+r 0 8b 37fff 3808a
+r 8c 428 3808b 38427
+# layer 4 of kch
+r 38668 3866c b26 b2a
+r 0 e4 38557 3863b
+z 24
+# tables tags (16-bit entries at +0, step 32), nx (11-bit entries at +16, step 32)
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z 80
+# tables nzt (1-bit entries at +61, step 64), stt (1-bit entries at +62, step 64), nameh (60-bit entries at +0, step 64), eq4c (1-bit entries at +60, step 64)
+z 3e
+s 1
+z 3e
+s 11
+z 3e
+s 11
+z 3e
+s 11
+z 3e
+s 1
+z 3f
+s 11
+z 3e
+s 11
+z 3e
+s 11
+z 3e
+s 1
+z 3f
+s 1
+z 3f
+s 1
+z 3f
+s 1
+z 3f
+s 1
+z 3f
+s 1
+z 3f
+s 1
+z 3f
+s 1
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z 7a
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z 43
+s 1
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z 83
+# tables and2 (1-bit entries at +60, step 64), or2 (1-bit entries at +62, step 64), ne (1-bit entries at +61, step 64), namet (60-bit entries at +0, step 64)
+z 7d
+s 11
+z 3f
+s 1
+z 3d
+s 101
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z 1
+# tables vals (20-bit entries at +0, step 32), hd (11-bit entries at +20, step 32)
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z 7f
+# layer 2 of kch
+r 3f 41 78c 78e
+r 39111 39137 a00 a26
+r 0 3f 38427 38466
+r 41 130 38468 38557
+z ff
+z ff
+z fa
+# layer 3 of kch
+r b26 b27 2003c 2003d
+r 0 98 7f44 7fdc
+z 98
+# layer 5 of kch
+r 40 44 b26 b2a
+r 0 40 3863b 3867b
+r 44 e4 3867f 3871f
+# layer 6 of kch
+r 8a6 8ab 2000 2005
+r 0 98 3871f 387b7
+z 4c
+# layer 7 of kch
+r 388cc 388cd 8aa 8ab
+r 0 e4 387b7 3889b
+# layer 8 of kch
+r 44 45 8aa 8ab
+r 0 44 3889b 388df
+r 45 e4 388e0 3897f
+# layer 9 of kch
+r 8aa 8af 2000 2005
+r 0 98 3897f 38a17
+z 4c
+# layer 10 of kch
+r 38b2c 38b2d 8ae 8af
+r 0 e4 38a17 38afb
+# layer 11 of kch
+r 44 45 8ae 8af
+r 0 44 38afb 38b3f
+r 45 e4 38b40 38bdf
+# layer 12 of kch
+r 8ae 8b3 2000 2005
+r 0 98 38bdf 38c77
+z 4c
+# layer 13 of kch
+r 38d8c 38d8d 8b2 8b3
+r 0 e4 38c77 38d5b
+# layer 14 of kch
+r 44 45 8b2 8b3
+r 0 44 38d5b 38d9f
+r 45 e4 38da0 38e3f
+# layer 15 of kch
+r 8b2 8b7 2000 2005
+r 0 98 38e3f 38ed7
+z 4c
+# layer 16 of kch
+r 38fec 38fed 8b6 8b7
+r 0 e4 38ed7 38fbb
+# layer 17 of kch
+r 44 45 8b6 8b7
+r 0 44 38fbb 38fff
+r 45 e4 39000 3909f
+# layer 18 of kch
+r 8b6 8bb 2000 2005
+r 0 98 3909f 39137
+z 4c
+# layer 19 of kch
+r a26 a3a 8a6 8ba
+r 0 5f0 7506b 7565b
+# layer 0 of endline
+r 788 78e 798 79e
+r 39837 39838 db3 db4
+r 0 e4 39727 3980b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 1 of endline
+r 3f 40 db3 db4
+r 0 3f 3980b 3984a
+r 40 e4 3984b 398ef
+# layer 2 of endline
+r 26 4c a80 aa6
+r 0 26 398ef 39915
+r 4c e4 3993b 399d3
+# layer 3 of endline
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of finish
+r 3a0d3 3a0d4 69e 69f
+r 0 e4 39fc3 3a0a7
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of finish
+r 3f 40 69e 69f
+r 0 3f 3a0a7 3a0e6
+r 40 e4 3a0e7 3a18b
+# layer 2 of finish
+r 26 4c b00 b26
+r 0 26 3a18b 3a1b1
+r 4c e4 3a1d7 3a26f
+# layer 3 of finish
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of fin2
+r 7fffc 7fffc 748 750
+r 0 5f0 7506b 7565b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of restart
+r a26 a3a c66 c7a
+r 69e 69f 6af 6b0
+r 0 e4 3ae4f 3af33
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 1 of restart
+r a66 a7a c66 c7a
+r 0 5f0 46dc 4ccc
+z 4c
+# layer 0 of lstart
+r 3b633 3b634 69f 6a0
+r 0 e4 3b523 3b607
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of lstart
+r 3f 40 69f 6a0
+r 0 3f 3b607 3b646
+r 40 e4 3b647 3b6eb
+# layer 2 of lstart
+r 26 4c b80 ba6
+r 0 26 3b6eb 3b711
+r 4c e4 3b737 3b7cf
+# layer 3 of lstart
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of labc
+r 3becf 3bed0 db2 db3
+r 0 e4 3bdbf 3bea3
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of labc
+r 3f 40 db2 db3
+r 0 3f 3bea3 3bee2
+r 40 e4 3bee3 3bf87
+# layer 2 of labc
+r 26 4c c00 c26
+r 0 26 3bf87 3bfad
+r 4c e4 3bfd3 3c06b
+# layer 3 of labc
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of nmadd
+r 41e6 425e 416e 41e6
+r 425e 4266 708 710
+r 0 e4 3c65b 3c73f
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 1 of nmadd
+r 4166 41e6 41e6 4266
+r 0 5f0 46dc 4ccc
+z 4c
+# layer 0 of lterm
+r 4514 453a 453a 4560
+r 0 5f0 61147 61737
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of lterm2
+r 3d42f 3d430 69e 69f
+r 0 e4 3d31f 3d403
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of lterm2
+r 3f 40 69e 69f
+r 0 3f 3d403 3d442
+r 40 e4 3d443 3d4e7
+# layer 2 of lterm2
+r 26 4c c80 ca6
+r 0 26 3d4e7 3d50d
+r 4c e4 3d533 3d5cb
+# layer 3 of lterm2
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of lp0
+r 3dccb 3dccc 6ac 6ad
+r 0 e4 3dbbb 3dc9f
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of lp0
+r 3f 40 6ac 6ad
+r 0 3f 3dc9f 3dcde
+r 40 e4 3dcdf 3dd83
+# layer 2 of lp0
+r 26 4c d00 d26
+r 0 26 3dd83 3dda9
+r 4c e4 3ddcf 3de67
+# layer 3 of lp0
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of lp0b
+r 3e567 3e568 e7c e7d
+r 0 e4 3e457 3e53b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of lp0b
+r 3f 40 e7c e7d
+r 0 3f 3e53b 3e57a
+r 40 e4 3e57b 3e61f
+# layer 2 of lp0b
+r 26 4c d80 da6
+r 0 26 3e61f 3e645
+r 4c e4 3e66b 3e703
+# layer 3 of lp0b
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of lp0c
+r 3f060 3f064 e72 e76
+r 3f064 3f068 ea6 eaa
+r 3f068 3f069 66f 670
+r 3f5b8 3f5bc e76 e7a
+r 3f5bc 3f5c0 eaa eae
+r 3f818 3f81c e7a e7e
+r 3f81c 3f820 eae eb2
+r 3f0ae 3f0b8 de6 df0
+r 0 344 3ecf3 3f037
+z ff
+z ff
+z ff
+z 47
+# layer 1 of lp0c
+r 3c 40 e72 e76
+r 40 44 ea6 eaa
+r 44 45 66f 670
+r 3f5cb 3f5cf e76 e7a
+r 3f5cf 3f5d3 eaa eae
+r 3f82b 3f82f e7a e7e
+r 3f82f 3f833 eae eb2
+r 8a 94 de6 df0
+r 0 3c 3f037 3f073
+r 45 8a 3f07c 3f0c1
+r 94 344 3f0cb 3f37b
+# layer 2 of lp0c
+r df3 df8 2000 2005
+r d35 d40 30014 3001f
+r 40258 40262 de6 df0
+r 0 130 3f37b 3f4ab
+z ff
+z ff
+z 16
+# layer 3 of lp0c
+r 3f5c0 3f5c1 df7 df8
+r 4026b 40275 de6 df0
+r 0 e4 3f4ab 3f58f
+z 4c
+# layer 4 of lp0c
+r 44 45 df7 df8
+r 0 44 3f58f 3f5d3
+r 45 e4 3f5d4 3f673
+# layer 5 of lp0c
+r df7 dfc 2000 2005
+r 0 98 3f673 3f70b
+z 4c
+# layer 6 of lp0c
+r 3f820 3f821 dfb dfc
+r 0 e4 3f70b 3f7ef
+# layer 7 of lp0c
+r 44 45 dfb dfc
+r 0 44 3f7ef 3f833
+r 45 e4 3f834 3f8d3
+# layer 8 of lp0c
+r dfb e00 2000 2005
+r 0 98 3f8d3 3f96b
+z 4c
+# layer 9 of lp0c
+r e72 e7e df3 dff
+r 0 98 3f96b 3fa03
+# layer 10 of lp0c
+r 3faed 3faf7 e72 e7c
+r 0 e4 3fa03 3fae7
+# layer 11 of lp0c
+r 19 23 e72 e7c
+r 0 19 3fae7 3fb00
+r 23 e4 3fb0a 3fbcb
+# layer 12 of lp0c
+r 10000 1003c 416e 41aa
+r 3fcb5 3fcbf e72 e7c
+r 0 e4 3fbcb 3fcaf
+# layer 13 of lp0c
+r 19 23 e72 e7c
+r 0 19 3fcaf 3fcc8
+r 23 e4 3fcd2 3fd93
+# layer 14 of lp0c
+r 20000 2003c 41aa 41e6
+r 3fe7c 3fe86 e72 e7c
+r 0 e4 3fd93 3fe77
+# layer 15 of lp0c
+r 18 22 e72 e7c
+r 0 18 3fe77 3fe8f
+r 22 e4 3fe99 3ff5b
+# layer 16 of lp0c
+r 8000 8010 41d6 41e6
+r 40044 4004e e72 e7c
+r 0 e4 3ff5b 4003f
+# layer 17 of lp0c
+r 18 22 e72 e7c
+r 0 18 4003f 40057
+r 22 e4 40061 40123
+# layer 18 of lp0c
+r 30000 30014 a26 a3a
+r 4020c 40216 e72 e7c
+r 0 e4 40123 40207
+# layer 19 of lp0c
+r 18 22 e72 e7c
+r 0 18 40207 4021f
+r 22 e4 40229 402eb
+# layer 20 of lp0c
+r 8010 801b d35 d40
+r 30014 3001f e72 e7d
+r 0 5f0 425f3 42be3
+# layer 0 of lp1
+r 409eb 409ec 6ac 6ad
+r 0 e4 408db 409bf
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of lp1
+r 3f 40 6ac 6ad
+r 0 3f 409bf 409fe
+r 40 e4 409ff 40aa3
+# layer 2 of lp1
+r 26 4c e00 e26
+r 0 26 40aa3 40ac9
+r 4c e4 40aef 40b87
+# layer 3 of lp1
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of lp1b
+r 4157f 41583 9e6 9ea
+r 41583 41587 a26 a2a
+r 41587 41588 6bc 6bd
+r 41ad7 41adb 9ea 9ee
+r 41adb 41adf a2a a2e
+r 41d37 41d3b 9ee 9f2
+r 41d3b 41d3f a2e a32
+r 41f97 41f9b 9f2 9f6
+r 41f9b 41f9f a32 a36
+r 421f7 421fb 9f6 9fa
+r 421fb 421ff a36 a3a
+r 0 3dc 41177 41553
+z ff
+z ff
+z 62
+# layer 1 of lp1b
+r 3f 43 9e6 9ea
+r 43 47 a26 a2a
+r 47 48 6bc 6bd
+r 41aea 41aee 9ea 9ee
+r 41aee 41af2 a2a a2e
+r 41d4a 41d4e 9ee 9f2
+r 41d4e 41d52 a2e a32
+r 41faa 41fae 9f2 9f6
+r 41fae 41fb2 a32 a36
+r 4220a 4220e 9f6 9fa
+r 4220e 42212 a36 a3a
+r 0 3f 41553 41592
+r 48 3dc 4159b 4192f
+# layer 2 of lp1b
+r 7b8 7b9 1003c 1003d
+r 0 98 4192f 419c7
+z ff
+z ff
+z ff
+z 47
+# layer 3 of lp1b
+r 41adf 41ae0 7b8 7b9
+r 0 e4 419c7 41aab
+# layer 4 of lp1b
+r 47 48 7b8 7b9
+r 0 47 41aab 41af2
+r 48 e4 41af3 41b8f
+# layer 5 of lp1b
+r 7b9 7ba 1003c 1003d
+r 0 98 41b8f 41c27
+z 4c
+# layer 6 of lp1b
+r 41d3f 41d40 7b9 7ba
+r 0 e4 41c27 41d0b
+# layer 7 of lp1b
+r 47 48 7b9 7ba
+r 0 47 41d0b 41d52
+r 48 e4 41d53 41def
+# layer 8 of lp1b
+r 7ba 7bb 1003c 1003d
+r 0 98 41def 41e87
+z 4c
+# layer 9 of lp1b
+r 41f9f 41fa0 7ba 7bb
+r 0 e4 41e87 41f6b
+# layer 10 of lp1b
+r 47 48 7ba 7bb
+r 0 47 41f6b 41fb2
+r 48 e4 41fb3 4204f
+# layer 11 of lp1b
+r 7bb 7bc 1003c 1003d
+r 0 98 4204f 420e7
+z 4c
+# layer 12 of lp1b
+r 421ff 42200 7bb 7bc
+r 0 e4 420e7 421cb
+# layer 13 of lp1b
+r 47 48 7bb 7bc
+r 0 47 421cb 42212
+r 48 e4 42213 422af
+# layer 14 of lp1b
+r 7bc 7bd 1003c 1003d
+r 0 98 422af 42347
+z 4c
+# layer 15 of lp1b
+r 42457 42458 7bc 7bd
+r 0 e4 42347 4242b
+# layer 16 of lp1b
+r 3f 40 7bc 7bd
+r 0 3f 4242b 4246a
+r 40 e4 4246b 4250f
+# layer 17 of lp1b
+r 26 4c e80 ea6
+r 0 26 4250f 42535
+r 4c e4 4255b 425f3
+# layer 18 of lp1b
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of ldone
+r 4166 41e6 4266 42e6
+r 69f 6a0 66f 670
+r 0 5f0 42be3 431d3
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 0 of ls1
+r 432e3 432e4 da9 daa
+r 0 e4 431d3 432b7
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of ls1
+r 3f 40 da9 daa
+r 0 3f 432b7 432f6
+r 40 e4 432f7 4339b
+# layer 2 of ls1
+r 26 4c f00 f26
+r 0 26 4339b 433c1
+r 4c e4 433e7 4347f
+# layer 3 of ls1
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of ls2
+r 43b7f 43b80 da8 da9
+r 0 e4 43a6f 43b53
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of ls2
+r 3f 40 da8 da9
+r 0 3f 43b53 43b92
+r 40 e4 43b93 43c37
+# layer 2 of ls2
+r 26 4c f80 fa6
+r 0 26 43c37 43c5d
+r 4c e4 43c83 43d1b
+# layer 3 of ls2
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of ls4
+r 44419 4441d dae db2
+r 0 e4 4430b 443ef
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of ls4
+r 3d 41 dae db2
+r 0 3d 443ef 4442c
+r 41 e4 44430 444d3
+# layer 2 of ls4
+r db4 dc0 600 60c
+r 60c 610 dae db2
+r 0 e4 444d3 445b7
+# layer 3 of ls4
+r 446c7 446c8 dbd dbe
+r 0 e4 445b7 4469b
+z 4c
+# layer 4 of ls4
+r 3f 40 dbd dbe
+r 0 3f 4469b 446da
+r 40 e4 446db 4477f
+# layer 5 of ls4
+r 26 4c 3000 3026
+r 0 26 4477f 447a5
+r 4c e4 447cb 44863
+# layer 6 of ls4
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of ls4b
+r 44f63 44f64 dbf dc0
+r 0 e4 44e53 44f37
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of ls4b
+r 3f 40 dbf dc0
+r 0 3f 44f37 44f76
+r 40 e4 44f77 4501b
+# layer 2 of ls4b
+r 26 4c 3080 30a6
+r 0 26 4501b 45041
+r 4c e4 45067 450ff
+# layer 3 of ls4b
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of colon
+r 69f 6a0 6af 6b0
+r 0 5f0 46dc 4ccc
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of ls5
+r 61c 620 db4 db8
+r 788 78d db8 dbd
+r 0 e4 45cdf 45dc3
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 1 of ls5
+r 45ed3 45ed4 dba dbb
+r 0 e4 45dc3 45ea7
+z 4c
+# layer 2 of ls5
+r 3f 40 dba dbb
+r 0 3f 45ea7 45ee6
+r 40 e4 45ee7 45f8b
+# layer 3 of ls5
+r 26 4c 3100 3126
+r 0 26 45f8b 45fb1
+r 4c e4 45fd7 4606f
+# layer 4 of ls5
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of lecho
+r 4676f 46770 69e 69f
+r 0 e4 4665f 46743
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of lecho
+r 3f 40 69e 69f
+r 0 3f 46743 46782
+r 40 e4 46783 46827
+# layer 2 of lecho
+r 26 4c 3180 31a6
+r 0 26 46827 4684d
+r 4c e4 46873 4690b
+# layer 3 of lecho
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of lecho2
+r 7fffc 7fffc 708 710
+r 0 5f0 46efb 474eb
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of ls6
+r 475fb 475fc dbe dbf
+r 0 e4 474eb 475cf
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of ls6
+r 3f 40 dbe dbf
+r 0 3f 475cf 4760e
+r 40 e4 4760f 476b3
+# layer 2 of ls6
+r 26 4c 3200 3226
+r 0 26 476b3 476d9
+r 4c e4 476ff 47797
+# layer 3 of ls6
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of rrow
+r aa6 aba a66 a7a
+r 4560 4586 4586 45ac
+r 0 5f0 5f987 5ff77
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 0 of nch
+r 48487 48488 44e6 44e7
+r 0 e4 48377 4845b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of nch
+r 3f 40 44e6 44e7
+r 0 3f 4845b 4849a
+r 40 e4 4849b 4853f
+# layer 2 of nch
+r 26 4c 3280 32a6
+r 0 26 4853f 48565
+r 4c e4 4858b 48623
+# layer 3 of nch
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of alab
+r 48d23 48d24 db2 db3
+r 0 e4 48c13 48cf7
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of alab
+r 3f 40 db2 db3
+r 0 3f 48cf7 48d36
+r 40 e4 48d37 48ddb
+# layer 2 of alab
+r 26 4c 3300 3326
+r 0 26 48ddb 48e01
+r 4c e4 48e27 48ebf
+# layer 3 of alab
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of rterm
+r 4514 453a 45ac 45d2
+r 0 5f0 61147 61737
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of rterm2
+r 49baf 49bb0 6ac 6ad
+r 0 e4 49a9f 49b83
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of rterm2
+r 3f 40 6ac 6ad
+r 0 3f 49b83 49bc2
+r 40 e4 49bc3 49c67
+# layer 2 of rterm2
+r 26 4c 3380 33a6
+r 0 26 49c67 49c8d
+r 4c e4 49cb3 49d4b
+# layer 3 of rterm2
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of rnf
+r 4a44b 4a44c 69e 69f
+r 0 e4 4a33b 4a41f
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of rnf
+r 3f 40 69e 69f
+r 0 3f 4a41f 4a45e
+r 40 e4 4a45f 4a503
+# layer 2 of rnf
+r 26 4c 3400 3426
+r 0 26 4a503 4a529
+r 4c e4 4a54f 4a5e7
+# layer 3 of rnf
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of rzero
+r 9e6 9fa c66 c7a
+r 0 5f0 4abd7 4b1c7
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of rfound
+r 44be 44d2 9e6 9fa
+r 44e6 44e8 68e 690
+r 4166 41e6 4266 42e6
+r 0 5f0 4ca1f 4d00f
+z ff
+z ff
+z ff
+z ff
+z c4
+# layer 0 of n1
+r 4b8c7 4b8c8 da7 da8
+r 0 e4 4b7b7 4b89b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of n1
+r 3f 40 da7 da8
+r 0 3f 4b89b 4b8da
+r 40 e4 4b8db 4b97f
+# layer 2 of n1
+r 26 4c 3480 34a6
+r 0 26 4b97f 4b9a5
+r 4c e4 4b9cb 4ba63
+# layer 3 of n1
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of nhex
+r 4c163 4c164 44e7 44e8
+r 0 e4 4c053 4c137
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of nhex
+r 3f 40 44e7 44e8
+r 0 3f 4c137 4c176
+r 40 e4 4c177 4c21b
+# layer 2 of nhex
+r 26 4c 3500 3526
+r 0 26 4c21b 4c241
+r 4c e4 4c267 4c2ff
+# layer 3 of nhex
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of nhex2
+r 8ea 8fa 44d2 44e2
+r 8e6 8ea daa dae
+r 44e8 44e9 6af 6b0
+r 0 130 4c8ef 4ca1f
+z ff
+z ff
+z ff
+z ff
+z c4
+# layer 1 of nhex2
+r 44d2 44e6 8e6 8fa
+r 0 5f0 46dc 4ccc
+z 98
+# layer 0 of n2
+r 4d11f 4d120 da8 da9
+r 0 e4 4d00f 4d0f3
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of n2
+r 3f 40 da8 da9
+r 0 3f 4d0f3 4d132
+r 40 e4 4d133 4d1d7
+# layer 2 of n2
+r 26 4c 3580 35a6
+r 0 26 4d1d7 4d1fd
+r 4c e4 4d223 4d2bb
+# layer 3 of n2
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of n3
+r 4d9bb 4d9bc dac dad
+r 0 e4 4d8ab 4d98f
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of n3
+r 3f 40 dac dad
+r 0 3f 4d98f 4d9ce
+r 40 e4 4d9cf 4da73
+# layer 2 of n3
+r 26 4c 3600 3626
+r 0 26 4da73 4da99
+r 4c e4 4dabf 4db57
+# layer 3 of n3
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of nplus
+r 4e257 4e258 44e7 44e8
+r 0 e4 4e147 4e22b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of nplus
+r 3f 40 44e7 44e8
+r 0 3f 4e22b 4e26a
+r 40 e4 4e26b 4e30f
+# layer 2 of nplus
+r 26 4c 3680 36a6
+r 0 26 4e30f 4e335
+r 4c e4 4e35b 4e3f3
+# layer 3 of nplus
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of nplus2
+r 44e7 44e9 68e 690
+r 0 5f0 46dc 4ccc
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of n4
+r 4f0e3 4f0e4 dab dac
+r 0 e4 4efd3 4f0b7
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of n4
+r 3f 40 dab dac
+r 0 3f 4f0b7 4f0f6
+r 40 e4 4f0f7 4f19b
+# layer 2 of n4
+r 26 4c 3700 3726
+r 0 26 4f19b 4f1c1
+r 4c e4 4f1e7 4f27f
+# layer 3 of n4
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of namp
+r 4f97f 4f981 44e7 44e9
+r 0 e4 4f86f 4f953
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of namp
+r 3f 41 44e7 44e9
+r 0 3f 4f953 4f992
+r 41 e4 4f994 4fa37
+# layer 2 of namp
+r 69d 69e 2003e 2003f
+r 0 98 4fa37 4facf
+z 4c
+# layer 3 of namp
+r 4fbdf 4fbe0 69d 69e
+r 0 e4 4facf 4fbb3
+# layer 4 of namp
+r 3f 40 69d 69e
+r 0 3f 4fbb3 4fbf2
+r 40 e4 4fbf3 4fc97
+# layer 5 of namp
+r 26 4c 3780 37a6
+r 0 26 4fc97 4fcbd
+r 4c e4 4fce3 4fd7b
+# layer 6 of namp
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of namp2
+r 44e6 44e7 6af 6b0
+r 0 5f0 46dc 4ccc
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of nsep
+r 50a6b 50a6d 44e7 44e9
+r 0 e4 5095b 50a3f
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of nsep
+r 3f 41 44e7 44e9
+r 0 3f 50a3f 50a7e
+r 41 e4 50a80 50b23
+# layer 2 of nsep
+r 69d 69e 2003e 2003f
+r 0 98 50b23 50bbb
+z 4c
+# layer 3 of nsep
+r 50ccb 50ccc 69d 69e
+r 0 e4 50bbb 50c9f
+# layer 4 of nsep
+r 3f 40 69d 69e
+r 0 3f 50c9f 50cde
+r 40 e4 50cdf 50d83
+# layer 5 of nsep
+r 26 4c 3800 3826
+r 0 26 50d83 50da9
+r 4c e4 50dcf 50e67
+# layer 6 of nsep
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of ncomp
+r 51567 5156b 61c 620
+r 0 e4 51457 5153b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of ncomp
+r 3f 43 61c 620
+r 0 3f 5153b 5157a
+r 43 e4 5157e 5161f
+# layer 2 of ncomp
+r 69c 69d 1003d 1003e
+r 0 98 5161f 516b7
+z 4c
+# layer 3 of ncomp
+r 517c7 517c8 69c 69d
+r 0 e4 516b7 5179b
+# layer 4 of ncomp
+r 3f 40 69c 69d
+r 0 3f 5179b 517da
+r 40 e4 517db 5187f
+# layer 5 of ncomp
+r 26 4c 3880 38a6
+r 0 26 5187f 518a5
+r 4c e4 518cb 51963
+# layer 6 of ncomp
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of ncomp2
+r 5243c 52440 44be 44c2
+r 52440 52444 44d2 44d6
+r 52444 52445 66f 670
+r 52b5c 52b60 44c2 44c6
+r 52b60 52b64 44d6 44da
+r 52e54 52e58 44c6 44ca
+r 52e58 52e5c 44da 44de
+r 530b4 530b8 44ca 44ce
+r 530b8 530bc 44de 44e2
+r 53314 53318 44ce 44d2
+r 53318 5331c 44e2 44e6
+r 926 93a 966 97a
+r 52a78 52a7c 61c 620
+r 52a7c 52a80 64c 650
+r 0 4c0 51f53 52413
+z ff
+z 7d
+# layer 1 of ncomp2
+r 3c 40 44be 44c2
+r 40 44 44d2 44d6
+r 44 45 66f 670
+r 52b6f 52b73 44c2 44c6
+r 52b73 52b77 44d6 44da
+r 52e67 52e6b 44c6 44ca
+r 52e6b 52e6f 44da 44de
+r 530c7 530cb 44ca 44ce
+r 530cb 530cf 44de 44e2
+r 53327 5332b 44ce 44d2
+r 5332b 5332f 44e2 44e6
+r 966 97a 9a6 9ba
+r 52a8b 52a8f 61c 620
+r 52a8f 52a93 64c 650
+r 0 3c 52413 5244f
+r 45 4c0 52458 528d3
+# layer 2 of ncomp2
+r 826 82b 2000 2005
+r 52a80 52a81 66f 670
+r 44be 44e9 44e9 4514
+r 0 130 528d3 52a03
+z ff
+z ff
+z ff
+z 93
+# layer 3 of ncomp2
+r 52b64 52b65 82a 82b
+r 90 91 66f 670
+r 0 90 52a03 52a93
+r 91 130 52a94 52b33
+# layer 4 of ncomp2
+r 44 45 82a 82b
+r 7a8 7ad 2000 2005
+r 0 44 52b33 52b77
+r 45 130 52b78 52c63
+# layer 5 of ncomp2
+r 82a 82f 2000 2005
+r 61c 620 7a8 7ac
+r 0 e4 52c63 52d47
+z 4c
+# layer 6 of ncomp2
+r 52e5c 52e5d 82e 82f
+r 0 e4 52d47 52e2b
+z 4c
+# layer 7 of ncomp2
+r 44 45 82e 82f
+r 0 44 52e2b 52e6f
+r 45 e4 52e70 52f0f
+# layer 8 of ncomp2
+r 82e 833 2000 2005
+r 0 98 52f0f 52fa7
+z 4c
+# layer 9 of ncomp2
+r 530bc 530bd 832 833
+r 0 e4 52fa7 5308b
+# layer 10 of ncomp2
+r 44 45 832 833
+r 0 44 5308b 530cf
+r 45 e4 530d0 5316f
+# layer 11 of ncomp2
+r 832 837 2000 2005
+r 0 98 5316f 53207
+z 4c
+# layer 12 of ncomp2
+r 5331c 5331d 836 837
+r 0 e4 53207 532eb
+# layer 13 of ncomp2
+r 44 45 836 837
+r 0 44 532eb 5332f
+r 45 e4 53330 533cf
+# layer 14 of ncomp2
+r 836 83b 2000 2005
+r 0 98 533cf 53467
+z 4c
+# layer 15 of ncomp2
+r 9a6 9ba 826 83a
+r 0 5f0 53467 53a57
+# layer 0 of nsep3
+r 53b67 53b68 da9 daa
+r 0 e4 53a57 53b3b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of nsep3
+r 3f 40 da9 daa
+r 0 3f 53b3b 53b7a
+r 40 e4 53b7b 53c1f
+# layer 2 of nsep3
+r 26 4c 3900 3926
+r 0 26 53c1f 53c45
+r 4c e4 53c6b 53d03
+# layer 3 of nsep3
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of nend
+r 54403 54407 61c 620
+r 0 e4 542f3 543d7
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of nend
+r 3f 43 61c 620
+r 0 3f 543d7 54416
+r 43 e4 5441a 544bb
+# layer 2 of nend
+r 69c 69d 1003d 1003e
+r 0 98 544bb 54553
+z 4c
+# layer 3 of nend
+r 54663 54664 69c 69d
+r 0 e4 54553 54637
+# layer 4 of nend
+r 3f 40 69c 69d
+r 0 3f 54637 54676
+r 40 e4 54677 5471b
+# layer 5 of nend
+r 26 4c 3980 39a6
+r 0 26 5471b 54741
+r 4c e4 54767 547ff
+# layer 6 of nend
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of act
+r 54eff 54f00 60f 610
+r 0 e4 54def 54ed3
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of act
+r 3f 40 60f 610
+r 0 3f 54ed3 54f12
+r 40 e4 54f13 54fb7
+# layer 2 of act
+r 26 4c 3a00 3a26
+r 0 26 54fb7 54fdd
+r 4c e4 55003 5509b
+# layer 3 of act
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of act1
+r 5579b 5579c 60e 60f
+r 0 e4 5568b 5576f
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of act1
+r 3f 40 60e 60f
+r 0 3f 5576f 557ae
+r 40 e4 557af 55853
+# layer 2 of act1
+r 26 4c 3a80 3aa6
+r 0 26 55853 55879
+r 4c e4 5589f 55937
+# layer 3 of act1
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of act2
+r 56037 56038 60c 60d
+r 0 e4 55f27 5600b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of act2
+r 3f 40 60c 60d
+r 0 3f 5600b 5604a
+r 40 e4 5604b 560ef
+# layer 2 of act2
+r 26 4c 3b00 3b26
+r 0 26 560ef 56115
+r 4c e4 5613b 561d3
+# layer 3 of act2
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of act3
+r 568d3 568d4 60d 60e
+r 0 e4 567c3 568a7
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of act3
+r 3f 40 60d 60e
+r 0 3f 568a7 568e6
+r 40 e4 568e7 5698b
+# layer 2 of act3
+r 26 4c 3b80 3ba6
+r 0 26 5698b 569b1
+r 4c e4 569d7 56a6f
+# layer 3 of act3
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of actw
+r a68 a70 9a6 9ae
+r 0 5f0 39137 39727
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of actz
+r ae6 aee 9a6 9ae
+r 4560 4586 45d2 45f8
+r 0 e4 5764f 57733
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 1 of actz
+r aa6 aba ae6 afa
+r 0 5f0 5f987 5ff77
+z 4c
+# layer 0 of acto
+r a26 a3a c66 c7a
+r 0 5f0 39137 39727
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of actc
+r 58423 58424 69e 69f
+r 0 e4 58313 583f7
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of actc
+r 3f 40 69e 69f
+r 0 3f 583f7 58436
+r 40 e4 58437 584db
+# layer 2 of actc
+r 26 4c 3c00 3c26
+r 0 26 584db 58501
+r 4c e4 58527 585bf
+# layer 3 of actc
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of actc0
+r aa6 aba a66 a7a
+r 4560 4586 45d2 45f8
+r 0 5f0 5f987 5ff77
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 0 of actc1
+r 5976c 59770 966 96a
+r 59770 59774 926 92a
+r 59774 59775 66f 670
+r 5a21c 5a220 96a 96e
+r 5a220 5a224 92a 92e
+r 5a5ac 5a5b0 96e 972
+r 5a5b0 5a5b4 92e 932
+r 5a93c 5a940 972 976
+r 5a940 5a944 932 936
+r 5accc 5acd0 976 97a
+r 5acd0 5acd4 936 93a
+r 59fbc 59fc0 9a6 9aa
+r 5a4c8 5a4cc 9aa 9ae
+r 5a858 5a85c 9ae 9b2
+r 5abe8 5abec 9b2 9b6
+r 5aee0 5aee4 9b6 9ba
+r 7fffc 7fffc ca6 cb6
+r 45f8 461e 461e 4644
+r 0 5a4 5919f 59743
+z 4c
+# layer 1 of actc1
+r 3c 40 966 96a
+r 40 44 926 92a
+r 44 45 66f 670
+r 5a22f 5a233 96a 96e
+r 5a233 5a237 92a 92e
+r 5a5bf 5a5c3 96e 972
+r 5a5c3 5a5c7 92e 932
+r 5a94f 5a953 972 976
+r 5a953 5a957 932 936
+r 5acdf 5ace3 976 97a
+r 5ace3 5ace7 936 93a
+r 59fcf 59fd3 9a6 9aa
+r 5a4db 5a4df 9aa 9ae
+r 5a86b 5a86f 9ae 9b2
+r 5abfb 5abff 9b2 9b6
+r 5aef3 5aef7 9b6 9ba
+r 0 3c 59743 5977f
+r 45 558 59788 59c9b
+z 4c
+# layer 2 of actc1
+r 826 82b 2000 2005
+r 59fc0 59fc4 926 92a
+r 59fc4 59fc5 66f 670
+r 5a4cc 5a4d0 92a 92e
+r 5a85c 5a860 92e 932
+r 5abec 5abf0 932 936
+r 5aee4 5aee8 936 93a
+r b66 b7a 966 97a
+r 0 2ac 59c9b 59f47
+z ff
+z ff
+z ae
+# layer 3 of actc1
+r 5a224 5a225 82a 82b
+r 8c 90 926 92a
+r 90 91 66f 670
+r 5a4df 5a4e3 92a 92e
+r 5a86f 5a873 92e 932
+r 5abff 5ac03 932 936
+r 5aef7 5aefb 936 93a
+r 0 8c 59f47 59fd3
+r 91 2ac 59fd8 5a1f3
+# layer 4 of actc1
+r 44 45 82a 82b
+r 866 86b 2000 2005
+r 0 44 5a1f3 5a237
+r 45 130 5a238 5a323
+z ff
+z 7d
+# layer 5 of actc1
+r 82a 82f 2000 2005
+r 5a4d0 5a4d1 86a 86b
+r 0 130 5a323 5a453
+z 4c
+# layer 6 of actc1
+r 5a5b4 5a5b5 82e 82f
+r 90 91 86a 86b
+r 0 90 5a453 5a4e3
+r 91 130 5a4e4 5a583
+# layer 7 of actc1
+r 44 45 82e 82f
+r 86a 86f 2000 2005
+r 0 44 5a583 5a5c7
+r 45 130 5a5c8 5a6b3
+# layer 8 of actc1
+r 82e 833 2000 2005
+r 5a860 5a861 86e 86f
+r 0 130 5a6b3 5a7e3
+z 4c
+# layer 9 of actc1
+r 5a944 5a945 832 833
+r 90 91 86e 86f
+r 0 90 5a7e3 5a873
+r 91 130 5a874 5a913
+# layer 10 of actc1
+r 44 45 832 833
+r 86e 873 2000 2005
+r 0 44 5a913 5a957
+r 45 130 5a958 5aa43
+# layer 11 of actc1
+r 832 837 2000 2005
+r 5abf0 5abf1 872 873
+r 0 130 5aa43 5ab73
+z 4c
+# layer 12 of actc1
+r 5acd4 5acd5 836 837
+r 90 91 872 873
+r 0 90 5ab73 5ac03
+r 91 130 5ac04 5aca3
+# layer 13 of actc1
+r 44 45 836 837
+r 872 877 2000 2005
+r 0 44 5aca3 5ace7
+r 45 130 5ace8 5add3
+# layer 14 of actc1
+r 836 83b 2000 2005
+r 5aee8 5aee9 876 877
+r 0 e4 5add3 5aeb7
+z 4c
+# layer 15 of actc1
+r 44 45 876 877
+r 0 44 5aeb7 5aefb
+r 45 e4 5aefc 5af9b
+# layer 16 of actc1
+r 876 87b 2000 2005
+r 0 5f0 7112f 7171f
+z 4c
+# layer 0 of c1
+r 7fffc 7fffc 768 770
+r b66 b7a 826 83a
+r 45f8 461e 4644 466a
+r 0 5f0 7112f 7171f
+z ff
+z ff
+z ff
+z ff
+z c4
+# layer 0 of c2
+r 7fffc 7fffc 768 770
+r b66 b7a 9a6 9ba
+r 45f8 461e 466a 4690
+r 0 5f0 7112f 7171f
+z ff
+z ff
+z ff
+z ff
+z c4
+# layer 0 of c3
+r 7fffc 7fffc 768 770
+r b66 b7a 866 87a
+r 45f8 461e 4690 46b6
+r 0 5f0 7112f 7171f
+z ff
+z ff
+z ff
+z ff
+z c4
+# layer 0 of c4
+r 7fffc 7fffc 778 780
+r aa6 aba a66 a7a
+r 4560 4586 45d2 45f8
+r 0 5f0 5f987 5ff77
+z ff
+z ff
+z ff
+z ff
+z c4
+# layer 0 of actd
+r ae6 aee 966 96e
+r 5cea7 5cea8 69e 69f
+r 0 130 5cd4b 5ce7b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 1 of actd
+r aa6 aba ae6 afa
+r 3f 40 69e 69f
+r 0 3f 5ce7b 5ceba
+r 40 130 5cebb 5cfab
+# layer 2 of actd
+r 26 4c 3c80 3ca6
+r 0 26 5cfab 5cfd1
+r 4c e4 5cff7 5d08f
+z 4c
+# layer 3 of actd
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of actd0
+r 4560 4586 45d2 45f8
+r 0 5f0 5f987 5ff77
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of actd1
+r 728 730 966 96e
+r be6 bfa 9a6 9ba
+r 7fffc 7fffc ce6 cf6
+r 4560 4586 46b6 46dc
+r 0 5f0 5f987 5ff77
+z ff
+z ff
+z ff
+z ff
+z 78
+# layer 0 of dloop
+r 5e49c 5e4a0 728 72c
+r 5e4a0 5e4a4 758 75c
+r 5e4a4 5e4a5 66f 670
+r 5e82c 5e830 72c 730
+r 5e830 5e834 75c 760
+r 0 214 5e25f 5e473
+z ff
+z ff
+z ff
+z ff
+z 2c
+# layer 1 of dloop
+r 3c 40 728 72c
+r 40 44 758 75c
+r 44 45 66f 670
+r 5e83f 5e843 72c 730
+r 5e843 5e847 75c 760
+r 0 3c 5e473 5e4af
+r 45 214 5e4b8 5e687
+# layer 2 of dloop
+r cb6 cbb 2000 2005
+r 0 98 5e687 5e71f
+z ff
+z 7d
+# layer 3 of dloop
+r 5e834 5e835 cba cbb
+r 0 e4 5e71f 5e803
+# layer 4 of dloop
+r 44 45 cba cbb
+r 0 44 5e803 5e847
+r 45 e4 5e848 5e8e7
+# layer 5 of dloop
+r cba cbf 2000 2005
+r 0 98 5e8e7 5e97f
+z 4c
+# layer 6 of dloop
+r 5ea8f 5ea90 cbe cbf
+r 0 e4 5e97f 5ea63
+# layer 7 of dloop
+r 3f 40 cbe cbf
+r 0 3f 5ea63 5eaa2
+r 40 e4 5eaa3 5eb47
+# layer 8 of dloop
+r 26 4c 3d00 3d26
+r 0 26 5eb47 5eb6d
+r 4c e4 5eb93 5ec2b
+# layer 9 of dloop
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of dbody
+r 728 730 cb6 cbe
+r 73f 740 be6 be7
+r c26 c39 be7 bfa
+r c39 c3a 65c 65d
+r 0 17c 5f21b 5f397
+z ff
+z ff
+z ff
+z ff
+z 78
+# layer 1 of dbody
+r 7fffc 7fffc 738 740
+r be6 bfa c26 c3a
+r 0 5f0 5dc6f 5e25f
+z 98
+# layer 0 of dend
+r 7fffc 7fffc 778 780
+r 0 5f0 39137 39727
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of addpos
+r 6037c 60380 a26 a2a
+r 60380 60384 aa6 aaa
+r 60384 60385 66f 670
+r 608d4 608d8 a2a a2e
+r 608d8 608dc aaa aae
+r 60b34 60b38 a2e a32
+r 60b38 60b3c aae ab2
+r 60d94 60d98 a32 a36
+r 60d98 60d9c ab2 ab6
+r 60ff4 60ff8 a36 a3a
+r 60ff8 60ffc ab6 aba
+r 61121 61147 4560 4586
+r 0 3dc 5ff77 60353
+z ff
+z ff
+z 16
+# layer 1 of addpos
+r 3c 40 a26 a2a
+r 40 44 aa6 aaa
+r 44 45 66f 670
+r 608e7 608eb a2a a2e
+r 608eb 608ef aaa aae
+r 60b47 60b4b a2e a32
+r 60b4b 60b4f aae ab2
+r 60da7 60dab a32 a36
+r 60dab 60daf ab2 ab6
+r 61007 6100b a36 a3a
+r 6100b 6100f ab6 aba
+r 0 3c 60353 6038f
+r 45 3dc 60398 6072f
+# layer 2 of addpos
+r 8a6 8ab 2000 2005
+r 0 98 6072f 607c7
+z ff
+z ff
+z ff
+z 47
+# layer 3 of addpos
+r 608dc 608dd 8aa 8ab
+r 0 e4 607c7 608ab
+# layer 4 of addpos
+r 44 45 8aa 8ab
+r 0 44 608ab 608ef
+r 45 e4 608f0 6098f
+# layer 5 of addpos
+r 8aa 8af 2000 2005
+r 0 98 6098f 60a27
+z 4c
+# layer 6 of addpos
+r 60b3c 60b3d 8ae 8af
+r 0 e4 60a27 60b0b
+# layer 7 of addpos
+r 44 45 8ae 8af
+r 0 44 60b0b 60b4f
+r 45 e4 60b50 60bef
+# layer 8 of addpos
+r 8ae 8b3 2000 2005
+r 0 98 60bef 60c87
+z 4c
+# layer 9 of addpos
+r 60d9c 60d9d 8b2 8b3
+r 0 e4 60c87 60d6b
+# layer 10 of addpos
+r 44 45 8b2 8b3
+r 0 44 60d6b 60daf
+r 45 e4 60db0 60e4f
+# layer 11 of addpos
+r 8b2 8b7 2000 2005
+r 0 98 60e4f 60ee7
+z 4c
+# layer 12 of addpos
+r 60ffc 60ffd 8b6 8b7
+r 0 e4 60ee7 60fcb
+# layer 13 of addpos
+r 44 45 8b6 8b7
+r 0 44 60fcb 6100f
+r 45 e4 61010 610af
+# layer 14 of addpos
+r 8b6 8bb 2000 2005
+r 0 98 610af 61147
+z 4c
+# layer 15 of addpos
+r a26 a3a 8a6 8ba
+r 0 5f0 7506b 7565b
+# layer 0 of find
+r 61893 61897 4166 416a
+r 619c3 619c7 416a 416e
+r 0 130 61737 61867
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 1 of find
+r 3f 43 4166 416a
+r 619d6 619da 416a 416e
+r 0 3f 61867 618a6
+r 43 130 618aa 61997
+# layer 2 of find
+r 68c 68d 1003d 1003e
+r 0 98 61997 61a2f
+z 98
+# layer 3 of find
+r 68d 68e 1003d 1003e
+r 0 98 61a2f 61ac7
+# layer 4 of find
+r 61bd7 61bd9 68c 68e
+r 0 e4 61ac7 61bab
+# layer 5 of find
+r 3f 41 68c 68e
+r 0 3f 61bab 61bea
+r 41 e4 61bec 61c8f
+# layer 6 of find
+r 6ad 6ae 2003e 2003f
+r 0 98 61c8f 61d27
+z 4c
+# layer 7 of find
+r 61e37 61e38 6ad 6ae
+r 0 e4 61d27 61e0b
+# layer 8 of find
+r 3f 40 6ad 6ae
+r 0 3f 61e0b 61e4a
+r 40 e4 61e4b 61eef
+# layer 9 of find
+r 26 4c 3d80 3da6
+r 0 26 61eef 61f15
+r 4c e4 61f3b 61fd3
+# layer 10 of find
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of f1
+r 6271f 62723 41de 41e2
+r 6284f 62853 41e2 41e6
+r 0 130 625c3 626f3
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 1 of f1
+r 3f 43 41de 41e2
+r 62862 62866 41e2 41e6
+r 0 3f 626f3 62732
+r 43 130 62736 62823
+# layer 2 of f1
+r 68c 68d 1003d 1003e
+r 0 98 62823 628bb
+z 98
+# layer 3 of f1
+r 68d 68e 1003d 1003e
+r 0 98 628bb 62953
+# layer 4 of f1
+r 62a63 62a65 68c 68e
+r 0 e4 62953 62a37
+# layer 5 of f1
+r 3f 41 68c 68e
+r 0 3f 62a37 62a76
+r 41 e4 62a78 62b1b
+# layer 6 of f1
+r 6ad 6ae 2003e 2003f
+r 0 98 62b1b 62bb3
+z 4c
+# layer 7 of f1
+r 62cc3 62cc4 6ad 6ae
+r 0 e4 62bb3 62c97
+# layer 8 of f1
+r 3f 40 6ad 6ae
+r 0 3f 62c97 62cd6
+r 40 e4 62cd7 62d7b
+# layer 9 of f1
+r 26 4c 3e00 3e26
+r 0 26 62d7b 62da1
+r 4c e4 62dc7 62e5f
+# layer 10 of f1
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of f2
+r e26 e2e 41de 41e6
+r e2e e32 eb2 eb6
+r e34 e3c 41d6 41de
+r 63b54 63b55 66f 670
+r 0 214 6344f 63663
+z ff
+z ff
+z ff
+z ff
+z 78
+# layer 1 of f2
+r e32 e34 eb2 eb4
+r 63b4c 63b50 e26 e2a
+r 63b67 63b68 66f 670
+r 63e44 63e48 e2a e2e
+r 63e48 63e4c e36 e3a
+r 640a4 640a8 e2e e32
+r 0 260 63663 638c3
+# layer 2 of f2
+r e3c e3e eb2 eb4
+r 63b5f 63b63 e26 e2a
+r 63b50 63b54 e32 e36
+r 63e57 63e5b e2a e2e
+r 63e5b 63e5f e36 e3a
+r 640b7 640bb e2e e32
+r e71 e72 66f 670
+r 0 260 638c3 63b23
+# layer 3 of f2
+r 40 44 e32 e36
+r 640a8 640ac e3a e3e
+r 0 40 63b23 63b63
+r 44 130 63b67 63c53
+z ff
+z 31
+# layer 4 of f2
+r de6 deb 2000 2005
+r 640bb 640bf e3a e3e
+r 0 e4 63c53 63d37
+z 4c
+# layer 5 of f2
+r 63e4c 63e4d dea deb
+r 0 e4 63d37 63e1b
+z 4c
+# layer 6 of f2
+r 44 45 dea deb
+r 0 44 63e1b 63e5f
+r 45 e4 63e60 63eff
+# layer 7 of f2
+r dea def 2000 2005
+r 0 98 63eff 63f97
+z 4c
+# layer 8 of f2
+r 640ac 640ad dee def
+r 0 e4 63f97 6407b
+# layer 9 of f2
+r 44 45 dee def
+r 0 44 6407b 640bf
+r 45 e4 640c0 6415f
+# layer 10 of f2
+r dee df3 2000 2005
+r 0 98 6415f 641f7
+z 4c
+# layer 11 of f2
+r 64306 64310 de6 df0
+r 0 e4 641f7 642db
+# layer 12 of f2
+r 3e 48 de6 df0
+r 0 3e 642db 64319
+r 48 e4 64323 643bf
+# layer 13 of f2
+r e66 e71 30014 3001f
+r 0 5f0 643bf 649af
+z 4c
+# layer 0 of floop
+r 64c87 64c8b e66 e6a
+r 64c8b 64c8f eb2 eb6
+r 64c8f 64c90 6bc 6bd
+r 650af 650b3 e6a e6e
+r 650b3 650b7 eb6 eba
+r 6530f 65313 e6e e72
+r 65313 65317 eba ebe
+r 0 2ac 649af 64c5b
+z ff
+z ff
+z ff
+z 93
+# layer 1 of floop
+r 3f 43 e66 e6a
+r 43 47 eb2 eb6
+r 47 48 6bc 6bd
+r 650c2 650c6 e6a e6e
+r 650c6 650ca eb6 eba
+r 65322 65326 e6e e72
+r 65326 6532a eba ebe
+r 0 3f 64c5b 64c9a
+r 48 2ac 64ca3 64f07
+# layer 2 of floop
+r 67c 67d 1003c 1003d
+r 0 98 64f07 64f9f
+z ff
+z ff
+z 16
+# layer 3 of floop
+r 650b7 650b8 67c 67d
+r 0 e4 64f9f 65083
+# layer 4 of floop
+r 47 48 67c 67d
+r 0 47 65083 650ca
+r 48 e4 650cb 65167
+# layer 5 of floop
+r 67d 67e 1003c 1003d
+r 0 98 65167 651ff
+z 4c
+# layer 6 of floop
+r 65317 65318 67d 67e
+r 0 e4 651ff 652e3
+# layer 7 of floop
+r 47 48 67d 67e
+r 0 47 652e3 6532a
+r 48 e4 6532b 653c7
+# layer 8 of floop
+r 67e 67f 1003c 1003d
+r 0 98 653c7 6545f
+z 4c
+# layer 9 of floop
+r 6556f 65570 67e 67f
+r 0 e4 6545f 65543
+# layer 10 of floop
+r 3f 40 67e 67f
+r 0 3f 65543 65582
+r 40 e4 65583 65627
+# layer 11 of floop
+r 26 4c 3e80 3ea6
+r 0 26 65627 6564d
+r 4c e4 65673 6570b
+# layer 12 of floop
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of fcmp
+r 65f86 65f90 e66 e70
+r 6652b 6652f 41d6 41da
+r 66533 66534 6bc 6bd
+r 6686f 66873 41da 41de
+r 66acf 66ad3 41de 41e2
+r 66d2f 66d33 41e2 41e6
+r 0 260 65cfb 65f5b
+z ff
+z ff
+z ff
+z df
+# layer 1 of fcmp
+r 3e 48 e66 e70
+r 6653e 66542 41d6 41da
+r 66546 66547 6bc 6bd
+r 66882 66886 41da 41de
+r 66ae2 66ae6 41de 41e2
+r 66d42 66d46 41e2 41e6
+r 0 3e 65f5b 65f99
+r 48 260 65fa3 661bb
+# layer 2 of fcmp
+r 5f0 600 8000 8010
+r 0 17c 661bb 66337
+z ff
+z c9
+# layer 3 of fcmp
+r 6652f 66533 5f0 5f4
+r 66873 66877 5f4 5f8
+r 66ad3 66ad7 5f8 5fc
+r 66d33 66d37 5fc 600
+r 0 1c8 66337 664ff
+# layer 4 of fcmp
+r 43 47 5f0 5f4
+r 66886 6688a 5f4 5f8
+r 66ae6 66aea 5f8 5fc
+r 66d46 66d4a 5fc 600
+r 0 43 664ff 66542
+r 47 1c8 66546 666c7
+# layer 5 of fcmp
+r 62c 62d 1003c 1003d
+r 0 98 666c7 6675f
+z ff
+z 31
+# layer 6 of fcmp
+r 66877 66878 62c 62d
+r 0 e4 6675f 66843
+# layer 7 of fcmp
+r 47 48 62c 62d
+r 0 47 66843 6688a
+r 48 e4 6688b 66927
+# layer 8 of fcmp
+r 62d 62e 1003c 1003d
+r 0 98 66927 669bf
+z 4c
+# layer 9 of fcmp
+r 66ad7 66ad8 62d 62e
+r 0 e4 669bf 66aa3
+# layer 10 of fcmp
+r 47 48 62d 62e
+r 0 47 66aa3 66aea
+r 48 e4 66aeb 66b87
+# layer 11 of fcmp
+r 62e 62f 1003c 1003d
+r 0 98 66b87 66c1f
+z 4c
+# layer 12 of fcmp
+r 66d37 66d38 62e 62f
+r 0 e4 66c1f 66d03
+# layer 13 of fcmp
+r 47 48 62e 62f
+r 0 47 66d03 66d4a
+r 48 e4 66d4b 66de7
+# layer 14 of fcmp
+r 62f 630 1003c 1003d
+r 0 98 66de7 66e7f
+z 4c
+# layer 15 of fcmp
+r 66f8f 66f90 62f 630
+r 0 e4 66e7f 66f63
+# layer 16 of fcmp
+r 3f 40 62f 630
+r 0 3f 66f63 66fa2
+r 40 e4 66fa3 67047
+# layer 17 of fcmp
+r 26 4c 3f00 3f26
+r 0 26 67047 6706d
+r 4c e4 67093 6712b
+# layer 18 of fcmp
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of fcmp1
+r 67ceb 67cf5 e66 e70
+r 68c5b 68c5f 41aa 41ae
+r 68c63 68c64 6bc 6bd
+r 692e3 692e7 41ae 41b2
+r 69543 69547 41b2 41b6
+r 697a3 697a7 41b6 41ba
+r 69a03 69a07 41ba 41be
+r 69c63 69c67 41be 41c2
+r 69ec3 69ec7 41c2 41c6
+r 6a123 6a127 41c6 41ca
+r 6a383 6a387 41ca 41ce
+r 6a5e3 6a5e7 41ce 41d2
+r 6a843 6a847 41d2 41d6
+r 6aaa3 6aaa7 41d6 41da
+r 6ad03 6ad07 41da 41de
+r 6af63 6af67 41de 41e2
+r 6b1c3 6b1c7 41e2 41e6
+r 0 5a4 6771b 67cbf
+z 98
+# layer 1 of fcmp1
+r 3f 49 e66 e70
+r 68c6e 68c72 41aa 41ae
+r 68c76 68c77 6bc 6bd
+r 692f6 692fa 41ae 41b2
+r 69556 6955a 41b2 41b6
+r 697b6 697ba 41b6 41ba
+r 69a16 69a1a 41ba 41be
+r 69c76 69c7a 41be 41c2
+r 69ed6 69eda 41c2 41c6
+r 6a136 6a13a 41c6 41ca
+r 6a396 6a39a 41ca 41ce
+r 6a5f6 6a5fa 41ce 41d2
+r 6a856 6a85a 41d2 41d6
+r 6aab6 6aaba 41d6 41da
+r 6ad16 6ad1a 41da 41de
+r 6af76 6af7a 41de 41e2
+r 6b1d6 6b1da 41e2 41e6
+r 0 3f 67cbf 67cfe
+r 49 5a4 67d08 68263
+# layer 2 of fcmp1
+r 4482 44be 20000 2003c
+r 0 4c0 68263 68723
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 3 of fcmp1
+r 68c5f 68c63 4482 4486
+r 692e7 692eb 4486 448a
+r 69547 6954b 448a 448e
+r 697a7 697ab 448e 4492
+r 69a07 69a0b 4492 4496
+r 69c67 69c6b 4496 449a
+r 69ec7 69ecb 449a 449e
+r 6a127 6a12b 449e 44a2
+r 6a387 6a38b 44a2 44a6
+r 6a5e7 6a5eb 44a6 44aa
+r 6a847 6a84b 44aa 44ae
+r 6aaa7 6aaab 44ae 44b2
+r 6ad07 6ad0b 44b2 44b6
+r 6af67 6af6b 44b6 44ba
+r 6b1c7 6b1cb 44ba 44be
+r 0 50c 68723 68c2f
+# layer 4 of fcmp1
+r 43 47 4482 4486
+r 692fa 692fe 4486 448a
+r 6955a 6955e 448a 448e
+r 697ba 697be 448e 4492
+r 69a1a 69a1e 4492 4496
+r 69c7a 69c7e 4496 449a
+r 69eda 69ede 449a 449e
+r 6a13a 6a13e 449e 44a2
+r 6a39a 6a39e 44a2 44a6
+r 6a5fa 6a5fe 44a6 44aa
+r 6a85a 6a85e 44aa 44ae
+r 6aaba 6aabe 44ae 44b2
+r 6ad1a 6ad1e 44b2 44b6
+r 6af7a 6af7e 44b6 44ba
+r 6b1da 6b1de 44ba 44be
+r 0 43 68c2f 68c72
+r 47 50c 68c76 6913b
+# layer 5 of fcmp1
+r d26 d27 1003c 1003d
+r 0 98 6913b 691d3
+z ff
+z ff
+z ff
+z ff
+z 78
+# layer 6 of fcmp1
+r 692eb 692ec d26 d27
+r 0 e4 691d3 692b7
+# layer 7 of fcmp1
+r 47 48 d26 d27
+r 0 47 692b7 692fe
+r 48 e4 692ff 6939b
+# layer 8 of fcmp1
+r d27 d28 1003c 1003d
+r 0 98 6939b 69433
+z 4c
+# layer 9 of fcmp1
+r 6954b 6954c d27 d28
+r 0 e4 69433 69517
+# layer 10 of fcmp1
+r 47 48 d27 d28
+r 0 47 69517 6955e
+r 48 e4 6955f 695fb
+# layer 11 of fcmp1
+r d28 d29 1003c 1003d
+r 0 98 695fb 69693
+z 4c
+# layer 12 of fcmp1
+r 697ab 697ac d28 d29
+r 0 e4 69693 69777
+# layer 13 of fcmp1
+r 47 48 d28 d29
+r 0 47 69777 697be
+r 48 e4 697bf 6985b
+# layer 14 of fcmp1
+r d29 d2a 1003c 1003d
+r 0 98 6985b 698f3
+z 4c
+# layer 15 of fcmp1
+r 69a0b 69a0c d29 d2a
+r 0 e4 698f3 699d7
+# layer 16 of fcmp1
+r 47 48 d29 d2a
+r 0 47 699d7 69a1e
+r 48 e4 69a1f 69abb
+# layer 17 of fcmp1
+r d2a d2b 1003c 1003d
+r 0 98 69abb 69b53
+z 4c
+# layer 18 of fcmp1
+r 69c6b 69c6c d2a d2b
+r 0 e4 69b53 69c37
+# layer 19 of fcmp1
+r 47 48 d2a d2b
+r 0 47 69c37 69c7e
+r 48 e4 69c7f 69d1b
+# layer 20 of fcmp1
+r d2b d2c 1003c 1003d
+r 0 98 69d1b 69db3
+z 4c
+# layer 21 of fcmp1
+r 69ecb 69ecc d2b d2c
+r 0 e4 69db3 69e97
+# layer 22 of fcmp1
+r 47 48 d2b d2c
+r 0 47 69e97 69ede
+r 48 e4 69edf 69f7b
+# layer 23 of fcmp1
+r d2c d2d 1003c 1003d
+r 0 98 69f7b 6a013
+z 4c
+# layer 24 of fcmp1
+r 6a12b 6a12c d2c d2d
+r 0 e4 6a013 6a0f7
+# layer 25 of fcmp1
+r 47 48 d2c d2d
+r 0 47 6a0f7 6a13e
+r 48 e4 6a13f 6a1db
+# layer 26 of fcmp1
+r d2d d2e 1003c 1003d
+r 0 98 6a1db 6a273
+z 4c
+# layer 27 of fcmp1
+r 6a38b 6a38c d2d d2e
+r 0 e4 6a273 6a357
+# layer 28 of fcmp1
+r 47 48 d2d d2e
+r 0 47 6a357 6a39e
+r 48 e4 6a39f 6a43b
+# layer 29 of fcmp1
+r d2e d2f 1003c 1003d
+r 0 98 6a43b 6a4d3
+z 4c
+# layer 30 of fcmp1
+r 6a5eb 6a5ec d2e d2f
+r 0 e4 6a4d3 6a5b7
+# layer 31 of fcmp1
+r 47 48 d2e d2f
+r 0 47 6a5b7 6a5fe
+r 48 e4 6a5ff 6a69b
+# layer 32 of fcmp1
+r d2f d30 1003c 1003d
+r 0 98 6a69b 6a733
+z 4c
+# layer 33 of fcmp1
+r 6a84b 6a84c d2f d30
+r 0 e4 6a733 6a817
+# layer 34 of fcmp1
+r 47 48 d2f d30
+r 0 47 6a817 6a85e
+r 48 e4 6a85f 6a8fb
+# layer 35 of fcmp1
+r d30 d31 1003c 1003d
+r 0 98 6a8fb 6a993
+z 4c
+# layer 36 of fcmp1
+r 6aaab 6aaac d30 d31
+r 0 e4 6a993 6aa77
+# layer 37 of fcmp1
+r 47 48 d30 d31
+r 0 47 6aa77 6aabe
+r 48 e4 6aabf 6ab5b
+# layer 38 of fcmp1
+r d31 d32 1003c 1003d
+r 0 98 6ab5b 6abf3
+z 4c
+# layer 39 of fcmp1
+r 6ad0b 6ad0c d31 d32
+r 0 e4 6abf3 6acd7
+# layer 40 of fcmp1
+r 47 48 d31 d32
+r 0 47 6acd7 6ad1e
+r 48 e4 6ad1f 6adbb
+# layer 41 of fcmp1
+r d32 d33 1003c 1003d
+r 0 98 6adbb 6ae53
+z 4c
+# layer 42 of fcmp1
+r 6af6b 6af6c d32 d33
+r 0 e4 6ae53 6af37
+# layer 43 of fcmp1
+r 47 48 d32 d33
+r 0 47 6af37 6af7e
+r 48 e4 6af7f 6b01b
+# layer 44 of fcmp1
+r d33 d34 1003c 1003d
+r 0 98 6b01b 6b0b3
+z 4c
+# layer 45 of fcmp1
+r 6b1cb 6b1cc d33 d34
+r 0 e4 6b0b3 6b197
+# layer 46 of fcmp1
+r 47 48 d33 d34
+r 0 47 6b197 6b1de
+r 48 e4 6b1df 6b27b
+# layer 47 of fcmp1
+r d34 d35 1003c 1003d
+r 0 98 6b27b 6b313
+z 4c
+# layer 48 of fcmp1
+r 6b423 6b424 d34 d35
+r 0 e4 6b313 6b3f7
+# layer 49 of fcmp1
+r 3f 40 d34 d35
+r 0 3f 6b3f7 6b436
+r 40 e4 6b437 6b4db
+# layer 50 of fcmp1
+r 26 4c 3f80 3fa6
+r 0 26 6b4db 6b501
+r 4c e4 6b527 6b5bf
+# layer 51 of fcmp1
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of fcmp2
+r 6c17f 6c189 e66 e70
+r 6d0ef 6d0f3 416e 4172
+r 6d0f7 6d0f8 6bc 6bd
+r 6d777 6d77b 4172 4176
+r 6d9d7 6d9db 4176 417a
+r 6dc37 6dc3b 417a 417e
+r 6de97 6de9b 417e 4182
+r 6e0f7 6e0fb 4182 4186
+r 6e357 6e35b 4186 418a
+r 6e5b7 6e5bb 418a 418e
+r 6e817 6e81b 418e 4192
+r 6ea77 6ea7b 4192 4196
+r 6ecd7 6ecdb 4196 419a
+r 6ef37 6ef3b 419a 419e
+r 6f197 6f19b 419e 41a2
+r 6f3f7 6f3fb 41a2 41a6
+r 6f657 6f65b 41a6 41aa
+r 0 5a4 6bbaf 6c153
+z 98
+# layer 1 of fcmp2
+r 3f 49 e66 e70
+r 6d102 6d106 416e 4172
+r 6d10a 6d10b 6bc 6bd
+r 6d78a 6d78e 4172 4176
+r 6d9ea 6d9ee 4176 417a
+r 6dc4a 6dc4e 417a 417e
+r 6deaa 6deae 417e 4182
+r 6e10a 6e10e 4182 4186
+r 6e36a 6e36e 4186 418a
+r 6e5ca 6e5ce 418a 418e
+r 6e82a 6e82e 418e 4192
+r 6ea8a 6ea8e 4192 4196
+r 6ecea 6ecee 4196 419a
+r 6ef4a 6ef4e 419a 419e
+r 6f1aa 6f1ae 419e 41a2
+r 6f40a 6f40e 41a2 41a6
+r 6f66a 6f66e 41a6 41aa
+r 0 3f 6c153 6c192
+r 49 5a4 6c19c 6c6f7
+# layer 2 of fcmp2
+r 4446 4482 10000 1003c
+r 0 4c0 6c6f7 6cbb7
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 3 of fcmp2
+r 6d0f3 6d0f7 4446 444a
+r 6d77b 6d77f 444a 444e
+r 6d9db 6d9df 444e 4452
+r 6dc3b 6dc3f 4452 4456
+r 6de9b 6de9f 4456 445a
+r 6e0fb 6e0ff 445a 445e
+r 6e35b 6e35f 445e 4462
+r 6e5bb 6e5bf 4462 4466
+r 6e81b 6e81f 4466 446a
+r 6ea7b 6ea7f 446a 446e
+r 6ecdb 6ecdf 446e 4472
+r 6ef3b 6ef3f 4472 4476
+r 6f19b 6f19f 4476 447a
+r 6f3fb 6f3ff 447a 447e
+r 6f65b 6f65f 447e 4482
+r 0 50c 6cbb7 6d0c3
+# layer 4 of fcmp2
+r 43 47 4446 444a
+r 6d78e 6d792 444a 444e
+r 6d9ee 6d9f2 444e 4452
+r 6dc4e 6dc52 4452 4456
+r 6deae 6deb2 4456 445a
+r 6e10e 6e112 445a 445e
+r 6e36e 6e372 445e 4462
+r 6e5ce 6e5d2 4462 4466
+r 6e82e 6e832 4466 446a
+r 6ea8e 6ea92 446a 446e
+r 6ecee 6ecf2 446e 4472
+r 6ef4e 6ef52 4472 4476
+r 6f1ae 6f1b2 4476 447a
+r 6f40e 6f412 447a 447e
+r 6f66e 6f672 447e 4482
+r 0 43 6d0c3 6d106
+r 47 50c 6d10a 6d5cf
+# layer 5 of fcmp2
+r d66 d67 1003c 1003d
+r 0 98 6d5cf 6d667
+z ff
+z ff
+z ff
+z ff
+z 78
+# layer 6 of fcmp2
+r 6d77f 6d780 d66 d67
+r 0 e4 6d667 6d74b
+# layer 7 of fcmp2
+r 47 48 d66 d67
+r 0 47 6d74b 6d792
+r 48 e4 6d793 6d82f
+# layer 8 of fcmp2
+r d67 d68 1003c 1003d
+r 0 98 6d82f 6d8c7
+z 4c
+# layer 9 of fcmp2
+r 6d9df 6d9e0 d67 d68
+r 0 e4 6d8c7 6d9ab
+# layer 10 of fcmp2
+r 47 48 d67 d68
+r 0 47 6d9ab 6d9f2
+r 48 e4 6d9f3 6da8f
+# layer 11 of fcmp2
+r d68 d69 1003c 1003d
+r 0 98 6da8f 6db27
+z 4c
+# layer 12 of fcmp2
+r 6dc3f 6dc40 d68 d69
+r 0 e4 6db27 6dc0b
+# layer 13 of fcmp2
+r 47 48 d68 d69
+r 0 47 6dc0b 6dc52
+r 48 e4 6dc53 6dcef
+# layer 14 of fcmp2
+r d69 d6a 1003c 1003d
+r 0 98 6dcef 6dd87
+z 4c
+# layer 15 of fcmp2
+r 6de9f 6dea0 d69 d6a
+r 0 e4 6dd87 6de6b
+# layer 16 of fcmp2
+r 47 48 d69 d6a
+r 0 47 6de6b 6deb2
+r 48 e4 6deb3 6df4f
+# layer 17 of fcmp2
+r d6a d6b 1003c 1003d
+r 0 98 6df4f 6dfe7
+z 4c
+# layer 18 of fcmp2
+r 6e0ff 6e100 d6a d6b
+r 0 e4 6dfe7 6e0cb
+# layer 19 of fcmp2
+r 47 48 d6a d6b
+r 0 47 6e0cb 6e112
+r 48 e4 6e113 6e1af
+# layer 20 of fcmp2
+r d6b d6c 1003c 1003d
+r 0 98 6e1af 6e247
+z 4c
+# layer 21 of fcmp2
+r 6e35f 6e360 d6b d6c
+r 0 e4 6e247 6e32b
+# layer 22 of fcmp2
+r 47 48 d6b d6c
+r 0 47 6e32b 6e372
+r 48 e4 6e373 6e40f
+# layer 23 of fcmp2
+r d6c d6d 1003c 1003d
+r 0 98 6e40f 6e4a7
+z 4c
+# layer 24 of fcmp2
+r 6e5bf 6e5c0 d6c d6d
+r 0 e4 6e4a7 6e58b
+# layer 25 of fcmp2
+r 47 48 d6c d6d
+r 0 47 6e58b 6e5d2
+r 48 e4 6e5d3 6e66f
+# layer 26 of fcmp2
+r d6d d6e 1003c 1003d
+r 0 98 6e66f 6e707
+z 4c
+# layer 27 of fcmp2
+r 6e81f 6e820 d6d d6e
+r 0 e4 6e707 6e7eb
+# layer 28 of fcmp2
+r 47 48 d6d d6e
+r 0 47 6e7eb 6e832
+r 48 e4 6e833 6e8cf
+# layer 29 of fcmp2
+r d6e d6f 1003c 1003d
+r 0 98 6e8cf 6e967
+z 4c
+# layer 30 of fcmp2
+r 6ea7f 6ea80 d6e d6f
+r 0 e4 6e967 6ea4b
+# layer 31 of fcmp2
+r 47 48 d6e d6f
+r 0 47 6ea4b 6ea92
+r 48 e4 6ea93 6eb2f
+# layer 32 of fcmp2
+r d6f d70 1003c 1003d
+r 0 98 6eb2f 6ebc7
+z 4c
+# layer 33 of fcmp2
+r 6ecdf 6ece0 d6f d70
+r 0 e4 6ebc7 6ecab
+# layer 34 of fcmp2
+r 47 48 d6f d70
+r 0 47 6ecab 6ecf2
+r 48 e4 6ecf3 6ed8f
+# layer 35 of fcmp2
+r d70 d71 1003c 1003d
+r 0 98 6ed8f 6ee27
+z 4c
+# layer 36 of fcmp2
+r 6ef3f 6ef40 d70 d71
+r 0 e4 6ee27 6ef0b
+# layer 37 of fcmp2
+r 47 48 d70 d71
+r 0 47 6ef0b 6ef52
+r 48 e4 6ef53 6efef
+# layer 38 of fcmp2
+r d71 d72 1003c 1003d
+r 0 98 6efef 6f087
+z 4c
+# layer 39 of fcmp2
+r 6f19f 6f1a0 d71 d72
+r 0 e4 6f087 6f16b
+# layer 40 of fcmp2
+r 47 48 d71 d72
+r 0 47 6f16b 6f1b2
+r 48 e4 6f1b3 6f24f
+# layer 41 of fcmp2
+r d72 d73 1003c 1003d
+r 0 98 6f24f 6f2e7
+z 4c
+# layer 42 of fcmp2
+r 6f3ff 6f400 d72 d73
+r 0 e4 6f2e7 6f3cb
+# layer 43 of fcmp2
+r 47 48 d72 d73
+r 0 47 6f3cb 6f412
+r 48 e4 6f413 6f4af
+# layer 44 of fcmp2
+r d73 d74 1003c 1003d
+r 0 98 6f4af 6f547
+z 4c
+# layer 45 of fcmp2
+r 6f65f 6f660 d73 d74
+r 0 e4 6f547 6f62b
+# layer 46 of fcmp2
+r 47 48 d73 d74
+r 0 47 6f62b 6f672
+r 48 e4 6f673 6f70f
+# layer 47 of fcmp2
+r d74 d75 1003c 1003d
+r 0 98 6f70f 6f7a7
+z 4c
+# layer 48 of fcmp2
+r 6f8b7 6f8b8 d74 d75
+r 0 e4 6f7a7 6f88b
+# layer 49 of fcmp2
+r 3f 40 d74 d75
+r 0 3f 6f88b 6f8ca
+r 40 e4 6f8cb 6f96f
+# layer 50 of fcmp2
+r 26 4c 4000 4026
+r 0 26 6f96f 6f995
+r 4c e4 6f9bb 6fa53
+# layer 51 of fcmp2
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of fnext
+r 70152 7015c e66 e70
+r 0 e4 70043 70127
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of fnext
+r 3e 48 e66 e70
+r 0 3e 70127 70165
+r 48 e4 7016f 7020b
+# layer 2 of fnext
+r e66 e71 8010 801b
+r 0 5f0 643bf 649af
+z 4c
+# layer 0 of ffound
+r 70956 70960 e66 e70
+r 6ac 6ad 6af 6b0
+r 7099d 709c3 4514 453a
+r 0 130 707fb 7092b
+z ff
+z ff
+z ff
+z ff
+z c4
+# layer 1 of ffound
+r 3e 48 e66 e70
+r 0 3e 7092b 70969
+r 48 e4 70973 70a0f
+z 4c
+# layer 2 of ffound
+r 9e6 9fa 30000 30014
+r 0 5f0 7506b 7565b
+z 4c
+# layer 0 of fnone
+r 6ac 6ad 66f 670
+r 26 4c 4514 453a
+r 0 26 70fff 71025
+r 4c 130 7104b 7112f
+z ff
+z ff
+z ff
+z ff
+z c4
+# layer 1 of fnone
+r 0 5f0 7506b 7565b
+z e4
+# layer 0 of puthex
+r 7c8 7cd 7e8 7ed
+r 66c 66d 66f 670
+r 0 5f0 7171f 71d0f
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 0 of phl
+r 63c 640 b76 b7a
+r baa bba b66 b76
+r ba6 baa 65c 660
+r 7d8 7dc 7c9 7cd
+r 0 17c 71d0f 71e8b
+z ff
+z ff
+z ff
+z ff
+z 78
+# layer 1 of phl
+r 7dc 7dd 65c 65d
+r 72033 72037 63c 640
+r 66e 66f 7d8 7d9
+r b66 b7a ba6 bba
+r 0 17c 71e8b 72007
+# layer 2 of phl
+r 3f 43 63c 640
+r 7c8 7cd 7d8 7dd
+r 0 3f 72007 72046
+r 43 130 7204a 72137
+z 4c
+# layer 3 of phl
+r 66d 66e 1003d 1003e
+r 0 98 72137 721cf
+z 98
+# layer 4 of phl
+r 722df 722e2 66c 66f
+r 0 e4 721cf 722b3
+# layer 5 of phl
+r 3f 42 66c 66f
+r 0 3f 722b3 722f2
+r 42 e4 722f5 72397
+# layer 6 of phl
+r 6ae 6af 1003e 1003f
+r 0 98 72397 7242f
+z 4c
+# layer 7 of phl
+r 7253f 72540 6ae 6af
+r 0 e4 7242f 72513
+# layer 8 of phl
+r 3f 40 6ae 6af
+r 0 3f 72513 72552
+r 40 e4 72553 725f7
+# layer 9 of phl
+r 26 4c 4080 40a6
+r 0 26 725f7 7261d
+r 4c e4 72643 726db
+# layer 10 of phl
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of phpr
+r 72dd9 72ddd 63c 640
+r 0 e4 72ccb 72daf
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 1 of phpr
+r 3d 41 63c 640
+r 0 3d 72daf 72dec
+r 41 e4 72df0 72e93
+# layer 2 of phpr
+r 718 720 700 708
+r 0 98 72e93 72f2b
+z 4c
+# layer 3 of phpr
+r 7fffc 7fffc 718 720
+r 0 5f0 72f2b 7351b
+# layer 0 of phnp
+r 66c 66d 6ae 6af
+r 7362b 7362c 7c8 7c9
+r 0 e4 7351b 735ff
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 1 of phnp
+r 3f 40 7c8 7c9
+r 0 3f 735ff 7363e
+r 40 e4 7363f 736e3
+# layer 2 of phnp
+r 26 4c 4100 4126
+r 0 26 736e3 73709
+r 4c e4 7372f 737c7
+# layer 3 of phnp
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of phend
+r 26 4c 45f8 461e
+r 0 26 73db7 73ddd
+r 4c e4 73e03 73e9b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 11
+# layer 1 of phend
+r 0 5f0 7506b 7565b
+z 98
+# layer 0 of bad
+r 7fffd 7fffd 43d6 4446
+r 0 5f0 7506b 7565b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of badc
+r 7fffd 7fffd 42e6 435e
+r 0 5f0 7506b 7565b
+z ff
+z ff
+z ff
+z ff
+z ff
+z 5d
+# layer 0 of badl
+r 7fffd 7fffd 435e 43d6
+r 0 5f0 7506b 7565b
+z 5

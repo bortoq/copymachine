@@ -357,6 +357,7 @@
 :cht data 8 "t"
 :s1v data 20 1048571
 :s0v data 20 1048570
+:cend data 20 1048575
 :limc data 20 1024000
 :s1w data 20 1048572
 :sp data 8 " "
@@ -1223,6 +1224,7 @@ ret
 ret
 
 # the bits every op reads (rlo rhi) and writes (wlo whi), the place of its row in the old text (olo)
+# (every access to a channel writes the channels S .. cend: two of them touch the same bits, so the rows of a block that use channels keep the order of the text)
 :bregs word
 copy &bk &zero8
 goto &brl
@@ -1259,17 +1261,13 @@ call &addw &brk1
 :brk1 block
 store &rhi &bk &ar
 store &wlo &bk &kk
-store &whi &bk &ar
+store &whi &bk &cend
 goto &brn
 :brq2 block
 store &rlo &bk &stl
 store &rhi &bk &tv
-store &wlo &bk &kk
-copy &aa &kk
-copy &ab &one20
-call &addw &brq3
-:brq3 block
-store &whi &bk &ar
+store &wlo &bk &s0v
+store &whi &bk &cend
 goto &brn
 :brc block
 lut &ulk &bu &lk

@@ -3,9 +3,9 @@
 # and at the end sends op = 0 and prints the cells to stderr. Its stdout must go to the stdin of far_serve.tw and its stdin must be
 # the stdout of far_serve.tw. A cell starts as all ones (the prohibitive price): if the channel is closed (EOF) a read leaves it as it
 # was, so "no answer" is the same as the answer "no such cell"; if the answerer is alive but silent, the read waits (no tick passes).
-# Rows of different devices are not ordered by the layout (no data connects an `emit` and a `key`: the packing puts the `key` into
-# the first layer, before the later `emit`s of its block, and the asker would wait for an answer to a request not yet sent: a deadlock).
-# So every `key` is a block of its own (the `goto` before it is a tick boundary): the writes of the block before it are done.
+# The layout keeps the order of the text between the accesses to channels (the packing puts the `key` after the `emit`s above it in the same block:
+# 28.2, before it the `key` went into the first layer, before the later `emit`s of its block, and the asker waited for an answer to a request
+# not yet sent: a deadlock, 26.3), so a request and the read of its answer are one block.
 # The requests: get 2, get 5, put 3 <- 165, get 3, get 8 (outside the window), put 9 <- 77 (outside: nothing changes), get 1, get 200.
 :opget data 8 1
 :opput data 8 2
@@ -33,16 +33,12 @@ goto &q1
 emit &opget
 emit &p2
 emit &d0
-goto &a1
-:a1 block
 key &g1
 goto &q2
 :q2 block
 emit &opget
 emit &p5
 emit &d0
-goto &a2
-:a2 block
 key &g2
 goto &q3
 :q3 block
@@ -54,16 +50,12 @@ goto &q4
 emit &opget
 emit &p3
 emit &d0
-goto &a4
-:a4 block
 key &g3
 goto &q5
 :q5 block
 emit &opget
 emit &p8
 emit &d0
-goto &a5
-:a5 block
 key &g4
 goto &q6
 :q6 block
@@ -75,16 +67,12 @@ goto &q7
 emit &opget
 emit &p1
 emit &d0
-goto &a7
-:a7 block
 key &g5
 goto &q8
 :q8 block
 emit &opget
 emit &p200
 emit &d0
-goto &a8
-:a8 block
 key &g6
 goto &stop
 :stop block

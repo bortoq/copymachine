@@ -1,13 +1,13 @@
 """Language 3: lookup tables. Words: table, lut (value of a function from a table), array (a table
 whose entries are written), store (write an entry by a computed index), block, goto, if, call, ret,
 halt, emit (stdout), warn (stderr), key (stdin), copy. The library over language 3 (lib.py: add, sub, band, lt, eq,
-stack, push, pop, rec; shl, shr over language 2) is a mixin of Program. No registers: data are named
+shl, shr over language 2) is a mixin of Program. No registers: data are named
 parts of space. The compiler lays rows out into layers so that nothing intersects in a tick
 (including source with source)."""
 import l1
 import l2
 from common import Alloc, Mem
-from l4 import Long
+from l4 import CHAN, Long
 from lib import Lib
 
 STDOUT = object()                 # pseudo region: one stdout transfer per tick, order preserved
@@ -121,7 +121,7 @@ class Program(Lib, Long):
         self.A, self.S, self.RB, self.serial, self.plan, self.direct = A, 2 ** A - 6, 4 * A, serial, plan or {}, direct
         self.datas, self.blocks, self.cur, self.words, self.links = [], {}, None, {}, {}
         self.tables, self.lookups, self.P, self.keep = {}, 0, None, set()
-        self.recs, self.stores, self.keys = {}, 0, 0
+        self.stores, self.keys = 0, 0
         self._zeros = self._one = None
         self.zero = self.var('zero', 1)
 
@@ -175,8 +175,7 @@ class Program(Lib, Long):
         return self.words[name]
 
     def word(self, name):
-        if name not in self.recs:
-            self.rl(name)
+        self.rl(name)
         self.block(name, name)
 
     def _op(self, row, reads=None, writes=None):
@@ -201,7 +200,7 @@ class Program(Lib, Long):
         src = norm(src)
         s = src.addr
         r = l1.row(self.S + chan, self.S + chan, s, lambda: s() + src.n)
-        self._op(r, ivs([src]), [(region, 0, 1)])
+        self._op(r, ivs([src]), [(region, 0, 1), (CHAN, 0, 1)])
 
     def key(self, dst):
         """A byte (bytes) of stdin into dst: the stdin channel is the source of a row."""
@@ -209,7 +208,7 @@ class Program(Lib, Long):
         assert dst.n % 8 == 0, 'stdin transfers whole bytes'
         d = dst.addr
         r = l1.row(d, lambda: d() + dst.n, self.S + 1, self.S + 1)
-        self._op(r, [(STDIN, 0, 1)], ivs([dst]) + [(STDIN, 0, 1)])
+        self._op(r, [(STDIN, 0, 1)], ivs([dst]) + [(STDIN, 0, 1), (CHAN, 0, 1)])
         self.keys += 1
 
     def lut(self, T, args, out):
@@ -252,17 +251,11 @@ class Program(Lib, Long):
     def ret(self):
         b = self.cur
         fields = l2.Ref(b.last.jump, 2 * self.A, 2 * self.A)
-        if b.word in self.recs:
-            self.pop(self.recs[b.word], fields)          # the link comes from the stack
-        else:
-            self.copy(fields, self.rl(b.word).ref())
+        self.copy(fields, self.rl(b.word).ref())
         b.end = ('patched',)
 
     def call(self, word, back):
-        if word in self.recs:
-            self.push(self.recs[word], self.link(back))  # the link goes to the stack
-        else:
-            self.copy(self.rl(word).ref(), self.link(back).ref())
+        self.copy(self.rl(word).ref(), self.link(back).ref())
         self.cur.end = ('goto', word)
 
     def _pair(self, name):

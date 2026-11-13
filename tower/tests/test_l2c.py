@@ -164,7 +164,7 @@ class Compiler(unittest.TestCase):
         """A program written in language 2 (its copy rows are c lines): the chain gives its text of language 1, the seed gives
         its image, and the image is the image the Python compiler made."""
         seed = compiled('seed').stats
-        for name in ('echo', 'add', 'branch', 'calls', 'array', 'fib'):
+        for name in ('echo', 'add', 'branch', 'calls', 'array'):
             with self.subTest(name):
                 p = compiled(name)
                 t = l1text.program_text(p)

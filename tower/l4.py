@@ -12,6 +12,7 @@ import l1
 from l2 import Ref, norm
 
 SYS = object()                    # pseudo region: one SYS request or answer read per tick, order preserved
+CHAN = object()                   # pseudo region: every access to a channel (S..S+5) writes it, so the accesses of a block keep the order of the text
 OP_LONG, POS_BITS, AREA_BITS = 6, 128, 96     # emulator/src/proto.def (a test compares them)
 ARG_BITS = 32
 
@@ -55,7 +56,7 @@ class Long:
     def _lsys(self, q, n):
         """The only row to SYS: the whole record (and the data after it)."""
         S, s = self.S, Ref(q, 0, n).addr
-        self._op(l1.row(S, S, s, lambda: s() + n), [(q, 0, n)], [(SYS, 0, 1)])
+        self._op(l1.row(S, S, s, lambda: s() + n), [(q, 0, n)], [(SYS, 0, 1), (CHAN, 0, 1)])
 
     def long_put(self, pos, data):
         """`long!`: write the bits of `data` to the host at `pos`."""
@@ -81,6 +82,6 @@ class Long:
             self._la.bits = max(self._la.bits, rsp)
             dst = Ref(self._la, 0, rsp)
         d, n = dst.addr, dst.n
-        self._op(l1.row(d, lambda: d() + n, self.S, self.S), [(SYS, 0, 1)], [(dst.region, dst.off, dst.off + n)])
+        self._op(l1.row(d, lambda: d() + n, self.S, self.S), [(SYS, 0, 1)], [(dst.region, dst.off, dst.off + n), (CHAN, 0, 1)])
         if dst is not data:
             self.copy(data, dst[0:data.n])

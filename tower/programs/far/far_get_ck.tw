@@ -3,7 +3,7 @@
 # The word `ask` makes one request: the cells op, pos, dat are set by the caller; ask sends the record (op, pos, dat, ck: ck = the sum of the six bytes modulo 256, five `add`), reads the two bytes of
 # the answer into a1, a2 and takes it if a2 = 255 - a1 (`sub`, `eq`): the answer is in res. If it is not a pair (a byte of the answer or of the request was changed, the channel was closed: a1, a2 are
 # zeroed before every read and the read at EOF leaves them zeros, which is not a pair) the same request is sent again (it is idempotent, 7.2.38), 4 tries at most (the cell lim); when the tries are
-# out the answer is all ones (the prohibitive price) and the program goes on. An answer to a put is the cell read back: res = the data written (outside the window: 255). Every `key` is a block of its own (as in far_get.tw).
+# out the answer is all ones (the prohibitive price) and the program goes on. An answer to a put is the cell read back: res = the data written (outside the window: 255). The request and the read of its answer are one block (the layout keeps the order of the channels of the text, 28.2; see far_get.tw).
 # The requests: get 2, get 5, put 3 <- 165, get 3, get 8 (outside the window), put 9 <- 77 (outside: nothing changes, the answer is 255), get 1, get 200; the 8 results go to stderr (warn), one byte each.
 :opget data 8 1
 :opput data 8 2
@@ -118,8 +118,6 @@ emit &op
 emit &pos
 emit &dat
 emit &s[0:8]
-goto &rd
-:rd block
 key &a1
 key &a2
 goto &chk

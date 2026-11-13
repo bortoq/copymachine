@@ -38,7 +38,7 @@ BUILDERS = {
     'add': progs.add_print(200, 100), 'branch': progs.branch(3, 9), 'loop_digits': progs.loop_digits(),
     'loop_sum': progs.loop_sum(), 'calls': progs.calls(), 'and_hex': progs.and_hex(0xac, 0x3f),
     'add16_hex': progs.add16_hex(0x1234, 0xfff), 'array': progs.array_rev([65, 10, 255, 0, 128, 127, 19, 196]),
-    'arith8': progs.arith(8, 3, 5), 'arith16': progs.arith(16, 7, 9), 'echo': progs.echo(), 'fib': progs.fib(),
+    'arith8': progs.arith(8, 3, 5), 'arith16': progs.arith(16, 7, 9), 'echo': progs.echo(),
     'long_rw': progs.long_rw(host_pos(1, 8), b'hello', host_pos(1, 8)),
     'long_read': progs.long_rw(0, b'', host_pos(1, 8), 4),
     'long_clock': progs.long_clock(), 'long_cat': cat_flat(1, 5, 8),
@@ -92,7 +92,7 @@ class Programs(unittest.TestCase):
     def test_run(self):
         """The programs from text run on the checked emulator (the outputs of the builders' tests)."""
         for name, inp, want in (('add', b'', b'300\n'), ('calls', b'', b'3ac3\n'), ('loop_sum', b'', b'055\n'),
-                                ('fib', stream(10, 8), b'055\n'), ('branch', b'', b'Y\n'),
+                                ('branch', b'', b'Y\n'),
                                 ('echo', b'hi there\x00tail', b'hi there'), ('and_hex', b'', b'2c'),
                                 ('array', b'', bytes([127, 255, 196, 128, 10, 19, 0, 65]) + b'\n'),
                                 ('arith8', stream(200, 8) + stream(77, 8), arith_want(8, 3, 5, 200, 77))):
@@ -206,10 +206,6 @@ class Rejected(unittest.TestCase):
         self.bad('', 'the program has no block')
         self.bad(MAIN + 'call &main &main\n', '&main is a block, not a word')
         self.bad(MAIN + 'call &w &nowhere\n:w word\nret\n', 'undefined label &nowhere')
-        self.bad(':s stack 3 link\n' + MAIN + 'call &w &b\n:b block\nhalt\n:w word\nret\nrec &w &s\n', 'rec: the word w is used before')
-        self.bad(':s stack 3 8\nrec &w &s\n' + MAIN + 'call &w &main\n:w word\nret\n', 'rec: &s is not a stack of links')
-        self.bad(':s stack 3 link\n:a data 8 0\n' + MAIN + 'push &s &a\nhalt\n', 'a stack of links, used by rec only')
-        self.bad(':s stack 3 8\n:a data 4 0\n' + MAIN + 'push &s &a\nhalt\n', 'push &s: 8 bits expected, found 4')
 
     def test_comments_and_free_form(self):
         """Layout is free: several words in a line, a word and its arguments over lines, comments everywhere."""

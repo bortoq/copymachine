@@ -59,13 +59,6 @@ def arith_want(n, ka, kb, a, b):
                                            h, a << ka & m, h, a >> kb)).encode()
 
 
-def fibs(n):
-    a, b = 0, 1
-    for _ in range(n):
-        a, b = b, a + b
-    return a
-
-
 class Level1(unittest.TestCase):
     def test_write_byte(self):
         """Two layers by hand: print 'H', then halt (a layer of NOPs)."""
@@ -226,14 +219,6 @@ class Level3(unittest.TestCase):
             self.assertEqual(r.out, text)
         intervals(p)
 
-    def test_recursion(self):
-        """Fibonacci by double recursion: return links and saved values in two stacks."""
-        p = l3.compile_program(progs.fib())
-        for k, n in enumerate((10, 0, 1, 2, 3, 7, 11)):
-            r = once(p, plain=(k == 0), stdin=stream(n, 8))
-            self.assertEqual(r.out, b'%03d\n' % fibs(n), n)
-        intervals(p)
-
     def test_grammar(self):
         """Built right by construction: what has no meaning cannot be written."""
         def shift_in_place(p):
@@ -263,8 +248,7 @@ class Level3(unittest.TestCase):
         """The three savings of 23.3 are switches: without them the same programs give the same output,
         with them there are fewer layers (writes into the processor), shared strides, a pair of sources."""
         for build, out, inp in ((progs.loop_sum(), b'055\n', b''), (progs.calls(), b'3ac3\n', b''),
-                                (progs.array_rev([1, 2, 3, 4, 5, 6, 7, 8]), bytes([6, 3, 8, 5, 2, 7, 4, 1]) + b'\n', b''),
-                                (progs.fib(), b'055\n', stream(10, 8))):
+                                (progs.array_rev([1, 2, 3, 4, 5, 6, 7, 8]), bytes([6, 3, 8, 5, 2, 7, 4, 1]) + b'\n', b'')):
             by = {}
             for plan in (False, True):
                 for direct in (False, True):

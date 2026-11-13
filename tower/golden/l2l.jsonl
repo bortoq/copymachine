@@ -1,0 +1,176 @@
+{"name":"small-00","mode":"twice","in":"c 8 10 20\n","rc":0,"err":"","out":"r 10 18 20 28\n\u0000"}
+{"name":"small-01","mode":"twice","in":"c 0 0 0\n","rc":0,"err":"","out":"r 0 0 0 0\n\u0000"}
+{"name":"small-02","mode":"twice","in":"c fffff 1 1\n","rc":0,"err":"","out":"r 1 0 1 0\n\u0000"}
+{"name":"small-03","mode":"twice","in":"d 8 5\n","rc":0,"err":"","out":"s 10100000\n\u0000"}
+{"name":"small-04","mode":"twice","in":"d 14 fffff\n","rc":0,"err":"","out":"s 11111111111111111111\n\u0000"}
+{"name":"small-05","mode":"twice","in":"w 10\nr 1 2 3 4\nz 5\ns 0101\n# c\n","rc":0,"err":"","out":"w 10\nr 1 2 3 4\nz 5\ns 0101\n# c\n\u0000"}
+{"name":"small-06","mode":"twice","in":":a d 8 5\nc 4 &a+1 &a\n","rc":0,"err":"","out":"s 10100000\nr 1 5 0 4\n\u0000"}
+{"name":"small-07","mode":"twice","in":":a\n:b c 1 &a &b\n","rc":0,"err":"","out":"r 0 1 0 1\n\u0000"}
+{"name":"small-08","mode":"twice","in":"w 8\nr 1 2 3 4\n:c c 1 &c &c+4\n","rc":0,"err":"","out":"w 8\nr 1 2 3 4\nr 20 21 24 25\n\u0000"}
+{"name":"small-09","mode":"twice","in":"w 8\nz 8\n:a o\nc 1 &a 1\n","rc":0,"err":"","out":"w 8\nz 8\nr 8 9 1 2\n\u0000"}
+{"name":"small-10","mode":"twice","in":"\n  \t c 1 2 3  \n\n","rc":0,"err":"","out":"r 2 3 3 4\n\u0000"}
+{"name":"small-11","mode":"twice","in":"c 1 2 3\r\n","rc":0,"err":"","out":"r 2 3 3 4\n\u0000"}
+{"name":"small-12","mode":"twice","in":"c 1 2 3","rc":0,"err":"","out":"r 2 3 3 4\n\u0000"}
+{"name":"small-13","mode":"twice","in":"","rc":0,"err":"","out":"\u0000"}
+{"name":"small-14","mode":"twice","in":"\n","rc":0,"err":"","out":"\u0000"}
+{"name":"small-15","mode":"twice","in":"z 3\ns 1 1 1\n:a :b\nc 1 &a &b\n","rc":0,"err":"","out":"z 3\ns 1 1 1\nr 6 7 6 7\n\u0000"}
+{"name":"small-16","mode":"twice","in":"w 5 \n z 3 \n","rc":0,"err":"","out":"w 5 \nz 3 \n\u0000"}
+{"name":"small-17","mode":"twice","in":"c 1 &f 2\n:f d 8 1\n","rc":0,"err":"","out":"r 0 1 2 3\ns 10000000\n\u0000"}
+{"name":"small-18","mode":"twice","in":"w 10\nc 1 &end 2\nc 1 &end &end+1\n:end","rc":0,"err":"","out":"w 10\nr 80 81 2 3\nr 80 81 81 82\n\u0000"}
+{"name":"small-19","mode":"twice","in":":a c 1 &b &c\n:b c 1 &c &a\n:c\n","rc":0,"err":"","out":"r 0 1 0 1\nr 0 1 0 1\n\u0000"}
+{"name":"small-20","mode":"twice","in":"c 1 &x+ff &x+0\n:x\n","rc":0,"err":"","out":"r ff 100 0 1\n\u0000"}
+{"name":"small-21","mode":"twice","in":"c 1 &a+fffff &a\n:a\n","rc":0,"err":"","out":"r fffff 0 0 1\n\u0000"}
+{"name":"small-22","mode":"twice","in":":a1 :b2 :c3 c 1 &c3 &a1\nc 1 &b2 &c3+2\n","rc":0,"err":"","out":"r 0 1 0 1\nr 0 1 2 3\n\u0000"}
+{"name":"small-23","mode":"twice","in":"c 1 &a &b\n:a\n:b\n","rc":0,"err":"","out":"r 0 1 0 1\n\u0000"}
+{"name":"small-24","mode":"twice","in":":a :b\nc 1 &b &a\n","rc":0,"err":"","out":"r 0 1 0 1\n\u0000"}
+{"name":"small-25","mode":"twice","in":"o\n:a c 1 &a &a\n","rc":0,"err":"","out":"r 0 1 0 1\n\u0000"}
+{"name":"small-26","mode":"twice","in":":z c 1 &z 1\n","rc":0,"err":"","out":"r 0 1 1 2\n\u0000"}
+{"name":"small-27","mode":"twice","in":":_ c 1 &_ 1\n","rc":0,"err":"","out":"r 0 1 1 2\n\u0000"}
+{"name":"small-28","mode":"twice","in":":0 c 1 &0 1\n","rc":0,"err":"","out":"r 0 1 1 2\n\u0000"}
+{"name":"small-29","mode":"twice","in":":9 c 1 &9 1\n","rc":0,"err":"","out":"r 0 1 1 2\n\u0000"}
+{"name":"small-30","mode":"twice","in":":a d 4 3\nd 4 &a\n","rc":0,"err":"","out":"s 1100\ns 0000\n\u0000"}
+{"name":"small-31","mode":"twice","in":"d 8 &a\n:a\n","rc":0,"err":"","out":"s 00010000\n\u0000"}
+{"name":"small-32","mode":"twice","in":"w &a\n:a d 8 4\n","rc":0,"err":"","out":"w &a\ns 00100000\n\u0000"}
+{"name":"small-33","mode":"twice","in":"z &a\n:a\n","rc":0,"err":"","out":"z &a\n\u0000"}
+{"name":"small-34","mode":"twice","in":"w 10\nr 1 2 3 4\nc 4 &after &here\n:here d 8 5\n:after","rc":0,"err":"","out":"w 10\nr 1 2 3 4\nr 88 8c 80 84\ns 10100000\n\u0000"}
+{"name":"small-35","mode":"twice","in":"w 10\nc 1 &n0 &n1\n:n0 d 1 1\n:n1","rc":0,"err":"","out":"w 10\nr 40 41 41 42\ns 1\n\u0000"}
+{"name":"small-36","mode":"twice","in":"w 10\nr 1 2 3 4\n:alpha d 8 5\nc 1 &alpha &alpha\n","rc":0,"err":"","out":"w 10\nr 1 2 3 4\ns 10100000\nr 40 41 40 41\n\u0000"}
+{"name":"small-37","mode":"twice","in":"w 10\nc 1 &fwd 2\n:fwd d 1 1\nc 1 &fwd+3 &fwd\n","rc":0,"err":"","out":"w 10\nr 40 41 2 3\ns 1\nr 43 44 40 41\n\u0000"}
+{"name":"small-38","mode":"twice","in":":a:b d 8 5\nc 4 &a &b\nc 1 &c &a\n:c","rc":0,"err":"","out":"s 10100000\nr 0 4 0 4\nr 8 9 0 1\n\u0000"}
+{"name":"name-a","mode":"twice","in":":a d 8 1\nc 1 &a &a+1\n","rc":0,"err":"","out":"s 10000000\nr 0 1 1 2\n\u0000"}
+{"name":"name-ab","mode":"twice","in":":ab d 8 1\nc 1 &ab &ab+1\n","rc":0,"err":"","out":"s 10000000\nr 0 1 1 2\n\u0000"}
+{"name":"name-zzzzzzz","mode":"twice","in":":zzzzzzz d 8 1\nc 1 &zzzzzzz &zzzzzzz+1\n","rc":0,"err":"","out":"s 10000000\nr 0 1 1 2\n\u0000"}
+{"name":"name-zzzzzzzz","mode":"twice","in":":zzzzzzzz d 8 1\nc 1 &zzzzzzzz &zzzzzzzz+1\n","rc":0,"err":"","out":"s 10000000\nr 0 1 1 2\n\u0000"}
+{"name":"name-zzzzzzzzzzzzzz","mode":"twice","in":":zzzzzzzzzzzzzz d 8 1\nc 1 &zzzzzzzzzzzzzz &zzzzzzzzzzzzzz+1\n","rc":0,"err":"","out":"s 10000000\nr 0 1 1 2\n\u0000"}
+{"name":"name-zzzzzzzzzzzzzzz","mode":"twice","in":":zzzzzzzzzzzzzzz d 8 1\nc 1 &zzzzzzzzzzzzzzz &zzzzzzzzzzzzzzz+1\n","rc":0,"err":"","out":"s 10000000\nr 0 1 1 2\n\u0000"}
+{"name":"name-a_1b_2c_3d_4e_5f","mode":"twice","in":":a_1b_2c_3d_4e_5f d 8 1\nc 1 &a_1b_2c_3d_4e_5f &a_1b_2c_3d_4e_5f+1\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"name-xxxxxxxxxxxxxxx","mode":"twice","in":":xxxxxxxxxxxxxxx d 8 1\nc 1 &xxxxxxxxxxxxxxx &xxxxxxxxxxxxxxx+1\n","rc":0,"err":"","out":"s 10000000\nr 0 1 1 2\n\u0000"}
+{"name":"name-label_15_bytes_","mode":"twice","in":":label_15_bytes_ d 8 1\nc 1 &label_15_bytes_ &label_15_bytes_+1\n","rc":0,"err":"","out":"s 10000000\nr 0 1 1 2\n\u0000"}
+{"name":"names-prefixes","mode":"twice","in":":abcdefghijklmno d 8 1\n:bcdefghijklmno d 8 2\n:abcdefghijklmn d 8 3\n:a d 8 4\n:aa d 8 5\n:ba d 8 6\n:b d 8 7\nc 1 &abcdefghijklmno &bcdefghijklmno\nc 1 &abcdefghijklmn &a\nc 1 &aa &ba\nc 1 &b &a\n:x1 :x2 :x3 :xx1\nc 1 &x1 &x2\nc 1 &x3 &xx1\n","rc":0,"err":"","out":"s 10000000\ns 01000000\ns 11000000\ns 00100000\ns 10100000\ns 01100000\ns 11100000\nr 0 1 8 9\nr 10 11 18 19\nr 20 21 28 29\nr 30 31 18 19\nr 38 39 38 39\nr 38 39 38 39\n\u0000"}
+{"name":"longname-bad-0","mode":"twice","in":":abcdefghijklmnop\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"longname-bad-1","mode":"twice","in":"c 1 &abcdefghijklmnop 2\n:abcdefghijklmnop\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"longname-bad-2","mode":"twice","in":":qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"longname-bad-3","mode":"twice","in":"c 1 &qqqqqqqqqqqqqqqqq 2\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-00","mode":"twice","in":"x\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-01","mode":"twice","in":"q","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-02","mode":"twice","in":"1\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-03","mode":"twice","in":"&a\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-04","mode":"twice","in":": \n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-05","mode":"twice","in":"::\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-06","mode":"twice","in":":A\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-07","mode":"twice","in":":\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-08","mode":"twice","in":":a+\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-09","mode":"twice","in":":a-b\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-10","mode":"twice","in":":a.b\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-11","mode":"twice","in":"c 1 2 3 4\n","rc":0,"err":"l2l: bad count\n","out":""}
+{"name":"rejected-12","mode":"twice","in":"c 1 2\n","rc":0,"err":"l2l: bad count\n","out":""}
+{"name":"rejected-13","mode":"twice","in":"c\n","rc":0,"err":"l2l: bad count\n","out":""}
+{"name":"rejected-14","mode":"twice","in":"d 1\n","rc":0,"err":"l2l: bad count\n","out":""}
+{"name":"rejected-15","mode":"twice","in":"w\n","rc":0,"err":"l2l: bad count\n","out":""}
+{"name":"rejected-16","mode":"twice","in":"z 1 2\n","rc":0,"err":"l2l: bad count\n","out":""}
+{"name":"rejected-17","mode":"twice","in":"o 1\n","rc":0,"err":"l2l: bad count\n","out":""}
+{"name":"rejected-18","mode":"twice","in":":a\n:a\n","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"rejected-19","mode":"twice","in":":a :a\n","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"rejected-20","mode":"twice","in":"c 1 &a 2\n","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"rejected-21","mode":"twice","in":":a c 1 &b 2\n","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"rejected-22","mode":"twice","in":"c 1 &A 2\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-23","mode":"twice","in":"c 1 & 2\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-24","mode":"twice","in":"c 1 &\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-25","mode":"twice","in":"c 1 2& 3\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-26","mode":"twice","in":"c 1 2+3 4\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-27","mode":"twice","in":"c 1 +1 2\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-28","mode":"twice","in":":a c 1 &a&a 2\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-29","mode":"twice","in":":a c 1 &a++1 2\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-30","mode":"twice","in":"c 1 g 2\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-31","mode":"twice","in":"c 1 2 3 # x\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-32","mode":"twice","in":":a c 1 &a-b 2\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-33","mode":"twice","in":":a c 1 &a:b 2\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-34","mode":"twice","in":":a c 1 &a#\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-35","mode":"twice","in":"c 1 &a+x 2\n:a\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-36","mode":"twice","in":"c 1 &a &a &a\n:a\n","rc":0,"err":"l2l: bad count\n","out":""}
+{"name":"rejected-37","mode":"twice","in":"c 1 &a\n:a\n","rc":0,"err":"l2l: bad count\n","out":""}
+{"name":"rejected-38","mode":"twice","in":"w 10\nr 1\nc 1 2 3 4\n","rc":0,"err":"l2l: bad count\n","out":""}
+{"name":"rejected-39","mode":"twice","in":"w 10\nr 1 2 3 4\nq\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"rejected-40","mode":"twice","in":":a\n:b\n:a\n","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"rejected-41","mode":"twice","in":"c 1 2 3\n:a\n:a\n","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"rejected-42","mode":"twice","in":"w 10\nr 1 2 3 4\nc 1 &a 2\n","rc":0,"err":"l2l: bad label\n","out":"w 10\nr 1 2 3 4\n"}
+{"name":"rejected-43","mode":"twice","in":"w 10\nr 1 2 3 4\n:a c 1 &a 2\nq\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"two-copies-0","in":":a d 8 1\n:b\n\u0000d 8 1\n:a d 8 1\n:b\n\u0000","rc":0,"err":"l2l: bad label\n","out":"s 10000000\n"}
+{"name":"two-copies-1","in":":a\n\u0000:a\n:b\n\u0000","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"two-copies-2","in":":a :b\n\u0000:a\n\u0000","rc":0,"err":"","out":"\u0000"}
+{"name":"two-copies-3","in":":a d 8 1\n\u0000:a d 8 2\n\u0000","rc":0,"err":"","out":"s 01000000\n\u0000"}
+{"name":"two-copies-4","in":"c 1 &a 2\n:a\n\u0000c 1 &b 2\n:b\n\u0000","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"two-copies-5","in":"d 8 1\n\u0000d 8 2\nd 8 3\n\u0000","rc":0,"err":"","out":"s 01000000\ns 11000000\n\u0000"}
+{"name":"two-copies-6","in":"\u0000c 1 2 3\n\u0000","rc":0,"err":"","out":"r 2 3 3 4\n\u0000"}
+{"name":"two-copies-7","in":"c 1 2 3\n\u0000\u0000","rc":0,"err":"","out":"\u0000"}
+{"name":"two-copies-8","in":":a\n\u0000:a\n:b\n\u0000","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"one-copy","in":"c 1 2 3\n\u0000","rc":0,"err":"","out":"\u0000"}
+{"name":"hash-chain-0","mode":"twice","in":":ab d 1 1\n:cb d 1 1\n:xxab d 1 1\n:yyab d 1 1\n:zzzzzzzzzzzzzab d 1 1\nc 1 &ab &zzzzzzzzzzzzzab\nc 1 &yyab &cb\n","rc":0,"err":"","out":"s 1\ns 1\ns 1\ns 1\ns 1\nr 0 1 4 5\nr 3 4 1 2\n\u0000"}
+{"name":"hash-chain-1","mode":"twice","in":":ab d 1 1\n:cb d 1 1\n:xxab d 1 1\n:yyab d 1 1\n:zzzzzzzzzzzzzab d 1 1\nc 1 &ab &zzzzzzzzzzzzzab\nc 1 &yyab &cb\n:xxab\n","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"hash-chain-2","mode":"twice","in":":ab d 1 1\n:cb d 1 1\n:xxab d 1 1\n:yyab d 1 1\n:zzzzzzzzzzzzzab d 1 1\nc 1 &ab &zzzzzzzzzzzzzab\nc 1 &yyab &cb\nc 1 &aab 1\n","rc":0,"err":"l2l: bad label\n","out":"s 1\ns 1\ns 1\ns 1\ns 1\nr 0 1 4 5\nr 3 4 1 2\n"}
+{"name":"hash-chain-3","mode":"twice","in":":ba d 1 1\n:ae d 1 1\nc 1 &ba &ae\nc 1 &ae &ba\n","rc":0,"err":"","out":"s 1\ns 1\nr 0 1 1 2\nr 1 2 0 1\n\u0000"}
+{"name":"hash-chain-4","mode":"twice","in":":ba d 1 1\n:ae d 1 1\n:ba\n","rc":0,"err":"l2l: bad label\n","out":""}
+{"name":"random-00","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 010 1 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 010 1 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\nr 40 41 43 44\nz 3\nr 4b 4c 0 1\n\u0000"}
+{"name":"random-01","mode":"twice","in":"w 10\n# c\nr 1 2  4\n:alpha  8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-02","mode":"twice","in":"w 1\n0\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alph+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-03","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delca_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\n"}
+{"name":"random-04","mode":"twice","in":"w 10\n# c\nr 1 2+3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"","out":"w 10\n# c\nr 1 2+3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\nr 40 41 43 44\nz 3\nr 4b 4c 0 1\n\u0000"}
+{"name":"random-05","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpaha &deAta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-06","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1_\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-07","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2z 8\nsg0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-08","mode":"twice","in":"w 10\n# c\nr 1 2 3 4a:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:ga\tmma c 1 &alpha &delta_long_name\nz 3\n:delta_long_bame c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-09","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha  8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &dela_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-10","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_lng_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\n"}
+{"name":"random-11","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpa+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_longname c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\n"}
+{"name":"random-12","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &a_lpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-13","mode":"twice","in":"w 10\n# c\nr 1 2 3 4#:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &dela_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4#:alpha d 8 5\nz 8\ns 0101 11\n"}
+{"name":"random-14","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcdep\no\n:gamma c 1 &alpha &delta_&long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-15","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gama\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\nr 40 41 43 44\nz 3\n"}
+{"name":"random-16","mode":"twice","in":"w 10\n# c\nr 1 \t 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"","out":"w 10\n# c\nr 1 \t 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\nr 40 41 43 44\nz 3\nr 4b 4c 0 1\n\u0000"}
+{"name":"random-17","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fcf A1\nd 10 abcle\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-18","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff_fff 1\nd 10 abcde\no\n:gamma c 1 &alphaz&delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-19","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_lo1ng_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-20","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &bdelta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-21","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z  8\ns 0101 11\n  c 4 &alpha+1 &gamma\ncr ff fff 1\nd 1 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-22","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &mlpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\n"}
+{"name":"random-23","mode":"twice","in":"w 10\n# c\nr 1 2 3c4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alphar+1 &gammp\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3c4\ns 10100000\nz 8\ns 0101 11\n"}
+{"name":"random-24","mode":"twice","in":"w 10\n# c\nr1 2 3 4\n:alpha d 8 5\nbeta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_namec 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-25","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alphma d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\n"}
+{"name":"random-26","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:dela_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\n"}
+{"name":"random-27","mode":"twice","in":"w 10\np# c\nr 1 2 3 4\n:alpha d 8 5\n:beta2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-28","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\n_ 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-29","mode":"twice","in":"w 10\n# c\nn 1 2 3 4\n:alpha d8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-30","mode":"twice","in":"w 10\n# c\nr 1 2 3 4x\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_namwe\nz 3\n:delta_long_name c 1 &beta_#+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-31","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gahmma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\n"}
+{"name":"random-32","mode":"twice","in":"wx 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 nalpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-33","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4: &alpha+1 &gamma\nc ff fff 1\nd 10 abxcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-34","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_longname\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\n"}
+{"name":"random-35","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alaha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\n"}
+{"name":"random-36","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:g#mma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\n"}
+{"name":"random-37","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha#+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-38","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff qfff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_lonA_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-39","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 010 11\n  c 4 &alpha+1&gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1&beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-40","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpa+1 &gmma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\n"}
+{"name":"random-41","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\nAgamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-42","mode":"twice","in":"w 1a\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"","out":"w 1a\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 69 6d 0 4\nr fff 10fe 1 100\ns 0111101100111101\nr 68 69 6b 6c\nz 3\nr 73 74 0 1\n\u0000"}
+{"name":"random-43","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamaa\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpAha &delta_lon1_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-44","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\nr 40 41 43 44\nz 3\nr 4b 4c 0 1\n\u0000"}
+{"name":"random-45","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alph d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long\t_name\nz 3\n:delta_long_nam:e c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-46","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 01 1 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:zelta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 01 1 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\n"}
+{"name":"random-47","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\ng ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-48","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:lalpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\n"}
+{"name":"random-49","mode":"twice","in":"w 10\n# c\nr 1 2 3Z4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_ong_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3Z4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\n"}
+{"name":"random-50","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 bcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta#long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\n"}
+{"name":"random-51","mode":"twice","in":"w 10\n# c\nr 1h 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1d &alpha &delta_long_name\nz 3\n:delta_long_nane c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1h 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\n"}
+{"name":"random-52","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\nr 40 41 43 44\nz 3\nr 4b 4c 0 1\n\u0000"}
+{"name":"random-53","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+g1 &gama\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_nase\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-54","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\n ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_ong_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-55","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\nAgamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-56","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:d1lta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad label\n","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\n"}
+{"name":"random-57","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamm:\nc ff fff 1\nd 10 abcde\no\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-58","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\nao\n:gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"l2l: bad text\n","out":""}
+{"name":"random-59","mode":"twice","in":"w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n:gamma c01 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n","rc":0,"err":"","out":"w 10\n# c\nr 1 2 3 4\ns 10100000\nz 8\ns 0101 11\nr 41 45 0 4\nr fff 10fe 1 100\ns 0111101100111101\nr 40 41 43 44\nz 3\nr 4b 4c 0 1\n\u0000"}
+{"name":"hello_names.l2","mode":"twice","in":"# hello_names (23.9, part 1): the program hello.l2 with names of labels (tower/l2ltext.py) in place of one letter, and a reference\n# forward: the jump of layer 0 names layer 1, which comes after it. The tool l2l reads this text twice (the first pass finds the\n# labels) and gives the text of language 1 which l2c gives for hello.l2: the same image (A = 10, prints \"Hi\" and a line break).\nw a\n# the boot packet: slot 0 copies the rest of the image (1c0 bits) over the snapshot, three slots are empty\nr 0 1c0 3fb 3fb\nz 78\no\n# layer 0 at 0: the jump copies layer 1 (a0 bits at d0) over the processor; layer 1 is defined below\n:layer_0 c a0 0 &layer_1\nz 78\n# the data (a0 = 160): the buffer and the bytes H, i and a line break (every bit of a byte in the order of the stream)\n:buffer d 18 0\n:byte_h d 8 12\n:byte_i d 8 96\n:byte_nl d 8 50\n# layer 1: three copies into the buffer, then the jump to layer 2\n:layer_1\nc 8 &buffer &byte_h\nc 8 &buffer+8 &byte_i\nc 8 &buffer+10 &byte_nl\nc a0 0 &layer_2\n# layer 2: the buffer goes to stdout, then the jump copies a layer of NOPs (50 bits after the end of the image): halt\n:layer_2\nr 3fc 3fc a0 b8\nc a0 0 &image_end+50\n:image_end\n","rc":0,"err":"","out":"# hello_names (23.9, part 1): the program hello.l2 with names of labels (tower/l2ltext.py) in place of one letter, and a reference\n# forward: the jump of layer 0 names layer 1, which comes after it. The tool l2l reads this text twice (the first pass finds the\n# labels) and gives the text of language 1 which l2c gives for hello.l2: the same image (A = 10, prints \"Hi\" and a line break).\nw a\n# the boot packet: slot 0 copies the rest of the image (1c0 bits) over the snapshot, three slots are empty\nr 0 1c0 3fb 3fb\nz 78\n# layer 0 at 0: the jump copies layer 1 (a0 bits at d0) over the processor; layer 1 is defined below\nr 0 a0 d0 170\nz 78\n# the data (a0 = 160): the buffer and the bytes H, i and a line break (every bit of a byte in the order of the stream)\ns 000000000000000000000000\ns 01001000\ns 01101001\ns 00001010\n# layer 1: three copies into the buffer, then the jump to layer 2\nr a0 a8 b8 c0\nr a8 b0 c0 c8\nr b0 b8 c8 d0\nr 0 a0 170 210\n# layer 2: the buffer goes to stdout, then the jump copies a layer of NOPs (50 bits after the end of the image): halt\nr 3fc 3fc a0 b8\nr 0 a0 210 2b0\n\u0000"}
+{"name":"l2l.l2","mode":"twice","file":"programs/l2l.l2","rc":0,"err":"","len":67363,"sha":"4ab54ea180dba2946908ca46c5f2a8ddda6421256d09a1f5de5207f5c05e3500","long":true}
+{"name":"labels-1024","mode":"twice","file":"in/l2l-labels-1024.txt","rc":0,"err":"","len":4145,"sha":"a1b50ade131319381b0e568a4f6c250ec160fa3a79eb3b91515bee025b9f5198"}
+{"name":"labels-1025","mode":"twice","file":"in/l2l-labels-1025.txt","rc":0,"err":"l2l: bad label\n","out":""}

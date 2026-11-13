@@ -101,7 +101,7 @@ class Seed(unittest.TestCase):
 
     def test_programs(self):
         """The image the chain makes from the text of a program is the image the Python compiler made."""
-        for name in ('add', 'branch', 'calls', 'echo', 'fib', 'array', 'arith8', 'long_cat', 'and_hex'):
+        for name in ('add', 'branch', 'calls', 'echo', 'array', 'arith8', 'long_cat', 'and_hex'):
             with self.subTest(name):
                 p = compiled(name)
                 r = self.encoder(l1text.program_text(p))

@@ -28,6 +28,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
 import common
+import l3
 import l3ctext
 import l5
 import text
@@ -393,6 +394,59 @@ def far(byte):
 def far_text(n, put):
     """A text of language 4 with one far copy of n bits from or to the byte 3 (the cell x of n bits)."""
     return ':x data %d 0\n:main block\n%s\nhalt\n' % (n, ('copy %s &x' if put else 'copy &x %s') % far(3))
+
+
+class ChannelOrder(unittest.TestCase):
+    """28.2 (the finding of 26.3): the accesses to channels in one block keep the order of the text. The request (two `emit`) and the read of the answer
+    (`key`) are in one block; the layout used to lift the `key` over the second `emit` (no data connects them), and an answerer which waits for the whole
+    request never answered: a deadlock. The three ways to the image: the Python compiler (l3.py, the smallest A), the chain serial and the chain packed (l3p)."""
+
+    SRC = ':a data 8 65\n:b data 8 66\n:g data 8 255\n:main block\nemit &a\nemit &b\nkey &g\nwarn &g\nhalt\n'
+    ANSWER = b'\x55'
+
+    def images(self):
+        p, errs = text.compile_text(self.SRC)
+        self.assertEqual(errs, [])
+        _CACHE['order_py'] = p.stats
+        chain_program('order_serial', self.SRC)
+        chain_program('order_packed', self.SRC, pack=True)
+        return ['order_py', 'order_serial', 'order_packed']
+
+    def test_the_layers_of_the_python_compiler_are_in_the_order_of_the_text(self):
+        p, _ = text.compile_text(self.SRC)
+        b = p.blocks['main']
+        _, at = l3.schedule(b.ops, p.serial, p.direct)
+        self.assertEqual(len(at), 4)
+        self.assertEqual(at, sorted(set(at)), 'emit, emit, key, warn: one layer after the other')
+
+    def serve(self, proc, got):
+        """The answerer: the answer comes only after both bytes of the request."""
+        got.append(proc.stdout.read(2))
+        proc.stdin.write(self.ANSWER)
+        proc.stdin.close()
+
+    def test_the_answerer_which_waits_for_the_whole_request_answers(self):
+        for name in self.images():
+            with self.subTest(name):
+                st = program(name)
+                proc = subprocess.Popen(command(name), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc.stdin.write(st['image'])
+                proc.stdin.flush()
+                got = []
+                th = threading.Thread(target=self.serve, args=(proc, got), daemon=True)
+                th.start()
+                timer = threading.Timer(TIMEOUT, proc.kill)      # a deadlock is killed by the timer
+                timer.start()
+                try:
+                    err = proc.stderr.read()
+                    rc = proc.wait()
+                finally:
+                    timer.cancel()
+                    proc.kill()
+                    th.join(1)
+                    proc.stdout.close()
+                    proc.stderr.close()
+                self.assertEqual((rc, got, err), (0, [bytes([rev(65, 8), rev(66, 8)])], self.ANSWER), 'a deadlock is a kill, not 0')
 
 
 class FarCopy(unittest.TestCase):

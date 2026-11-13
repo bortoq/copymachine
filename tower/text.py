@@ -9,7 +9,7 @@ is turned into calls of the constructors of the same languages (Parsed.build), w
 (the names are only here: the image has none). The words:
   2 (copy, data): data copy shl shr
   3 (tables, blocks, library): table array lut store block word goto if call ret halt emit warn key
-    add sub band lt eq stack push pop rec
+    add sub band lt eq
   4 (the host): no word of its own: `copy` may have the address of the host, a number 0x1... (2^128 + the position area * 2^96 + bit)
 Run: python3 -m tower.text [-l LEVEL] < prog.tw > image   (A and P of the image go to stderr)."""
 import os
@@ -24,14 +24,13 @@ from common import bytes_value, rev
 
 TOKEN = re.compile(r'''\s+|#[^\n]*|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|\S+)''')
 NAME = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
-RESERVED = re.compile(r'(add4|sub4|and4|lt4c|eq4c|hex4|dec\d+|inc\d+_\d|dec\d+_\d|if\d+|zero)\Z')
+RESERVED = re.compile(r'(add4|sub4|and4|lt4c|eq4c|hex4|dec\d+|if\d+|zero)\Z')
 HOST = re.compile(r'0x([0-9a-fA-F]+)\Z')            # the address of the host: 2^128 + the position (the area in the top 32 bits, the bit in the area)
 REF = re.compile(r'&([A-Za-z_][A-Za-z0-9_]*)(?:\[(\d+)(?::(\d+))?\])?\Z')
 ESC = {'n': 10, 't': 9, 'r': 13, '0': 0, '\\': 92, '"': 34, "'": 39}
 Tok = namedtuple('Tok', 'text line col')
 Tab = namedtuple('Tab', 'name ins out array')            # a table which lut and store can use
-Stk = namedtuple('Stk', 'k w')                           # a stack: pointer bits, entry bits (0: a link)
-Lab = namedtuple('Lab', 'kind bits tab stk')
+Lab = namedtuple('Lab', 'kind bits tab')
 Rf = namedtuple('Rf', 'name lo hi')
 Hs = namedtuple('Hs', 'pos')                             # the address of the host in a copy
 
@@ -103,8 +102,8 @@ class Parser:
         self.level, self.errors, self.steps = level, [], []
         self.toks = list(tokens(text))
         self.defined = {t.text[1:] for t in self.toks if t.text[0] == ':'}
-        self.labels, self.pending, self.cur = {'zero': Lab('data', 1, None, None)}, None, None   # cur: [name, word, ended]
-        self.touched, self.recs, self.uses = set(), set(), []      # words used (rec must come first)
+        self.labels, self.pending, self.cur = {'zero': Lab('data', 1, None)}, None, None   # cur: [name, word, ended]
+        self.uses = []
         self.hosts = 0                                             # the copies with the address of the host
 
     def err(self, t, msg):
@@ -122,8 +121,6 @@ class Parser:
         if k[0] in ('val', 'tval'):
             return self.value(k[0], t, args)
         if k[0] == 'wid':
-            if s == 'link':
-                return 0, None
             return self.arg('num:1:64', t, args)
         if k[0] == 'adr':
             if s[:2] == '0x':
@@ -139,7 +136,7 @@ class Parser:
         if not m:
             return None, 'a reference &name expected, found %s' % s
         name = m.group(1)
-        lab = self.labels.get(name) or (Lab('table', 0, builtin(name), None) if builtin(name) else None)
+        lab = self.labels.get(name) or (Lab('table', 0, builtin(name)) if builtin(name) else None)
         if k[0] in ('blk', 'wrd'):
             if m.group(2):
                 return None, 'a label of a block expected, found %s' % s
@@ -156,9 +153,9 @@ class Parser:
             if not 0 <= lo < hi <= lab.bits:
                 return None, 'part [%d:%d] is outside &%s (%d bits)' % (lo, hi, name, lab.bits)
             return Rf(name, lo, hi), None
-        if m.group(2) or lab.kind not in (('table', 'array') if k[0] == 'tab' else ('stack',)):
-            return None, '&%s is a %s, not a %s' % (name, lab.kind, 'table' if k[0] == 'tab' else 'stack')
-        return (lab.tab if k[0] == 'tab' else (name, lab.stk)), None
+        if m.group(2) or lab.kind not in ('table', 'array'):
+            return None, '&%s is a %s, not a table' % (name, lab.kind)
+        return lab.tab, None
 
     def value(self, kind, t, args):
         s = t.text
@@ -206,7 +203,7 @@ class Parser:
                 kind = w[1](args)
                 if kind is None:
                     break
-                if i >= n or wordlike(toks[i]) and not (kind == 'wid' and toks[i].text == 'link'):
+                if i >= n or wordlike(toks[i]):
                     self.err(t, 'missing argument %d of %s (%s expected)' % (len(args) + 1, t.text, kind.split(':')[0].replace('adr', 'ref')))
                     ok = False
                     break
@@ -242,8 +239,8 @@ class Parser:
             self.errors.append('end: the program has no block')
 
     # --- helpers of the words
-    def define(self, t, kind, bits=0, tab=None, stk=None):
-        """tab, stk: functions of the name."""
+    def define(self, t, kind, bits=0, tab=None):
+        """tab: a function of the name."""
         """The label before the word (every defining word needs one)."""
         lab, self.pending = self.pending, None
         if lab is None:
@@ -253,7 +250,7 @@ class Parser:
         if name in self.labels or builtin(name) or RESERVED.match(name):
             self.err(lab, 'label %s is %s' % (lab.text, 'reserved' if RESERVED.match(name) else 'repeated'))
             return None
-        self.labels[name] = Lab(kind, bits, tab and tab(name), stk and stk(name))
+        self.labels[name] = Lab(kind, bits, tab and tab(name))
         return name
 
     def plain(self, t):
@@ -319,12 +316,6 @@ def w_array(c, t, a):
     name = c.define(t, 'array', tab=lambda n: Tab(n, (a[0],), a[1], True))
     if name:
         c.steps.append(lambda p, e: e.__setitem__(name, p.array(name, (a[0],), a[1])))
-
-
-def w_stack(c, t, a):
-    name = c.define(t, 'stack', stk=lambda n: Stk(*a))
-    if name:
-        c.steps.append(lambda p, e: e.__setitem__(name, p.stack(name, a[0], a[1] or 2 * p.A)))
 
 
 def w_copy(c, t, a):
@@ -399,7 +390,6 @@ def w_block(c, t, a):
 def w_word(c, t, a):
     name = c.enter(t, True)
     if name:
-        c.touched.add(name)
         c.steps.append(lambda p, e: p.word(name))
 
 
@@ -436,32 +426,8 @@ def w_if(c, t, a):
 
 def w_call(c, t, a):
     if c.inblock(t):
-        c.touched.add(a[0])
         end(c, t)
         c.steps.append(lambda p, e: p.call(a[0], a[1]))
-
-
-def w_rec(c, t, a):
-    c.plain(t)
-    word, (sname, stk) = a
-    if stk.w:
-        c.err(t, 'rec: &%s is not a stack of links (stack K link)' % sname)
-    if word in c.touched or word in c.recs:
-        c.err(t, 'rec: the word %s is used before this rec' % word)
-    c.recs.add(word)
-    c.steps.append(lambda p, e: p.rec(word, e[sname]))
-
-
-def w_push(c, t, a):
-    if c.inblock(t):
-        (sname, stk), r = a
-        if not stk.w:
-            c.err(t, '%s: &%s is a stack of links, used by rec only' % (t.text, sname))
-        else:
-            c.width(t, r, stk.w, '%s &%s' % (t.text, sname))
-        if t.text == 'pop':
-            c.write(t, r)
-        c.steps.append(lambda p, e: (p.push if t.text == 'push' else p.pop)(e[sname], R(r)(e)))
 
 
 def lib(op):
@@ -513,10 +479,6 @@ WORDS = {
     'emit': (3, fixed('ref'), w_emit),
     'warn': (3, fixed('ref'), w_warn),
     'key': (3, fixed('ref'), w_key),
-    'stack': (3, fixed('num:1:8', 'wid'), w_stack),
-    'push': (3, fixed('stk', 'ref'), w_push),
-    'pop': (3, fixed('stk', 'ref'), w_push),
-    'rec': (3, fixed('wrd', 'stk'), w_rec),
 }
 for _op in ('add', 'sub', 'band', 'lt', 'eq'):
     WORDS[_op] = (3, fixed('ref', 'ref', 'ref'), lib(_op))

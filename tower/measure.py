@@ -27,7 +27,6 @@ PROGS = [
     ('sub eq shl shr 8-bit (stdin)', progs.arith(8, 3, 5), common.stream(200, 8) + common.stream(77, 8)),
     ('sub eq shl shr 16-bit (stdin)', progs.arith(16, 7, 9), common.stream(40000, 16) + common.stream(1234, 16)),
     ('echo, 13 bytes (stdin)', progs.echo(), b'hello, world\n\x00'),
-    ('fib(10) recursion (stdin)', progs.fib(), common.stream(10, 8)),
 ]
 
 
@@ -148,9 +147,6 @@ def main_price():
         ('lib', 'band 8 bits', minimal(lambda p: p.band(p.var('a', 8), p.var('b', 8), p.var('r', 8)))),
         ('lib', 'lt 8 bits', minimal(lambda p: p.lt(p.var('a', 8), p.var('b', 8), p.var('c', 3)))),
         ('lib', 'eq 8 bits', minimal(lambda p: p.eq(p.var('a', 8), p.var('b', 8), p.var('c', 2)))),
-        ('lib', 'push', tp.CONSTRUCTS['push'][0]),
-        ('lib', 'pop', tp.CONSTRUCTS['pop'][0]),
-        ('lib', 'rec: call + ret (recursive word)', tp.call_prog(True)),
         ('4', 'long! 48 bits', tp.CONSTRUCTS['long! 48'][0]),
         ('4', 'long@ 48 bits (buffer)', tp.CONSTRUCTS['long@ 48 (buffer)'][0]),
         ('4', 'long@ 128 bits (direct)', tp.CONSTRUCTS['long@ 128 (direct)'][0]),
@@ -206,7 +202,7 @@ def main_text():
 
 def progs_by_name():
     return {'add', 'branch', 'loop_digits', 'loop_sum', 'calls', 'and_hex', 'add16_hex', 'array', 'arith8', 'arith16',
-            'echo', 'fib', 'long_rw', 'long_read', 'long_clock', 'long_cat'}
+            'echo', 'long_rw', 'long_read', 'long_clock', 'long_cat'}
 
 
 main()
