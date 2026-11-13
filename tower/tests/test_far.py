@@ -7,6 +7,8 @@ is the stdin of the other (the image of the program goes first, then the stream)
   far_get.tw            the asker: sends get/put by hand, keeps the answers in its cells, sends op = 0, prints the cells to stderr;
   far_copy.tw           26.4, the asker in language 4: `copy &x 0x2...` and `copy 0x2... &x` (the pass l4c makes the requests), built by the chain;
   far_file_a.tw, far_file_b.tw   26.5, the common file `-r path` as the second definition of the same copy: A writes the data and the flag, B polls the flag and reads;
+  far_copy_ck.tw, far_copy_file_w.tw, far_copy_file_r.tw   25.8 (7.2.46): the link of the far address chooses the definition: 0 the channel (far_copy.tw), 1 the channel with the check
+                        and the repeat (the answerer is far_serve_ck.tw), 2 the common file; the pass l4c makes the three of one `copy` (the link 1 and 2 programs in language 4)
   far_serve_ck.tw, far_get_ck.tw 26.6, the checked protocol (record of 7 bytes with the sum, answer of 2 bytes: the value and its complement, repeat of the request,
                         the prohibitive price when the tries are out); a go-between of this file (Mediator) changes given bytes of the traffic.
 The pair tests connect the processes by os.pipe (the pairs are created here and given to subprocess.Popen) with a timeout: a blocking read is not
@@ -502,9 +504,9 @@ class FarCopy(unittest.TestCase):
         self.assertEqual(l5.chain_image(out.out[:-1].decode('latin-1'))[0], program(self.names[False])['image'])
 
     def test_the_forms_which_are_not_translated(self):
-        """The far address which is not as told stays in the text as it was (l3c rejects it): the link is not 0, the position is not a multiple of 8 or over 2^32 bits,
+        """The far address which is not as told stays in the text as it was (l3c rejects it): the link is not 0, 1 or 2, the position is not a multiple of 8 or over 2^32 bits,
         the width is not 8..64 whole bytes."""
-        for tail in ('0x2%032x' % (1 << 96), '0x2%032x' % 4, '0x2%032x' % (1 << 32)):
+        for tail in ('0x2%032x' % (3 << 96), '0x2%032x' % 4, '0x2%032x' % (1 << 32)):
             out = l3ctext.l4c((':x data 8 0\n:main block\ncopy &x %s\n' % tail).encode() + b'\0')[0]
             self.assertTrue(out.endswith(('copy &x %s\n' % tail).encode() + b'\0'), (tail, out[-60:]))
             self.assertIsNotNone(l3ctext.encode(out[:-1])[1], tail)
@@ -1019,6 +1021,351 @@ class CheckedChannel(unittest.TestCase):
         self.assertTrue(all(10 < v < 400 for v in ck.values()), ck)
         self.assertGreater(ck['get'], old['get'])
         self.assertGreater(ck['put'], old['put'])
+
+
+# ---------------------------------------------------------------- 25.8: the link of the far address chooses the definition (7.2.46)
+
+def far_at(link, byte):
+    """The far address with the link `link` and the byte number `byte` (the position in bits is 8 * byte): 0x2 and 32 hex digits."""
+    return '0x2%032x' % (link << 96 | 8 * byte)
+
+
+def link_text(n, put, link, byte=3):
+    """A text of language 4 with one far copy of n bits of the cell x from or to the byte `byte` of the link `link`."""
+    return ':x data %d 0\n:main block\n%s\nhalt\n' % (n, ('copy %s &x' if put else 'copy &x %s') % far_at(link, byte))
+
+
+def chain_program3(name, src3):
+    """A text of language 3 (the output of the pass l4c, or changed) built by the chain without the pass."""
+    img, P = l5.chain_image(src3, False)
+    _CACHE[name] = {'image': img, 'A': 20, 'P': P}
+    return name
+
+
+LIMIT_LINE = 'copy &l4q[476:480] &l4n0[16:20]\n'          # in the word l4fget: the limit of the failed polls, 4 * 2^16 = 2^18
+
+
+def limited(src4, polls16, pack=False):
+    """The chain image of a text of language 4 with the limit of the failed polls of l4fget changed to 16 * polls16 (a nibble of the second place; the text is changed after the
+    pass: the limit is a line of the word)."""
+    out = l3ctext.l4c(('pack\n' if pack else '').encode() + src4.encode() + b'\0')[0][:-1].decode('latin-1')
+    assert out.count(LIMIT_LINE) == 1
+    out = out.replace(LIMIT_LINE, 'copy &l4q[464:468] %s\n' % l3ctext._nib(polls16))
+    return chain_program3('limited:%d:%s:%s' % (polls16, pack, src4), out)
+
+
+CK_FAR = os.path.join(PROGRAMS, 'far_copy_ck.tw')
+CKC_CELLS = b'COPY' + b'P' + b'OK' + ONES + b'KH' + ONES * 2 + b'Y'          # what far_copy_ck.tw puts to stderr: w4 x1 y2 o1 t4 z1 (13 bytes)
+O_, K_ = rev(ord('O'), 8), rev(ord('K'), 8)                                       # the data of a put is the byte as it stands in memory (the number is its reversal)
+CKC_OPS = ([(GET, i, 0) for i in range(4)] + [(GET, 2, 0), (PUT, 5, O_), (PUT, 6, K_), (GET, 5, 0), (GET, 6, 0), (GET, 8, 0)] + [(GET, 6 + i, 0) for i in range(4)]
+          + [(PUT, 8, O_), (GET, 3, 0)])                                           # the requests which far_copy_ck.tw makes, in order (then the stop)
+CKC_ASKED = b''.join(rec_ck(*o) for o in CKC_OPS) + rec_ck(STOP, 0)
+CKC_ANSWERS = model_ck(WINDOW, [(*o, ck_sum(*o)) for o in CKC_OPS])[0]
+
+
+class LinkOneCopy(unittest.TestCase):
+    """The link 1: `copy &x 0x2...` and `copy 0x2... &x` with the link 1 are the protocol of far_serve_ck.tw (record of 7 bytes with the sum, answer of 2 bytes, the repeat up to 4
+    tries, ones when they are out). far_copy_ck.tw is built by the chain (the pass l4c, the word l4ask at the end) and runs against the answerer far_serve_ck.tw, which is not changed."""
+
+    @classmethod
+    def setUpClass(cls):
+        with open(CK_FAR, encoding='utf-8') as h:
+            cls.src = h.read()
+        cls.names = {}
+        for pack in (False, True):
+            cls.names[pack] = 'far_copy_ck:' + ('pack' if pack else 'serial')
+            chain_program(cls.names[pack], cls.src, pack)
+
+    def test_the_requests_are_the_records(self):
+        """The asker alone (the answers are the test's): its stdout is the records of one byte per request with the sum, both layouts; the cells are what the answers say."""
+        self.assertEqual(len(CKC_OPS), 16)
+        for pack in (False, True):
+            with self.subTest(pack=pack):
+                rc, out, err = single_err(self.names[pack], CKC_ANSWERS)
+                self.assertEqual((rc, out, err), (0, CKC_ASKED, CKC_CELLS))
+
+    def test_a_closed_channel(self):
+        """No answer at all (EOF): every request goes 4 times, every cell that is read is ones, the stop goes, the asker ends and does not hang."""
+        rc, out, err = single_err(self.names[False], b'')
+        self.assertEqual((rc, err), (0, ONES * 13))
+        self.assertEqual(out, b''.join(rec_ck(*o) * 4 for o in CKC_OPS) + rec_ck(STOP, 0))
+
+    def test_pair(self):
+        """The asker and far_serve_ck: the cells are right, put changes the window, outside it is ones; both end; both layouts."""
+        for pack in (False, True):
+            with self.subTest(pack=pack):
+                (rr, qr), _, _ = run_pair(self.names[pack], serve='far_serve_ck')
+                self.assertEqual(rr, (0, b''), 'the answerer stops by the stop record')
+                self.assertEqual(qr, (0, CKC_CELLS))
+
+    def test_8_and_32_bits_put_and_get(self):
+        """A put and a get of 8 and of 32 bits at the byte 3: n/8 records, one per byte; put 32 bits then get them back through the answerer is what was put."""
+        for n in (8, 32, 16, 64):
+            for put in (False, True):
+                with self.subTest(n=n, put=put):
+                    name = chain_text(link_text(n, put, 1))
+                    ops = [(PUT if put else GET, 3 + i, 0) for i in range(n // 8)]
+                    rc, out, err = single_err(name, pair(0xaa) * (n // 8))
+                    self.assertEqual((rc, err), (0, b''))
+                    if not put:
+                        self.assertEqual(out, b''.join(rec_ck(*o) for o in ops))
+                    else:                                                      # the data are the bytes of x (zeros here): dat 0
+                        self.assertEqual(out, b''.join(rec_ck(PUT, 3 + i, 0) for i in range(n // 8)))
+        rt = ':x data 24 "xyz"\n:y data 24 0\n:main block\ncopy %s &x\ncopy &y %s\nwarn &y\nhalt\n' % (far_at(1, 2), far_at(1, 2))           # 3 cells through the window
+        (rr, qr), _, _ = run_pair(chain_text(rt), serve='far_serve_ck')
+        self.assertEqual((rr, qr), ((0, b''), (0, b'xyz')))
+
+    # the faults of the channel: the numbers of the bytes of the streams as in CheckedChannel (7 * the attempt + the field for the requests, 2 * the attempt + 0, 1 for the answers)
+    def run3(self, req=None, ans=None, pack=False):
+        return run_mediated(plan_fault(req or {}), plan_fault(ans or {}), asker=self.names[pack], serve='far_serve_ck')
+
+    def test_no_faults_the_same_as_before(self):
+        r, q, nreq, nans = self.run3()
+        self.assertEqual((r, q), ((0, b''), (0, CKC_CELLS)))
+        self.assertEqual((nreq, nans), (len(CKC_ASKED), len(CKC_ANSWERS)), 'every request once')
+
+    def test_one_spoiled_answer_the_copy_is_right_by_the_repeat(self):
+        for k in range(len(CKC_OPS)):
+            for byte in (0, 1):
+                with self.subTest(request=k, byte=byte):
+                    r, q, nreq, nans = self.run3(ans={2 * k + byte: 0x5a})
+                    self.assertEqual((r, q), ((0, b''), (0, CKC_CELLS)), 'the cells as with no fault')
+                    self.assertEqual((nreq, nans), (len(CKC_ASKED) + 7, len(CKC_ANSWERS) + 2), 'one more attempt')
+
+    def test_one_spoiled_request_the_copy_is_right_by_the_repeat(self):
+        """Every field of the request of a get (0), of a put (5) and of a get after it (7): the answerer does not do it (the sum), the asker repeats."""
+        for k in (0, 5, 7):
+            for byte in range(7):
+                for mask in (1, 0x80):
+                    with self.subTest(request=k, byte=byte, mask=mask):
+                        r, q, nreq, nans = self.run3(req={7 * k + byte: mask}, pack=bool(byte & 1))
+                        self.assertEqual((r, q), ((0, b''), (0, CKC_CELLS)))
+                        self.assertEqual((nreq, nans), (len(CKC_ASKED) + 7, len(CKC_ANSWERS) + 2))
+
+    def test_all_the_tries_spoiled_ones_and_the_program_goes_on(self):
+        """The answers of the 4 tries of the first get are spoiled: the first cell byte is ones, the next requests are right; everything spoiled: all that is read is ones."""
+        r, q, nreq, nans = self.run3(ans={2 * a: 0x11 for a in range(4)})
+        self.assertEqual((r, q), ((0, b''), (0, ONES + CKC_CELLS[1:])))
+        self.assertEqual((nreq, nans), (len(CKC_ASKED) + 3 * 7, len(CKC_ANSWERS) + 3 * 2))
+        r, q, nreq, nans = self.run3(ans={2 * a: 0x24 for a in range(200)})
+        self.assertEqual((r, q), ((0, b''), (0, ONES * 13)))
+        self.assertEqual((nreq, nans), (7 * 4 * len(CKC_OPS) + 7, 2 * 4 * len(CKC_OPS)))
+
+    def test_random_faults_never_a_wrong_cell(self):
+        """Seeded plans: a cell is the right one or ones (the cells of a put can also keep the old byte of the window); some repeats did happen; the pair always ends."""
+        repeats = 0
+        for seed in range(1, 7):
+            req, ans = random_plan(seed, 0.3, 7, 100), random_plan(seed + 100, 0.3, 2, 100)
+            with self.subTest(seed=seed):
+                r, q, nreq, nans = self.run3(req, ans, pack=bool(seed & 1))
+                self.assertEqual((r[0], q[0]), (0, 0))
+                self.assertEqual(len(q[1]), 13)
+                for i, c in enumerate(q[1]):
+                    self.assertIn(c, {CKC_CELLS[i], ONES[0]} | set(WINDOW), 'the cell %d: %r' % (i, q[1]))
+                repeats += (nreq - len(CKC_ASKED)) // 7
+        self.assertGreater(repeats, 5)
+
+    def test_the_answerer_is_cut_midway(self):
+        """The answerer is cut by the limit of ticks: the asker gets EOF, repeats its tries to the end and puts ones; it ends. The cells are right up to the cut and ones after it."""
+        (rr, qr), _, _ = run_pair(self.names[False], serve_limit=300, serve='far_serve_ck')
+        self.assertEqual((rr[0], qr[0]), (0, 0))
+        self.assertEqual(len(qr[1]), 13)
+        for i, c in enumerate(qr[1]):
+            self.assertIn(c, (CKC_CELLS[i], ONES[0]))
+        self.assertEqual(qr[1][-1:], ONES)
+
+    def test_the_word_is_one_and_the_sites_are_short(self):
+        """One word l4ask for the whole program (not per byte): the text of the pass has it once and a site is a few lines."""
+        out = l3ctext.l4c(self.src.encode() + b'\0')[0]
+        self.assertEqual((out.count(b':l4ask word'), out.count(b'\n:l4f')), (1, len(CKC_OPS)))
+
+
+FILE_PATHS = ((0, 4, b'FILE'), (3, 1, b'B'), (8, 8, b'COPYMACH'))            # the cells of far_copy_file_w.tw: (the byte number, the bytes, the data)
+
+
+def file_cell_image():
+    """The file after far_copy_file_w.tw: the cell of the byte p is at the byte 16 p of the file: the data, and at its byte 8 the flag (the bit 64 of the cell, 4 bits, the value 1)."""
+    f = bytearray(137)
+    for p, n, data in FILE_PATHS:
+        f[16 * p:16 * p + n] = data
+        f[16 * p + 8] = FILE_FLAG[0]
+    return bytes(f)
+
+
+class LinkTwoCopy(unittest.TestCase):
+    """The link 2: the common file `-r path`, the same file for the two spaces. The position names a cell of 128 bits at the bit 16 P (P in bits, a multiple of 8): the data (at most 64
+    bits) at the start, the flag of readiness at the bit 64. A put is the long copy of the data and then the flag (a copy of its own, after a tick boundary); a get polls the flag (up to
+    2^18 failed polls) and only then reads the data; no flag: ones. A cell is written once (the file is zero at the start). The programs of language 4: far_copy_file_w.tw, far_copy_file_r.tw."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.keys = {}
+        for nm in ('w', 'r'):
+            with open(os.path.join(PROGRAMS, 'far_copy_file_%s.tw' % nm), encoding='utf-8') as h:
+                src = h.read()
+            for pack in (False, True):
+                cls.keys[nm, pack] = 'far_copy_file_%s:%s' % (nm, 'pack' if pack else 'serial')
+                chain_program(cls.keys[nm, pack], src, pack)
+
+    def setUp(self):
+        d = tempfile.mkdtemp(prefix='tower-far-link2-')
+        self.addCleanup(shutil.rmtree, d, True)
+        self.path = os.path.join(d, 'common.bin')
+        with open(self.path, 'wb') as h:
+            h.write(b'')
+
+    def start(self, key, limit=0):
+        p = file_start(key, self.path, limit)
+        self.addCleanup(file_kill, p)
+        return p
+
+    def read_file(self):
+        with open(self.path, 'rb') as h:
+            return h.read()
+
+    def test_the_writer_alone_writes_the_cells_and_the_flags(self):
+        for pack in (False, True):
+            with self.subTest(pack=pack):
+                with open(self.path, 'wb') as h:
+                    h.write(b'')
+                r = file_single(self.keys['w', pack], self.path)
+                self.assertEqual((r.rc, r.out), (0, b''))
+                self.assertEqual(self.read_file(), file_cell_image(), 'the data of every cell at its start, the flag after it')
+
+    def test_the_reader_after_the_writer(self):
+        for pack in (False, True):
+            with self.subTest(pack=pack):
+                with open(self.path, 'wb') as h:
+                    h.write(b'')
+                file_end(self.start(self.keys['w', pack]))
+                rc, err = file_end(self.start(self.keys['r', pack]))
+                self.assertEqual((rc, err), (0, b'FILE' + b'B' + b'COPYMACH'))
+
+    def test_the_reader_waits_for_the_writer(self):
+        """The reader first: it polls (the flag is 0), the data in the file are old ones; the writer comes later and the reader has the NEW data, never the old ones."""
+        for pack in (False, True):
+            with self.subTest(pack=pack):
+                with open(self.path, 'wb') as h:
+                    h.write(b'')
+                r = self.start(self.keys['r', pack])
+                time.sleep(0.4)
+                self.assertIsNone(r.poll(), 'the reader must still wait: no flag')
+                file_end(self.start(self.keys['w', pack]))
+                rc, err = file_end(r)
+                self.assertEqual((rc, err), (0, b'FILE' + b'B' + b'COPYMACH'))
+
+    def test_the_data_without_the_flag_are_not_read(self):
+        """The file has the data of the cell but not its flag: the reader does not take them, after the limit it has ones (the limit is changed to 32 polls here), and goes on."""
+        src = ':x data 32 0\n:main block\ncopy &x %s\nwarn &x\nhalt\n' % far_at(2, 0)
+        for pack in (False, True):
+            with self.subTest(pack=pack):
+                with open(self.path, 'wb') as h:
+                    h.write(b'DATA')
+                key = limited(src, 2, pack)
+                rc, err = file_end(self.start(key))
+                self.assertEqual((rc, err), (0, ONES * 4))
+
+    def test_a_cell_nobody_writes_is_ones_and_the_others_are_not_touched(self):
+        """After the writer: the byte 1 (inside the 32 bits of the cell 0, but a cell of its own), the byte 5 and 16 are not written: ones; the written ones are right."""
+        file_end(self.start(self.keys['w', False]))
+        before = self.read_file()
+        src = ':a data 8 0\n:b data 8 0\n:c data 32 0\n:d data 8 0\n:main block\ncopy &a %s\ncopy &b %s\ncopy &c %s\ncopy &d %s\nwarn &a\nwarn &b\nwarn &c\nwarn &d\nhalt\n' % (
+            far_at(2, 1), far_at(2, 5), far_at(2, 0), far_at(2, 3))
+        rc, err = file_end(self.start(limited(src, 1)))
+        self.assertEqual((rc, err), (0, ONES * 2 + b'FILE' + b'B'))
+        self.assertEqual(self.read_file(), before, 'a get writes nothing')
+
+    def test_8_32_and_64_bits_put_then_get(self):
+        """A put and a get of 8, 16, 32 and 64 bits at several bytes: the other space gets what was put; each cell has its flag."""
+        for n in (8, 16, 32, 64):
+            for byte in (0, 1, 7, 100):
+                with self.subTest(n=n, byte=byte):
+                    with open(self.path, 'wb') as h:
+                        h.write(b'')
+                    data = bytes(range(65, 65 + n // 8))
+                    w = ':x data %d "%s"\n:main block\ncopy %s &x\nhalt\n' % (n, data.decode(), far_at(2, byte))
+                    r = ':y data %d 0\n:main block\ncopy &y %s\nwarn &y\nhalt\n' % (n, far_at(2, byte))
+                    rc, err = file_end(self.start(chain_text(w)))
+                    self.assertEqual((rc, err), (0, b''))
+                    f = self.read_file()
+                    self.assertEqual((f[16 * byte:16 * byte + n // 8], f[16 * byte + 8:16 * byte + 9]), (data, FILE_FLAG))
+                    rc, err = file_end(self.start(chain_text(r)))
+                    self.assertEqual((rc, err), (0, data))
+
+    def test_random_delays(self):
+        rnd = random.Random(2586)
+        for i in range(6):
+            with self.subTest(i=i):
+                with open(self.path, 'wb') as h:
+                    h.write(b'')
+                pack = bool(i & 1)
+                r = self.start(self.keys['r', pack])
+                time.sleep(rnd.random() * 0.2)
+                w = self.start(self.keys['w', pack])
+                self.assertEqual(file_end(w)[0], 0)
+                self.assertEqual(file_end(r), (0, b'FILE' + b'B' + b'COPYMACH'))
+
+    def test_tick_limit_stops_the_polling(self):
+        """The default limit (2^18 polls) is far; the tick limit -t stops the reader: the exit is 0, nothing is printed (the data were not read)."""
+        rc, err = file_end(self.start(self.keys['r', False], limit=3000))
+        self.assertEqual((rc, err), (0, b''))
+
+    def test_the_positions_of_the_far_address(self):
+        """The cell of the byte p is at the bit 128 p of the area 1: p up to 2^20 gives a sparse file of the right length (the reader reads the cell from the same place)."""
+        for p in (0, 1, 255, 4096):
+            with self.subTest(p=p):
+                with open(self.path, 'wb') as h:
+                    h.write(b'')
+                w = ':x data 8 "Z"\n:main block\ncopy %s &x\nhalt\n' % far_at(2, p)
+                file_end(self.start(chain_text(w)))
+                f = self.read_file()
+                self.assertEqual((len(f), f[16 * p:16 * p + 1], f[16 * p + 8:16 * p + 9]), (16 * p + 9, b'Z', FILE_FLAG))
+
+
+def ticks_of(src, stdin=b'', path=None):
+    """The ticks of a text of language 4 on the checked emulator, alone (the answers for the channel are given; the common file `path` for the links 2)."""
+    key = chain_text(src)
+    if path is None:
+        return single(key, stdin).ticks
+    return file_single(key, path).ticks
+
+
+class LinkTicks(unittest.TestCase):
+    """The measure (25.8): the ticks of the asker (the difference to a program with no copy; the answers are given) and of the other side, for a get and a put of 8 and of 32 bits, for the
+    three links. The other side of the links 0 and 1 is the answerer (the difference to the stop alone); of the link 2: the other program of the pair (a get: the writer; a put: the reader,
+    the flag is set, one poll and the read)."""
+
+    def test_ticks(self):
+        base = ticks_of(':x data 8 0\n:main block\nhalt\n')
+        stop0, stop1 = single('far_serve', rec(STOP, 0)).ticks, single('far_serve_ck', rec_ck(STOP, 0)).ticks
+        d = tempfile.mkdtemp(prefix='tower-far-ticks-')
+        self.addCleanup(shutil.rmtree, d, True)
+        path = os.path.join(d, 'c.bin')
+        res = {}
+        for n in (8, 32):
+            for put in (False, True):
+                ops = [(PUT if put else GET, 3 + i, 0) for i in range(n // 8)]
+                res[0, n, put] = (ticks_of(link_text(n, put, 0), b'\xaa' * 4) - base, single('far_serve', b''.join(rec(*o) for o in ops) + rec(STOP, 0)).ticks - stop0)
+                res[1, n, put] = (ticks_of(link_text(n, put, 1), pair(0xaa) * 4) - base, single('far_serve_ck', b''.join(rec_ck(*o) for o in ops) + rec_ck(STOP, 0)).ticks - stop1)
+                with open(path, 'wb') as h:
+                    h.write(b'')
+                if put:
+                    a = ticks_of(link_text(n, True, 2), path=path) - ticks_of(':x data 8 0\n:main block\nhalt\n', path=path)       # the writer, then the reader of the same cell
+                    b = ticks_of(link_text(n, False, 2), path=path) - ticks_of(':x data 8 0\n:main block\nhalt\n', path=path)
+                else:
+                    with open(path, 'wb') as h:
+                        h.write(b'')
+                    w = ticks_of(link_text(n, True, 2), path=path) - ticks_of(':x data 8 0\n:main block\nhalt\n', path=path)
+                    a = ticks_of(link_text(n, False, 2), path=path) - ticks_of(':x data 8 0\n:main block\nhalt\n', path=path)
+                    b = w
+                res[2, n, put] = (a, b)
+        with open(path, 'wb') as h:
+            h.write(b'')
+        for (link, n, put), (a, b) in res.items():
+            with self.subTest(link=link, n=n, put=put):
+                self.assertTrue(0 < a < 2000 and 0 < b < 2000, (a, b))
+        self.assertGreater(res[1, 32, False][0], res[0, 32, False][0])
+        sys.stderr.write('far copy ticks (asker, other side) by (link, bits, put): %s\n' % res)
 
 
 def chain_text(src):

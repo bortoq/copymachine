@@ -1091,7 +1091,8 @@ def pack_pass(data):
 # between `copy` and its operands are not put out (the copy goes out as `copy a b` or as the words of language 3, the blank after the second operand follows it).
 # The address of a channel in `copy` may be written from the end of the space: `+k` (k 0..5) is S + k, the number 104857k of l3c, so that the text does not depend on A
 # (the channels are the codes at the end of the space: +1 stdin, +2 stdout, +3 stderr, +0 SYS); `copy +2 &x` is `emit &x`, `copy &x +1` is `key &x`. Not a word: a form of the address.
-# The far copy (26.4): an address 0x2 and 32 hex digits (far_copy below) is translated into the requests of the neighbour; the forms which are not as told go out as they were.
+# The far copy (26.4, 25.8): an address 0x2 and 32 hex digits (far_copy below) is translated by its link: 0 the requests of the neighbour, 1 the same with the check and the repeat
+# (the word l4ask), 2 the common file of the host (the words l4flag, l4fget); the forms which are not as told go out as they were.
 # No errors, no report.
 NBUF = 2048                           # the bits of data of a long copy (the buffer l4q has 204 + NBUF)
 L4Q, L4Z = 'l4q', 'l4z'
@@ -1171,8 +1172,8 @@ def _chan(tok):
     return tok
 
 
-def host_copy(put, other, n, digits):
-    """The text of language 3 for a long copy of n bits (the part of space `other`) to (put) or from the host, at the position of the hex `digits`."""
+def host_head(put, n, digits):
+    """The header of a long copy of n bits at the position of the hex `digits`: the buffer is zeroed, the nonzero nibbles of op, flags (get), n and the position are copied."""
     out = ['copy &%s[0:204] &%s[0:204]\n' % (L4Q, L4Z), 'copy &%s[0:4] %s\n' % (L4Q, _nib(6))]
     if not put:
         out.append('copy &%s[28:32] %s\n' % (L4Q, _nib(1)))
@@ -1183,6 +1184,12 @@ def host_copy(put, other, n, digits):
         v = digits[len(digits) - 1 - j]
         if v:
             out.append('copy &%s[%d:%d] %s\n' % (L4Q, 76 + 4 * j, 80 + 4 * j, _nib(v)))
+    return ''.join(out)
+
+
+def host_copy(put, other, n, digits):
+    """The text of language 3 for a long copy of n bits (the part of space `other`) to (put) or from the host, at the position of the hex `digits`."""
+    out = [host_head(put, n, digits)]
     x = other.decode('latin-1')
     if put:
         out += ['copy &%s[204:%d] %s\n' % (L4Q, 204 + n, x), 'copy %s &%s[0:%d]\n' % (SYSTEXT, L4Q, 204 + n)]
@@ -1204,39 +1211,78 @@ def _far(tok):
 
 
 def far_pos(tok):
-    """The number of the byte of a far address as 8 nibbles (the low first), or None: the link (the top 8 digits) is 0 (the neighbour by stdin and stdout), the position
-    is a multiple of 8 bits and under 2^32, the byte is the position / 8."""
+    """The link and the number of the byte of a far address as (the link, 8 nibbles, the low first), or None: the link (the top 8 digits) is 0 (the neighbour by stdin
+    and stdout), 1 (the same, the check and the repeat) or 2 (the common file); the position is a multiple of 8 bits and under 2^32, the byte is the position / 8."""
     d = _host_digits(tok)[1:]                  # the 32 digits after the 2
-    if any(d[:24]) or d[31] & 7:
+    if any(d[:7]) or d[7] > 2 or any(d[8:24]) or d[31] & 7:
         return None
     bits = [(d[31 - j] >> i) & 1 for j in range(9) for i in range(4)]
-    return [bits[4 * t + 3] | bits[4 * t + 4] << 1 | bits[4 * t + 5] << 2 | bits[4 * t + 6] << 3 for t in range(8)]
+    return d[7], [bits[4 * t + 3] | bits[4 * t + 4] << 1 | bits[4 * t + 5] << 2 | bits[4 * t + 6] << 3 for t in range(8)]
+
+
+FARASK = (':l4ask word\ncopy &l4q[400:404] &l4z[0:4]\ngoto &l4a1\n:l4a1 block\ncopy &l4q[56:72] &l4z[0:16]\n'
+          'add &l4q[0:8] &l4q[8:16] &l4q[410:419]\nadd &l4q[410:418] &l4q[16:24] &l4q[420:429]\nadd &l4q[420:428] &l4q[24:32] &l4q[430:439]\n'
+          'add &l4q[430:438] &l4q[32:40] &l4q[440:449]\nadd &l4q[440:448] &l4q[40:48] &l4q[450:459]\ncopy &l4q[48:56] &l4q[450:458]\n'
+          'emit &l4q[0:56]\nkey &l4q[56:72]\ngoto &l4a2\n:l4a2 block\ncopy &l4q[460:464] &l4n3[0:4]\ncopy &l4q[464:468] &l4n3[0:4]\n'
+          'add &l4q[56:64] &l4q[64:72] &l4q[470:479]\neq &l4q[470:478] &l4q[460:468] &l4q[480:482]\nif &l4q[481] &l4a3 &l4a4\n:l4a3 block\nret\n'
+          ':l4a4 block\nadd &l4q[400:404] &l4n0[4:8] &l4q[490:495]\ncopy &l4q[400:404] &l4q[490:494]\nlt &l4q[400:404] &l4n0[16:20] &l4q[500:502]\n'
+          'if &l4q[501] &l4a1 &l4a5\n:l4a5 block\ncopy &l4q[56:60] &l4n3[0:4]\ncopy &l4q[60:64] &l4n3[0:4]\nret\n')
+FARFLAG = (':l4flag word\ncopy &l4q[44:64] &l4z[0:20]\ncopy &l4q[44:48] &l4n0[16:20]\ncopy &l4q[82] &l4n0[4]\ncopy &l4q[204:208] &l4n0[4:8]\n'
+           'copy 1048570 &l4q[0:208]\nret\n')
+FARGET = (':l4fget word\ncopy &l4q[420:440] &l4q[44:64]\ncopy &l4q[44:64] &l4z[0:20]\ncopy &l4q[44:48] &l4n0[16:20]\ncopy &l4q[82] &l4n0[4]\n'
+          'copy &l4q[400:420] &l4z[0:20]\ncopy &l4q[440:460] &l4z[0:20]\ncopy &l4q[440:444] &l4n0[4:8]\ncopy &l4q[460:480] &l4z[0:20]\n'
+          'copy &l4q[476:480] &l4n0[16:20]\ngoto &l4g1\n:l4g1 block\ncopy 1048570 &l4q[0:204]\ncopy &l4q[204:321] 1048570\n'
+          'if &l4q[204] &l4g2 &l4g3\n:l4g2 block\ncopy &l4q[44:64] &l4q[420:440]\ncopy &l4q[82] &l4z[0]\ncopy 1048570 &l4q[0:204]\n'
+          'copy &l4q[204:321] 1048570\nret\n:l4g3 block\nadd &l4q[400:420] &l4q[440:460] &l4q[490:511]\ncopy &l4q[400:420] &l4q[490:510]\n'
+          'lt &l4q[400:420] &l4q[460:480] &l4q[520:526]\nif &l4q[525] &l4g1 &l4g4\n:l4g4 block\ncopy &l4q[204:208] &l4n3[0:4]\n'
+          'copy &l4q[208:212] &l4q[204:208]\ncopy &l4q[212:220] &l4q[204:212]\ncopy &l4q[220:236] &l4q[204:220]\ncopy &l4q[236:268] &l4q[204:236]\nret\n')
+FARWORDS = (FARASK, FARFLAG, FARGET)         # the words of the links 1 and 2, put once at the end of the text if a far copy used them (in this order)
 
 
 def far_copy(put, other, syms, tok, label):
-    """The text of language 3 for a far copy (the far space is the neighbour of stdin and stdout, which answers by the protocol of far_serve.tw): one request of 6 bytes
+    """The text of language 3 for a far copy (the far space is the neighbour of stdin and stdout, which answers by the protocol of far_serve.tw: the link 0; by the protocol
+    of far_serve_ck.tw with the check and the repeat: the link 1; or the common file of the host: the link 2). The link 0: one request of 6 bytes
     (op 8 bits, the number of the byte 32 bits, dat 8 bits) for a byte of the part `other` (a width of 8 .. 64 bits, whole bytes). The record is the bits 0..48 of l4q.
     get: the request goes out, then (after a goto: a read must not stand before the write that it answers) the byte is read into its place in `other`, the number of
     the byte is increased (the nibbles which change are copied from the constants: the carry stops the copies) and the request of the next byte goes out;
     put: the byte is copied into dat and the request goes out, the number of the byte is increased. The labels are l4f<label>, l4f<label + 1> ...
-    Returns (the text, the labels used) or None (the width is not 8 .. 64 whole bytes, the position or the link is not as told, lo >= FARLO, no more labels)."""
+    The link 1: the same record and the same increase, but the request goes out by the word l4ask (FARASK, at the end of the text): `call &l4ask &l4f<k>`, which sends the
+    record with the sum (7 bytes), reads the answer of 2 bytes (the value and its complement), asks again up to 4 times and leaves the value in the bits 56..64 of l4q (ones if
+    the tries are out); the get copies it into `other`, the put goes on.
+    The link 2: the common file (the area 1 of the host). The position P (a multiple of 8 bits) names a cell of 128 bits at the bit 16 P = 128 (P / 8) of the area: the data
+    (n bits, at most 64) at its start and the flag of readiness (4 bits, the value 1) at its bit 64. put: the long copy of the data to the file (host_copy), then
+    `call &l4flag &l4f<label>` (the flag is a copy of its own after a tick boundary: the data are in the file before the flag is); get: the header of the long copy of the data,
+    then `call &l4fget &l4f<label>` (the word polls the flag by the same request with the flag bit, up to 2^18 failed polls, then sends the request of the data; the
+    answer is in l4q[204:204 + n], ones if the flag did not come), then the copy of the data into `other`. A cell is written once (the file is zero at the start).
+    Returns (the text, the labels used, the number of the word used: 0 none, 1 l4ask, 2 l4flag, 3 l4fget) or None (the width is not 8 .. 64 whole bytes, the position or the link
+    is not as told, lo >= FARLO, no more labels)."""
     r = _part(other, syms)
-    pos = far_pos(tok)
-    if r is None or pos is None or r[2] % 8 or not 8 <= r[2] <= FARMAX or r[1] >= FARLO or label >= FARLAB:
+    fp = far_pos(tok)
+    if r is None or fp is None or r[2] % 8 or not 8 <= r[2] <= FARMAX or r[1] >= FARLO or label >= FARLAB:
         return None
+    link, pos = fp
     j, lo, n = r
     name = other[:j].decode('latin-1')
+    if link == 2:
+        d = _host_digits(tok)[1:]
+        digits = [1, 0, 0, 0, 0, 0, 0, 0, 1] + d[9:] + [0]            # the area 1, the position 16 P
+        if put:
+            return host_copy(True, other, n, digits) + 'call &l4flag &l4f%d\n:l4f%d block\n' % (label, label), 1, 2
+        return host_head(False, n, digits) + 'call &l4fget &l4f%d\n:l4f%d block\ncopy %s &%s[204:%d]\n' % (label, label, other.decode('latin-1'), L4Q, 204 + n), 1, 3
     out = ['copy &%s[0:204] &%s[0:204]\n' % (L4Q, L4Z), 'copy &%s[0:4] %s\n' % (L4Q, _nib(2 if put else 1))]
     for i in range(8):
         if pos[i]:
             out.append('copy &%s[%d:%d] %s\n' % (L4Q, 8 + 4 * i, 12 + 4 * i, _nib(pos[i])))
     req = 'emit &%s[0:48]\n' % L4Q
-    if not put:
+    if not put and not link:
         out.append(req)
     for k in range(n // 8):
         part = '%s[%d:%d]' % (name, lo + 8 * k, lo + 8 * k + 8)
         if put:
-            out += ['copy &%s[40:48] %s\n' % (L4Q, part), req]
+            out.append('copy &%s[40:48] %s\n' % (L4Q, part))
+            out.append(req if not link else 'call &l4ask &l4f%d\n:l4f%d block\n' % (label + k, label + k))
+        elif link:
+            out.append('call &l4ask &l4f%d\n:l4f%d block\ncopy %s &%s[56:64]\n' % (label + k, label + k, part, L4Q))
         else:
             out.append('goto &l4f%d\n:l4f%d block\nkey %s\n' % (label + k, label + k, part))
         if k < n // 8 - 1:
@@ -1246,14 +1292,15 @@ def far_copy(put, other, syms, tok, label):
                 out.append('copy &%s[%d:%d] %s\n' % (L4Q, 8 + 4 * i, 12 + 4 * i, _nib(pos[i])))
                 if v < 16:
                     break
-            if not put:
+            if not put and not link:
                 out.append(req)
-    return ''.join(out), 0 if put else n // 8
+    return ''.join(out), (0 if put and not link else n // 8), 1 if link else 0
 
 
 def l4c(data):
     """The pass: data is a text of language 4 and a zero byte (a byte string); returns (the text of language 3 and a zero byte, None)."""
     out, tok, syms, prelude, first, label = [], bytearray(), [], False, True, 0
+    words = [False, False, False]           # the words of the links 1 and 2 (FARWORDS) which a far copy used
     state = 'idle'                          # idle, tok, str (in a string), com
     esc = False
     copy_ops = None                         # None, or the list of the operands read after `copy` (0, 1 or 2 of them)
@@ -1288,6 +1335,8 @@ def l4c(data):
                     if f is not None:
                         put(f[0])
                         label += f[1]
+                        if f[2]:
+                            words[f[2] - 1] = True
                         return
                 else:
                     n = _width(other, syms)
@@ -1331,6 +1380,9 @@ def l4c(data):
             pre()
             if copy_ops is not None:
                 put(b'copy' + b''.join(b' ' + x for x in copy_ops))
+            for w, text in zip(words, FARWORDS, strict=True):
+                if w:
+                    put('\n' + text)
             break
         if state == 'idle':
             if c in WS:

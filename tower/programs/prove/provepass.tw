@@ -1,0 +1,142 @@
+# The proof of the output of a pass through the channel (25.7.2, 7.2.45). One program of language 3, nothing new: data, lut, copy, add, eq, key, warn, goto, if, call, ret, halt.
+# It is the second space: its stdin is the stdout of the first space, where a pass of the chain (seed, l2c, ...) runs on a text. It reads the stream, counts three numbers of it by copies
+# and tables, compares them with the numbers known in advance and says on stderr `proved ` or `not proved ` and the numbers it got, hex, the most significant digit first:
+#   "<n> <s1> <s2>\n"   n 6 digits, s1 and s2 8 digits each.
+# What is known in advance comes first in this stdin, before the stream, as `key` stores a number (the lowest byte first; the test sends it): 11 bytes = n (24 bits), s1 (32 bits), s2 (32 bits).
+# The bytes of the stream are the numbers x_i of the cells in which `key` stores them (the byte with its bits reversed, 2: the order of bits):
+#   n = the number of the bytes (mod 2^24); s1 = the sum of x_i (mod 2^32); s2 = the sum of the values of s1 after every byte = the sum of (n-i) x_i (mod 2^32).
+# This is the sum of Fletcher with the modulus 2^k instead of 255: a division by 255 the language has not, and a carry out of the top is simply dropped by `add` into a wider cell.
+# What it catches: any change of one byte (s1 moves by less than 256 and does not wrap), two different bytes swapped (s2), a cut or a prolonged stream (n, and the sums), a burst of changes
+# unless it cancels in both sums. What it does not: changes which cancel in both sums at once (+1, -2, +1 on three neighbours; about 1 in 2^64 for random changes), two equal bytes swapped
+# (no change at all); it is a check against an accident and a bug of a pass, not against a forger.
+# The end of the stream is EOF, and `key` at EOF leaves the cell as it was (the contract: a partial read keeps the rest). A byte of the stream cannot be told from the end by the cell alone,
+# so before every read the cell b gets pv, a byte which the stream seldom has: pv = 1 in the bit 0, above it the 7 lowest bits of s2 (the bit 0 of a cell is the highest bit of the byte of the
+# stream, so an ASCII text never has pv; a binary one may). After the read b = pv is a "hit": a byte of the stream or the end. Two hits in a row are the end: the first one waits in `pend`
+# (flag hp) and is added only if the next byte is not a hit, so no hit that is added is the end. The error is only in one direction: a stream whose last byte (or two bytes in a row in the
+# middle) equals pv at its place is taken for shorter than it is, n and the sums are wrong, `not proved` (a false alarm: on the 856 frozen outputs of tower/golden it happened once, on a
+# 2-byte output; never on a text). A false `proved` needs a surplus after the stream which begins with two bytes equal to pv and does not change the three numbers.
+:el data 24 0
+:e1 data 32 0
+:e2 data 32 0
+:n data 24 0
+:s1 data 32 0
+:s2 data 32 0
+:tn data 25 0
+:t1 data 33 0
+:t2 data 33 0
+:one24 data 24 1
+:xw data 32 0
+:x data 8 0
+:b data 8 0
+:pv data 8 1
+:pend data 8 0
+:hp data 1 0
+:one1 data 1 1
+:c data 2 0
+:ca data 6 0
+:cb data 8 0
+:cc data 8 0
+:hn data 48 0
+:h1 data 64 0
+:h2 data 64 0
+:sp data 8 " "
+:nl data 8 "\n"
+:m_ok data 56 "proved "
+:m_bad data 88 "not proved "
+
+:main block
+key &el[0:8]
+key &el[8:16]
+key &el[16:24]
+key &e1[0:8]
+key &e1[8:16]
+key &e1[16:24]
+key &e1[24:32]
+key &e2[0:8]
+key &e2[8:16]
+key &e2[16:24]
+key &e2[24:32]
+goto &loop
+
+# add the byte x to n, s1, s2 (the carry out of the 25th and the 33rd bit is dropped; `add` into its own argument would lose the carry between nibbles)
+:acc word
+copy &xw[0:8] &x
+add &s1 &xw &t1
+copy &s1 &t1[0:32]
+add &s2 &s1 &t2
+copy &s2 &t2[0:32]
+add &n &one24 &tn
+copy &n &tn[0:24]
+ret
+
+:loop block
+copy &pv[1:8] &s2[0:7]
+copy &b &pv
+key &b
+eq &b &pv &c
+if &c[1] &hit &nohit
+
+:nohit block
+if &hp &flush &plain
+:flush block
+copy &x &pend
+call &acc &flushed
+:flushed block
+copy &hp &zero
+goto &plain
+:plain block
+copy &x &b
+call &acc &loop
+
+:hit block
+if &hp &done &keep
+:keep block
+copy &pend &b
+copy &hp &one1
+goto &loop
+
+:done block
+eq &n &el &ca
+eq &s1 &e1 &cb
+eq &s2 &e2 &cc
+if &ca[5] &ck1 &bad
+:ck1 block
+if &cb[7] &ck2 &bad
+:ck2 block
+if &cc[7] &good &bad
+:good block
+warn &m_ok
+goto &report
+:bad block
+warn &m_bad
+goto &report
+:report block
+lut &hex4 &n[20:24] &hn[0:8]
+lut &hex4 &n[16:20] &hn[8:16]
+lut &hex4 &n[12:16] &hn[16:24]
+lut &hex4 &n[8:12] &hn[24:32]
+lut &hex4 &n[4:8] &hn[32:40]
+lut &hex4 &n[0:4] &hn[40:48]
+lut &hex4 &s1[28:32] &h1[0:8]
+lut &hex4 &s1[24:28] &h1[8:16]
+lut &hex4 &s1[20:24] &h1[16:24]
+lut &hex4 &s1[16:20] &h1[24:32]
+lut &hex4 &s1[12:16] &h1[32:40]
+lut &hex4 &s1[8:12] &h1[40:48]
+lut &hex4 &s1[4:8] &h1[48:56]
+lut &hex4 &s1[0:4] &h1[56:64]
+lut &hex4 &s2[28:32] &h2[0:8]
+lut &hex4 &s2[24:28] &h2[8:16]
+lut &hex4 &s2[20:24] &h2[16:24]
+lut &hex4 &s2[16:20] &h2[24:32]
+lut &hex4 &s2[12:16] &h2[32:40]
+lut &hex4 &s2[8:12] &h2[40:48]
+lut &hex4 &s2[4:8] &h2[48:56]
+lut &hex4 &s2[0:4] &h2[56:64]
+warn &hn
+warn &sp
+warn &h1
+warn &sp
+warn &h2
+warn &nl
+halt

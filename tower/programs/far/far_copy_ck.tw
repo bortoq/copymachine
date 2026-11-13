@@ -1,0 +1,44 @@
+# Far copy, step 25.8 (7.2.46): the asker in language 4 with the link 1 of the far address (the check and the repeat). The far address is `0x2` and 32 hex digits: the link in the top 32 bits,
+# the position in bits in the low 96. The link 1 is the second definition of the same copy: the neighbour by stdin and stdout, as the link 0 (far_copy.tw), but the protocol of
+# far_serve_ck.tw: the pass l4c makes of every byte `call &l4ask &l4f<k>` (a word at the end of the text: the record of 7 bytes with the sum, the answer of 2 bytes, the value and its
+# complement, up to 4 tries, ones when they are out). The stdout of this program is the stdin of far_serve_ck.tw and its stdin is the stdout of far_serve_ck.tw; the cells go
+# to stderr (warn) at the end. The window of the answerer is COPYMACH (8 bytes). The copies, the byte numbers in the window and what must be read:
+#   w4 <- bytes 0..3 (32 bits)                COPY
+#   x1 <- byte 2 (8 bits)                     P
+#   bytes 5, 6 <- "OK" (put 16 bits)
+#   y2 <- bytes 5, 6                          OK
+#   o1 <- byte 8 (outside the window)         255
+#   t4 <- bytes 6..9 (7 is the last cell)     K H 255 255
+#   byte 8 <- "O" (put outside: nothing changes)
+#   z1 <- byte 3                              Y
+:w4 data 32 0
+:x1 data 8 0
+:ok data 16 "OK"
+:y2 data 16 0
+:o1 data 8 0
+:t4 data 32 0
+:oo data 8 "O"
+:z1 data 8 0
+:stop data 56 0
+:main block
+copy &w4 0x200000001000000000000000000000000
+copy &x1 0x200000001000000000000000000000010
+copy 0x200000001000000000000000000000028 &ok
+copy &y2 0x200000001000000000000000000000028
+copy &o1 0x200000001000000000000000000000040
+copy &t4 0x200000001000000000000000000000030
+copy 0x200000001000000000000000000000040 &oo
+copy &z1 0x200000001000000000000000000000018
+goto &fin
+# the stop (op = 0, the sum 0: a whole record of zeros), then the cells to stderr
+:fin block
+emit &stop
+goto &show
+:show block
+warn &w4
+warn &x1
+warn &y2
+warn &o1
+warn &t4
+warn &z1
+halt

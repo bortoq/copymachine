@@ -1,0 +1,13 @@
+# Far copy, step 25.8 (7.2.46): the writer of the common file in language 4 with the link 2 of the far address (`0x2` + 32 hex digits, the link 2 in the top 32 bits, the position P
+# in bits in the low 96). The pass l4c makes of `copy 0x2... &x` the long copy of the data to the area 1 of the host (the file `-r path`) and then `call &l4flag` (the flag of readiness
+# after a tick boundary); of `copy &y 0x2...` the header of the long copy, `call &l4fget` (polls the flag, then reads the data; ones if the flag does not come) and the copy of the data.
+# The position names a cell of 128 bits at the bit 16 P (a byte number p = P / 8 is the cell p: the data, at most 64 bits, at its start, the flag, 4 bits, at its bit 64); a cell is written once.
+# This is the writer, far_copy_file_r.tw the reader (the same `-r path` for both; the file is zero at the start): the cells at the bytes 0 (32 bits), 3 (8 bits) and 8 (64 bits).
+:a data 32 "FILE"
+:b data 8 "B"
+:c data 64 "COPYMACH"
+:main block
+copy 0x200000002000000000000000000000000 &a
+copy 0x200000002000000000000000000000018 &b
+copy 0x200000002000000000000000000000040 &c
+halt

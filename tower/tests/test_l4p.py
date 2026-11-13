@@ -98,7 +98,7 @@ FAR_EDGES = [
     # not translated: the link is not 0, the position is not a multiple of 8, 2^32 bits or more, the width is not whole bytes of 8..64 or is not known, two far or a far and a host
     ':x data 64 0\n:b data 4 0\n:w data 72 0\n:t table 1 8 1 2\n:main block\ncopy &x {l}\ncopy {l} &x\ncopy &x {m}\ncopy {m} &x\ncopy &x {g}\ncopy {g} &x\ncopy &b {a}\n'
     'copy {a} &w\ncopy &t {a}\ncopy &q {a}\ncopy &x[3] {a}\ncopy &x[0:12] {a}\ncopy &x[5:5] {a}\ncopy {a} {a}\ncopy {a} {h}\ncopy {h} {a}\nhalt\n'.format(
-        l=farad(0, 1), m=farad(12), g=farad(1 << 32), a=FAR, h=HOSTA).encode(),
+        l=farad(0, 3), m=farad(12), g=farad(1 << 32), a=FAR, h=HOSTA).encode(),
     # 0x2 with another number of digits is not a far address (a host one, as before: the digits are the position)
     ':x data 8 0\n:main block\ncopy &x 0x2{d31}\ncopy &x 0x2{d33}\ncopy &x 0x2000\ncopy &x 0x2\ncopy &x 0X2{d32}\ncopy &x 0x3{d32}\ncopy &x 0x2{d32}g\nhalt\n'.format(
         d31='0' * 31, d32='0' * 32, d33='0' * 33).encode(),
@@ -107,6 +107,29 @@ FAR_EDGES = [
     b'pack\n:x data 24 0\n:main block\ncopy &x ' + FAR.encode() + b'\ncopy ' + FAR.encode() + b' &x\nhalt\n',
     b':x data 9000 0\n:y data 16 0\n:main block\ncopy &x[9890:9906] ' + FAR.encode() + b'\ncopy &x[9899:9915] ' + FAR.encode() + b'\ncopy &x[9900:9916] ' + FAR.encode() + b'\ncopy &y ' + FAR.encode() + b'\n',
 ]
+FAR0, FAR1, FAR2 = FAR, farad(8 * 3, 1), farad(8 * 3, 2)
+# the links 1 (the check and the repeat) and 2 (the common file) are translated (the words l4ask, l4flag, l4fget stand once at the end of the text); 3 and over are not
+FAR_LINKS = [
+    ':x data 64 0\n:y data 8 0\n:z data 16 0\n:main block\ncopy &x {a}\ncopy {a} &x\ncopy &y {a}\ncopy {a} &z\nhalt\n'.format(a=FAR1).encode(),
+    ':x data 64 0\n:y data 8 0\n:z data 16 0\n:main block\ncopy &x {a}\ncopy {a} &x\ncopy &y {a}\ncopy {a} &z\nhalt\n'.format(a=FAR2).encode(),
+    ':x data 64 0\n:main block\ncopy &x[8:24] {a}\ncopy {a} &x[32:64]\ncopy &x[0:8] {b}\nhalt\n'.format(a=FAR1, b=farad(8 * 255, 1)).encode(),
+    ':x data 64 0\n:main block\ncopy &x[8:24] {a}\ncopy {a} &x[32:64]\ncopy &x[0:8] {b}\nhalt\n'.format(a=FAR2, b=farad(8 * 255, 2)).encode(),
+    ':x data 64 0\n:main block\ncopy &x {a}\ncopy {a} &x\nhalt\n'.format(a=farad(8 * (1 << 28) - 8 * 3, 1)).encode(),         # the carry through the nibbles
+    ':x data 64 0\n:main block\ncopy &x {a}\ncopy {a} &x\ncopy &x {b}\nhalt\n'.format(a=farad(8 * 0xfff0, 2), b=farad(8 * 0x7fffff8 - 8 * 100, 2)).encode(),
+    # the three links and the host in one text: the words in the order l4ask, l4flag, l4fget, once each; the labels go on from copy to copy
+    ':x data 32 0\n:main block\ncopy &x {a}\ncopy {b} &x\ncopy &x {c}\ncopy {d} &x\ncopy &x {e}\ncopy {a} &x\ncopy &x {c}\nhalt\n'.format(
+        a=farad(0), b=farad(8, 1), c=farad(16, 2), d=farad(24, 2), e=HOSTA).encode(),
+    # only a put of the link 2 (l4flag alone), only a get of it (l4fget alone), only a get of the link 1 (l4ask alone)
+    ':x data 8 0\n:main block\ncopy {a} &x\nhalt\n'.format(a=FAR2).encode(), ':x data 8 0\n:main block\ncopy &x {a}\nhalt\n'.format(a=FAR2).encode(),
+    ':x data 8 0\n:main block\ncopy &x {a}\nhalt\n'.format(a=FAR1).encode(),
+    b'pack\n:x data 24 0\n:main block\ncopy &x ' + FAR1.encode() + b'\ncopy ' + FAR1.encode() + b' &x\ncopy &x ' + FAR2.encode() + b'\ncopy ' + FAR2.encode() + b' &x\nhalt\n',
+    # the text ends in the middle of a copy, or with no newline: the words follow
+    b':x data 8 0\n:main block\ncopy &x ' + FAR1.encode() + b'\nhalt', b':x data 8 0\n:main block\ncopy &x ' + FAR2.encode() + b'\ncopy &x',
+    # not translated: the link 3 and over, the position as for the link 0
+    ':x data 8 0\n:main block\ncopy &x {a}\ncopy {b} &x\ncopy &x {c}\ncopy &x {d}\ncopy &x {e}\nhalt\n'.format(
+        a=farad(0, 3), b=farad(0, 255), c=farad(12, 1), d=farad(1 << 32, 2), e=farad(4, 2)).encode(),
+]
+FAR_EDGES += FAR_LINKS
 # a channel from the end of the space: `+k` is S + k (the same text for every A); the program with the forms and the same with the words emit warn key
 CHAN_FORMS = ':a data 8 "A"\n:e data 8 "E"\n:b data 8 0\n:main block\ncopy +2 &a\ncopy +3 &e\ncopy &b +1\ncopy +2 &b\ncopy +3 &b\nhalt\n'
 CHAN_WORDS = ':a data 8 "A"\n:e data 8 "E"\n:b data 8 0\n:main block\nemit &a\nwarn &e\nkey &b\nemit &b\nwarn &b\nhalt\n'
@@ -150,6 +173,13 @@ class Reference(unittest.TestCase):
             self.assertEqual(int(m.group(1)), 8 * len(m.group(2).replace('\\n', '\n').replace('\\0', '\0').replace('\\"', '"')), m.group(0))
             n += 1
         self.assertGreater(n, 20)
+
+    def test_the_words_of_the_links_in_the_tool(self):
+        """The strings fa.., ff.., fg.. of l4c.tw (32 bytes each, emitted one after the other) are the words l4ask, l4flag, l4fget of the reference, each after a line break."""
+        src = t.read('l4c.tw')
+        for pfx, word in zip(('fa', 'ff', 'fg'), l3ctext.FARWORDS, strict=True):
+            got = ''.join(m.group(1).replace('\\n', '\n') for m in re.finditer(r'^:%s\d\d data \d+ "((?:[^"\\]|\\.)*)"' % pfx, src, re.M))
+            self.assertEqual(got, '\n' + word, pfx)
 
     def test_tool_is_in_its_subset(self):
         src = t.read('l4c.tw')
@@ -239,11 +269,67 @@ class Reference(unittest.TestCase):
             for src in FAR_EDGES[:4]:
                 self.assertIsNone(l3ctext.encode(pack + l3ctext.l4c(src + b'\0')[0][:-1].decode('latin-1'))[1], src)
 
+    def test_the_text_of_a_far_copy_of_the_links_1_and_2(self):
+        """The link 1 (the check and the repeat, 7.2.38): the same record and increase as the link 0, but the request goes out by `call &l4ask &l4f<k>` (a label per byte, a get and
+        a put alike) and a get copies the answer l4q[56:64] into its place. The link 2 (the common file): the header of the long copy of the area 1 at the bit 16 P (the cell of
+        128 bits for the byte P / 8: the digits of P moved by one), a put is the long copy and `call &l4flag`, a get is the header and `call &l4fget` and the copy of l4q[204:204 + n].
+        The words stand at the end of the text (FARWORDS), once each, if a copy used them."""
+        def body(link):
+            out = l3ctext.l4c((':x data 16 0\n:main block\ncopy &x %s\ncopy %s &x[8:16]\nhalt\n' % (farad(8 * 255, link), farad(8 * 3, link))).encode() + b'\0')[0].decode()
+            return out[out.index(':main block\n') + 12:]
+        ck = body(1)
+        self.assertEqual(ck[:ck.index(':l4ask')], 'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n0[4:8]\ncopy &l4q[8:12] &l4n3[0:4]\ncopy &l4q[12:16] &l4n3[0:4]\n'
+                         'call &l4ask &l4f0\n:l4f0 block\ncopy &x[0:8] &l4q[56:64]\ncopy &l4q[8:12] &l4n0[0:4]\ncopy &l4q[12:16] &l4n0[0:4]\ncopy &l4q[16:20] &l4n0[4:8]\n'
+                         'call &l4ask &l4f1\n:l4f1 block\ncopy &x[8:16] &l4q[56:64]\n\n'
+                         'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n0[8:12]\ncopy &l4q[8:12] &l4n0[12:16]\ncopy &l4q[40:48] &x[8:16]\ncall &l4ask &l4f2\n:l4f2 block\n\n'
+                         'halt\n\n')
+        self.assertEqual(ck[ck.index(':l4ask'):], l3ctext.FARASK + '\0')
+        fl = body(2)
+        self.assertEqual(fl[:fl.index(':l4fget')].replace(l3ctext.FARFLAG, ''),
+                         'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n1[4:8]\ncopy &l4q[28:32] &l4n0[4:8]\ncopy &l4q[48:52] &l4n0[4:8]\ncopy &l4q[80:84] &l4n1[12:16]\n'
+                         'copy &l4q[84:88] &l4n3[0:4]\ncopy &l4q[88:92] &l4n1[8:12]\ncopy &l4q[172:176] &l4n0[4:8]\ncall &l4fget &l4f0\n:l4f0 block\ncopy &x &l4q[204:220]\n\n'
+                         'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n1[4:8]\ncopy &l4q[44:48] &l4n1[12:16]\ncopy &l4q[80:84] &l4n1[12:16]\ncopy &l4q[84:88] &l4n0[4:8]\n'
+                         'copy &l4q[172:176] &l4n0[4:8]\ncopy &l4q[204:212] &x[8:16]\ncopy 1048570 &l4q[0:212]\ncall &l4flag &l4f1\n:l4f1 block\n\nhalt\n\n\n')
+        self.assertTrue(fl.endswith('\n' + l3ctext.FARGET + '\0'))
+        self.assertEqual(fl.count(':l4flag word'), 1)
+        # the position 16 P: the digits of P moved by one (a carry across the nibbles, the top of the 32 bits, the bit 3 of the lowest nibble of P)
+        for byte in (0, 1, 15, 16, 255, 256, 2 ** 20 + 5, 2 ** 28 - 1):
+            out = l3ctext.l4c((':x data 8 0\n:main block\ncopy &x %s\n' % farad(8 * byte, 2)).encode() + b'\0')[0].decode()
+            cell = 128 * byte                                                  # the bit of the cell in the area 1
+            digits = [1, 0, 0, 0, 0, 0, 0, 0, 1] + [(cell >> 4 * j) & 15 for j in range(23, -1, -1)]
+            self.assertIn(l3ctext.host_head(False, 8, digits) + 'call &l4fget &l4f0\n:l4f0 block\ncopy &x &l4q[204:212]\n', out)
+        for src in FAR_LINKS[:12]:                                            # with the words at the end both layouts take the text
+            out = l3ctext.l4c(src + b'\0')[0][:-1]
+            self.assertIsNone(l3ctext.encode(out)[1], src)
+            self.assertIsNone(l3ctext.encode(b'pack\n' + out if not out.startswith(b'pack') else out)[1], src)
+
+    def test_the_words_of_the_links_stand_once_at_the_end(self):
+        """l4ask for the link 1, l4flag for a put of the link 2, l4fget for a get of it; each once, in this order, after everything else; none for the link 0 or the host."""
+        both = l3ctext.l4c(FAR_LINKS[6] + b'\0')[0].decode()
+        self.assertEqual([both.count(w) for w in (':l4ask word', ':l4flag word', ':l4fget word')], [1, 1, 1])
+        self.assertTrue(both.endswith('\n' + l3ctext.FARASK + '\n' + l3ctext.FARFLAG + '\n' + l3ctext.FARGET + '\0'))
+        for src, words in ((FAR_LINKS[7], ':l4flag word'), (FAR_LINKS[8], ':l4fget word'), (FAR_LINKS[9], ':l4ask word')):
+            out = l3ctext.l4c(src + b'\0')[0].decode()
+            self.assertEqual([out.count(w) for w in (':l4ask word', ':l4flag word', ':l4fget word')], [int(w == words) for w in (':l4ask word', ':l4flag word', ':l4fget word')])
+        for src in (FAR_EDGES[0], PROGRAMS['rw'].encode(), FAR_LINKS[13]):
+            self.assertNotIn(b' word', l3ctext.l4c(src + b'\0')[0])
+
+    def test_the_labels_of_the_links(self):
+        """The link 1 uses a label per byte (a get and a put alike), the link 2 one per copy; the link 0 none for a put. 257 copies of 64 bits of the link 1 end at 2048 labels."""
+        out = l3ctext.l4c((':x data 64 0\n:main block\ncopy &x %s\ncopy %s &x\n' % (FAR1, FAR1) * 2).encode() + b'\0')[0]
+        self.assertEqual([out.count(b':l4f%d block' % k) for k in (0, 7, 8, 15, 16, 31, 32)], [1, 1, 1, 1, 1, 1, 0])
+        out = l3ctext.l4c((':x data 64 0\n:main block\ncopy &x %s\ncopy %s &x\ncopy &x %s\ncopy %s &x\n' % (FAR2, FAR2, FAR1, FAR0)).encode() + b'\0')[0]
+        self.assertEqual([out.count(b':l4f%d block' % k) for k in range(12)], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0])
+        out = l3ctext.l4c((':x data 64 0\n:main block\n' + 'copy &x %s\n' % FAR1 * 257).encode() + b'\0')[0]
+        self.assertEqual((out.count(b'call &l4ask &l4f'), out.count(b'\ncopy &x 0x2')), (2048, 1))
+        out = l3ctext.l4c((':x data 8 0\n:main block\n' + 'copy &x %s\n' % FAR2 * 2049).encode() + b'\0')[0]
+        self.assertEqual((out.count(b'call &l4fget &l4f'), out.count(b'\ncopy &x 0x2')), (2048, 1))
+
     def test_a_far_copy_which_is_not_as_told_is_as_it_was(self):
         """The link which is not 0, a position which is not a multiple of 8 or is 2^32 bits and over, a width which is not 8..64 whole bytes or is not known, two far
         addresses, far and host, lo of 9900 and more, no more labels: `copy a b` as it was (l3c does not take it); 0x2 with other digits is a host address, as before."""
         pre = ':x data 64 0\n:b data 4 0\n:w data 72 0\n:t table 1 8 1 2\n:main block\n'
-        for pair in ('&x %s' % farad(0, 1), '%s &x' % farad(12), '&x %s' % farad(1 << 32), '&b %s' % FAR, '%s &w' % FAR, '&t %s' % FAR, '&q %s' % FAR, '&x[3] %s' % FAR,
+        for pair in ('&x %s' % farad(0, 3), '%s &x' % farad(12), '&x %s' % farad(1 << 32), '&b %s' % FAR, '%s &w' % FAR, '&t %s' % FAR, '&q %s' % FAR, '&x[3] %s' % FAR,
                      '&x[0:12] %s' % FAR, '%s %s' % (FAR, FAR), '%s %s' % (FAR, HOSTA), '%s &x[0:0]' % FAR):
             out = l3ctext.l4c((pre + 'copy %s\n' % pair).encode() + b'\0')[0]
             self.assertTrue(out.endswith(('copy %s\n' % pair).encode() + b'\0'), (pair, out[-50:]))
@@ -317,7 +403,7 @@ class Tool(unittest.TestCase):
         """A far copy which is not made (26.4) says why to stderr, one line, once per copy; the text on the output is the copy as it was and l3c does not take it.
         The reference (l3ctext) does not say it: it has no stderr of its own."""
         pre = ':x data 64 0\n:b data 4 0\n:y data 9000 0\n:t table 1 8 1 2\n:main block\n'
-        for reason, copies in (('far link', ['&x %s' % farad(0, 1), '%s &x' % farad(5, 7)]),
+        for reason, copies in (('far link', ['&x %s' % farad(0, 3), '%s &x' % farad(5, 7), '&x %s' % farad(0, 1 << 24)]),
                                ('far pos', ['&x %s' % farad(12), '%s &x' % farad(1 << 32), '&x %s' % farad(1 << 64), '&x %s' % farad(8 * 3 + 4)]),
                                ('far width', ['&b %s' % FAR, '&x[3] %s' % FAR, '&t %s' % FAR, '&q %s' % FAR, '%s &x[0:12]' % FAR, '%s %s' % (FAR, FAR), '%s %s' % (FAR, HOSTA)]),
                                ('far limit', ['&y[9900:9908] %s' % FAR, '%s &y[9950:9958]' % FAR])):
@@ -349,6 +435,22 @@ class Tool(unittest.TestCase):
                 else:
                     b.insert(i, rng.choice(b'02x&[]: "\n\\#'))
             self.check(bytes(b).replace(b'\0', b' '))
+
+    def test_far_link_mutations(self):
+        """The same for texts with the links 1 and 2 spoiled at random (the words at the end follow whatever was made of the copies)."""
+        rng = random.Random(2646)
+        for _ in range(24):
+            b = bytearray(rng.choice(FAR_LINKS[:12]))
+            for _ in range(rng.choice((1, 2, 3))):
+                i = rng.randrange(len(b))
+                m = rng.randrange(3)
+                if m == 0:
+                    b[i] = rng.choice(b'0123456789abcdefx&[]:# "\n\\')
+                elif m == 1:
+                    del b[i]
+                else:
+                    b.insert(i, rng.choice(b'012x&[]: "\n\\#'))
+            self.check(bytes(b).replace(b'\0', b' '), limit=10 ** 9)
 
     def test_edges(self):
         for src in EDGES:

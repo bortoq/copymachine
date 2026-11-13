@@ -533,7 +533,7 @@ def l4_cases():
         ':x data 64 0\n:main block\ncopy &x {a}\ncopy {a} &x\ncopy &x {b}\nhalt\n'.format(a=farad(8 * 0xfff0), b=farad(8 * 0x7fffff8 - 8 * 100)).encode(),
         ':x data 64 0\n:b data 4 0\n:w data 72 0\n:t table 1 8 1 2\n:main block\ncopy &x {l}\ncopy {l} &x\ncopy &x {m}\ncopy {m} &x\ncopy &x {g}\ncopy {g} &x\ncopy &b {a}\n'
         'copy {a} &w\ncopy &t {a}\ncopy &q {a}\ncopy &x[3] {a}\ncopy &x[0:12] {a}\ncopy &x[5:5] {a}\ncopy {a} {a}\ncopy {a} {h}\ncopy {h} {a}\nhalt\n'.format(
-            l=farad(0, 1), m=farad(12), g=farad(1 << 32), a=FAR, h=HOSTA).encode(),
+            l=farad(0, 3), m=farad(12), g=farad(1 << 32), a=FAR, h=HOSTA).encode(),
         ':x data 8 0\n:main block\ncopy &x 0x2{d31}\ncopy &x 0x2{d33}\ncopy &x 0x2000\ncopy &x 0x2\ncopy &x 0X2{d32}\ncopy &x 0x3{d32}\ncopy &x 0x2{d32}g\nhalt\n'.format(
             d31='0' * 31, d32='0' * 32, d33='0' * 33).encode(),
         b':x data 16 0\n:main block\ncopy &x ' + FAR.encode() + b'  # copy &x ' + FAR.encode() + b'\n:s data 8 "copy &x ' + FAR.encode() + b'"\ncopy ' + FAR.encode() + b'\n',
@@ -543,6 +543,29 @@ def l4_cases():
         b':x data 9000 0\n:y data 16 0\n:main block\ncopy &x[9890:9906] ' + FAR.encode() + b'\ncopy &x[9899:9915] ' + FAR.encode() + b'\ncopy &x[9900:9916] '
         + FAR.encode() + b'\ncopy &y ' + FAR.encode() + b'\n',
     ]
+    FAR1, FAR2 = farad(8 * 3, 1), farad(8 * 3, 2)
+    # the links 1 (the check and the repeat) and 2 (the common file) are translated, the words at the end of the text; the link 3 and over are not (25.8)
+    far_links = [
+        ':x data 64 0\n:y data 8 0\n:z data 16 0\n:main block\ncopy &x {a}\ncopy {a} &x\ncopy &y {a}\ncopy {a} &z\nhalt\n'.format(a=FAR1).encode(),
+        ':x data 64 0\n:y data 8 0\n:z data 16 0\n:main block\ncopy &x {a}\ncopy {a} &x\ncopy &y {a}\ncopy {a} &z\nhalt\n'.format(a=FAR2).encode(),
+        ':x data 64 0\n:main block\ncopy &x[8:24] {a}\ncopy {a} &x[32:64]\ncopy &x[0:8] {b}\nhalt\n'.format(a=FAR1, b=farad(8 * 255, 1)).encode(),
+        ':x data 64 0\n:main block\ncopy &x[8:24] {a}\ncopy {a} &x[32:64]\ncopy &x[0:8] {b}\nhalt\n'.format(a=FAR2, b=farad(8 * 255, 2)).encode(),
+        ':x data 64 0\n:main block\ncopy &x {a}\ncopy {a} &x\nhalt\n'.format(a=farad(8 * (1 << 28) - 8 * 3, 1)).encode(),         # the carry through the nibbles
+        ':x data 64 0\n:main block\ncopy &x {a}\ncopy {a} &x\ncopy &x {b}\nhalt\n'.format(a=farad(8 * 0xfff0, 2), b=farad(8 * 0x7fffff8 - 8 * 100, 2)).encode(),
+        # the three links and the host in one text: the words in the order l4ask, l4flag, l4fget, once each; the labels go on from copy to copy
+        ':x data 32 0\n:main block\ncopy &x {a}\ncopy {b} &x\ncopy &x {c}\ncopy {d} &x\ncopy &x {e}\ncopy {a} &x\ncopy &x {c}\nhalt\n'.format(
+            a=farad(0), b=farad(8, 1), c=farad(16, 2), d=farad(24, 2), e=HOSTA).encode(),
+        # only a put of the link 2 (l4flag alone), only a get of it (l4fget alone), only a get of the link 1 (l4ask alone)
+        ':x data 8 0\n:main block\ncopy {a} &x\nhalt\n'.format(a=FAR2).encode(), ':x data 8 0\n:main block\ncopy &x {a}\nhalt\n'.format(a=FAR2).encode(),
+        ':x data 8 0\n:main block\ncopy &x {a}\nhalt\n'.format(a=FAR1).encode(),
+        b'pack\n:x data 24 0\n:main block\ncopy &x ' + FAR1.encode() + b'\ncopy ' + FAR1.encode() + b' &x\ncopy &x ' + FAR2.encode() + b'\ncopy ' + FAR2.encode() + b' &x\nhalt\n',
+        # the text ends in the middle of a copy, or with no newline: the words follow
+        b':x data 8 0\n:main block\ncopy &x ' + FAR1.encode() + b'\nhalt', b':x data 8 0\n:main block\ncopy &x ' + FAR2.encode() + b'\ncopy &x',
+        # not translated: the link 3 and over, the position as for the link 0
+        ':x data 8 0\n:main block\ncopy &x {a}\ncopy {b} &x\ncopy &x {c}\ncopy &x {d}\ncopy &x {e}\nhalt\n'.format(
+            a=farad(0, 3), b=farad(0, 255), c=farad(12, 1), d=farad(1 << 32, 2), e=farad(4, 2)).encode(),
+    ]
+    far_edges += far_links
     chan_forms = ':a data 8 "A"\n:e data 8 "E"\n:b data 8 0\n:main block\ncopy +2 &a\ncopy +3 &e\ncopy &b +1\ncopy +2 &b\ncopy +3 &b\nhalt\n'
     chan_words = ':a data 8 "A"\n:e data 8 "E"\n:b data 8 0\n:main block\nemit &a\nwarn &e\nkey &b\nemit &b\nwarn &b\nhalt\n'
     chan_edges = [
@@ -567,7 +590,7 @@ def l4_cases():
                               ':c data 8 0\n:main block\ncopy &c[3:3] %s\n' % HOSTA)):
         out.append(('unchanged-%d' % k, tail))
     pre = ':x data 64 0\n:b data 4 0\n:y data 9000 0\n:t table 1 8 1 2\n:main block\n'
-    reasons = ['&x %s' % farad(0, 1), '%s &x' % farad(5, 7), '&x %s' % farad(12), '%s &x' % farad(1 << 32), '&x %s' % farad(1 << 64), '&x %s' % farad(8 * 3 + 4),
+    reasons = ['&x %s' % farad(0, 3), '%s &x' % farad(5, 7), '&x %s' % farad(12), '%s &x' % farad(1 << 32), '&x %s' % farad(1 << 64), '&x %s' % farad(8 * 3 + 4),
                '&b %s' % FAR, '&x[3] %s' % FAR, '&t %s' % FAR, '&q %s' % FAR, '%s &x[0:12]' % FAR, '%s %s' % (FAR, FAR), '%s %s' % (FAR, HOSTA),
                '&y[9900:9908] %s' % FAR, '%s &y[9950:9958]' % FAR]
     for k, pair in enumerate(reasons):

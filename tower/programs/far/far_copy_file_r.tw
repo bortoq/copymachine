@@ -1,0 +1,14 @@
+# Far copy, step 25.8 (7.2.46): the reader of the common file in language 4 with the link 2 (see far_copy_file_w.tw, the writer). It reads the cells of the writer: 32 bits at the byte 0,
+# 8 bits at the byte 3, 64 bits at the byte 8: `copy &y 0x2...` waits for the flag of the cell (polls it, up to 2^18 failed polls), then reads the data; when the flag does not come
+# the data are all ones (the prohibitive price) and the program goes on. The cells (a, b, c) go to stderr at the end.
+:a data 32 0
+:b data 8 0
+:c data 64 0
+:main block
+copy &a 0x200000002000000000000000000000000
+copy &b 0x200000002000000000000000000000018
+copy &c 0x200000002000000000000000000000040
+warn &a
+warn &b
+warn &c
+halt

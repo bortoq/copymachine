@@ -246,7 +246,7 @@
 {"name":"tool-l2l","file":"in/l3c-tool-l2l.txt","rc":0,"err":"","len":51200,"sha":"59fd9e0fc5e990eaffffad29544926b83e0f392fc5851c52e9ef863ea4c6c2d7","long":true}
 {"name":"tool-l3c","file":"in/l3c-tool-l3c.txt","rc":0,"err":"","len":164156,"sha":"8311b349c9a2fbf7dfdb15f2778cf9ec200de5339912827c6065720328f1162b","long":true}
 {"name":"tool-l3p","file":"in/l3c-tool-l3p.txt","rc":0,"err":"","len":131386,"sha":"f3843eddd05af3161d13199d8b8a9a9dc071e54aa17a989d4589f43b7794d3f3","long":true}
-{"name":"tool-l4c","file":"in/l3c-tool-l4c.txt","rc":0,"err":"","len":125558,"sha":"b2a64f432edd815dd562a7ce56ff40c060d252fec6cc3db8dd43522200e24522","long":true}
+{"name":"tool-l4c","file":"in/l3c-tool-l4c.txt","rc":0,"err":"","len":149073,"sha":"a5d85a0d69a937e8a47fd820664c7f1d6455699df53c3e9ac807c4eece495d1f","long":true}
 {"name":"tool-l3p-packed","file":"in/l3c-tool-l3p-packed.txt","rc":0,"err":"","len":133083,"sha":"e1bb49545f819985b9d9ef886276ce6954929ea59d0e887d7a33241a52ca5350","long":true}
 {"name":"names-1020","file":"in/l3c-names-1020.txt","rc":0,"err":"","len":6229,"sha":"eaa57fbe048bf0b686f573722fffd4c3034e312c4b6ecbdaee7c09a615c2b725","long":true}
 {"name":"names-1021","file":"in/l3c-names-1021.txt","rc":0,"err":"l3c: bad label\n","len":6199,"sha":"6d2b5f3c9ac3c6a1a60228472c8296333d75e4b7b106d0e564e79e7d4b32c2f5","long":true}
