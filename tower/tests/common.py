@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))   # tower/
 ROOT = os.path.normpath(os.path.join(HERE, '..'))
 EMU = os.path.join(ROOT, 'emulator', 'build', 'bitcopy', 'emulator')
 CHK = os.path.join(ROOT, 'emulator', 'build', 'checked-emulator')

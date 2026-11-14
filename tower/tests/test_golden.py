@@ -25,7 +25,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 if __name__ == '__main__':
     sys.modules['test_golden'] = sys.modules['__main__']      # golden_programs.py imports this module: the same one, its images of the tools are built once
-sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
 import chain
 import common
 import l1text

@@ -20,8 +20,7 @@ import time
 
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
-TOWER = os.path.join(HERE, '..')
-sys.path.insert(0, TOWER)
+sys.path.insert(0, HERE)
 import common
 import l1text
 
@@ -75,7 +74,7 @@ def _hashes():
     """The hashes of the files whose change makes every image again: the emulator, l1text.py, this file."""
     with _GUARD:
         if 'emu' not in _KEYS:
-            for k, path in (('emu', common.EMU), ('l1text', os.path.join(TOWER, 'l1text.py')), ('chain', os.path.abspath(__file__))):
+            for k, path in (('emu', common.EMU), ('l1text', os.path.join(HERE, 'l1text.py')), ('chain', os.path.abspath(__file__))):
                 with open(path, 'rb') as h:
                     _KEYS[k] = hashlib.sha256(h.read()).hexdigest()
         return _KEYS['emu'], _KEYS['l1text'], _KEYS['chain']

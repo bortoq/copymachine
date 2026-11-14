@@ -1,4 +1,4 @@
-"""Numbers for docs/measurements/tower.md: python3 -B tower/measure.py"""
+"""Numbers for docs/measurements/tower.md: python3 -B tower/tests/measure.py"""
 import os
 import shutil
 import sys
@@ -32,7 +32,7 @@ PROGS = [
 
 def loc(name):
     n = 0
-    for line in open(os.path.join(common.HERE, name), encoding='utf-8'):
+    for line in open(os.path.join(common.HERE, name if '/' in name else 'tests/' + name), encoding='utf-8'):
         s = line.strip()
         if s and not s.startswith('#'):
             n += 1
@@ -122,7 +122,6 @@ def main_long():
 
 def main_price():
     """23.5: language 5. The price of every word of languages 1-4 (one word + halt, less the empty main)."""
-    sys.path.insert(0, os.path.join(common.HERE, 'tests'))
     import test_price as tp
     pos = host_pos(1, 8)
     ctx = [
@@ -171,10 +170,12 @@ def main_text():
     print('\nwords by language:', {lv: len(ws) for lv, ws in sorted(levels.items())}, 'total', len(text.WORDS))
     print('\n| program | lines of text (no blanks, no comments) | tokens | image B | same image as the builder |\n|---|---|---|---|---|')
     pdir = os.path.join(common.HERE, 'programs')
-    for f in sorted(os.listdir(pdir)):
+    for f in sorted(x for x in os.listdir(pdir) if x.endswith('.tw') and os.path.isfile(os.path.join(pdir, x))):
         src = open(os.path.join(pdir, f), encoding='utf-8').read()
         n = sum(1 for x in src.split('\n') if x.strip() and not x.strip().startswith('#'))
         p = text.compile_text(src)[0]
+        if p is None:
+            continue
         print('| %s | %d | %d | %d | %s |' % (f, n, len(list(text.tokens(src))), len(p.stats['image']), 'yes' if f[:-3] in progs_by_name() else 'no builder: text only'))
     src = open(os.path.join(pdir, 'dict.tw'), encoding='utf-8').read()
     p = text.compile_text(src, level=3)[0]

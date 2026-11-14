@@ -12,7 +12,7 @@ sys.dont_write_bytecode = True
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
 import common
 import l3
 import progs
@@ -102,14 +102,14 @@ class Programs(unittest.TestCase):
                 intervals(p)
 
     def test_cli(self):
-        """python3 -m tower.text < prog.tw > image: the image of the builder; an error gives the status 1."""
+        """python3 tower/tests/text.py < prog.tw > image: the image of the builder; an error gives the status 1."""
         root = os.path.dirname(common.HERE)
-        r = subprocess.run([sys.executable, '-B', '-m', 'tower.text'], input=source('branch').encode(), cwd=root,
+        r = subprocess.run([sys.executable, '-B', 'tower/tests/text.py'], input=source('branch').encode(), cwd=root,
                            capture_output=True, timeout=120, check=False)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout, l3.compile_program(progs.branch(3, 9)).stats['image'])
         self.assertRegex(r.stderr.decode(), r'A=13 P=\d+ image \d+ bytes')
-        r = subprocess.run([sys.executable, '-B', '-m', 'tower.text'], input=b':main block\nfoo\nhalt\n', cwd=root,
+        r = subprocess.run([sys.executable, '-B', 'tower/tests/text.py'], input=b':main block\nfoo\nhalt\n', cwd=root,
                            capture_output=True, timeout=120, check=False)
         self.assertEqual((r.returncode, r.stdout), (1, b''))
         self.assertIn('2:1: unknown word foo', r.stderr.decode())

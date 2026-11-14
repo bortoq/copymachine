@@ -6,7 +6,7 @@ import sys
 sys.dont_write_bytecode = True
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common
 import l1
 import l2

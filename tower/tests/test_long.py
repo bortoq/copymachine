@@ -11,7 +11,7 @@ import time
 sys.dont_write_bytecode = True
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common
 import l3
 import l4
@@ -214,7 +214,7 @@ class Long(unittest.TestCase):
             host_pos(2 ** 32, 0)
         with self.assertRaises(AssertionError):
             host_pos(1, 2 ** 96)
-        src = ''.join(slurp(os.path.join(common.HERE, m + '.py')).decode() for m in ('l1', 'l2', 'l3', 'lib'))
+        src = ''.join(slurp(os.path.join(common.HERE, 'tests', m + '.py')).decode() for m in ('l1', 'l2', 'l3', 'lib'))
         self.assertNotIn('SYS', src.replace('SYS pseudo', ''))     # no word of languages 1-3 touches the channel SYS
 
 

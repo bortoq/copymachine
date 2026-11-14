@@ -12,7 +12,7 @@ sys.dont_write_bytecode = True
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
 import common
 import l1text
 import text
@@ -61,13 +61,13 @@ class Reference(unittest.TestCase):
 
     def test_cli(self):
         root = os.path.dirname(common.HERE)
-        r = subprocess.run([sys.executable, '-B', 'tower/l1text.py', 'tower/programs/echo.tw'], cwd=root, check=False,
+        r = subprocess.run([sys.executable, '-B', 'tower/tests/l1text.py', 'tower/programs/echo.tw'], cwd=root, check=False,
                            capture_output=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr)
-        e = subprocess.run([sys.executable, '-B', 'tower/l1text.py', '-e'], input=r.stdout, cwd=root, check=False,
+        e = subprocess.run([sys.executable, '-B', 'tower/tests/l1text.py', '-e'], input=r.stdout, cwd=root, check=False,
                            capture_output=True, timeout=120)
         self.assertEqual((e.returncode, e.stdout), (0, compiled('echo').stats['image']))
-        e = subprocess.run([sys.executable, '-B', 'tower/l1text.py', '-e'], input=b'q\n', cwd=root, check=False,
+        e = subprocess.run([sys.executable, '-B', 'tower/tests/l1text.py', '-e'], input=b'q\n', cwd=root, check=False,
                            capture_output=True, timeout=120)
         self.assertEqual((e.returncode, e.stdout, e.stderr), (1, b'', b'l1: bad text\n'))
 

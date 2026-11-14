@@ -11,7 +11,7 @@ is turned into calls of the constructors of the same languages (Parsed.build), w
   3 (tables, blocks, library): table array lut store block word goto if call ret halt emit warn key
     add sub band lt eq
   4 (the host): no word of its own: `copy` may have the address of the host, a number 0x1... (2^128 + the position area * 2^96 + bit)
-Run: python3 -m tower.text [-l LEVEL] < prog.tw > image   (A and P of the image go to stderr)."""
+Run: python3 tower/tests/text.py [-l LEVEL] < prog.tw > image   (A and P of the image go to stderr)."""
 import os
 import re
 import sys

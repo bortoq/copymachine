@@ -12,7 +12,7 @@ sys.dont_write_bytecode = True
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
 import test_forth as tf
 import test_forth37 as f
 import test_l3c as t

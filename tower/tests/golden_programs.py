@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
 import chain
 import common
 import l1text

@@ -10,8 +10,8 @@ no addresses (a layer is at the place where its rows stand), no names. A wrong t
 (an unknown command or a wrong character, a wrong number of numbers, a row before w, bits which are not whole bytes).
 Not checked, but defined: a number over 5 digits (the older digits fall out), a value over A bits (dropped), w and z
 over ff (modulo 256).
-Run: python3 tower/l1text.py prog.tw > prog.l1     (the program of language 3 and up -> the text of its image)
-     python3 tower/l1text.py -e < prog.l1 > image  (the reference encoder; the seed does the same on the emulator)"""
+Run: python3 tower/tests/l1text.py prog.tw > prog.l1     (the program of language 3 and up -> the text of its image)
+     python3 tower/tests/l1text.py -e < prog.l1 > image  (the reference encoder; the seed does the same on the emulator)"""
 import os
 import sys
 

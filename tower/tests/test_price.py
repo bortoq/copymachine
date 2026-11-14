@@ -9,7 +9,7 @@ sys.dont_write_bytecode = True
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
 import common
 import l3
 import l5
@@ -210,7 +210,7 @@ class Replace(unittest.TestCase):
 class Isolation(unittest.TestCase):
     def test_lower_languages_do_not_know_the_price(self):
         for f in ('common.py', 'l1.py', 'l2.py', 'l3.py', 'l4.py', 'lib.py'):
-            with open(os.path.join(HERE, '..', f), encoding='utf-8') as h:
+            with open(os.path.join(HERE, f), encoding='utf-8') as h:
                 text = h.read()
             self.assertIsNone(re.search(r'\bl5\b|\bprice\b|FORBID', text), f)
             self.assertNotIn('text_bits', text, f)
