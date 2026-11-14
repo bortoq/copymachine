@@ -4,6 +4,8 @@ is the stdin of the other (the image of the program goes first, then the stream)
   far_serve.tw          26.3, the answerer: the window of 8 cells of 8 bits; the record of a request is 6 bytes: op (0 stop, 1 get, 2 put),
                         pos (32 bits, the number of the byte; the window is pos < 8), dat (8 bits); get answers 1 byte (ones outside the window),
                         put answers nothing; the end of stdin is a stop (26.4: pos was 8 bits, now 32);
+  far_serve_at.tw       25.4, the answerer for any position: a text of language 4, the window is the array of 2^10 cells of 8 bits, a cell is read and written by the
+                        computed address of `copy` (`copy &ans &win@&idx`, `copy &win@&idx &dat`; the pass l4c makes `lut` and `store` of it); the protocol is that of far_serve.tw;
   far_get.tw            the asker: sends get/put by hand, keeps the answers in its cells, sends op = 0, prints the cells to stderr;
   far_copy.tw           26.4, the asker in language 4: `copy &x 0x2...` and `copy 0x2... &x` (the pass l4c makes the requests), built by the chain;
   far_file_a.tw, far_file_b.tw   26.5, the common file `-r path` as the second definition of the same copy: A writes the data and the flag, B polls the flag and reads;
@@ -17,6 +19,7 @@ made by the test) use the checked emulator and give the ticks. Python is here on
 Run: make check-tower  or  python3 -B tower/tests/test_far.py"""
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -64,6 +67,12 @@ def program(name):
         assert not errs, errs
         _CACHE[name] = p.stats
     return _CACHE[name]
+
+
+def serve_at_text():
+    """The text of language 4 of far_serve_at.tw (the Python compiler of the tower does not take the computed address: the chain builds it, chain_program)."""
+    with open(os.path.join(PROGRAMS, 'far_serve_at.tw'), encoding='utf-8') as h:
+        return h.read()
 
 
 def rec(op, pos, dat=0):
@@ -145,14 +154,15 @@ class Net:
 
 
 def model(window, ops):
-    """The answerer on a list of (op, pos, dat): the bytes of its answers and the final window (op 0 or the end stops it)."""
+    """The answerer on a list of (op, pos, dat): the bytes of its answers and the final window (op 0 or the end stops it); the window is as long as `window`
+    (8 cells for far_serve.tw, 1024 for far_serve_at.tw)."""
     w, out = list(window), bytearray()
     for op, pos, dat in ops:
         if op == STOP:
             break
         if op == GET:
-            out += bytes([w[pos]]) if pos < 8 else ONES
-        elif op == PUT and pos < 8:
+            out += bytes([w[pos]]) if pos < len(w) else ONES
+        elif op == PUT and pos < len(w):
             w[pos] = rev(dat, 8)
     return bytes(out), bytes(w)
 
@@ -290,6 +300,106 @@ class Answerer(unittest.TestCase):
                 self.assertTrue(5 < v < 60, v)
         self.assertGreater(cost['get'], cost['get_out'])
         self.assertGreater(cost['put'], cost['put_out'])
+
+
+class AnswererAt(unittest.TestCase):
+    """25.4: far_serve_at.tw alone, the window of 1024 cells; a cell is read and written by the computed address `&win@&pos[0:10]` of `copy` (the pass l4c makes `lut`
+    and `store` of it). The requests are made by the test (the checked emulator, ticks), the answers are those of the model for a window of 1024 cells."""
+    SIZE = 1024
+    WIN = WINDOW + bytes(SIZE - len(WINDOW))                      # COPYMACH, then zeros
+
+    @classmethod
+    def setUpClass(cls):
+        cls.src = serve_at_text()
+        for pack in (False, True):
+            chain_program('far_serve_at:pack' if pack else 'far_serve_at', cls.src, pack)
+        with open(os.path.join(PROGRAMS, 'far_serve.tw'), encoding='utf-8') as h:
+            chain_program('far_serve:chain', h.read())                   # the old answerer by the same chain: the ticks to compare
+
+    def test_the_text_is_lut_and_store(self):
+        """The pass l4c makes of `copy &ans &win@&pos[0:10]` the `lut` and of `copy &win@&pos[0:10] &dat` the `store` of language 3; the 8 stores of the start too: the text
+        is, word for word, the text of language 3 which one would write by hand."""
+        out = l3ctext.l4c(self.src.encode() + b'\0')[0].decode()
+        self.assertEqual(out.count('lut &win &pos[0:10] &ans\n'), 1)
+        self.assertEqual(out.count('store &win &pos[0:10] &dat\n'), 1)
+        self.assertEqual(out.count('store &win &i'), 8)
+        self.assertNotIn('@', out[out.index(':main'):])
+        hand = self.src.replace('copy &ans &win@&pos[0:10]', 'lut &win &pos[0:10] &ans').replace('copy &win@&pos[0:10] &dat', 'store &win &pos[0:10] &dat')
+        hand = re.sub(r'copy &win@&(i\d) (&init\[\d+:\d+\])', r'store &win &\1 \2', hand)
+        self.assertNotIn('@', hand[hand.index(':main'):])
+        self.assertEqual(l3ctext.l4c(hand.encode() + b'\0')[0], out.encode('latin-1'))
+
+    def test_the_window_and_the_answers(self):
+        """The cells 0..7 are COPYMACH, the cells 8..1023 are zeros (the window is the array of 2^10 cells)."""
+        r = single('far_serve_at', b''.join(rec(GET, i) for i in range(self.SIZE)) + rec(STOP, 0), limit=0)
+        self.assertEqual((r.rc, r.out), (0, self.WIN))
+
+    def test_outside_the_window_is_ones(self):
+        """pos >= 1024 is the prohibitive price: all ones (1024, 1025, 2047, 4096 and those which have the low 10 bits of a cell of the window: 2^16 + 2, 2^24 + 3,
+        2^31 + 4, 2^32 - 1: the high bits of the 32-bit field decide, not the low ones)."""
+        poss = [1024, 1025, 1031, 2047, 2048, 4096, 65538, 2 ** 24 + 3, 2 ** 28 + 5, 2 ** 31 + 4, 2 ** 32 - 1]
+        r = single('far_serve_at', b''.join(rec(GET, p) for p in poss) + rec(STOP, 0), limit=0)
+        self.assertEqual((r.rc, r.out), (0, ONES * len(poss)))
+
+    def test_put_and_get_everywhere_in_the_window(self):
+        ops = ([(PUT, p, 40 + p % 50) for p in (8, 9, 255, 256, 511, 512, 513, 1000, 1022, 1023, 3, 0)]
+               + [(PUT, p, 9) for p in (1024, 1025, 2 ** 16 + 1, 2 ** 24 + 1023, 2 ** 32 - 1)]
+               + [(GET, p, 0) for p in (0, 3, 8, 9, 255, 256, 511, 512, 513, 1000, 1022, 1023, 1, 2, 1024, 1025, 1 + 2 ** 16)] + [(STOP, 0, 0)])
+        r = single('far_serve_at', b''.join(rec(*o) for o in ops), limit=0)
+        out, w = model(self.WIN, ops)
+        self.assertEqual((r.rc, r.out), (0, out))
+        self.assertEqual(out[2:12], bytes([rev(40 + p % 50, 8) for p in (8, 9, 255, 256, 511, 512, 513, 1000, 1022, 1023)]), 'the puts at 8 and above are in')
+        self.assertEqual(out[12:14], WINDOW[1:3], 'the put at 2^16 + 1 (the low 10 bits are the cell 1) changed nothing')
+        self.assertEqual(out[-3:], ONES * 3, 'outside the window: ones')
+
+    def test_random_sessions(self):
+        rnd = random.Random(254)
+        for i in range(10):
+            with self.subTest(i=i):
+                ops = [(rnd.choice([GET, PUT, GET, PUT, 3]), rnd.choice([rnd.randrange(8), rnd.randrange(1024), rnd.randrange(1020, 1030), rnd.randrange(2 ** 11), rnd.randrange(2 ** 32)]),
+                        rnd.randrange(256)) for _ in range(rnd.randrange(1, 60))] + [(STOP, 0, 0)]
+                r = single('far_serve_at', b''.join(rec(*o) for o in ops), limit=0)
+                self.assertEqual((r.rc, r.out), (0, model(self.WIN, ops)[0]))
+
+    def test_the_same_answers_as_far_serve_in_its_window(self):
+        """In the cells 0..7 the new answerer is the old one: the same requests, the same bytes (and ones outside 8 only for the old one)."""
+        ops = [(PUT, 3, 77), (PUT, 0, 250), (GET, 0, 0), (GET, 3, 0), (GET, 5, 0), (PUT, 7, 1), (GET, 7, 0), (STOP, 0, 0)]
+        a = single('far_serve', b''.join(rec(*o) for o in ops))
+        b = single('far_serve_at', b''.join(rec(*o) for o in ops), limit=0)
+        self.assertEqual((a.rc, a.out), (b.rc, b.out))
+
+    def test_other_op_is_skipped(self):
+        for bad in (3, 4, 16, 255, 128):
+            with self.subTest(op=bad):
+                r = single('far_serve_at', rec(bad, 700, 9) + rec(GET, 2) + rec(PUT, 700, 7) + rec(bad, 0, 5) + rec(GET, 700) + rec(STOP, 0), limit=100000)
+                self.assertEqual((r.rc, r.out), (0, WINDOW[2:3] + bytes([rev(7, 8)])))
+
+    def test_end_of_stdin_is_a_stop(self):
+        for tail in (b'', rec(GET, 1)[:1], rec(GET, 1)[:2]):
+            with self.subTest(tail=tail):
+                r = single('far_serve_at', rec(GET, 2) + tail, limit=100000)
+                self.assertEqual(r.rc, 0)
+                self.assertEqual(r.out[:1], b'P')
+                self.assertLess(r.ticks, 100000, 'stops by the end of input, not by the limit')
+
+    def test_ticks(self):
+        """The measure (the checked emulator, the image made by the chain, serial): the ticks of one request, the difference to the stop alone. The new answerer
+        needs as many as the old one made by the same chain (get 124, put 145; the Python compiler gives the old one 45 and 54, it packs the layers better); a cell far in the window costs the same."""
+        res = {}
+        for name in ('far_serve:chain', 'far_serve_at', 'far_serve_at:pack'):
+            base = single(name, rec(STOP, 0)).ticks
+            res[name] = {k: single(name, rec(*o) + rec(STOP, 0)).ticks - base for k, o in (('get', (GET, 3)), ('put', (PUT, 3, 7)), ('get_far', (GET, 700)),
+                                                                                     ('put_far', (PUT, 700, 7)), ('get_out', (GET, 3000)), ('put_out', (PUT, 3000, 7)))}
+        self.assertEqual(res['far_serve_at']['get'], res['far_serve:chain']['get'])
+        self.assertEqual(res['far_serve_at']['put'], res['far_serve:chain']['put'])
+        for name, c in res.items():
+            with self.subTest(name):
+                if name != 'far_serve:chain':                         # the old window has 8 cells: 700 is outside for it
+                    self.assertEqual((c['get'], c['put']), (c['get_far'], c['put_far']), 'any cell costs the same')
+                self.assertTrue(c['get_out'] < c['get'] and c['put_out'] < c['put'])
+        sys.stderr.write('far_serve_at ticks (get, put) %s; sizes (serial, pack) %d %d, the old one by the chain %d\n' % (
+            {k: (v['get'], v['put']) for k, v in res.items()}, len(program('far_serve_at')['image']), len(program('far_serve_at:pack')['image']),
+            len(program('far_serve:chain')['image'])))
 
 
 class Asker(unittest.TestCase):
@@ -532,6 +642,67 @@ class FarCopy(unittest.TestCase):
         self.assertGreater(res[32, False][0], res[8, False][0])
         self.assertGreater(res[32, True][1], res[8, True][1])
         sys.stderr.write('far copy ticks (asker, answerer): %s\n' % res)
+
+
+class FarCopyAt(unittest.TestCase):
+    """25.4: a program of the kind of far_copy.tw (the asker in language 4: `copy &x 0x2...`, `copy 0x2... &x`) which reads and writes the bytes above 8 (the window of
+    far_serve.tw) of far_serve_at.tw: 100..104, 511, 512, 1020..1025, 2^28 + 5. Out of the window (1024 and over; also 2^28 + 5, which has the low bits of the cell 5) the answer is ones
+    and the put changes nothing. The cells are put to stderr in the order of the gets, the model (the window of 1024 cells) says what they hold."""
+    SRC = (':hello data 40 "HELLO"\n:ll data 16 "LL"\n:zz data 8 "Z"\n:eh data 16 "EH"\n:r5 data 40 0\n:w8 data 64 0\n:e4 data 32 0\n:o4 data 32 0\n:mid data 16 0\n:hi1 data 8 0\n:y1 data 8 0\n'
+           ':stop data 48 0\n:main block\n'
+           'copy {p100} &hello\ncopy &r5 {p100}\ncopy &w8 {p0}\ncopy {p1023} &eh[0:8]\ncopy {p1024} &eh[8:16]\ncopy &e4 {p1020}\ncopy &o4 {p1022}\n'
+           'copy {p511} &ll\ncopy &mid {p511}\ncopy &hi1 {phi}\ncopy {phi} &zz\ncopy &y1 {p5}\n'
+           'goto &fin\n:fin block\nemit &stop\ngoto &show\n:show block\nwarn &r5\nwarn &w8\nwarn &e4\nwarn &o4\nwarn &mid\nwarn &hi1\nwarn &y1\nhalt\n').format(
+        p100=far(100), p0=far(0), p1023=far(1023), p1024=far(1024), p1020=far(1020), p1022=far(1022), p511=far(511), phi=far(2 ** 28 + 5), p5=far(5))
+    WIN = AnswererAt.WIN
+    ops = ([(PUT, 100 + i, rev(c, 8)) for i, c in enumerate(b'HELLO')] + [(GET, 100 + i, 0) for i in range(5)] + [(GET, i, 0) for i in range(8)]
+           + [(PUT, 1023, rev(ord('E'), 8)), (PUT, 1024, rev(ord('H'), 8))] + [(GET, 1020 + i, 0) for i in range(4)] + [(GET, 1022 + i, 0) for i in range(4)]
+           + [(PUT, 511, rev(ord('L'), 8)), (PUT, 512, rev(ord('L'), 8)), (GET, 511, 0), (GET, 512, 0), (GET, 2 ** 28 + 5, 0), (PUT, 2 ** 28 + 5, rev(ord('Z'), 8)), (GET, 5, 0), (STOP, 0, 0)])
+    cells = b'HELLO' + WINDOW + b'\0\0\0E' + b'\0E' + ONES * 2 + b'LL' + ONES + WINDOW[5:6]       # what the asker puts to stderr
+
+    @classmethod
+    def setUpClass(cls):
+        cls.names = {}
+        for pack in (False, True):
+            cls.names[pack] = 'far_copy_at:' + ('pack' if pack else 'serial')
+            chain_program(cls.names[pack], cls.SRC, pack)
+            chain_program('far_serve_at:pack' if pack else 'far_serve_at', serve_at_text(), pack)
+
+    def test_the_model_says_what_the_cells_hold(self):
+        out, w = model(self.WIN, self.ops)
+        self.assertEqual(out, self.cells)
+        self.assertEqual((w[100:105], w[511:513], w[1023], w[5]), (b'HELLO', b'LL', ord('E'), WINDOW[5]))
+
+    def test_the_requests_are_the_records(self):
+        """The asker alone (the answers are the test's): its stdout is the records of one byte per request, by the protocol; both layouts."""
+        want = b''.join(rec(*o) for o in self.ops)
+        for pack in (False, True):
+            with self.subTest(pack=pack):
+                self.assertEqual(single_err(self.names[pack], self.cells), (0, want, self.cells))
+
+    def test_pair(self):
+        """The asker and far_serve_at.tw in two emulators: the bytes above 8 are read and written, outside the window is ones; both end. Serial and packed, the answerer too."""
+        for pack in (False, True):
+            with self.subTest(pack=pack):
+                (rr, qr), _, _ = run_pair(self.names[pack], serve='far_serve_at:pack' if pack else 'far_serve_at')
+                self.assertEqual(rr, (0, b''), 'the answerer stops by op = 0')
+                self.assertEqual(qr, (0, self.cells))
+
+    def test_the_old_answerer_gives_ones_above_8(self):
+        """The same asker against far_serve.tw (8 cells): the cells above 7 are ones, nothing is written there."""
+        (rr, qr), _, _ = run_pair(self.names[False])
+        self.assertEqual((rr, qr[0]), ((0, b''), 0))
+        self.assertEqual(qr[1][:5], ONES * 5)
+        self.assertEqual(qr[1][5:13], WINDOW)
+
+    def test_chain_with_the_tool_l4c(self):
+        """The pass made by the tool l4c itself gives the text of the reference for the answerer and the asker; the image of it is the same."""
+        import test_l4p
+        test_l4p.setUpModule()
+        for src, name in ((serve_at_text(), 'far_serve_at'), (self.SRC, self.names[False])):
+            out = test_l4p.l4c(src.encode())
+            self.assertEqual((out.rc, out.out, test_l4p.says(out)), (0, l3ctext.l4c(src.encode() + b'\0')[0], ''))
+            self.assertEqual(l5.chain_image(out.out[:-1].decode('latin-1'))[0], program(name)['image'])
 
 
 # ---------------------------------------------------------------- 26.5: the common file

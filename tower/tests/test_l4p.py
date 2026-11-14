@@ -139,6 +139,33 @@ CHAN_EDGES = [
     b':a data 8 0\n:main block\ncopy +2 ' + HOSTA.encode() + b'\ncopy ' + HOSTA.encode() + b' +1\ncopy &a ' + HOSTA.encode() + b'\n',
     b'pack\n:a data 8 0\n:main block\ncopy +2 &a\nhalt\n', b':a data 8 "+2"\n:main block\ncopy  +2   &a   copy &a\t+1\n',
 ]
+# the computed address (25.4): `copy &x &t@&i` is `lut &t &i &x`, `copy &t@&i &x` is `store &t &i &x`; the widths are those of lut and store (the index K bits, &x w bits)
+COMP_PRE = ':i data 3 0\n:j data 10 0\n:x data 8 0\n:y data 9 0\n:t table 3 8 1 2 3 4 5 6 7 8\n:a array 3 8\n:b array 10 8\n:c array 1 8\n:main block\n'
+COMP_GOOD = ['&x &t@&i', '&x &a@&i', '&a@&i &x', '&x &b@&j', '&b@&j &x', '&x &a@&j[0:3]', '&a@&j[3:6] &x', '&x[0:8] &b@&j[0:10]', '&x &c@&j[5]', '&c@&j[9] &x[0:8]',
+             '&y[1:9] &a@&i', '&a@&i &y[0:8]', '&x   &a@&i', '&a@&i\t&x']
+# not translated: the table or array is not known (not a table, a data, an unknown name, a table for the write), the width of &x or of the index is not w or K, the other operand is
+# not a part of space (a channel, a number, an address of the host or of the far space, a computed address too)
+COMP_BAD = {'at name': ['&t@&i &x', '&x &q@&i', '&x &x@&i', '&y &i@&i', '&x &add4@&i', '&x &hex4@&i', '&x &zero@&i'],
+            'at width': ['&a@&i &q', '&y &a@&i', '&a@&i &y', '&x &a@&j', '&x &a@&j[0:2]', '&x &a@&j[0:4]', '&x[0:7] &a@&i', '&x &a@&q', '&x &a@', '&x &a@&', '&x &a@0', '&x &a@&i[1:1]',
+                         '&a@&i &a@&i', '+2 &a@&i', '&a@&i +1', '1048572 &a@&i', '&x &a@&b@&j', '%s &a@&i' % HOSTA, '&a@&i %s' % FAR, '&x &a@&i&j']}
+COMP_EDGES = [
+    (COMP_PRE + ''.join('copy %s\n' % c for c in COMP_GOOD) + 'halt\n').encode(),
+    (COMP_PRE + ''.join('copy %s\n' % c for r in COMP_BAD.values() for c in r) + 'halt\n').encode(),
+    # the declarations: the first of a name stays, table array and data share the names, K and w are the numbers after the word (else nothing is kept)
+    b':t table 3 8 1 2 3 4 5 6 7 8\n:t table 2 8 1 2 3 4\n:t data 8 0\n:x data 8 0\n:i data 3 0\n:i data 2 0\n:main block\ncopy &x &t@&i\ncopy &t@&i &x\n',
+    b':t array 3 8\n:t table 3 8 1 2 3 4 5 6 7 8\n:x data 8 0\n:i data 3 0\n:main block\ncopy &x &t@&i\ncopy &t@&i &x\n',
+    b':x data 8 0\n:i data 3 0\n:t table 3\n:u table x 8\n:v array 3 "8"\n:w table 0x3 8\n:z array 3 8x\n:main block\ncopy &x &t@&i\ncopy &x &u@&i\ncopy &x &v@&i\ncopy &x &w@&i\ncopy &x &z@&i\n',
+    b':x data 8 0\n:i data 3 0\n:t table 19 8\n:u array 3 136\n:v array 3 1\n:w table 1048579 8\n:main block\ncopy &x &t@&i\ncopy &x &u@&i\ncopy &v@&i[0:3] &x[0:1]\ncopy &x &w@&i[0]\n',
+    b':x data 8 0\n:i data 3 0\n:t\ntable 3 8 :u\n array\n3\n8\n:main block\ncopy &x &t@&i\ncopy &x &u@&i\ncopy &u@&i &x\n',
+    b':x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &a@&i &x\n# copy &x &a@&i\n:s data 64 "copy &x &a@&i"\ncopy &x &a@&i   # x\n',
+    b':x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &x &abcdefghijklmn@&i\ncopy &x &abcdefghijklmno@&i\ncopy &x &1a@&i\ncopy &x &@&i\ncopy &x &a@@&i\ncopy &x & a@&i\n',
+    b':x data 8 0\n:i data 3 0\n:abcdefghijklmn array 3 8\n:main block\ncopy &x &abcdefghijklmn@&i\ncopy &abcdefghijklmn@&i[0:3] &x\n',
+    b'pack\n:x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &x &a@&i\ncopy &a@&i &x\nhalt\n',
+    b':x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &x &a@&i', b':x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &x', b'copy &x &a@&i',
+    b':a array 3 8\ncopy &x &a@&i', b':x data 8 0\ncopy &x &a@&i',
+    # with the host, the far space and the channels in one text: each form by itself
+    (':x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &x {h}\ncopy &x &a@&i\ncopy {f} &x\ncopy &a@&i &x\ncopy +2 &x\ncopy &x {f}\nhalt\n'.format(h=HOSTA, f=FAR)).encode(),
+]
 # texts for the pass: what it must give as it is, and what it must leave unchanged
 EDGES = [
     b'', b'# only a comment', b'   ', b'copy', b'copy &a', b'copy &a &b', b'x copy &a 0x1000', b':a data 8 0\n:main block\ncopy &a 0x1000\nhalt\n',
@@ -343,6 +370,51 @@ class Reference(unittest.TestCase):
         out = l3ctext.l4c((':x data 64 0\n:main block\n' + 'copy &x %s\n' % FAR * 257).encode() + b'\0')[0]       # 257 gets of 8 bytes: 256 take 2048 labels, the last stays
         self.assertEqual((out.count(b'goto &l4f'), out.count(b'\ncopy &x 0x2')), (2048, 1))
 
+    def test_the_text_of_a_computed_address(self):
+        """25.4: `copy &x &t@&i` is `lut &t &i &x`, `copy &t@&i &x` is `store &t &i &x` (the index is any part of space: &i, &i[k], &i[lo:hi]); the rest of the text is as it is;
+        l3c takes the result and gives the same language 2 as for the words written by hand."""
+        pre = ':i data 3 0\n:j data 10 0\n:x data 8 0\n:t table 3 8 1 2 3 4 5 6 7 8\n:a array 3 8\n:b array 10 8\n:main block\n'
+        src = pre + 'copy &x &t@&i\ncopy &a@&i   &x  # c\ncopy &x[0:8] &b@&j[0:10]\n  copy &b@&j &x\ncopy &x &a@&j[2:5]\nhalt\n'
+        want = pre + 'lut &t &i &x\nstore &a &i &x  # c\nlut &b &j[0:10] &x[0:8]\n  store &b &j &x\nlut &a &j[2:5] &x\nhalt\n'
+        out = l3ctext.l4c(src.encode() + b'\0')[0].decode()
+        self.assertEqual(out, l3ctext.l4c_prelude() + want + '\0')
+        self.assertEqual(l3ctext.encode(out[:-1]), l3ctext.encode(l3ctext.l4c_prelude() + want))
+        self.assertIsNone(l3ctext.encode(out[:-1])[1])
+        self.assertIsNone(l3ctext.encode('pack\n' + out[:-1])[1])
+        self.assertEqual(l3ctext.l4c(b'pack\n' + src.encode() + b'\0')[0].decode(), 'pack' + l3ctext.l4c_prelude() + '\n' + want + '\0')
+        self.assertIsNotNone(l3ctext.encode(src)[1], 'the sign @ is not in language 3: l3c does not take the form')
+        for form in ('copy &x &t@&i\n', 'copy &a@&i &x\n'):
+            self.assertIsNotNone(l3ctext.encode(pre + form)[1], form)
+
+    def test_a_computed_address_which_is_not_as_told_is_as_it_was(self):
+        """The table or array is not known (a data, an unknown name, a table for the write), the width of &x is not w or the width of the index is not K, the other operand is not
+        a part of space with a known width: `copy a b` as it was (l3c does not take it)."""
+        for reason, copies in COMP_BAD.items():
+            for pair in copies:
+                with self.subTest(reason=reason, pair=pair):
+                    out = l3ctext.l4c((COMP_PRE + 'copy %s\nhalt\n' % pair).encode() + b'\0')[0].decode()
+                    tail = out[out.index(':main block\n') + 12:]
+                    self.assertTrue(tail.startswith('copy ') and tail.endswith('halt\n\0'), tail)
+                    self.assertTrue('@' in tail and 'lut ' not in tail and 'store ' not in tail, tail)
+                    self.assertIsNotNone(l3ctext.encode(out[:-1])[1], pair)
+        for pair in COMP_GOOD:
+            out = l3ctext.l4c((COMP_PRE + 'copy %s\nhalt\n' % pair).encode() + b'\0')[0].decode()
+            self.assertTrue('@' not in out and ('lut ' in out or 'store ' in out), pair)
+            self.assertIsNone(l3ctext.encode(out[:-1])[1], pair)
+
+    def test_tables_and_arrays_are_kept_with_the_data(self):
+        """The declaration :name table K w, :name array K w is remembered like the width of data (the first of a name stays; K and w are the numbers after the word, else
+        the name is not kept); a name of a table is not a width of data for the long copies."""
+        pre = ':i data 3 0\n:x data 8 0\n'
+        for decl, ok in ((':t table 3 8 1 2 3 4 5 6 7 8', True), (':t array 3 8', True), (':t table 3', False), (':t table x 8', False), (':t array 3 "8"', False),
+                         (':t array 0x3 8', False), (':t table 3 8x', False), (':t\ntable\n3 # K\n8', True), (':t table 19 8', True),
+                         (':t data 3 8', False)):
+            with self.subTest(decl):
+                out = l3ctext.l4c((pre + decl + '\n:main block\ncopy &x &t@&i\n').encode() + b'\0')[0]
+                self.assertEqual(b'lut &t &i &x' in out, ok, out[-60:])
+        out = l3ctext.l4c((pre + ':t table 1 8 1 2\n:main block\ncopy &t %s\ncopy %s &t\n' % (HOSTA, HOSTA)).encode() + b'\0')[0]
+        self.assertTrue(out.endswith(('copy &t %s\ncopy %s &t\n' % (HOSTA, HOSTA)).encode() + b'\0'), out[-80:])
+
     def test_chain_of_references(self):
         """The text of language 3 which the pass makes is a text l3c takes."""
         for name, src in PROGRAMS.items():
@@ -451,6 +523,55 @@ class Tool(unittest.TestCase):
                 else:
                     b.insert(i, rng.choice(b'012x&[]: "\n\\#'))
             self.check(bytes(b).replace(b'\0', b' '), limit=10 ** 9)
+
+    def test_computed_address(self):
+        """The computed addresses (25.4): the same bytes as the reference for the forms which are translated and for those which are not (also in the pack mode, in a string, in a
+        comment, with the other forms of the address in one text, the declarations spoiled)."""
+        for src in COMP_EDGES:
+            with self.subTest(src):
+                self.check(src)
+
+    def test_computed_refusal_reason(self):
+        """A computed address which is not translated says why to stderr, one line, once per copy: `l4c: at name` (the table or array is not known, a table for the write) or
+        `l4c: at width` (the width of &x or of the index is not w or K, or the other operand has no known width); the text on the output is the copy as it was and l3c does not take it.
+        The reference does not say it (it has no stderr of its own). What is translated says nothing."""
+        for reason, copies in COMP_BAD.items():
+            for pair in copies:
+                with self.subTest(reason=reason, pair=pair):
+                    r = self.check((COMP_PRE + 'copy %s\nhalt\n' % pair).encode())
+                    self.assertEqual(says(r), 'l4c: %s\n' % reason)
+                    self.assertIsNotNone(l3ctext.encode(r.out[:-1].decode('latin-1'))[1])
+        for pair in COMP_GOOD:
+            with self.subTest(good=pair):
+                r = self.check((COMP_PRE + 'copy %s\nhalt\n' % pair).encode())
+                self.assertEqual(says(r), '')
+                self.assertIsNone(l3ctext.encode(r.out[:-1].decode('latin-1'))[1])
+        r = self.check((COMP_PRE + 'copy &x &a@&i\ncopy &q@&i &x\ncopy &y &a@&i\ncopy &a@&i &x\n').encode())             # a refusal among the others
+        self.assertEqual(says(r), 'l4c: at name\nl4c: at width\n')
+
+    def test_computed_mutations(self):
+        """Texts with computed addresses and declarations spoiled at random (a character replaced, dropped, doubled): the same bytes."""
+        rng = random.Random(2504)
+        for _ in range(40):
+            b = bytearray(rng.choice(COMP_EDGES[:4] + COMP_EDGES[6:8]))
+            for _ in range(rng.choice((1, 2, 3))):
+                i = rng.randrange(len(b))
+                m = rng.randrange(3)
+                if m == 0:
+                    b[i] = rng.choice(b'0123456789abcdefx&[]:@# "\n\\tr')
+                elif m == 1:
+                    del b[i]
+                else:
+                    b.insert(i, rng.choice(b'02x&[]:@ "\n\\#'))
+            self.check(bytes(b).replace(b'\0', b' '))
+
+    def test_the_names_of_tables_and_arrays_take_the_cells_of_the_names(self):
+        """A name of a table or array takes a cell of the table of names, as a name of data does (63 cells in all): a name past them is not kept (its copy goes out unchanged)."""
+        decl = ''.join((':d%d data 8 0\n' if k % 2 else ':d%d array 3 8\n') % k for k in range(70))
+        for k in (0, 1, 58, 60, 62, 64, 69):                       # i and x take two cells, the cells 3..63 are for d0..d60 (the reference keeps more names, as for data)
+            src = (':i data 3 0\n:x data 8 0\n' + decl + ':main block\ncopy &x &d%d@&i\nhalt\n' % k).encode()
+            out = l4c(src).out
+            self.assertEqual(b'\nlut &d%d &i &x\n' % k in out, k % 2 == 0 and k < 61, k)
 
     def test_edges(self):
         for src in EDGES:

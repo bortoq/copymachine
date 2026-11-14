@@ -1099,7 +1099,8 @@ L4Q, L4Z = 'l4q', 'l4z'
 L4N = (274960, 624485, 974010, 15)    # the nibbles 0..4, 5..9, 10..14, 15 (20 bits, a nibble in 4 bits, low first)
 MAXTOK = 120                          # a longer token is cut (l3c takes none so long)
 MAXNAME = 14
-MAXW = 1024                           # the widths of data the pass remembers
+MAXW = 1024                           # the widths of data the pass remembers (and K, w of table and array: the value w + 128 K, kind 1 and 2; 25.4)
+NOTRACK = (0, None, 0, 0)
 SYSTEXT = str(SYSC)
 
 
@@ -1146,8 +1147,8 @@ def _part(tok, syms):
     name, j = nm
     rest = tok[j:]
     if not rest:
-        w = next((w for nm, w in syms if nm == name), None)
-        return None if w is None else (j, 0, w)
+        e = next((e for e in syms if e[0] == name), None)
+        return None if e is None or e[2] else (j, 0, e[1])
     if rest[:1] != b'[' or rest[-1:] != b']':
         return None
     parts = rest[1:-1].split(b':')
@@ -1170,6 +1171,33 @@ def _chan(tok):
     if len(tok) == 2 and tok[:1] == b'+' and tok[1:] in (b'0', b'1', b'2', b'3', b'4', b'5'):
         return str(SYSC + tok[1] - 48).encode()
     return tok
+
+
+def _comp(tok):
+    """A computed address `&t@&i` (4th form of the address of `copy`, 25.4): the table or the array `&t` and, after the sign @, the cell of the index (a part of space: &i,
+    &i[k], &i[lo:hi]). Returns the place of the sign @ in tok, or None (no name of 1..14 bytes after the & and then @)."""
+    if tok[:1] != b'&':
+        return None
+    nm = _name_of(tok, 1)
+    return nm[1] if nm is not None and tok[nm[1]:nm[1] + 1] == b'@' else None
+
+
+def comp_copy(a, b, syms):
+    """The text of language 3 for a copy with a computed address (one operand is `&t@&i`, the other a part of space with a known width): `copy &x &t@&i` is `lut &t &i &x`
+    (the read of the record by the value of the cell), `copy &t@&i &x` is `store &t &i &x` (the write; &t is an array). The widths are those of lut and store: the index is
+    exactly the K bits of the table (table K w), &x is w bits. The names are those of table and array before the copy. None: the name is not a table (an array for the write),
+    the widths are not those, the other operand is not a part of space with a known width (the reasons for the tool l4c: `at name`, `at width`)."""
+    ja, jb = _comp(a), _comp(b)
+    if ja is not None and jb is not None:
+        return None
+    put = ja is not None
+    addr, other, j = (a, b, ja) if put else (b, a, jb)
+    e = next((e for e in syms if e[0] == addr[1:j]), None)
+    if e is None or not e[2] or (put and e[2] != 2):
+        return None
+    if _width(other, syms) != e[1] & 127 or _width(addr[j + 1:], syms) != e[1] >> 7:
+        return None
+    return (b'store ' if put else b'lut ') + addr[:j] + b' ' + addr[j + 1:] + b' ' + other
 
 
 def host_head(put, n, digits):
@@ -1304,7 +1332,7 @@ def l4c(data):
     state = 'idle'                          # idle, tok, str (in a string), com
     esc = False
     copy_ops = None                         # None, or the list of the operands read after `copy` (0, 1 or 2 of them)
-    track = (0, None)                       # (0: nothing; 1: after :name; 2: after :name data), the name
+    track = NOTRACK                         # (0: nothing; 1: after :name; 2: a number follows, the width of data or w of table, array; 3: K follows), the name, the kind (0 data, 1 table, 2 array), K
     i = 0
 
     def put(s):
@@ -1321,13 +1349,18 @@ def l4c(data):
         t = bytes(t)
         if copy_ops is not None:
             copy_ops.append(t)
-            track = (0, None)
+            track = NOTRACK
             if len(copy_ops) < 2:
                 return
             a, b = copy_ops
             copy_ops = None
             ha, hb = _host_digits(a), _host_digits(b)
-            if (ha is None) != (hb is None):
+            if _comp(a) is not None or _comp(b) is not None:      # a computed address: lut or store, or the copy as it was
+                c = comp_copy(a, b, syms)
+                if c is not None:
+                    put(c)
+                    return
+            elif (ha is None) != (hb is None):
                 other, digits = (b, ha) if ha is not None else (a, hb)
                 addr = a if ha is not None else b
                 if _far(addr):                  # the far space: its own translation, never the host's (an address which is not as told goes out unchanged)
@@ -1354,21 +1387,26 @@ def l4c(data):
             pre()
         if t == b'copy':
             copy_ops = []
-            track = (0, None)
+            track = NOTRACK
             return
         put(t)
-        k, name = track
+        k, name, kind, kk = track
+        num = bool(t) and all(c in DIGITS for c in t)
         if k == 2:
-            if t and all(c in DIGITS for c in t) and len(syms) < MAXW:
-                syms.append((name, _decimal(t)))
-            track = (0, None)
+            if t and num and len(syms) < MAXW:
+                syms.append((name, (_decimal(t) & 127 | kk << 7) if kind else _decimal(t), kind))
+            track = NOTRACK
+        elif k == 3:
+            track = (2, name, kind, _decimal(t) & 15) if num else NOTRACK
         elif k == 1 and t == b'data':
-            track = (2, name)
+            track = (2, name, 0, 0)
+        elif k == 1 and t in (b'table', b'array'):
+            track = (3, name, 1 if t == b'table' else 2, 0)
         elif t[:1] == b':':
             nm = _name_of(t, 1)
-            track = (1, nm[0]) if nm and nm[1] == len(t) else (0, None)
+            track = (1, nm[0], 0, 0) if nm and nm[1] == len(t) else NOTRACK
         else:
-            track = (0, None)
+            track = NOTRACK
 
     while True:
         c = data[i]

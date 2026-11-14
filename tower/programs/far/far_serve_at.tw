@@ -1,0 +1,72 @@
+# Far copy, step 25.4 (7.2.42, 7.2.45): the answerer of far_serve.tw for any position of a window of 1024 cells. A text of language 4: the same protocol over its
+# stdin/stdout (the shell connects the stdout of the asker to this stdin and this stdout to the stdin of the asker); the reads and the writes of a cell by its number are
+# the computed address of `copy`, `&win@&idx`: not `lut` and `store` but a copy by the value of the cell idx (the pass l4c makes of it the same words of language 3).
+# The record of a request: fixed size, 6 bytes, read by three `key`:   op (8 bits)   pos (32 bits)   dat (8 bits)
+#   op = 0 (all 8 bits)  stop (no answer)      op = 1  get: answer one byte, win[pos]      op = 2  put: win[pos] = dat (no answer)
+#   any other op (3, 4, 16, 255 ...) is a spoiled record: it is skipped, nothing is answered, the next record is read (only op = 0 whole stops the answerer).
+#   a number is stored as `key` stores it: the first bit of the stream is the lowest bit (pos: 4 bytes, the lowest byte first).
+#   pos is the number of a byte; out of the window (pos >= 1024): get answers a byte of ones (255) = the prohibitive price; put changes nothing.
+#   The end of the stdin (the channel is closed) is a stop: op is zeroed before every read and a read at EOF leaves it as it was.
+# The window is the array win: 2^10 cells of 8 bits, the largest array of language 3 (K up to 10); the first 8 cells are COPYMACH as in far_serve.tw, the rest are zeros.
+# lt works over 8 nibbles (c3 is 9 bits, the test is c3[8]); the index is the 10 low bits of pos (pos[0:10], the width K of the array).
+:op data 8 0
+:pos data 32 0
+:dat data 8 0
+:ans data 8 0
+:zero8 data 8 0
+:one8 data 8 1
+:two8 data 8 2
+:e data 2 0
+:ones data 8 255
+:lim data 32 1024
+:c3 data 9 0
+:win array 10 8
+:init data 64 "COPYMACH"
+:i0 data 10 0
+:i1 data 10 1
+:i2 data 10 2
+:i3 data 10 3
+:i4 data 10 4
+:i5 data 10 5
+:i6 data 10 6
+:i7 data 10 7
+:main block
+copy &win@&i0 &init[0:8]
+copy &win@&i1 &init[8:16]
+copy &win@&i2 &init[16:24]
+copy &win@&i3 &init[24:32]
+copy &win@&i4 &init[32:40]
+copy &win@&i5 &init[40:48]
+copy &win@&i6 &init[48:56]
+copy &win@&i7 &init[56:64]
+goto &loop
+:loop block
+copy &op &zero8
+key &op
+key &pos
+key &dat
+lt &pos &lim &c3
+eq &op &zero8 &e
+if &e[1] &done &isget
+:isget block
+eq &op &one8 &e
+if &e[1] &get &notget
+:get block
+if &c3[8] &getin &getout
+:getin block
+copy &ans &win@&pos[0:10]
+emit &ans
+goto &loop
+:getout block
+emit &ones
+goto &loop
+:notget block
+eq &op &two8 &e
+if &e[1] &put &loop
+:put block
+if &c3[8] &putin &loop
+:putin block
+copy &win@&pos[0:10] &dat
+goto &loop
+:done block
+halt

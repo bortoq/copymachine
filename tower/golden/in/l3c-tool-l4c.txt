@@ -121,6 +121,7 @@
 :snb array 6 56
 :swd array 6 20
 :scp array 6 6
+:skd array 6 4
 :trn array 10 8
 
 # --- the character, the state of the reading
@@ -240,6 +241,22 @@
 :fnl data 20 0
 :xe data 8 0
 
+# --- the computed address &t@&i (25.4): the flags, the part of the operand, the kind and K, w of a table
+:cmok data 1 0
+:cmi data 8 0
+:cf data 2 0
+:cdone data 1 0
+:ops data 8 0
+:ee data 8 0
+:tkk data 4 0
+:fkn data 4 0
+:fkd data 4 0
+:tfw data 20 0
+:istb data 1 0
+:isar data 1 0
+:w40 data 40 0
+:fp10 data 10 0
+
 # --- the arithmetic (20 bits)
 :wxa data 20 0
 :wxb data 20 0
@@ -260,6 +277,7 @@
 :y0 data 2 0
 :y1 data 2 1
 :y2 data 2 2
+:y3 data 2 3
 :c3b data 8 3
 :c8b data 8 8
 :c27b data 8 27
@@ -297,16 +315,23 @@
 :s_2 data 8 "2"
 :s_1 data 8 "1"
 :s_plus data 8 "+"
+:s_at data 8 "@"
 :s_chan data 48 "104857"
 :w_copy data 32 "copy"
 :w_pack data 32 "pack"
 :w_data data 32 "data"
+:w_table data 40 "table"
+:w_array data 40 "array"
 :s_copy4 data 32 "copy"
 :s_copy data 40 "copy "
 :m_link data 112 "l4c: far link\n"
 :m_pos data 104 "l4c: far pos\n"
 :m_wid data 120 "l4c: far width\n"
 :m_lim data 120 "l4c: far limit\n"
+:m_atn data 104 "l4c: at name\n"
+:m_atw data 112 "l4c: at width\n"
+:s_lut data 32 "lut "
+:s_store data 48 "store "
 :s_cq data 80 "copy &l4q["
 :s_rb data 16 "] "
 :s_z1 data 232 "copy &l4q[0:204] &l4z[0:204]\n"
@@ -559,8 +584,10 @@ ret
 copy &isp &zero
 copy &isc &zero
 copy &isd &zero
+copy &istb &zero
+copy &isar &zero
 eq &tl &c4 &q2
-if &q2[1] &tdr1 &tdr3
+if &q2[1] &tdr1 &tdr0
 :tdr1 block
 lut &tk &i0 &tc
 copy &w32[0:8] &tc
@@ -576,6 +603,26 @@ eq &w32 &w_copy &fp
 copy &isc &fp[7]
 eq &w32 &w_data &fp
 copy &isd &fp[7]
+goto &tdr3
+:tdr0 block
+eq &tl &c5 &q2
+if &q2[1] &tdr5 &tdr3
+# `table` and `array` (5 characters): the declaration :name table K w is remembered like data (the kind, K, w)
+:tdr5 block
+lut &tk &i0 &tc
+copy &w40[0:8] &tc
+lut &tk &i1 &tc
+copy &w40[8:16] &tc
+lut &tk &i2 &tc
+copy &w40[16:24] &tc
+lut &tk &i3 &tc
+copy &w40[24:32] &tc
+lut &tk &c4 &tc
+copy &w40[32:40] &tc
+eq &w40 &w_table &fp10
+copy &istb &fp10[9]
+eq &w40 &w_array &fp10
+copy &isar &fp10[9]
 goto &tdr3
 :tdr3 block
 if &first &tdf &tdc
@@ -612,9 +659,16 @@ ret
 # the operand (ob, ol) goes out
 :emitop word
 copy &ii &zero8
+copy &ee &ol
+call &emitrg &emo
+:emo block
+ret
+
+# the characters ii .. ee - 1 of the operand (ob) go out
+:emitrg word
 goto &eol
 :eol block
-eq &ii &ol &q2
+eq &ii &ee &q2
 if &q2[1] &eodone &eo1
 :eo1 block
 copy &ti[0:7] &ii[0:7]
@@ -643,7 +697,17 @@ ret
 
 # --- the names of data: the token which went out is looked at: `:name`, `data`, the width (tr: 0 nothing, 1 after :name, 2 after :name data)
 :track word
-if &tr[1] &trk2 &trk01
+if &tr[1] &trk23 &trk01
+:trk23 block
+if &tr[0] &trk3 &trk2
+# K of table, array: the number after the word (kept in tkk); then w comes as the width of data does
+:trk3 block
+copy &tr &y0
+if &alld &trk3a &trkend
+:trk3a block
+copy &tkk &num[0:4]
+copy &tr &y2
+ret
 :trk2 block
 copy &tr &y0
 if &alld &trk2a &trkend
@@ -651,6 +715,14 @@ if &alld &trk2a &trkend
 eq &tl &zero8 &q2
 if &q2[1] &trkend &trk2b
 :trk2b block
+lut &nzt &fkn &q1
+if &q1 &trk2t &trk2u
+# table, array: the value kept is w + 128 K
+:trk2t block
+copy &num[7:20] &z20[0:13]
+copy &num[7:11] &tkk
+goto &trk2u
+:trk2u block
 copy &nm &lbl
 copy &hh &lh
 call &find &trk2c
@@ -671,13 +743,27 @@ store &sna &nc[0:6] &lbl[0:56]
 store &snb &nc[0:6] &lbl[56:112]
 store &swd &nc[0:6] &num
 store &scp &nc[0:6] &ot[0:6]
+store &skd &nc[0:6] &fkn
 ret
 :trk01 block
 if &tr[0] &trk1 &trk0
 :trk1 block
-if &isd &trk1d &trk0
+if &isd &trk1d &trk1b
 :trk1d block
 copy &tr &y2
+copy &fkn &zero8[0:4]
+ret
+:trk1b block
+if &istb &trk1t &trk1c
+:trk1t block
+copy &tr &y3
+copy &fkn &one4
+ret
+:trk1c block
+if &isar &trk1a &trk0
+:trk1a block
+copy &tr &y3
+copy &fkn &two4
 ret
 :trk0 block
 copy &tr &y0
@@ -704,6 +790,24 @@ ret
 
 # --- the two operands of a copy: which is the host, the width, the text
 :trans word
+copy &ob &zero
+copy &ol &l1
+call &iscomp &trc1
+:trc1 block
+copy &cf[0] &cmok
+copy &ob &one1
+copy &ol &l2
+call &iscomp &trc2
+:trc2 block
+copy &cf[1] &cmok
+lut &or2 &cf &q1
+if &q1 &trc3 &tr0
+# a computed address &t@&i in one of the operands: lut or store, or the copy as it was (the reason goes to stderr)
+:trc3 block
+call &compcopy &trc4
+:trc4 block
+if &cdone &trx &trun
+:tr0 block
 copy &ob &zero
 copy &ol &l1
 call &ishost &tr1
@@ -1162,6 +1266,133 @@ ret
 :fzx block
 ret
 
+# the computed address &t@&i (25.4): is the operand (ob, ol) one (cmok): `&`, a name, `@`; cmi is the place after the @, nm and hh are the name of the table
+:iscomp word
+copy &cmok &zero
+copy &mi &zero8
+call &peek &ic1
+:ic1 block
+eq &tc &s_amp &q2
+if &q2[1] &ic2 &icend
+:ic2 block
+copy &mi &one8
+call &mkname &ic3
+:ic3 block
+if &nok &ic4 &icend
+:ic4 block
+call &peek &ic5
+:ic5 block
+eq &tc &s_at &q2
+if &q2[1] &ic6 &icend
+:ic6 block
+lut &inc8 &mi &mi
+copy &cmi &mi
+copy &cmok &one1
+ret
+:icend block
+ret
+
+# the copy with a computed address (cf: which operand has it; both: the width of the other is not known): copy &x &t@&i is `lut &t &i &x`, copy &t@&i &x is
+# `store &t &i &x` (the table or the array before the copy, an array for the write; the index is K bits, &x is w bits: the widths of lut and store). cdone = 1 if it is made;
+# else the reason goes to stderr (`l4c: at name`, `at width`) and the copy goes out as it was
+:compcopy word
+copy &cdone &zero
+if &cf[0] &cc1 &cc2
+:cc1 block
+if &cf[1] &ccw &cc1b
+:cc1b block
+copy &hput &one1
+copy &hb &zero
+copy &hl &l1
+copy &xb &one1
+copy &xl &l2
+goto &cc3
+:cc2 block
+copy &hput &zero
+copy &hb &one1
+copy &hl &l2
+copy &xb &zero
+copy &xl &l1
+goto &cc3
+:cc3 block
+copy &ob &hb
+copy &ol &hl
+call &iscomp &cc4
+:cc4 block
+call &find &cc5
+:cc5 block
+if &fo &cc6 &ccn
+:cc6 block
+lut &nzt &fkd &q1
+if &q1 &cc7 &ccn
+:cc7 block
+copy &tfw &fw
+if &hput &cc7a &cc8
+:cc7a block
+if &fkd[1] &cc8 &ccn
+:cc8 block
+copy &ob &xb
+copy &ol &xl
+copy &ops &zero8
+call &opwidth &cc9
+:cc9 block
+if &wok &cc10 &ccw
+:cc10 block
+copy &wxa &wv
+copy &wxb &z20
+copy &wxb[0:7] &tfw[0:7]
+call &weq &cc11
+:cc11 block
+if &q5[4] &cc12 &ccw
+:cc12 block
+copy &ob &hb
+copy &ol &hl
+copy &ops &cmi
+call &opwidth &cc13
+:cc13 block
+copy &ops &zero8
+if &wok &cc14 &ccw
+:cc14 block
+copy &wxa &wv
+copy &wxb &z20
+copy &wxb[0:4] &tfw[7:11]
+call &weq &cc15
+:cc15 block
+if &q5[4] &cc16 &ccw
+:cc16 block
+if &hput &cc17 &cc18
+:cc17 block
+emit &s_store
+goto &cc19
+:cc18 block
+emit &s_lut
+goto &cc19
+:cc19 block
+copy &ob &hb
+copy &ii &zero8
+sub &cmi &one8 &s9
+copy &ee &s9[0:8]
+call &emitrg &cc20
+:cc20 block
+emit &sp
+copy &ii &cmi
+copy &ee &hl
+call &emitrg &cc21
+:cc21 block
+emit &sp
+copy &ob &xb
+copy &ol &xl
+call &emitop &cc22
+:cc22 block
+copy &cdone &one1
+ret
+:ccn block
+warn &m_atn
+ret
+:ccw block
+warn &m_atw
+ret
+
 # the far address of the link 2 as the address of the host in the token (hb, hl = 35): the characters 2 and 10 become 1 (the area 1), the characters 11..33 are the
 # characters 12..34 (the position P becomes 16 P: a cell of 128 bits for the byte P / 8) and the character 34 is 0
 :farfix word
@@ -1434,13 +1665,13 @@ ret
 :opwidth word
 copy &wok &zero
 copy &lo &z20
-copy &mi &zero8
+copy &mi &ops
 call &peek &ow1
 :ow1 block
 eq &tc &s_amp &q2
 if &q2[1] &ow2 &owend
 :ow2 block
-copy &mi &one8
+lut &inc8 &ops &mi
 call &mkname &ow3
 :ow3 block
 if &nok &ow4 &owend
@@ -1451,7 +1682,11 @@ if &q2[1] &owwhole &owbr
 :owwhole block
 call &find &ow5
 :ow5 block
-if &fo &ow6 &owend
+if &fo &ow5b &owend
+# a name of a table or an array has no width of data
+:ow5b block
+lut &nzt &fkd &q1
+if &q1 &owend &ow6
 :ow6 block
 copy &wv &fw
 copy &wok &one1
@@ -1553,6 +1788,7 @@ eq &nm[56:112] &eb &fn
 if &fn[13] &fv3 &fvn
 :fv3 block
 lut &swd &ent[0:6] &fw
+lut &skd &ent[0:6] &fkd
 copy &fo &one1
 ret
 :fvn block

@@ -580,6 +580,31 @@ def l4_cases():
         out.append(('far-%02d' % k, b))
     for k, b in enumerate(chan_edges):
         out.append(('channel-%02d' % k, b))
+    # the computed address (25.4): lut and store from `copy &x &t@&i`, `copy &t@&i &x`; the reasons of the refusals (at name, at width) are in stderr
+    cpre = ':i data 3 0\n:j data 10 0\n:x data 8 0\n:y data 9 0\n:t table 3 8 1 2 3 4 5 6 7 8\n:a array 3 8\n:b array 10 8\n:c array 1 8\n:main block\n'
+    cgood = ['&x &t@&i', '&x &a@&i', '&a@&i &x', '&x &b@&j', '&b@&j &x', '&x &a@&j[0:3]', '&a@&j[3:6] &x', '&x[0:8] &b@&j[0:10]', '&x &c@&j[5]', '&c@&j[9] &x[0:8]',
+             '&y[1:9] &a@&i', '&a@&i &y[0:8]', '&x   &a@&i', '&a@&i\t&x']
+    cbad = ['&t@&i &x', '&x &q@&i', '&x &x@&i', '&y &i@&i', '&x &add4@&i', '&x &zero@&i', '&a@&i &q', '&y &a@&i', '&a@&i &y', '&x &a@&j', '&x &a@&j[0:2]',
+            '&x[0:7] &a@&i', '&x &a@&q', '&x &a@', '&x &a@&', '&x &a@0', '&x &a@&i[1:1]', '&a@&i &a@&i', '+2 &a@&i', '&a@&i +1', '1048572 &a@&i', '&x &a@&b@&j',
+            '%s &a@&i' % HOSTA, '&a@&i %s' % FAR, '&x &a@&i&j']
+    out.append(('comp-good', cpre + ''.join('copy %s\n' % c for c in cgood) + 'halt\n'))
+    out.append(('comp-bad', cpre + ''.join('copy %s\n' % c for c in cbad) + 'halt\n'))
+    out.append(('comp-pack', 'pack\n' + cpre + 'copy &x &a@&i\ncopy &a@&i &x\nhalt\n'))
+    for k, b in enumerate((
+            b':t table 3 8 1 2 3 4 5 6 7 8\n:t table 2 8 1 2 3 4\n:t data 8 0\n:x data 8 0\n:i data 3 0\n:i data 2 0\n:main block\ncopy &x &t@&i\ncopy &t@&i &x\n',
+            b':t array 3 8\n:t table 3 8 1 2 3 4 5 6 7 8\n:x data 8 0\n:i data 3 0\n:main block\ncopy &x &t@&i\ncopy &t@&i &x\n',
+            b':x data 8 0\n:i data 3 0\n:t table 3\n:u table x 8\n:v array 3 "8"\n:w table 0x3 8\n:z array 3 8x\n:main block\ncopy &x &t@&i\ncopy &x &u@&i\ncopy &x &v@&i\n'
+            b'copy &x &w@&i\ncopy &x &z@&i\n',
+            b':x data 8 0\n:i data 3 0\n:t\ntable 3 8 :u\n array\n3\n8\n:main block\ncopy &x &t@&i\ncopy &x &u@&i\ncopy &u@&i &x\n',
+            b':x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &a@&i &x\n# copy &x &a@&i\n:s data 64 "copy &x &a@&i"\ncopy &x &a@&i   # x\n',
+            b':x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &x &abcdefghijklmn@&i\ncopy &x &abcdefghijklmno@&i\ncopy &x &1a@&i\ncopy &x &@&i\n'
+            b'copy &x &a@@&i\ncopy &x & a@&i\n',
+            b':x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &x &a@&i', b':x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &x', b'copy &x &a@&i',
+            (':x data 8 0\n:i data 3 0\n:a array 3 8\n:main block\ncopy &x {h}\ncopy &x &a@&i\ncopy {f} &x\ncopy &a@&i &x\ncopy +2 &x\ncopy &x {f}\nhalt\n'.format(
+                h=HOSTA, f=FAR)).encode())):
+        out.append(('comp-edge-%02d' % k, b))
+    with open(os.path.join(common.HERE, 'programs', 'far', 'far_serve_at.tw'), encoding='utf-8') as h:
+        out.append(('program-far-serve-at', h.read()))
     out.append(('channel-forms', chan_forms))
     out.append(('channel-words', chan_words))
     out.append(('channel-all-k', ':a data 8 0\n:main block\ncopy +2 &a\ncopy &a +1\ncopy +3 &a\ncopy +4 &a\ncopy +5 &a\ncopy +0 &a\n'))
