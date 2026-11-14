@@ -1,12 +1,10 @@
 """Tests of the compiler of language 2 (23.8): `programs/l2c.tw` is a program of the chain. It reads the text of language 2
-(l2text.py: c, d, labels, o and the lines of language 1) and writes the text of language 1 and a zero byte, which the seed
-(23.7) turns into the image. The chain and the Python reference (l2text.encode) agree byte for byte and by the report; the
-images made by the chain are the images of the Python compilers; the compiler is built and rebuilt by the chain from its own
-texts (l2c.l1, l2c.l2). All runs are on the checked emulator.
+(c, d, labels, o and the lines of language 1) and writes the text of language 1 and a zero byte, which the seed
+(23.7) turns into the image. The images made by the chain are the images of the Python compilers; the compiler is built and rebuilt by the
+chain from its own texts (l2c.l1, l2c.l2). The outputs of l2c on the small, the wrong and the spoiled texts are frozen in tower/golden/l2c.jsonl
+(test_golden.py). All runs are on the checked emulator.
 Run: make check-tower  or  python3 -B tower/tests/test_l2c.py"""
 import os
-import random
-import subprocess
 import sys
 
 sys.dont_write_bytecode = True
@@ -14,11 +12,13 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
 import common
 import l1
 import l1text
 import l2
-import l2text
+import tables
+import test_golden as g
 import text
 from common import Alloc, Mem, bytes_value, run
 from test_tower import intervals
@@ -52,38 +52,15 @@ class Reference(unittest.TestCase):
     """The texts and the Python reference (no emulator)."""
 
     def test_tables_are_current(self):
-        """The numbers of the tables cls and attr in l2c.tw are what l2text makes."""
+        """The numbers of the tables cls and attr in l2c.tw are what tables.py makes."""
         src = read('l2c.tw')
-        self.assertIn(':cls table 8 14\n' + l2text.cls_table() + '\n', src)
-        self.assertIn(':attr table 4 12\n' + l2text.table_lines(l2text.attr, 4) + '\n', src)
+        for table in tables.l2_tables():
+            self.assertIn(table, src)
 
     def test_texts_are_current(self):
         """l2c.l1 is what l1text makes from l2c.tw, l2c.l2 is its text of language 2 (both are in git)."""
         self.assertEqual(read('l2c.l1'), text_of('l2c'))
-        self.assertEqual(read('l2c.l2'), l2text.to_l2(read('l2c.l1')))
-
-    def test_every_program_through_language_2(self):
-        """The text of the image of each program of programs/, written in language 2, is compiled back to the same text."""
-        for f in sorted(os.listdir(PROGRAMS)):
-            if f.endswith('.tw') and f not in ('l3c.tw', 'l3p.tw', 'l4c.tw', 'forth.tw', 'forthgen.tw'):       # l3c.tw is laid out serially (A=20): tests/test_l3c.py; l3p.tw (A=20): tests/test_l3p.py; l4c.tw (A=20): tests/test_l4p.py; forth.tw, forthgen.tw (A=20): tests/test_forth.py
-                with self.subTest(f):
-                    t = text_of(f[:-3])
-                    two = l2text.to_l2(t)
-                    self.assertEqual(l2text.encode(two), (t.encode() + b'\0', None))
-                    self.assertLess(len(two), len(t))
-
-    def test_cli(self):
-        root = os.path.dirname(common.HERE)
-        r = subprocess.run([sys.executable, '-B', 'tower/l2text.py', 'tower/programs/l2c.l1'], cwd=root, check=False,
-                           capture_output=True, timeout=120)
-        self.assertEqual((r.returncode, r.stdout.decode()), (0, read('l2c.l2')))
-        e = subprocess.run([sys.executable, '-B', 'tower/l2text.py', '-e'], input=read('hello.l2', 'rb'), cwd=root, check=False,
-                           capture_output=True, timeout=120)
-        self.assertEqual((e.returncode, e.stdout), (0, l2text.encode(read('hello.l2'))[0]))
-        e = subprocess.run([sys.executable, '-B', 'tower/l2text.py', '-e'], input=b'c 1 &a 2\n', cwd=root, check=False,
-                           capture_output=True, timeout=120)
-        self.assertEqual((e.returncode, e.stdout, e.stderr), (1, b'', b'l2: bad label\n'))
-
+        self.assertEqual(read('l2c.l2'), g.to_l2(read('l2c.l1')))
 
 class Compiler(unittest.TestCase):
     @classmethod
@@ -99,66 +76,15 @@ class Compiler(unittest.TestCase):
         self.assertLess(r.ticks, LIMIT)
         return r
 
-    def check_text(self, src):
-        """The chain and the Python reference agree: the same bytes and the same report."""
-        r = self.l2c(src)
-        want, err = l2text.encode(src)
-        self.assertEqual(r.out, want, src)
-        self.assertEqual('l2: ' in r.err, err is not None, (src, r.err))
-        if err:
-            self.assertIn(l2text.MESSAGES[err], r.err)
-        return r
-
     def test_audit(self):
         intervals(self.comp)
 
     def test_small_texts(self):
-        """Copies, data, labels, the origin, the lines of language 1; blanks, tabs, line breaks, no last line break."""
-        for src in ('c 8 10 20\n', 'c 1 2 3\n', 'c 0 0 0\n', 'c fffff 1 1\n', 'c 1 fffff 0\n', 'c 4 123456 0\n', 'd 8 5\n',
-                    'd 0 0\n', 'd 14 fffff\n', 'd 3 7\n', 'w 10\nr 1 2 3 4\nz 5\ns 0101\n# c\n', 'w 10\nc 4 1 2\nc 4 3 4\n',
-                    ':a d 8 5\nc 4 &a+1 &a\n', ':a\n:b c 1 &a &b\n', 'w 8\nr 1 2 3 4\n:c c 1 &c &c+4\n', 'w 8\nz 8\n:a o\nc 1 &a 1\n',
-                    'w 8\nr 0 0 0 0\n:a d 4 1\no\n:b c 1 &b &b\n', '\n  \t c 1 2 3  \n\n', 'c 1 2 3\r\n', 'c 1 2 3', '', '\n',
-                    ':a d 8 5\n\t:b c 8 &a &b\n', 'z 3\ns 1 1 1\n:a :b\nc 1 &a &b\n', 'w 5 \n z 3 \n'):
-            with self.subTest(src):
-                self.check_text(src)
+        """A copy and a text with data and a label: the text of language 1 (w 10 is A = 16: a row is 64 bits)."""
         r = self.l2c('c 8 10 20\n')
         self.assertEqual(r.out, b'r 10 18 20 28\n\0')
         r = self.l2c('w 10\nr 1 2 3 4\n:a d 8 5\nc 4 &a+1 &a\n')
-        self.assertEqual(r.out, b'w 10\nr 1 2 3 4\ns 10100000\nr 41 45 40 44\n\0')      # w 10 is A = 16: a row is 64 bits
-
-    def test_rejected(self):
-        """A wrong text: what is written before the error stays, the report is on stderr."""
-        for src, err in (('x\n', 'bad'), ('q', 'bad'), ('1\n', 'bad'), ('&a\n', 'bad'), (': \n', 'bad'), ('::\n', 'bad'),
-                         (':A\n', 'bad'), (':1\n', 'bad'), (':\n', 'bad'), ('c 1 2 3 4\n', 'cnt'), ('c 1 2\n', 'cnt'), ('c\n', 'cnt'),
-                         ('c 1 2', 'cnt'), ('d 1\n', 'cnt'), ('d 1 2 3\n', 'cnt'), ('w\n', 'cnt'), ('z 1 2\n', 'cnt'),
-                         ('o 1\n', 'cnt'), (':a\n:a\n', 'lab'), ('c 1 &a 2\n', 'lab'), (':a c 1 &b 2\n', 'lab'), ('c 1 &A 2\n', 'bad'),
-                         ('c 1 &1 2\n', 'bad'), ('c 1 & 2\n', 'bad'), ('c 1 &\n', 'bad'), ('c 1 2& 3\n', 'bad'), ('c 1 2+3 4\n', 'bad'),
-                         ('c 1 +1 2\n', 'bad'), (':a c 1 &a4 2\n', 'bad'), (':a c 1 &a&a 2\n', 'bad'), (':a c 1 &a++1 2\n', 'bad'),
-                         ('c 1 g 2\n', 'bad'), ('c 1 2 3 # x\n', 'bad'), ('w 10\nr 1\nc 1 2 3 4\n', 'cnt'), ('s 11\nc 1 2\n', 'cnt'),
-                         ('w 10\nr 1 2 3 4\nq\n', 'bad')):
-            with self.subTest(src):
-                r = self.check_text(src)
-                self.assertIn(l2text.MESSAGES[err], r.err)
-        r = self.check_text('w 10\nr 1 2 3 4\nc 1 &a 2\n')
-        self.assertEqual(r.out, b'w 10\nr 1 2 3 4\n')
-
-    def test_random_texts(self):
-        """Random changes of a good text (a character changed, dropped, added): the chain and the reference agree."""
-        rnd = random.Random(238)
-        base = 'w 10\n# c\nr 1 2 3 4\n:a d 8 5\n:b z 8\ns 0101 11\n  c 4 &a+1 &b\nc ff fff 1\nd 10 abcde\no\n:c c 1 &a &c\nz 3\n'
-        alphabet = 'wrzsdco#: 01abfg&+\n\tx\r2zq'
-        for _ in range(60):
-            t = list(base)
-            for _ in range(rnd.randint(1, 3)):
-                i = rnd.randrange(len(t))
-                kind = rnd.randrange(3)
-                if kind == 0:
-                    t[i] = rnd.choice(alphabet)
-                elif kind == 1:
-                    del t[i]
-                else:
-                    t.insert(i, rnd.choice(alphabet))
-            self.check_text(''.join(t))
+        self.assertEqual(r.out, b'w 10\nr 1 2 3 4\ns 10100000\nr 41 45 40 44\n\0')
 
     def test_programs(self):
         """A program written in language 2 (its copy rows are c lines): the chain gives its text of language 1, the seed gives
@@ -168,7 +94,7 @@ class Compiler(unittest.TestCase):
             with self.subTest(name):
                 p = compiled(name)
                 t = l1text.program_text(p)
-                two = l2text.to_l2(t)
+                two = g.to_l2(t)
                 r = self.l2c(two)
                 self.assertEqual(r.out, t.encode() + b'\0')
                 self.assertNotIn('l2: ', r.err)
@@ -226,7 +152,7 @@ class Chain(unittest.TestCase):
         self.assertEqual(b.out, l1_text + b'\0')
         self.assertEqual(run(seed_img, stdin=b.out, **sd).out, a.out)
         # the seed, written in language 2 (the copy rows of seed.l1 are c lines): the text of language 1 is seed.l1
-        c = run(a.out, stdin=l2text.to_l2(seed_text.decode()).encode() + b'\0', **sc)
+        c = run(a.out, stdin=g.to_l2(seed_text.decode()).encode() + b'\0', **sc)
         self.assertEqual(c.out, seed_text + b'\0')
         self.assertEqual(run(seed_img, stdin=c.out, **sd).out, seed_img)
 

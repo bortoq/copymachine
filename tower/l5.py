@@ -9,17 +9,13 @@ stored once however often a word runs. A call costs the callee (its stored part 
 plus the call and return rows, which lie in the layers of the caller and of the callee. A path with an unknown
 number of passes (a loop over data, recursion) costs FORBID: the unsolved is solved at a prohibitive price,
 cheapened by giving `passes`. A branch costs its dearer arm.
-A program of the chain (a text of language 3 compiled by l3c, l3p, l2l, seed; 23.10) is priced by the same tuple from the layers of its
-blocks as the planner laid them out and the ticks of a run (chain_cost); replace_layout chooses between the serial layout and the
-packed one (the word `pack` before the text): the lower languages do not know the price, the word is all they get."""
+The choice of the layout of a program of the chain (serial or `pack`) by the same price is made on the chain itself: tower/tests/layout.py."""
 from collections import namedtuple
 
 import common
 import l1
-import l1text
 import l2
 import l3
-import l3ctext
 
 FORBID = 2 ** 24                      # the prohibitive price (as fc-forbid of the present language)
 INFEASIBLE = -1                       # a path which cannot be taken (inside ticks)
@@ -208,50 +204,3 @@ def replace(*defs, inputs=(b'',)):
     prices = [price(cost(p, passes=ps)) for p, ps in made]
     i = prices.index(min(prices))
     return Choice(i, prices, made[i][0])
-
-
-def chain_image(src, lang4=False):
-    """The image of a text of language 3 by the chain (the Python references of l3c, l3p, l2l, the seed) and its P: 3 in the pack mode, else 2;
-    a text of language 4 (the copies with the address of the host) goes through the pass l4c first (lang4)."""
-    l1_text, err = l3ctext.language1(src, lang4)
-    if err:
-        raise ValueError('the chain: ' + err)
-    img, err = l1text.encode(l1_text + b'\0')
-    if err:
-        raise ValueError('the seed: ' + err)
-    return img, 3 if l3ctext.is_pack(src) else 2
-
-
-def chain_cost(src, inputs=(b'',), limit=2 * 10 ** 8):
-    """The cost of a text of language 3 on the chain: rows, layers, bits of the layers of its blocks (the serial layout: two slots a layer; with
-    `pack` first: as the planner laid them out, three slots at most, as many as a layer needs), ticks of the dearest of the runs on `inputs`
-    (the emulator, checked). Returns (Cost, [(rc, output) of every input])."""
-    text = src.decode('latin-1') if isinstance(src, bytes) else src
-    l2, err = l3ctext.encode('pack\n' + text.removeprefix('pack\n'))     # the layers are the same in both layouts; the planner counts them
-    if err:
-        raise ValueError('the chain: ' + err)
-    _, perr = l3ctext.pack_pass(l2)
-    if perr:
-        raise ValueError('the planner: ' + perr)
-    rows, layers, bits = l3ctext.STATS['packed' if l3ctext.is_pack(text) else 'serial']
-    img, P = chain_image(text)
-    ticks, outs = 0, []
-    for inp in inputs:
-        r = common.run(img, 20, P, checked=True, limit=limit, stdin=inp)
-        if r.ticks is None or r.ticks >= limit:
-            raise ValueError('the run does not end')
-        ticks = max(ticks, r.ticks)
-        outs.append((r.rc, r.out))
-    return Cost(rows, layers, bits, ticks), outs
-
-
-def replace_layout(src, inputs=(b'',)):
-    """The cheaper layout of a program of the chain: the serial one or the packed one (`pack` before the text). Both must give the same result
-    on every input of `inputs` (else ValueError). Returns Choice(index, prices, text of the chosen layout); 0 is serial, 1 packed."""
-    text = (src.decode('latin-1') if isinstance(src, bytes) else src).removeprefix('pack\n')
-    made = [chain_cost(t, inputs) for t in (text, 'pack\n' + text)]
-    if made[0][1] != made[1][1]:
-        raise ValueError('the layouts give different results')
-    prices = [price(c) for c, _ in made]
-    i = prices.index(min(prices))
-    return Choice(i, prices, ('pack\n' if i else '') + text)

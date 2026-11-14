@@ -15,7 +15,8 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
-import l1text
+sys.path.insert(0, HERE)
+import chain
 import test_forth37 as f
 import test_l3c as t
 from common import run
@@ -46,13 +47,14 @@ def step(name, tool, stdin, checked=False):
 
 
 def tools():
-    """seed (the Python encoder, once), l2l, l3c and forth (the seed on their texts of language 1): (image, A, P)."""
+    """seed, l2l, l3c (the images of chain.py: the seed is made by l1text from seed.l1 once, the others by the seed from their texts of language 1; kept on
+    the disk) and forth (the seed on forth.l1): (image, A, P)."""
     if not _TOOLS:
         t.setUpModule()
-        seed = (l1text.encode(t.read('seed.l1', 'rb') + b'\0')[0], 16, 7)
+        seed = chain.tool('seed')
         _TOOLS['seed'] = seed
-        _TOOLS['l2l'] = (step('seed on l2l.l1', seed, t.read('l2l.l1', 'rb') + b'\0').out, 19, 20)
-        _TOOLS['l3c'] = (step('seed on l3c.l1', seed, t.read('l3c.l1', 'rb') + b'\0').out, 20, 2)
+        _TOOLS['l2l'] = chain.tool('l2l')
+        _TOOLS['l3c'] = chain.tool('l3c')
         _TOOLS['forth'] = (step('seed on forth.l1', seed, t.read('forth.l1', 'rb') + b'\0').out, 20, 2)
     return _TOOLS
 

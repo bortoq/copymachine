@@ -1,12 +1,12 @@
 """Tests of language 4 on the chain: the copy with the address of the host (a number 0x1... in `copy`, the long copy to and from the host). Language 4 has no
 words of its own: its compiler is the pass `programs/l4c.tw` over the text of language 3, which makes of such a copy the words of language 3 and the copy with the address
 of the channel SYS (1048570; l3c writes the row of a channel by the address, as for emit and key); the chain is: text of language 4 -> l4c -> l3c -> [l3p] -> l2l -> seed ->
-the image. Here: the reference (the text which the pass makes, the unchanged rest, the edges), the tool l4c against it byte for byte (also on spoiled texts), the images of
-the chain against the images of the Python compiler (the output and the host files are the same), the example of tower/README.md (section 3.5). The long runs (the tools
-made by the chain itself) are in long_l3c.py.
+the image (chain.py makes all the passes). Here: the table and the words of l4c.tw, the images of the chain against the images of the Python compiler (the output and the host
+files are the same), the example of tower/README.md (section 3.5). What the pass makes of the texts of language 4 (the long copy, the far copy of the links 0, 1 and 2, the computed
+address, the forms of the channels, the edges, the refusals, the spoiled texts) is frozen in tower/golden/l4c.jsonl (test_golden.py, long_golden.py); the lists of texts below (EDGES,
+FAR_EDGES, FAR_LINKS, CHAN_EDGES, COMP_*) are the inputs of that freeze (golden_programs.py).
 Run: make check-tower  or  python3 -B tower/tests/test_l4p.py"""
 import os
-import random
 import re
 import shutil
 import sys
@@ -17,8 +17,9 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
-import l3ctext
-import l5
+sys.path.insert(0, HERE)
+import chain
+import tables
 import test_l3c as t
 import text
 from common import run
@@ -38,10 +39,10 @@ def host(area, bit):
 
 
 def pass_tool():
-    """The image of l4c.tw made by the references of the chain (l3c, l2l, the seed; the long test runs the tools themselves)."""
+    """The image of the pass l4c made by the chain itself (chain.py: the seed on l4c.l1)."""
     if not _PASS:
-        img, P = l5.chain_image(t.read('l4c.tw'))
-        _PASS.update(image=img, A=20, P=P)
+        img, A, P = chain.tool('l4c')
+        _PASS.update(image=img, A=A, P=P)
     return _PASS
 
 
@@ -184,14 +185,12 @@ EDGES = [
 ]
 
 
-class Reference(unittest.TestCase):
-    """The reference (no emulator)."""
+class Texts(unittest.TestCase):
+    """The text of l4c.tw (no emulator); the texts which the pass makes are frozen in tower/golden/l4c.jsonl (test_golden.py, long_golden.py)."""
 
     def test_tables_are_current(self):
-        """The numbers of the tables in l4c.tw are what l3ctext.x_tables_text makes."""
-        src = t.read('l4c.tw')
-        a, b = src.index('# --- begin generated\n'), src.index('# --- end generated')
-        self.assertEqual(src[a + len('# --- begin generated\n'):b], l3ctext.x_tables_text())
+        """The numbers of the tables in l4c.tw are what tables.py makes."""
+        self.assertEqual(tables.generated_block(t.read('l4c.tw')), tables.x_tables_text())
 
     def test_strings_have_their_width(self):
         """The data of l4c.tw which are strings have exactly the bits of their bytes (emit sends all of them)."""
@@ -202,448 +201,24 @@ class Reference(unittest.TestCase):
         self.assertGreater(n, 20)
 
     def test_the_words_of_the_links_in_the_tool(self):
-        """The strings fa.., ff.., fg.. of l4c.tw (32 bytes each, emitted one after the other) are the words l4ask, l4flag, l4fget of the reference, each after a line break."""
+        """The strings fa.., ff.., fg.. of l4c.tw (32 bytes each, emitted one after the other) are the words l4ask, l4flag, l4fget of tables.py, each after a line break."""
         src = t.read('l4c.tw')
-        for pfx, word in zip(('fa', 'ff', 'fg'), l3ctext.FARWORDS, strict=True):
+        for pfx, word in zip(('fa', 'ff', 'fg'), tables.FARWORDS, strict=True):
             got = ''.join(m.group(1).replace('\\n', '\n') for m in re.finditer(r'^:%s\d\d data \d+ "((?:[^"\\]|\\.)*)"' % pfx, src, re.M))
             self.assertEqual(got, '\n' + word, pfx)
 
-    def test_tool_is_in_its_subset(self):
-        src = t.read('l4c.tw')
-        out, err = l3ctext.encode(src)
-        self.assertIsNone(err)
-        c = l3ctext.Compiler()
-        c.put(l3ctext.prelude())
-        l3ctext.run(c, src.encode())
-        self.assertLess(c.pos, l3ctext.LIMIT)
-
-    def test_the_text_of_a_long_copy(self):
-        """The words of language 3 for a put and a get: the buffer is zeroed, the nonzero nibbles of op, flags, n and the position are copied from the constants
-        l4n0..l4n3, the data after the record, the row to SYS; a get reads max(n, 117) bits of the answer."""
-        put, get = (l3ctext.host_copy(p, b'&x', 40, [1, 0, 0, 0, 0, 0, 0, 0, 0, 8]) for p in (True, False))
-        self.assertEqual(put, 'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n1[4:8]\ncopy &l4q[44:48] &l4n1[12:16]\ncopy &l4q[48:52] &l4n0[8:12]\n'
-                              'copy &l4q[76:80] &l4n1[12:16]\ncopy &l4q[112:116] &l4n0[4:8]\ncopy &l4q[204:244] &x\ncopy 1048570 &l4q[0:244]\n')
-        self.assertEqual(get, 'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n1[4:8]\ncopy &l4q[28:32] &l4n0[4:8]\ncopy &l4q[44:48] &l4n1[12:16]\n'
-                              'copy &l4q[48:52] &l4n0[8:12]\ncopy &l4q[76:80] &l4n1[12:16]\ncopy &l4q[112:116] &l4n0[4:8]\ncopy 1048570 &l4q[0:204]\n'
-                              'copy &l4q[204:321] 1048570\ncopy &x &l4q[204:244]\n')
-        self.assertEqual(l3ctext.host_copy(False, b"&x", 300, [0]).split("\n")[-3], 'copy &l4q[204:504] 1048570')      # a whole answer: n bits
-        for n, v in enumerate(l3ctext.L4N):                  # the constants: the nibble k is the bits 4k.. of the number
-            self.assertEqual([v >> 4 * k & 15 for k in range(5)], [5 * n + k if 5 * n + k < 16 else 0 for k in range(5)])
-
-    def test_a_text_without_the_host_is_as_it_is(self):
-        """Nothing is changed but the prelude (after the word `pack` if it stands first); the prelude is what l4c_prelude says."""
-        for name in ('echo', 'branch', 'arith8', 'loop_digits'):
-            src = t.hoisted(name).encode()
-            out = l3ctext.l4c(src + b'\0')[0]
-            self.assertEqual(out, l3ctext.l4c_prelude().encode() + src + b'\0')
-        self.assertEqual(l3ctext.l4c(b'pack\n:a data 1 0\n\0')[0], b'pack' + l3ctext.l4c_prelude().encode() + b'\n:a data 1 0\n\0')
-        self.assertEqual(l3ctext.l4c(b'\0')[0], l3ctext.l4c_prelude().encode() + b'\0')
-        self.assertTrue(l3ctext.l4c_prelude().encode() in l3ctext.l4c(b'  # a comment\n:a data 1 0\n\0')[0])
-
-    def test_the_pass(self):
-        """A put and a get: the words of language 3, the rest as it is (blanks, comments, strings with the word copy in them)."""
-        src = (':a data 8 "copy &a 0x1"\n:out data 40 "hello"  # x\n:main block\ncopy &a %s\n  copy %s &out[0:8]\nhalt\n' % (HOSTA, HOSTA))
-        out = l3ctext.l4c(src.encode() + b'\0')[0].decode()
-        self.assertEqual(out.count('copy &l4q[0:204] &l4z[0:204]\n'), 2)           # the blanks which come before the end of the copy go out as they come
-        self.assertIn(':a data 8 "copy &a 0x1"\n:out data 40 "hello"  # x\n:main block\n', out)
-        self.assertIn('copy &a &l4q[204:212]\n', out)                      # n is the width of &a; the data of the put is &out[0:8]
-        self.assertIn('copy &l4q[204:212] &out[0:8]\n', out)
-        self.assertTrue(out.endswith('\nhalt\n\0'), out[-40:])
-
-    def test_the_rest_goes_out_unchanged(self):
-        """Two hosts, none, a width which is not known (a table, an array, a name not defined, 2049 bits) or a spoiled operand: `copy a b` as it was."""
-        for src, tail in ((':main block\ncopy 0x1 0x1\n', 'copy 0x1 0x1\n'), (':a data 8 0\n:main block\ncopy &a &a\n', 'copy &a &a\n'),
-                          (':t table 1 8 1 2\n:main block\ncopy &t %s\n' % HOSTA, 'copy &t %s\n' % HOSTA),
-                          (':main block\ncopy &q %s\n' % HOSTA, 'copy &q %s\n' % HOSTA), (':c data 2049 0\n:main block\ncopy &c %s\n' % HOSTA, 'copy &c %s\n' % HOSTA),
-                          (':c data 8 0\n:main block\ncopy &c[3:3] %s\n' % HOSTA, 'copy &c[3:3] %s\n' % HOSTA)):
-            out = l3ctext.l4c(src.encode() + b'\0')[0].decode()
-            self.assertTrue(out.endswith(tail + '\0'), (src, out[-50:]))
-            if '0x1' in src.split('\n')[-2]:
-                self.assertIsNotNone(l3ctext.encode(out[:-1])[1], src)           # and l3c does not take it (a number which is not a channel)
-
-    def test_channel_from_the_end(self):
-        """`+k` (k 0..5) in `copy` is the channel S + k: l4c gives the number l3c reads (+1 stdin, +2 stdout, +3 stderr, +0 SYS), the rest of the operands as they are;
-        the text with the forms is, after l3c, the text with emit warn key (the same rows)."""
-        for k in range(6):
-            out = l3ctext.l4c(b':a data 8 0\n:main block\ncopy +%d &a\ncopy &a +%d\n\0' % (k, k))[0]
-            self.assertTrue(out.endswith(b'copy %d &a\ncopy &a %d\n\0' % (l3ctext.SYSC + k, l3ctext.SYSC + k)), out)
-        for tok in (b'+6', b'+9', b'+', b'+12', b'+a', b'-2', b'++', b'2', b'+0x', b'&a'):
-            out = l3ctext.l4c(b':a data 8 0\n:main block\ncopy ' + tok + b' &a\n\0')[0]
-            self.assertTrue(out.endswith(b'copy ' + tok + b' &a\n\0'), (tok, out))
-            if tok[:1] in b'+-':
-                self.assertIsNotNone(l3ctext.encode(out[:-1])[1], tok)                  # l3c does not take such a number
-        out = l3ctext.l4c(b':t data 8 "copy +2 &a" # copy +2 &a\n\0')[0]
-        self.assertTrue(out.endswith(b':t data 8 "copy +2 &a" # copy +2 &a\n\0'), out)                 # a string and a comment are not changed
-        forms = l3ctext.encode(l3ctext.l4c(CHAN_FORMS.encode() + b'\0')[0][:-1])
-        words = l3ctext.encode(CHAN_WORDS)
-        self.assertEqual((forms[1], words[1]), (None, None))
-        self.assertTrue(forms[0] and forms[0].count(b'\n') > 10)
-
-    def test_the_text_of_a_far_copy(self):
-        """A far get and put (26.4): the record of 6 bytes in l4q (op, the number of the byte = the position / 8, dat), a request per byte, the get reads each answer after a
-        goto (a label l4f<k> of its own), the number of the byte goes up by the nibbles which change; the labels go on from copy to copy."""
-        out = l3ctext.l4c((':x data 16 0\n:main block\ncopy &x %s\ncopy %s &x[8:16]\ncopy &x[8:16] %s\nhalt\n' % (farad(8 * 255), farad(8 * 3), farad(8 * 3))).encode() + b'\0')[0].decode()
-        whole, out = out, out[out.index(':main block\n') + 12:]
-        self.assertEqual(out, 'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n0[4:8]\ncopy &l4q[8:12] &l4n3[0:4]\ncopy &l4q[12:16] &l4n3[0:4]\n'
-                              'emit &l4q[0:48]\ngoto &l4f0\n:l4f0 block\nkey &x[0:8]\ncopy &l4q[8:12] &l4n0[0:4]\ncopy &l4q[12:16] &l4n0[0:4]\n'
-                              'copy &l4q[16:20] &l4n0[4:8]\nemit &l4q[0:48]\n'
-                              'goto &l4f1\n:l4f1 block\nkey &x[8:16]\n\n'
-                              'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n0[8:12]\ncopy &l4q[8:12] &l4n0[12:16]\ncopy &l4q[40:48] &x[8:16]\nemit &l4q[0:48]\n\n'
-                              'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n0[4:8]\ncopy &l4q[8:12] &l4n0[12:16]\nemit &l4q[0:48]\ngoto &l4f2\n:l4f2 block\n'
-                              'key &x[8:16]\n\nhalt\n\0')
-        self.assertIsNone(l3ctext.encode(whole[:-1])[1])
-        for pack in ('', 'pack\n'):
-            for src in FAR_EDGES[:4]:
-                self.assertIsNone(l3ctext.encode(pack + l3ctext.l4c(src + b'\0')[0][:-1].decode('latin-1'))[1], src)
-
-    def test_the_text_of_a_far_copy_of_the_links_1_and_2(self):
-        """The link 1 (the check and the repeat, 7.2.38): the same record and increase as the link 0, but the request goes out by `call &l4ask &l4f<k>` (a label per byte, a get and
-        a put alike) and a get copies the answer l4q[56:64] into its place. The link 2 (the common file): the header of the long copy of the area 1 at the bit 16 P (the cell of
-        128 bits for the byte P / 8: the digits of P moved by one), a put is the long copy and `call &l4flag`, a get is the header and `call &l4fget` and the copy of l4q[204:204 + n].
-        The words stand at the end of the text (FARWORDS), once each, if a copy used them."""
-        def body(link):
-            out = l3ctext.l4c((':x data 16 0\n:main block\ncopy &x %s\ncopy %s &x[8:16]\nhalt\n' % (farad(8 * 255, link), farad(8 * 3, link))).encode() + b'\0')[0].decode()
-            return out[out.index(':main block\n') + 12:]
-        ck = body(1)
-        self.assertEqual(ck[:ck.index(':l4ask')], 'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n0[4:8]\ncopy &l4q[8:12] &l4n3[0:4]\ncopy &l4q[12:16] &l4n3[0:4]\n'
-                         'call &l4ask &l4f0\n:l4f0 block\ncopy &x[0:8] &l4q[56:64]\ncopy &l4q[8:12] &l4n0[0:4]\ncopy &l4q[12:16] &l4n0[0:4]\ncopy &l4q[16:20] &l4n0[4:8]\n'
-                         'call &l4ask &l4f1\n:l4f1 block\ncopy &x[8:16] &l4q[56:64]\n\n'
-                         'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n0[8:12]\ncopy &l4q[8:12] &l4n0[12:16]\ncopy &l4q[40:48] &x[8:16]\ncall &l4ask &l4f2\n:l4f2 block\n\n'
-                         'halt\n\n')
-        self.assertEqual(ck[ck.index(':l4ask'):], l3ctext.FARASK + '\0')
-        fl = body(2)
-        self.assertEqual(fl[:fl.index(':l4fget')].replace(l3ctext.FARFLAG, ''),
-                         'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n1[4:8]\ncopy &l4q[28:32] &l4n0[4:8]\ncopy &l4q[48:52] &l4n0[4:8]\ncopy &l4q[80:84] &l4n1[12:16]\n'
-                         'copy &l4q[84:88] &l4n3[0:4]\ncopy &l4q[88:92] &l4n1[8:12]\ncopy &l4q[172:176] &l4n0[4:8]\ncall &l4fget &l4f0\n:l4f0 block\ncopy &x &l4q[204:220]\n\n'
-                         'copy &l4q[0:204] &l4z[0:204]\ncopy &l4q[0:4] &l4n1[4:8]\ncopy &l4q[44:48] &l4n1[12:16]\ncopy &l4q[80:84] &l4n1[12:16]\ncopy &l4q[84:88] &l4n0[4:8]\n'
-                         'copy &l4q[172:176] &l4n0[4:8]\ncopy &l4q[204:212] &x[8:16]\ncopy 1048570 &l4q[0:212]\ncall &l4flag &l4f1\n:l4f1 block\n\nhalt\n\n\n')
-        self.assertTrue(fl.endswith('\n' + l3ctext.FARGET + '\0'))
-        self.assertEqual(fl.count(':l4flag word'), 1)
-        # the position 16 P: the digits of P moved by one (a carry across the nibbles, the top of the 32 bits, the bit 3 of the lowest nibble of P)
-        for byte in (0, 1, 15, 16, 255, 256, 2 ** 20 + 5, 2 ** 28 - 1):
-            out = l3ctext.l4c((':x data 8 0\n:main block\ncopy &x %s\n' % farad(8 * byte, 2)).encode() + b'\0')[0].decode()
-            cell = 128 * byte                                                  # the bit of the cell in the area 1
-            digits = [1, 0, 0, 0, 0, 0, 0, 0, 1] + [(cell >> 4 * j) & 15 for j in range(23, -1, -1)]
-            self.assertIn(l3ctext.host_head(False, 8, digits) + 'call &l4fget &l4f0\n:l4f0 block\ncopy &x &l4q[204:212]\n', out)
-        for src in FAR_LINKS[:12]:                                            # with the words at the end both layouts take the text
-            out = l3ctext.l4c(src + b'\0')[0][:-1]
-            self.assertIsNone(l3ctext.encode(out)[1], src)
-            self.assertIsNone(l3ctext.encode(b'pack\n' + out if not out.startswith(b'pack') else out)[1], src)
-
-    def test_the_words_of_the_links_stand_once_at_the_end(self):
-        """l4ask for the link 1, l4flag for a put of the link 2, l4fget for a get of it; each once, in this order, after everything else; none for the link 0 or the host."""
-        both = l3ctext.l4c(FAR_LINKS[6] + b'\0')[0].decode()
-        self.assertEqual([both.count(w) for w in (':l4ask word', ':l4flag word', ':l4fget word')], [1, 1, 1])
-        self.assertTrue(both.endswith('\n' + l3ctext.FARASK + '\n' + l3ctext.FARFLAG + '\n' + l3ctext.FARGET + '\0'))
-        for src, words in ((FAR_LINKS[7], ':l4flag word'), (FAR_LINKS[8], ':l4fget word'), (FAR_LINKS[9], ':l4ask word')):
-            out = l3ctext.l4c(src + b'\0')[0].decode()
-            self.assertEqual([out.count(w) for w in (':l4ask word', ':l4flag word', ':l4fget word')], [int(w == words) for w in (':l4ask word', ':l4flag word', ':l4fget word')])
-        for src in (FAR_EDGES[0], PROGRAMS['rw'].encode(), FAR_LINKS[13]):
-            self.assertNotIn(b' word', l3ctext.l4c(src + b'\0')[0])
-
-    def test_the_labels_of_the_links(self):
-        """The link 1 uses a label per byte (a get and a put alike), the link 2 one per copy; the link 0 none for a put. 257 copies of 64 bits of the link 1 end at 2048 labels."""
-        out = l3ctext.l4c((':x data 64 0\n:main block\ncopy &x %s\ncopy %s &x\n' % (FAR1, FAR1) * 2).encode() + b'\0')[0]
-        self.assertEqual([out.count(b':l4f%d block' % k) for k in (0, 7, 8, 15, 16, 31, 32)], [1, 1, 1, 1, 1, 1, 0])
-        out = l3ctext.l4c((':x data 64 0\n:main block\ncopy &x %s\ncopy %s &x\ncopy &x %s\ncopy %s &x\n' % (FAR2, FAR2, FAR1, FAR0)).encode() + b'\0')[0]
-        self.assertEqual([out.count(b':l4f%d block' % k) for k in range(12)], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0])
-        out = l3ctext.l4c((':x data 64 0\n:main block\n' + 'copy &x %s\n' % FAR1 * 257).encode() + b'\0')[0]
-        self.assertEqual((out.count(b'call &l4ask &l4f'), out.count(b'\ncopy &x 0x2')), (2048, 1))
-        out = l3ctext.l4c((':x data 8 0\n:main block\n' + 'copy &x %s\n' % FAR2 * 2049).encode() + b'\0')[0]
-        self.assertEqual((out.count(b'call &l4fget &l4f'), out.count(b'\ncopy &x 0x2')), (2048, 1))
-
-    def test_a_far_copy_which_is_not_as_told_is_as_it_was(self):
-        """The link which is not 0, a position which is not a multiple of 8 or is 2^32 bits and over, a width which is not 8..64 whole bytes or is not known, two far
-        addresses, far and host, lo of 9900 and more, no more labels: `copy a b` as it was (l3c does not take it); 0x2 with other digits is a host address, as before."""
-        pre = ':x data 64 0\n:b data 4 0\n:w data 72 0\n:t table 1 8 1 2\n:main block\n'
-        for pair in ('&x %s' % farad(0, 3), '%s &x' % farad(12), '&x %s' % farad(1 << 32), '&b %s' % FAR, '%s &w' % FAR, '&t %s' % FAR, '&q %s' % FAR, '&x[3] %s' % FAR,
-                     '&x[0:12] %s' % FAR, '%s %s' % (FAR, FAR), '%s %s' % (FAR, HOSTA), '%s &x[0:0]' % FAR):
-            out = l3ctext.l4c((pre + 'copy %s\n' % pair).encode() + b'\0')[0]
-            self.assertTrue(out.endswith(('copy %s\n' % pair).encode() + b'\0'), (pair, out[-50:]))
-            self.assertIsNotNone(l3ctext.encode(out[:-1])[1], pair)
-        out = l3ctext.l4c((':y data 9000 0\n:main block\ncopy &y[9899:9907] %s\ncopy &y[9900:9908] %s\n' % (FAR, FAR)).encode() + b'\0')[0]
-        self.assertIn(b'key &y[9899:9907]', out)
-        self.assertTrue(out.endswith(b'copy &y[9900:9908] %s\n\0' % FAR.encode()), out[-60:])
-        for d in ('0' * 31, '0' * 33):                         # 0x2 and another number of digits: a host address (the low 32 digits are the position)
-            out = l3ctext.l4c((':x data 8 0\n:main block\ncopy &x 0x2%s\n' % d).encode() + b'\0')[0]
-            self.assertIn(b'copy 1048570 &l4q[0:204]', out)
-        out = l3ctext.l4c((':x data 64 0\n:main block\n' + 'copy &x %s\n' % FAR * 257).encode() + b'\0')[0]       # 257 gets of 8 bytes: 256 take 2048 labels, the last stays
-        self.assertEqual((out.count(b'goto &l4f'), out.count(b'\ncopy &x 0x2')), (2048, 1))
-
-    def test_the_text_of_a_computed_address(self):
-        """25.4: `copy &x &t@&i` is `lut &t &i &x`, `copy &t@&i &x` is `store &t &i &x` (the index is any part of space: &i, &i[k], &i[lo:hi]); the rest of the text is as it is;
-        l3c takes the result and gives the same language 2 as for the words written by hand."""
-        pre = ':i data 3 0\n:j data 10 0\n:x data 8 0\n:t table 3 8 1 2 3 4 5 6 7 8\n:a array 3 8\n:b array 10 8\n:main block\n'
-        src = pre + 'copy &x &t@&i\ncopy &a@&i   &x  # c\ncopy &x[0:8] &b@&j[0:10]\n  copy &b@&j &x\ncopy &x &a@&j[2:5]\nhalt\n'
-        want = pre + 'lut &t &i &x\nstore &a &i &x  # c\nlut &b &j[0:10] &x[0:8]\n  store &b &j &x\nlut &a &j[2:5] &x\nhalt\n'
-        out = l3ctext.l4c(src.encode() + b'\0')[0].decode()
-        self.assertEqual(out, l3ctext.l4c_prelude() + want + '\0')
-        self.assertEqual(l3ctext.encode(out[:-1]), l3ctext.encode(l3ctext.l4c_prelude() + want))
-        self.assertIsNone(l3ctext.encode(out[:-1])[1])
-        self.assertIsNone(l3ctext.encode('pack\n' + out[:-1])[1])
-        self.assertEqual(l3ctext.l4c(b'pack\n' + src.encode() + b'\0')[0].decode(), 'pack' + l3ctext.l4c_prelude() + '\n' + want + '\0')
-        self.assertIsNotNone(l3ctext.encode(src)[1], 'the sign @ is not in language 3: l3c does not take the form')
-        for form in ('copy &x &t@&i\n', 'copy &a@&i &x\n'):
-            self.assertIsNotNone(l3ctext.encode(pre + form)[1], form)
-
-    def test_a_computed_address_which_is_not_as_told_is_as_it_was(self):
-        """The table or array is not known (a data, an unknown name, a table for the write), the width of &x is not w or the width of the index is not K, the other operand is not
-        a part of space with a known width: `copy a b` as it was (l3c does not take it)."""
-        for reason, copies in COMP_BAD.items():
-            for pair in copies:
-                with self.subTest(reason=reason, pair=pair):
-                    out = l3ctext.l4c((COMP_PRE + 'copy %s\nhalt\n' % pair).encode() + b'\0')[0].decode()
-                    tail = out[out.index(':main block\n') + 12:]
-                    self.assertTrue(tail.startswith('copy ') and tail.endswith('halt\n\0'), tail)
-                    self.assertTrue('@' in tail and 'lut ' not in tail and 'store ' not in tail, tail)
-                    self.assertIsNotNone(l3ctext.encode(out[:-1])[1], pair)
-        for pair in COMP_GOOD:
-            out = l3ctext.l4c((COMP_PRE + 'copy %s\nhalt\n' % pair).encode() + b'\0')[0].decode()
-            self.assertTrue('@' not in out and ('lut ' in out or 'store ' in out), pair)
-            self.assertIsNone(l3ctext.encode(out[:-1])[1], pair)
-
-    def test_tables_and_arrays_are_kept_with_the_data(self):
-        """The declaration :name table K w, :name array K w is remembered like the width of data (the first of a name stays; K and w are the numbers after the word, else
-        the name is not kept); a name of a table is not a width of data for the long copies."""
-        pre = ':i data 3 0\n:x data 8 0\n'
-        for decl, ok in ((':t table 3 8 1 2 3 4 5 6 7 8', True), (':t array 3 8', True), (':t table 3', False), (':t table x 8', False), (':t array 3 "8"', False),
-                         (':t array 0x3 8', False), (':t table 3 8x', False), (':t\ntable\n3 # K\n8', True), (':t table 19 8', True),
-                         (':t data 3 8', False)):
-            with self.subTest(decl):
-                out = l3ctext.l4c((pre + decl + '\n:main block\ncopy &x &t@&i\n').encode() + b'\0')[0]
-                self.assertEqual(b'lut &t &i &x' in out, ok, out[-60:])
-        out = l3ctext.l4c((pre + ':t table 1 8 1 2\n:main block\ncopy &t %s\ncopy %s &t\n' % (HOSTA, HOSTA)).encode() + b'\0')[0]
-        self.assertTrue(out.endswith(('copy &t %s\ncopy %s &t\n' % (HOSTA, HOSTA)).encode() + b'\0'), out[-80:])
-
-    def test_chain_of_references(self):
-        """The text of language 3 which the pass makes is a text l3c takes."""
-        for name, src in PROGRAMS.items():
-            with self.subTest(name):
-                out = l3ctext.l4c(src.encode() + b'\0')[0]
-                self.assertNotIn(b'0x1', out[out.index(b':main'):])
-                self.assertIsNone(l3ctext.encode(out[:-1])[1])
-                self.assertIsNone(l3ctext.encode(b'pack\n' + out[:-1])[1])
-
-    def test_cli(self):
-        import subprocess
-        root = os.path.dirname(os.path.dirname(HERE))
-        src = ':a data 8 0\n:main block\ncopy &a %s\nhalt\n' % HOSTA
-        e = subprocess.run([sys.executable, '-B', 'tower/l3ctext.py', '-x'], input=src.encode() + b'\0', cwd=root, check=False, capture_output=True, timeout=120)
-        self.assertEqual((e.returncode, e.stdout), (0, l3ctext.l4c(src.encode() + b'\0')[0]))
-
-
-class Tool(unittest.TestCase):
-    """The pass on the chain against the reference."""
-
-    def check(self, src, limit=LIMIT):
-        r = l4c(src, limit)
-        self.assertEqual((r.rc, r.out), (0, l3ctext.l4c(src + b'\0')[0]), src[:100])
-        return r
-
     def test_tool_image(self):
+        """The image of the pass (made by the chain, serial: A = 20, P = 2) is in the places of l3c (the tables of the library stand at LIMIT bits)."""
         st = pass_tool()
         self.assertEqual((st['A'], st['P']), (20, 2))
-        self.assertLess(len(st['image']) * 8, 1 << 20)
-
-    def test_programs(self):
-        for name, src in PROGRAMS.items():
-            with self.subTest(name):
-                self.assertIn(b'0x1', src.encode())
-                self.check(src.encode())
-        self.check(t.hoisted('echo').encode())                         # no address of the host: the text as it is
-        self.check(b'pack\n' + readme_example().encode())
-
-    def test_channel_from_the_end(self):
-        """The forms `+k` of the channels: the same bytes as the reference (also in the pack mode, in a string, in a comment, with the host, a form spoiled)."""
-        for src in CHAN_EDGES:
-            with self.subTest(src):
-                self.check(src)
-        self.check(CHAN_FORMS.encode())
-        r = self.check(b':a data 8 0\n:main block\ncopy +2 &a\ncopy &a +1\ncopy +3 &a\ncopy +4 &a\ncopy +5 &a\ncopy +0 &a\n')
-        self.assertTrue(r.out.endswith(b'copy 1048572 &a\ncopy &a 1048571\ncopy 1048573 &a\ncopy 1048574 &a\ncopy 1048575 &a\ncopy 1048570 &a\n\0'), r.out)
-
-    def test_far_copy(self):
-        """The far copies (26.4): the same bytes as the reference for the texts which are translated and for those which are not."""
-        for src in FAR_EDGES:
-            with self.subTest(src):
-                self.check(src)
-        self.check(PROGRAMS['rw'].encode() + b'\n' + FAR_EDGES[0])                  # the host and the far one in a text; the labels go on after the gets of the text before it
-        out = self.check(b':x data 64 0\n:main block\n' + (b'copy &x ' + FAR.encode() + b'\n') * 257, limit=10 ** 9).out      # the labels end at 2048: the 257th is not made
-        self.assertEqual((out.count(b'goto &l4f'), out.count(b'\ncopy &x 0x2')), (2048, 1))
-
-    def test_far_refusal_reason(self):
-        """A far copy which is not made (26.4) says why to stderr, one line, once per copy; the text on the output is the copy as it was and l3c does not take it.
-        The reference (l3ctext) does not say it: it has no stderr of its own."""
-        pre = ':x data 64 0\n:b data 4 0\n:y data 9000 0\n:t table 1 8 1 2\n:main block\n'
-        for reason, copies in (('far link', ['&x %s' % farad(0, 3), '%s &x' % farad(5, 7), '&x %s' % farad(0, 1 << 24)]),
-                               ('far pos', ['&x %s' % farad(12), '%s &x' % farad(1 << 32), '&x %s' % farad(1 << 64), '&x %s' % farad(8 * 3 + 4)]),
-                               ('far width', ['&b %s' % FAR, '&x[3] %s' % FAR, '&t %s' % FAR, '&q %s' % FAR, '%s &x[0:12]' % FAR, '%s %s' % (FAR, FAR), '%s %s' % (FAR, HOSTA)]),
-                               ('far limit', ['&y[9900:9908] %s' % FAR, '%s &y[9950:9958]' % FAR])):
-            for pair in copies:
-                with self.subTest(reason=reason, pair=pair):
-                    src = (pre + 'copy %s\nhalt\n' % pair).encode()
-                    r = self.check(src)
-                    self.assertEqual(says(r), 'l4c: %s\n' % reason)
-                    self.assertTrue(r.out.endswith(('copy %s\nhalt\n' % pair).encode() + b'\0'))
-                    self.assertIsNotNone(l3ctext.encode(r.out[:-1].decode('latin-1'))[1])
-        src = (':x data 64 0\n:main block\n' + 'copy &x %s\n' % FAR * 257).encode()          # the labels end at 2048: the last of 257 gets is refused
-        self.assertEqual(says(self.check(src, limit=10 ** 9)), 'l4c: far limit\n')
-        for src in FAR_EDGES[:4] + [PROGRAMS['rw'].encode()]:                              # what is made, and a host copy, say nothing
-            self.assertEqual(says(self.check(src)), '')
-        self.assertEqual(says(self.check((pre + 'copy &t %s\ncopy %s &x\n' % (HOSTA, farad(12))).encode())), 'l4c: far pos\n')      # a refusal of one copy among others
-
-    def test_far_mutations(self):
-        """Texts with far addresses spoiled at random (a character replaced, dropped, doubled): the same bytes."""
-        rng = random.Random(2644)
-        for _ in range(30):
-            b = bytearray(rng.choice(FAR_EDGES[:6]))
-            for _ in range(rng.choice((1, 2, 3))):
-                i = rng.randrange(len(b))
-                m = rng.randrange(3)
-                if m == 0:
-                    b[i] = rng.choice(b'0123456789abcdefx&[]:# "\n\\')
-                elif m == 1:
-                    del b[i]
-                else:
-                    b.insert(i, rng.choice(b'02x&[]: "\n\\#'))
-            self.check(bytes(b).replace(b'\0', b' '))
-
-    def test_far_link_mutations(self):
-        """The same for texts with the links 1 and 2 spoiled at random (the words at the end follow whatever was made of the copies)."""
-        rng = random.Random(2646)
-        for _ in range(24):
-            b = bytearray(rng.choice(FAR_LINKS[:12]))
-            for _ in range(rng.choice((1, 2, 3))):
-                i = rng.randrange(len(b))
-                m = rng.randrange(3)
-                if m == 0:
-                    b[i] = rng.choice(b'0123456789abcdefx&[]:# "\n\\')
-                elif m == 1:
-                    del b[i]
-                else:
-                    b.insert(i, rng.choice(b'012x&[]: "\n\\#'))
-            self.check(bytes(b).replace(b'\0', b' '), limit=10 ** 9)
-
-    def test_computed_address(self):
-        """The computed addresses (25.4): the same bytes as the reference for the forms which are translated and for those which are not (also in the pack mode, in a string, in a
-        comment, with the other forms of the address in one text, the declarations spoiled)."""
-        for src in COMP_EDGES:
-            with self.subTest(src):
-                self.check(src)
-
-    def test_computed_refusal_reason(self):
-        """A computed address which is not translated says why to stderr, one line, once per copy: `l4c: at name` (the table or array is not known, a table for the write) or
-        `l4c: at width` (the width of &x or of the index is not w or K, or the other operand has no known width); the text on the output is the copy as it was and l3c does not take it.
-        The reference does not say it (it has no stderr of its own). What is translated says nothing."""
-        for reason, copies in COMP_BAD.items():
-            for pair in copies:
-                with self.subTest(reason=reason, pair=pair):
-                    r = self.check((COMP_PRE + 'copy %s\nhalt\n' % pair).encode())
-                    self.assertEqual(says(r), 'l4c: %s\n' % reason)
-                    self.assertIsNotNone(l3ctext.encode(r.out[:-1].decode('latin-1'))[1])
-        for pair in COMP_GOOD:
-            with self.subTest(good=pair):
-                r = self.check((COMP_PRE + 'copy %s\nhalt\n' % pair).encode())
-                self.assertEqual(says(r), '')
-                self.assertIsNone(l3ctext.encode(r.out[:-1].decode('latin-1'))[1])
-        r = self.check((COMP_PRE + 'copy &x &a@&i\ncopy &q@&i &x\ncopy &y &a@&i\ncopy &a@&i &x\n').encode())             # a refusal among the others
-        self.assertEqual(says(r), 'l4c: at name\nl4c: at width\n')
-
-    def test_computed_mutations(self):
-        """Texts with computed addresses and declarations spoiled at random (a character replaced, dropped, doubled): the same bytes."""
-        rng = random.Random(2504)
-        for _ in range(40):
-            b = bytearray(rng.choice(COMP_EDGES[:4] + COMP_EDGES[6:8]))
-            for _ in range(rng.choice((1, 2, 3))):
-                i = rng.randrange(len(b))
-                m = rng.randrange(3)
-                if m == 0:
-                    b[i] = rng.choice(b'0123456789abcdefx&[]:@# "\n\\tr')
-                elif m == 1:
-                    del b[i]
-                else:
-                    b.insert(i, rng.choice(b'02x&[]:@ "\n\\#'))
-            self.check(bytes(b).replace(b'\0', b' '))
-
-    def test_the_names_of_tables_and_arrays_take_the_cells_of_the_names(self):
-        """A name of a table or array takes a cell of the table of names, as a name of data does (63 cells in all): a name past them is not kept (its copy goes out unchanged)."""
-        decl = ''.join((':d%d data 8 0\n' if k % 2 else ':d%d array 3 8\n') % k for k in range(70))
-        for k in (0, 1, 58, 60, 62, 64, 69):                       # i and x take two cells, the cells 3..63 are for d0..d60 (the reference keeps more names, as for data)
-            src = (':i data 3 0\n:x data 8 0\n' + decl + ':main block\ncopy &x &d%d@&i\nhalt\n' % k).encode()
-            out = l4c(src).out
-            self.assertEqual(b'\nlut &d%d &i &x\n' % k in out, k % 2 == 0 and k < 61, k)
-
-    def test_edges(self):
-        for src in EDGES:
-            with self.subTest(src):
-                self.check(src)
-
-    @staticmethod
-    def name_hash(name):
-        """The hash of a name in l4c.tw (mkname): h = 8h + c modulo 2^12 over the bytes; the tree of the names is keyed by it."""
-        h = 0
-        for c in name.encode():
-            h = (h * 8 + c) & 4095
-        return h
-
-    @staticmethod
-    def names_program(names, widths):
-        """The data `names` of the widths and two copies with the host for each (the whole name, a part of it)."""
-        a = host(1, 8)
-        return (''.join(':%s data %d 0\n' % (n, w) for n, w in zip(names, widths, strict=True)) + ':main block\n'
-                + ''.join('copy &%s %s\ncopy %s &%s[1:3]\n' % (n, a, a, n) for n in names) + 'halt\n').encode()
-
-    def test_names_with_the_same_hash(self):
-        """The names of data are a tree of tables by the hash of the name (12 bits); names with the same hash are the versions of one key (the name is compared
-        with each); a repeated name keeps its first width: the same bytes as the reference."""
-        by = {}
-        for a in 'abcdefghijklmnopqrstuvwxyz':
-            for b in 'abcdefghijklmnopqrstuvwxyz':
-                for c in 'abcdefghijkl':
-                    by.setdefault(self.name_hash(a + b + c), []).append(a + b + c)
-        groups = [v for v in by.values() if len(v) >= 4][:6]
-        self.assertEqual(len(groups), 6)
-        names = [n for g in groups for n in g[:4]]
-        self.check(self.names_program(names, list(range(5, 5 + len(names)))))
-        self.check(self.names_program(names + names[::-1], list(range(5, 5 + 2 * len(names)))))
-        rng = random.Random(2531)
-        for _ in range(4):
-            pool = [n for g in groups for n in g] + [''.join(rng.choice('abxyz_09') for _ in range(rng.randrange(1, 15))) for _ in range(10)]
-            names = [n for n in rng.sample(pool, 30) if n[0] not in '0123456789']
-            self.check(self.names_program(names, [rng.randrange(1, 300) for _ in names]))
-
-    def test_table_of_names_is_full(self):
-        """63 names are kept (cells 1..63); a name past them is not kept, its copy goes out unchanged (as for a name which is not known)."""
-        names = ['n%d' % i for i in range(70)]
-        out = l4c(self.names_program(names, [8] * 70)).out
-        self.assertEqual(out.count(b'copy 1048570 &l4q[0:204]\n'), 63)
-        self.assertEqual(out.count(b'copy &n63 0x'), 1)
-        self.assertEqual(out.count(b'copy &n69 0x'), 1)
-        self.assertEqual(out.count(b'copy &n62 0x'), 0)
-
-    def test_mutations(self):
-        """Texts spoiled at random (a character replaced, dropped, doubled): the same bytes."""
-        rng = random.Random(2317)
-        bases = [EDGES[9], EDGES[10], EDGES[12], PROGRAMS['rw'].encode()]
-        for _ in range(30):
-            b = bytearray(rng.choice(bases))
-            for _ in range(rng.choice((1, 2, 3))):
-                i = rng.randrange(len(b))
-                m = rng.randrange(3)
-                if m == 0:
-                    b[i] = rng.choice(b'0123456789abcdefx&[]:# "\n\\')
-                elif m == 1:
-                    del b[i]
-                else:
-                    b.insert(i, rng.choice(b'0x&[]: "\n\\#'))
-            self.check(bytes(b).replace(b'\0', b' '))
+        self.assertLess(len(st['image']) * 8, tables.LIMIT)
 
 
 class Programs(unittest.TestCase):
     """The images of the chain (l4c, l3c, l2l, seed) do the long copies as the images of the Python compiler: the same output and the same host file."""
 
     def both(self, src, data=FILE, pack=False):
-        img, P = l5.chain_image(('pack\n' if pack else '') + src, True)
+        img, P = chain.build(('pack\n' if pack else '') + src, True)
         py, errs = text.compile_text(src)
         self.assertEqual(errs, [])
         res = []
@@ -677,8 +252,8 @@ class Programs(unittest.TestCase):
         output, error, code, and the same image (the pass l4c gives the numbers of l3c, and the rows of a channel are the same); in the pack mode too. Only A = 20 is built by the chain (l3c has
         A = 20), so the text is checked as one for every A by the reference: it has no number of A."""
         for pack in ('', 'pack\n'):
-            forms, P = l5.chain_image(pack + CHAN_FORMS, True)
-            words, P2 = l5.chain_image(pack + CHAN_WORDS, True)
+            forms, P = chain.build(pack + CHAN_FORMS, True)
+            words, P2 = chain.build(pack + CHAN_WORDS, True)
             self.assertEqual((forms, P), (words, P2))
             a, b = (run(img, 20, P, checked=True, limit=LIMIT, stdin=b'Z') for img in (forms, words))
             self.assertEqual((a.rc, a.out, a.err), (b.rc, b.out, b.err))
@@ -704,17 +279,6 @@ class Programs(unittest.TestCase):
         _, out2, host2, ticks2 = self.both(src, pack=True)
         self.assertEqual((out2, host2), (out, host_file))
         self.assertLess(ticks2, ticks)
-
-    def test_the_tools_of_the_chain(self):
-        """The tools themselves: l4c (the image of the references) and l3c (the image of Python) make the text, l2l and the seed the image."""
-        src = PROGRAMS['rw']
-        a = l4c(src.encode())
-        want = l3ctext.l4c(src.encode() + b'\0')[0]
-        self.assertEqual(a.out, want)
-        b = t.l3c(a.out[:-1])
-        self.assertEqual(b.out, l3ctext.encode(want[:-1])[0])
-        img = t.image_of(b.out)
-        self.assertEqual(img, l5.chain_image(src, True)[0])
 
 
 if __name__ == '__main__':

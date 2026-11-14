@@ -32,10 +32,10 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
+import chain
 import common
 import l3
-import l3ctext
-import l5
 import text
 from common import rev, stream
 
@@ -54,7 +54,7 @@ def setUpModule():
 
 def chain_program(name, src, pack=False):
     """A text of language 4 built by the chain (the pass l4c, l3c, [l3p], l2l, the seed; A = 20) and kept under `name` (not a file): the stats as of program()."""
-    img, P = l5.chain_image(('pack\n' if pack else '') + src, True)
+    img, P = chain.build(('pack\n' if pack else '') + src, True)
     _CACHE[name] = {'image': img, 'A': 20, 'P': P}
     return _CACHE[name]
 
@@ -319,7 +319,7 @@ class AnswererAt(unittest.TestCase):
     def test_the_text_is_lut_and_store(self):
         """The pass l4c makes of `copy &ans &win@&pos[0:10]` the `lut` and of `copy &win@&pos[0:10] &dat` the `store` of language 3; the 8 stores of the start too: the text
         is, word for word, the text of language 3 which one would write by hand."""
-        out = l3ctext.l4c(self.src.encode() + b'\0')[0].decode()
+        out = chain.step('l4c', 'l4c', self.src.encode() + b'\0').decode()           # the pass l4c made by the chain
         self.assertEqual(out.count('lut &win &pos[0:10] &ans\n'), 1)
         self.assertEqual(out.count('store &win &pos[0:10] &dat\n'), 1)
         self.assertEqual(out.count('store &win &i'), 8)
@@ -327,7 +327,7 @@ class AnswererAt(unittest.TestCase):
         hand = self.src.replace('copy &ans &win@&pos[0:10]', 'lut &win &pos[0:10] &ans').replace('copy &win@&pos[0:10] &dat', 'store &win &pos[0:10] &dat')
         hand = re.sub(r'copy &win@&(i\d) (&init\[\d+:\d+\])', r'store &win &\1 \2', hand)
         self.assertNotIn('@', hand[hand.index(':main'):])
-        self.assertEqual(l3ctext.l4c(hand.encode() + b'\0')[0], out.encode('latin-1'))
+        self.assertEqual(chain.step('l4c', 'l4c', hand.encode() + b'\0'), out.encode('latin-1'))
 
     def test_the_window_and_the_answers(self):
         """The cells 0..7 are COPYMACH, the cells 8..1023 are zeros (the window is the array of 2^10 cells)."""
@@ -605,25 +605,6 @@ class FarCopy(unittest.TestCase):
         self.assertEqual((cells[:8], cells[12:14], cells[14:18], cells[18:19], cells[19:21]), (WINDOW, b'OK', b'MOKH', ONES, b'KH'))
         self.assertEqual(cells[-1:], b'Y', 'put outside the window (also the far byte 2^28 + 3, which has the low bits of the cell 3) changed nothing')
 
-    def test_chain_with_the_tool_l4c(self):
-        """The pass made by the tool l4c itself (its image built by the references, run in the emulator) gives the text of the reference; the image of it is the same."""
-        import test_l4p
-        test_l4p.setUpModule()
-        out = test_l4p.l4c(self.src.encode())
-        self.assertEqual((out.rc, out.out), (0, l3ctext.l4c(self.src.encode() + b'\0')[0]))
-        self.assertEqual(l5.chain_image(out.out[:-1].decode('latin-1'))[0], program(self.names[False])['image'])
-
-    def test_the_forms_which_are_not_translated(self):
-        """The far address which is not as told stays in the text as it was (l3c rejects it): the link is not 0, 1 or 2, the position is not a multiple of 8 or over 2^32 bits,
-        the width is not 8..64 whole bytes."""
-        for tail in ('0x2%032x' % (3 << 96), '0x2%032x' % 4, '0x2%032x' % (1 << 32)):
-            out = l3ctext.l4c((':x data 8 0\n:main block\ncopy &x %s\n' % tail).encode() + b'\0')[0]
-            self.assertTrue(out.endswith(('copy &x %s\n' % tail).encode() + b'\0'), (tail, out[-60:]))
-            self.assertIsNotNone(l3ctext.encode(out[:-1])[1], tail)
-        for n in (1, 4, 12, 72, 2048):
-            out = l3ctext.l4c(far_text(n, False).encode() + b'\0')[0]
-            self.assertIn(b'copy &x 0x2', out[out.index(b':main'):], n)
-
     def test_ticks(self):
         """The measure: the ticks of one far copy of 8 and of 32 bits (the checked emulator): the asker (the copy between the two `halt`s: the difference to a program with
         no copy; the answers are given) and the answerer (the requests of the copy: the difference to the stop alone). At the time of writing the asker needs
@@ -694,16 +675,6 @@ class FarCopyAt(unittest.TestCase):
         self.assertEqual((rr, qr[0]), ((0, b''), 0))
         self.assertEqual(qr[1][:5], ONES * 5)
         self.assertEqual(qr[1][5:13], WINDOW)
-
-    def test_chain_with_the_tool_l4c(self):
-        """The pass made by the tool l4c itself gives the text of the reference for the answerer and the asker; the image of it is the same."""
-        import test_l4p
-        test_l4p.setUpModule()
-        for src, name in ((serve_at_text(), 'far_serve_at'), (self.SRC, self.names[False])):
-            out = test_l4p.l4c(src.encode())
-            self.assertEqual((out.rc, out.out, test_l4p.says(out)), (0, l3ctext.l4c(src.encode() + b'\0')[0], ''))
-            self.assertEqual(l5.chain_image(out.out[:-1].decode('latin-1'))[0], program(name)['image'])
-
 
 # ---------------------------------------------------------------- 26.5: the common file
 
@@ -1208,7 +1179,7 @@ def link_text(n, put, link, byte=3):
 
 def chain_program3(name, src3):
     """A text of language 3 (the output of the pass l4c, or changed) built by the chain without the pass."""
-    img, P = l5.chain_image(src3, False)
+    img, P = chain.build(src3)
     _CACHE[name] = {'image': img, 'A': 20, 'P': P}
     return name
 
@@ -1219,9 +1190,9 @@ LIMIT_LINE = 'copy &l4q[476:480] &l4n0[16:20]\n'          # in the word l4fget: 
 def limited(src4, polls16, pack=False):
     """The chain image of a text of language 4 with the limit of the failed polls of l4fget changed to 16 * polls16 (a nibble of the second place; the text is changed after the
     pass: the limit is a line of the word)."""
-    out = l3ctext.l4c(('pack\n' if pack else '').encode() + src4.encode() + b'\0')[0][:-1].decode('latin-1')
+    out = chain.step('l4c', 'l4c', ('pack\n' if pack else '').encode() + src4.encode() + b'\0')[:-1].decode('latin-1')      # the pass l4c made by the chain
     assert out.count(LIMIT_LINE) == 1
-    out = out.replace(LIMIT_LINE, 'copy &l4q[464:468] %s\n' % l3ctext._nib(polls16))
+    out = out.replace(LIMIT_LINE, 'copy &l4q[464:468] &l4n%d[%d:%d]\n' % (polls16 // 5, 4 * (polls16 % 5), 4 * (polls16 % 5) + 4))      # the nibble polls16 of the constants l4n0.. (5 nibbles in a place)
     return chain_program3('limited:%d:%s:%s' % (polls16, pack, src4), out)
 
 
@@ -1347,7 +1318,7 @@ class LinkOneCopy(unittest.TestCase):
 
     def test_the_word_is_one_and_the_sites_are_short(self):
         """One word l4ask for the whole program (not per byte): the text of the pass has it once and a site is a few lines."""
-        out = l3ctext.l4c(self.src.encode() + b'\0')[0]
+        out = chain.step('l4c', 'l4c', self.src.encode() + b'\0')
         self.assertEqual((out.count(b':l4ask word'), out.count(b'\n:l4f')), (1, len(CKC_OPS)))
 
 

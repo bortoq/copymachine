@@ -1,12 +1,10 @@
 """Tests of the label tool (23.9, part 1): `programs/l2l.tw` is a program of the chain. It is the compiler of language 2 with names of
 labels of up to 15 bytes and references forward; it reads the text twice (stdin is `text 0 text 0`: the first pass defines the
-labels, the second goes out) and writes the text of language 1 and a zero byte. The chain and the Python reference (l2ltext.encode)
-agree byte for byte and by the report; the tool is built from its text by the seed and by l2c, and builds the same text from its own
-text of language 2. All runs are on the checked emulator.
+labels, the second goes out) and writes the text of language 1 and a zero byte. The tool is built from its text by the seed and by l2c, and
+builds the same text from its own text of language 2; its outputs on the small, the wrong, the spoiled texts, the names and the 1024 labels are
+frozen in tower/golden/l2l.jsonl (test_golden.py). All runs are on the checked emulator.
 Run: make check-tower  or  python3 -B tower/tests/test_labels.py"""
 import os
-import random
-import subprocess
 import sys
 
 sys.dont_write_bytecode = True
@@ -14,10 +12,11 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
 import common
 import l1text
-import l2ltext
-import l2text
+import tables
+import test_golden as g
 import text
 from common import run
 from test_tower import intervals
@@ -49,52 +48,24 @@ def twice(src):
 
 
 class Reference(unittest.TestCase):
-    """The texts and the Python reference (no emulator)."""
+    """The texts (no emulator)."""
 
     def test_tables_are_current(self):
-        """The numbers of the tables cls and attr in l2l.tw are what l2ltext and l2text make."""
+        """The numbers of the tables cls and attr in l2l.tw are what tables.py makes."""
         src = read('l2l.tw')
-        self.assertIn(':cls table 8 14\n' + l2ltext.cls_table() + '\n', src)
-        self.assertIn(':attr table 4 12\n' + l2text.table_lines(l2text.attr, 4) + '\n', src)
+        for table in tables.l2l_tables():
+            self.assertIn(table, src)
 
     def test_texts_are_current(self):
         """l2l.l1 is what l1text makes from l2l.tw, l2l.l2 is its text of language 2 (both are in git)."""
         p = compiled('l2l')
         self.assertEqual(read('l2l.l1'), l1text.program_text(p, TITLE % ('l2l', p.stats['A'], p.stats['P'])))
-        self.assertEqual(read('l2l.l2'), l2text.to_l2(read('l2l.l1')))
+        self.assertEqual(read('l2l.l2'), g.to_l2(read('l2l.l1')))
 
-    def test_reference(self):
-        """A reference forward, a reference back, a name with a sum, the positions of the bits (w 10 is A = 16, a row is 64 bits)."""
-        self.assertEqual(l2ltext.encode('w 10\nc 1 &fwd 2\n:fwd d 1 1\nc 1 &fwd+3 &fwd\n', twice=True),
-                         (b'w 10\nr 40 41 2 3\ns 1\nr 43 44 40 41\n\0', None))
-        self.assertEqual(l2ltext.encode(':a:b d 8 5\nc 4 &a &b\nc 1 &c &a\n:c', twice=True)[0],
-                         b's 10100000\nr 0 4 0 4\nr 8 9 0 1\n\0')
-        self.assertEqual(l2ltext.encode('c 1 &a 2\n', twice=True), (b'', 'lab'))
-        self.assertEqual(l2ltext.encode(':a\n:a\n', twice=True), (b'', 'lab'))
-        self.assertEqual(l2ltext.encode('c 1 &a 2\n:a\n', twice=True)[1], None)
-        # one copy: the second text is empty
-        self.assertEqual(l2ltext.encode(b'c 1 2 3\n\0'), (b'\0', None))
-        # the second copy is another text: a label at another place, a label that is not there
-        self.assertEqual(l2ltext.encode(b':a d 8 1\n:b\n\0d 8 1\n:a d 8 1\n:b\n\0'), (b's 10000000\n', 'lab'))
-        self.assertEqual(l2ltext.encode(b':a\n\0:a\n:b\n\0'), (b'', 'lab'))
-
-    def test_hello_names(self):
-        """hello_names.l2 (names, a reference forward) gives the text of language 1 of hello.l2 (but for the comments)."""
-        a, err = l2ltext.encode(read('hello_names.l2'), twice=True)
-        self.assertIsNone(err)
-        want = l2text.encode(read('hello.l2'))[0]
-        keep = (lambda b: b'\n'.join(x for x in b.split(b'\n') if not x.startswith(b'#')))
-        self.assertEqual(keep(a), keep(want))
-
-    def test_cli(self):
-        root = os.path.dirname(common.HERE)
-        src = b'c 1 &a 2\n:a d 8 5\n'
-        e = subprocess.run([sys.executable, '-B', 'tower/l2ltext.py', '-e'], input=src, cwd=root, check=False,
-                           capture_output=True, timeout=120)
-        self.assertEqual((e.returncode, e.stdout), (0, l2ltext.encode(src, twice=True)[0]))
-        e = subprocess.run([sys.executable, '-B', 'tower/l2ltext.py', '-e'], input=b'c 1 &a 2\n', cwd=root, check=False,
-                           capture_output=True, timeout=120)
-        self.assertEqual((e.returncode, e.stdout, e.stderr), (1, b'', b'l2l: bad label\n'))
+    def test_capacity_in_the_texts(self):
+        """The places of names: 1024 labels in l2l.tw (six arrays of 2^10); the 1024th label fits and the 1025th is `bad label` (frozen: l2l.jsonl, labels-1024, labels-1025)."""
+        for n in ('nameh', 'namet', 'tags', 'vals', 'hd', 'nx'):
+            self.assertIn(':%s array 10 ' % n, read('l2l.tw'))        # 2^10 = tables.MAXLAB
 
 
 class Tool(unittest.TestCase):
@@ -109,128 +80,13 @@ class Tool(unittest.TestCase):
         self.assertLess(r.ticks, limit)
         return r
 
-    def check_text(self, src):
-        """The chain and the Python reference agree on a text given twice: the same bytes and the same report."""
-        r = self.l2l(twice(src))
-        want, err = l2ltext.encode(src, twice=True)
-        self.assertEqual(r.out, want, src)
-        self.assertEqual('l2l: ' in r.err, err is not None, (src, r.err))
-        if err:
-            self.assertIn(l2ltext.MESSAGES[err], r.err)
-        return r
-
     def test_audit(self):
         intervals(self.comp)
 
-    def test_small_texts(self):
-        """The texts of l2c (its names are one letter), names, references forward and back, sums, labels in a row."""
-        for src in ('c 8 10 20\n', 'c 0 0 0\n', 'c fffff 1 1\n', 'd 8 5\n', 'd 14 fffff\n', 'w 10\nr 1 2 3 4\nz 5\ns 0101\n# c\n',
-                    ':a d 8 5\nc 4 &a+1 &a\n', ':a\n:b c 1 &a &b\n', 'w 8\nr 1 2 3 4\n:c c 1 &c &c+4\n', 'w 8\nz 8\n:a o\nc 1 &a 1\n',
-                    '\n  \t c 1 2 3  \n\n', 'c 1 2 3\r\n', 'c 1 2 3', '', '\n', 'z 3\ns 1 1 1\n:a :b\nc 1 &a &b\n', 'w 5 \n z 3 \n',
-                    'c 1 &f 2\n:f d 8 1\n', 'w 10\nc 1 &end 2\nc 1 &end &end+1\n:end', ':a c 1 &b &c\n:b c 1 &c &a\n:c\n',
-                    'c 1 &x+ff &x+0\n:x\n', 'c 1 &a+fffff &a\n:a\n', ':a1 :b2 :c3 c 1 &c3 &a1\nc 1 &b2 &c3+2\n', 'c 1 &a &b\n:a\n:b\n',
-                    ':a :b\nc 1 &b &a\n', 'o\n:a c 1 &a &a\n', ':z c 1 &z 1\n', ':_ c 1 &_ 1\n', ':0 c 1 &0 1\n', ':9 c 1 &9 1\n',
-                    ':a d 4 3\nd 4 &a\n', 'd 8 &a\n:a\n', 'w &a\n:a d 8 4\n', 'z &a\n:a\n'):
-            with self.subTest(src):
-                self.check_text(src)
-        r = self.l2l(twice('w 10\nr 1 2 3 4\nc 4 &after &here\n:here d 8 5\n:after'))
-        self.assertEqual(r.out, b'w 10\nr 1 2 3 4\nr 88 8c 80 84\ns 10100000\n\0')
-
-    def test_long_names(self):
-        """A name of 1 to 15 bytes of a-z 0-9 _ ; names that are the end or the beginning of one another are different."""
-        for n in ('a', 'ab', 'z' * 7, 'z' * 8, 'z' * 14, 'z' * 15, 'a_1b_2c_3d_4e_5f', 'x' * 15, '0123456789_abcde', 'label_15_bytes_'):
-            if len(n) <= 15:
-                with self.subTest(n):
-                    self.check_text(':%s d 8 1\nc 1 &%s &%s+1\n' % (n, n, n))
-        src = (':abcdefghijklmno d 8 1\n:bcdefghijklmno d 8 2\n:abcdefghijklmn d 8 3\n:a d 8 4\n:aa d 8 5\n:ba d 8 6\n:b d 8 7\n'
-               'c 1 &abcdefghijklmno &bcdefghijklmno\nc 1 &abcdefghijklmn &a\nc 1 &aa &ba\nc 1 &b &a\n:x1 :x2 :x3 :xx1\n'
-               'c 1 &x1 &x2\nc 1 &x3 &xx1\n')
-        r = self.check_text(src)
-        self.assertEqual(r.out.count(b'r '), 4 + 2)
-        for bad in (':abcdefghijklmnop\n', 'c 1 &abcdefghijklmnop 2\n:abcdefghijklmnop\n', ':' + 'q' * 40 + '\n', 'c 1 &' + 'q' * 17 + ' 2\n'):
-            with self.subTest(bad):
-                self.assertIn('bad text', self.check_text(bad).err)
-
-    def test_rejected(self):
-        """A wrong text: what is written before the error stays, the report is on stderr."""
-        for src, err in (('x\n', 'bad'), ('q', 'bad'), ('1\n', 'bad'), ('&a\n', 'bad'), (': \n', 'bad'), ('::\n', 'bad'),
-                         (':A\n', 'bad'), (':\n', 'bad'), (':a+\n', 'bad'), (':a-b\n', 'bad'), (':a.b\n', 'bad'), ('c 1 2 3 4\n', 'cnt'),
-                         ('c 1 2\n', 'cnt'), ('c\n', 'cnt'), ('d 1\n', 'cnt'), ('w\n', 'cnt'), ('z 1 2\n', 'cnt'), ('o 1\n', 'cnt'),
-                         (':a\n:a\n', 'lab'), (':a :a\n', 'lab'), ('c 1 &a 2\n', 'lab'), (':a c 1 &b 2\n', 'lab'), ('c 1 &A 2\n', 'bad'),
-                         ('c 1 & 2\n', 'bad'), ('c 1 &\n', 'bad'), ('c 1 2& 3\n', 'bad'), ('c 1 2+3 4\n', 'bad'), ('c 1 +1 2\n', 'bad'),
-                         (':a c 1 &a&a 2\n', 'bad'), (':a c 1 &a++1 2\n', 'bad'), ('c 1 g 2\n', 'bad'), ('c 1 2 3 # x\n', 'bad'),
-                         (':a c 1 &a-b 2\n', 'bad'), (':a c 1 &a:b 2\n', 'bad'), (':a c 1 &a#\n', 'bad'), ('c 1 &a+x 2\n:a\n', 'bad'),
-                         ('c 1 &a &a &a\n:a\n', 'cnt'), ('c 1 &a\n:a\n', 'cnt'), ('w 10\nr 1\nc 1 2 3 4\n', 'cnt'),
-                         ('w 10\nr 1 2 3 4\nq\n', 'bad'), (':a\n:b\n:a\n', 'lab'), ('c 1 2 3\n:a\n:a\n', 'lab')):
-            with self.subTest(src):
-                r = self.check_text(src)
-                self.assertIn(l2ltext.MESSAGES[err], r.err)
-        r = self.check_text('w 10\nr 1 2 3 4\nc 1 &a 2\n')
-        self.assertEqual((r.out, 'bad label' in r.err), (b'w 10\nr 1 2 3 4\n', True))   # a name not defined: found in the second pass
-        r = self.check_text('w 10\nr 1 2 3 4\n:a c 1 &a 2\nq\n')
-        self.assertEqual((r.out, 'bad text' in r.err), (b'', True))                    # the first pass: nothing has gone out
-
-    def test_two_copies(self):
-        """The second copy must give what the first gave; one copy gives the zero byte alone."""
-        for a, b in ((b':a d 8 1\n:b\n', b'd 8 1\n:a d 8 1\n:b\n'), (b':a\n', b':a\n:b\n'), (b':a :b\n', b':a\n'), (b':a d 8 1\n', b':a d 8 2\n'),
-                     (b'c 1 &a 2\n:a\n', b'c 1 &b 2\n:b\n'), (b'd 8 1\n', b'd 8 2\nd 8 3\n'), (b'', b'c 1 2 3\n'), (b'c 1 2 3\n', b'')):
-            with self.subTest((a, b)):
-                stdin = a + b'\0' + b + b'\0'
-                r = self.l2l(stdin)
-                want, err = l2ltext.encode(stdin)
-                self.assertEqual(r.out, want)
-                self.assertEqual('l2l: ' in r.err, err is not None)
-        r = self.l2l(b'c 1 2 3\n\0')
-        self.assertEqual((r.out, r.err.count('l2l:')), (b'\0', 0))
-
-    def test_label_table(self):
-        """1024 labels fit (the hash: the last two bytes pick a chain; forward and back); the 1025th is bad label."""
-        names = ['n%d' % i for i in range(1024)]
-        src = ''.join(':%s d 1 1\n' % n for n in names) + 'c 1 &n0 &n1023\nc 1 &n127 &n1023+1\nc 1 &n512 &n999\n'
-        r = self.l2l(twice(src), limit=60 * 10 ** 6)
-        self.assertEqual(r.out, l2ltext.encode(src, twice=True)[0])
-        self.assertEqual(r.out.count(b'r '), 3)
-        self.assertNotIn('l2l:', r.err)
-        src = ''.join(':%s\n' % n for n in names) + ':one_more\n'
-        r = self.l2l(twice(src), limit=60 * 10 ** 6)
-        self.assertEqual((r.out, 'bad label' in r.err), (b'', True))
-        self.assertEqual(l2ltext.encode(src, twice=True), (b'', 'lab'))
-
-    def test_hash_chains(self):
-        """Names with the same last two bytes (one chain) and the same hash (c1 + 4 c2): found, told apart, a repeated one is bad label."""
-        same = ['ab', 'cb', 'xxab', 'yyab', 'zzzzzzzzzzzzzab']
-        src = ''.join(':%s d 1 1\n' % n for n in same) + 'c 1 &ab &zzzzzzzzzzzzzab\nc 1 &yyab &cb\n'
-        self.check_text(src)
-        self.check_text(src + ':xxab\n')
-        self.check_text(src + 'c 1 &aab 1\n')
-        # the same hash c1 + 4 c2 (c1 the last byte, c2 the one before) for 'ba' (97 + 4 * 98) and 'ae' (101 + 4 * 97)
-        self.check_text(':ba d 1 1\n:ae d 1 1\nc 1 &ba &ae\nc 1 &ae &ba\n')
-        self.check_text(':ba d 1 1\n:ae d 1 1\n:ba\n')
-
-    def test_random_texts(self):
-        """Random changes of a good text (a character changed, dropped, added): the chain and the reference agree."""
-        rnd = random.Random(239)
-        base = ('w 10\n# c\nr 1 2 3 4\n:alpha d 8 5\n:beta_2 z 8\ns 0101 11\n  c 4 &alpha+1 &gamma\nc ff fff 1\nd 10 abcde\no\n'
-                ':gamma c 1 &alpha &delta_long_name\nz 3\n:delta_long_name c 1 &beta_2+3 &gamma\n')
-        alphabet = 'wrzsdco#: 01abfg&+\n\tx\r2zq_ZAlphagmn'
-        for _ in range(60):
-            t = list(base)
-            for _ in range(rnd.randint(1, 3)):
-                i = rnd.randrange(len(t))
-                kind = rnd.randrange(3)
-                if kind == 0:
-                    t[i] = rnd.choice(alphabet)
-                elif kind == 1:
-                    del t[i]
-                else:
-                    t.insert(i, rnd.choice(alphabet))
-            self.check_text(''.join(t))
-
     def test_hello_names(self):
-        """hello_names.l2 (names, a reference forward): the chain gives what the reference gives; the seed turns it into the image
-        of the Python compilers of hello.l2 (its test is in test_l2c) and the image runs and prints."""
+        """hello_names.l2 (names, a reference forward): the seed turns the text of language 1 of l2l into the image of the Python compilers of hello.l2
+        (its test is in test_l2c) and the image runs and prints."""
         r = self.l2l(twice(read('hello_names.l2').encode()))
-        self.assertEqual(r.out, l2ltext.encode(read('hello_names.l2'), twice=True)[0])
         self.assertNotIn('l2l: ', r.err)
         seed = compiled('seed').stats
         q = run(seed['image'], seed['A'], seed['P'], checked=True, limit=LIMIT, stdin=r.out)

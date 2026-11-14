@@ -1,11 +1,10 @@
 """Frozen checks of the passes of the chain (25.7.1): for each pass (seed, l2c, l2l, l3c, l3p, l4c) tower/golden/<pass>.jsonl lists inputs and
 expected outputs (a line per input: stdin, the exit code, stderr, the output whole when it is short, else its length and sha256). The test
-runs the pass ON THE CHAIN (the image of the pass on the checked emulator) and compares byte for byte; it imports none of the Python
-references l2text, l2ltext, l3ctext. The images are made here without them: the seed from seed.l1 by l1text (the first image, as hex0), then
-l2c, l2l, l3c by the seed from their texts of language 1 (*.l1), l3p and l4c by the chain itself (l3c -> l2l -> seed from l3p.tw, l4c.tw; the
-serial layout). Fast part: tier "fast" (here); the rest, "long" (l3p, l4c and the dear inputs), is in long_golden.py.
+runs the pass ON THE CHAIN (the image of the pass on the checked emulator) and compares byte for byte. The images: the seed from seed.l1 by l1text (the first image, as hex0), then
+l2c, l2l, l3c, l3p, l4c by the seed from their texts of language 1 (*.l1; those of l3c, l3p, l4c are what the chain makes of their .tw: test_l1_current.py, long_l1_current.py;
+the serial layout). Fast part: tier "fast" (here); the rest, "long" (l3p, l4c and the dear inputs), is in long_golden.py.
 Update the manifest (after a change of a pass or of an input):  GOLDEN_UPDATE=1 python3 -B tower/tests/test_golden.py
-(the update still needs the Python references: it takes the expected values from them and tells where the chain differs).
+(the expected values are what the chain gives: a freeze of its behaviour; the update needs no Python reference).
 The whole chains of the programs and the fixed points are frozen in tower/golden/programs.jsonl (golden_programs.py, 25.7.3.1): the image the chain makes of a
 program (l4c, l3c, l3p, l2l, seed: the images of the passes made here), its runs, the cost of its layout; the fast tier is class Golden.test_programs, the long one
 and the fixed points of l3c (serial and with the planner) are in long_golden.py. The seed gives its own image from seed.l1 here (test_seed_fixed_point).
@@ -15,7 +14,6 @@ import json
 import os
 import random
 import re
-import subprocess
 import sys
 import threading
 import time
@@ -55,7 +53,7 @@ def read(name, mode='rb'):
         return h.read()
 
 
-# ---- the images of the passes (no Python references of l2, l2l, l3c)
+# ---- the images of the passes
 
 _LOCKS, _GUARD = {}, threading.Lock()
 
@@ -193,15 +191,6 @@ class Golden(unittest.TestCase):
             if 'price' in e:
                 self.assertEqual(e['price'], golden_programs.price(e['cost'], e['runs'][0]['ticks']), e['name'])
 
-    def test_no_python_references(self):
-        """test_golden, golden_programs, long_golden and the chain they use import none of the Python references l2text, l2ltext, l3ctext, not even through l5 or other
-        modules (a fresh interpreter: the other tests of the process may have imported them)."""
-        code = ('import sys; sys.path.insert(0, %r); import test_golden, golden_programs, long_golden, chain\n'
-                'bad = [m for m in ("l2text", "l2ltext", "l3ctext", "l5") if m in sys.modules]\n'
-                'sys.exit(", ".join(bad) or 0)' % HERE)
-        r = subprocess.run([sys.executable, '-B', '-c', code], check=False, capture_output=True, timeout=120)
-        self.assertEqual((r.returncode, r.stderr.decode()), (0, ''))
-
     def test_seed_fixed_point(self):
         """The seed turns its own text seed.l1 into its own image, byte for byte (the first image is made by l1text, as hex0)."""
         img, A, P = tool('seed')
@@ -226,7 +215,7 @@ class Golden(unittest.TestCase):
         check_tier(self, 'l3c', 'fast')
 
 
-# ---- the update (needs the Python references; the test itself does not)
+# ---- the update (the inputs of the tests of the passes; the expected values are what the chain gives)
 
 def sha(b):
     return hashlib.sha256(b).hexdigest()

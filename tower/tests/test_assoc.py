@@ -16,11 +16,12 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
+import chain
 import common
-import l3ctext
 import text
 from common import rev, stream
-from test_l3c import image_of
+from golden_programs import hoist
 
 STOP, W, K, V, R, P, Q, S = range(8)
 PROGRAMS = os.path.join(HERE, '..', 'programs', 'assoc')
@@ -298,14 +299,13 @@ class Programs(unittest.TestCase):
             self.assertLess(r.ticks, 5000)
 
     def test_the_chain_compiler_reads_them(self):
-        """The texts are in the subset of l3c (the reference of the compiler of the chain accepts them); its image (A=20, serial layout) gives the same answers."""
+        """The texts are in the subset of l3c (the compiler of the chain accepts them); its image (A=20, serial layout) gives the same answers."""
         for method in ('hash', 'tree'):
             with self.subTest(method):
                 sp = Space.get(method)
-                out, err = l3ctext.encode(l3ctext.hoist(source(method)))
-                self.assertIsNone(err)
+                img = chain.build(hoist(source(method)))[0]            # a refusal of a pass of the chain is an AssertionError
                 ops = random_ops(random.Random(3), sp, 60) + sweep_ops(sp, range(0, 256, 5), range(0, 256, 5))
-                a = common.run(image_of(out), 20, 2, checked=True, limit=200 * 10 ** 6, stdin=sp.encode(ops))
+                a = common.run(img, 20, 2, checked=True, limit=200 * 10 ** 6, stdin=sp.encode(ops))
                 b = common.run(sp.stats['image'], sp.stats['A'], sp.stats['P'], checked=True, limit=200 * 10 ** 6, stdin=sp.encode(ops))
                 self.assertEqual((a.rc, b.rc), (0, 0))
                 self.assertEqual(a.out, b.out)

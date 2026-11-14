@@ -1,8 +1,8 @@
 Замороженные сверки проходов цепочки (seed, l2c, l2l, l3c, l3p, l4c) вместо Python-эталонов: <проход>.jsonl, строка на вход:
 name, mode (twice: вход подаётся дважды), in (текст, latin-1) или file (in/... или programs/...), rc, err (stderr), out (выход целиком, до 2 КБ)
 либо len и sha (sha256), long (долгая часть: tower/tests/long_golden.py; остальное — tower/tests/test_golden.py).
-Уровни: без long — быстрый (test_golden.py); long — long_golden.py (ночной make check-tower-long); long вместе с "tier":"full" — самые дорогие записи (образы от 8000 байт
-или прогон, оборванный на 10**7 тактов, в programs.jsonl; таблицы на 1020/1021 метку в l3c.jsonl), их гоняет tower/tests/full_golden.py: make check-golden-full (вне ночного прогона, ~4 мин на ядре). Записи
+Уровни: без long — быстрый (test_golden.py); long — long_golden.py (ночной make check-tower-long); long вместе с "tier":"full" — самые дорогие записи (таблицы на 1020/1021 имя в l3c.jsonl, по 12 с), их гоняет tower/tests/full_golden.py: make check-golden-full (вне ночного прогона, ~1 мин на ядре). Образы
+всех программ и самих проходов (programs.jsonl) — в long. Записи
 из golden не удаляются, уровень — только поле.
 Образы проходов строит сама цепочка (tower/tests/chain.py: seed из seed.l1 через l1text, остальные — уже собранными проходами; кэш на диске вне репозитория).
 Обновить (после правки прохода или входа):
@@ -13,3 +13,6 @@ programs.jsonl (25.7.3.1, tower/tests/golden_programs.py): строка на п�
 lang4: сначала l4c), длина и sha256 образа, который строит цепочка l4c -> l3c -> [l3p] -> l2l -> seed, прогоны образа (stdin, host: файл хоста; rc, err, out, ticks),
 цена раскладки (cost: строки, слои, биты; price = 32 строки + 32 слоя + биты + 64 такта первого прогона); fast — test_golden.py, long — long_golden.py. Строка fixed/l3c —
 неподвижные точки l3c (serial и pack): тексты и образы, которые строит сам l3c. Обновляется тем же GOLDEN_UPDATE=1 (цена раскладки считается по текстам языка 2, которые пишут l3c и l3p).
+Тексты языка 1 проходов, которые собирает сама цепочка (programs/l3c.l1, l3p.l1, l4c.l1; chain.py берёт образы этих проходов из них через seed): tower/programs/l1-record.txt хранит хеш
+рецепта (.tw + l3c.l1, l2l.l1, seed.l1) и хеш .l1; test_l1_current.py (быстрый) сверяет запись, long_l1_current.py (долгий) пересобирает l3p.l1 и l4c.l1 из .tw цепочкой и сравнивает побайтно
+(l3c.l1 — неподвижная точка в long_golden.py). Обновить: L1_UPDATE=1 python3 -B tower/tests/long_l1_current.py.

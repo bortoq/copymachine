@@ -18,10 +18,12 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
+sys.path.insert(0, HERE)
+import chain
 import common
-import l3ctext
 import text
 from common import rev, stream
+from golden_programs import hoist
 
 PROGRAMS = os.path.join(HERE, '..', 'programs', 'assoc')
 STOP, W, K, V, R = 0, 1, 2, 3, 4
@@ -262,8 +264,7 @@ class Proof(unittest.TestCase):
 
     def test_text_is_in_the_subset_of_l3c(self):
         """The chain compiler reads the prover (no word of Python only)."""
-        out, err = l3ctext.encode(l3ctext.hoist(read_source('assoc_prove')))
-        self.assertIsNone(err)
+        out = chain.step('l3c', 'l3c', hoist(read_source('assoc_prove')).encode('latin-1') + b'\0')      # a refusal (rc, a word on stderr) is an AssertionError
         self.assertGreater(len(out), 1000)
 
 

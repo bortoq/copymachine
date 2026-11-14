@@ -1,13 +1,13 @@
-"""The images of the passes made by the chain itself (25.7.3.2), the one cache for all the tests: no Python reference of a pass (l2text, l2ltext, l3ctext) is
-imported here. The first image, `seed`, is made from seed.l1 by l1text (as hex0); then every pass is made by the passes already made, on the plain emulator:
+"""The images of the passes made by the chain itself (25.7.3.2), the one cache for all the tests: no Python reference of a pass is imported here. The first image, `seed`, is made from seed.l1 by l1text (as hex0); then every pass is made by the passes already made, on the plain emulator:
     seed        = l1text(seed.l1)
-    l2c, l2l, l3c = seed(<pass>.l1)                                   (the texts of language 1 of the passes)
-    l3p, l4c    = seed(l2l(l3c(<pass>.tw), twice))                      (the texts of language 3)
+    l2c, l2l, l3c, l3p, l4c = seed(<pass>.l1)                         (the texts of language 1 of the passes; those of l3c, l3p, l4c are what l2l(l3c(<pass>.tw), twice)
+                                                                       gives: test_l1_current.py checks the record, long_l1_current.py makes them again)
     a program   = seed(l2l(l3p(l3c(l4c(text)))))                        (l4c only for a text of language 4, l3p only when the text starts with `pack`)
 The images of the passes are cached on disk between the processes of the tests (the directory COPYMACHINE_CHAIN_CACHE, else <tmp>/copymachine-chain-<uid>; never in the
-repository): the file name holds the key, the hash of the emulator, of l1text.py, of the texts the pass is made from and of the keys of the passes which make it, so a
-change of any of them makes the image again; a file is written whole to a temporary name and renamed, and one build under a lock of the file at a time (the other
-process waits and takes the result). The images of the programs are kept in the memory of the process only (one build for equal text).
+repository): the file name holds the key, the hash of the emulator, of l1text.py, of this file, of the texts the pass is made from and of the keys of the passes which make it,
+so a change of any of them makes the image again; a file is written whole to a temporary name and renamed, and one build under a lock of the file at a time (the other
+process waits and takes the result); a temporary file older than an hour is removed. The images of the programs are kept in the memory of the process and on the
+disk too (prog-<key>.img: the key holds the text, the layout and the keys of all the passes; a file not used for 3 days is removed when a pass is made again).
 tool(name, pack=False) -> (image, A, P)    image(name) -> bytes    build(text, lang4=False) -> (image, P)    run_image(image, P, ...) -> Result"""
 import fcntl
 import hashlib
@@ -28,7 +28,7 @@ import l1text
 PROGRAMS = os.path.join(common.HERE, 'programs')
 LIMIT = 300 * 10 ** 6               # ticks of a pass on the plain emulator (the chain makes the biggest image in about 10 ** 8)
 PASSES = ('seed', 'l2c', 'l2l', 'l3c', 'l3p', 'l4c')
-FROM_L1 = ('l2c', 'l2l', 'l3c')     # the passes which the seed makes from their texts of language 1; l3p and l4c are made from their texts of language 3
+FROM_L1 = ('l2c', 'l2l', 'l3c', 'l3p', 'l4c')     # the passes which the seed makes from their texts of language 1 (the pack variants of l3c, l3p, l4c: from .tw)
 TIMES = {}                          # {name: seconds} of the passes made by this process (not taken from the disk)
 _MEMO, _LOCKS, _GUARD, _KEYS = {}, {}, threading.Lock(), {}
 
@@ -71,27 +71,27 @@ def header(name):
     return (int(m.group(1)), int(m.group(2))) if m else (20, 2)
 
 
-def _emulator_hash():
+def _hashes():
+    """The hashes of the files whose change makes every image again: the emulator, l1text.py, this file."""
     with _GUARD:
         if 'emu' not in _KEYS:
-            with open(common.EMU, 'rb') as h:
-                _KEYS['emu'] = hashlib.sha256(h.read()).hexdigest()
-            with open(os.path.join(TOWER, 'l1text.py'), 'rb') as h:
-                _KEYS['l1text'] = hashlib.sha256(h.read()).hexdigest()
-        return _KEYS['emu'], _KEYS['l1text']
+            for k, path in (('emu', common.EMU), ('l1text', os.path.join(TOWER, 'l1text.py')), ('chain', os.path.abspath(__file__))):
+                with open(path, 'rb') as h:
+                    _KEYS[k] = hashlib.sha256(h.read()).hexdigest()
+        return _KEYS['emu'], _KEYS['l1text'], _KEYS['chain']
 
 
 def key(name, pack=False):
-    """The key of the image of a pass: the emulator, l1text.py, the text it is made from, and the keys of the passes which make it."""
-    emu, l1t = _emulator_hash()
+    """The key of the image of a pass: the emulator, l1text.py, chain.py, the text it is made from, and the keys of the passes which make it."""
+    emu, l1t, me = _hashes()
     if name == 'seed':
-        return sha(b'seed', emu.encode(), l1t.encode(), read('seed.l1'))
+        return sha(b'seed', emu.encode(), l1t.encode(), me.encode(), read('seed.l1'))
     if name in FROM_L1 and not pack:
         deps, src = [('seed', False)], read(name + '.l1')
     else:
         deps = [('seed', False), ('l2l', False), ('l3c', False)] + ([('l3p', False)] if pack else [])
         src = read(name + '.tw')
-    return sha(name.encode(), b'pack' if pack else b'', emu.encode(), src, *(key(d, p).encode() for d, p in deps))
+    return sha(name.encode(), b'pack' if pack else b'', emu.encode(), me.encode(), src, *(key(d, p).encode() for d, p in deps))
 
 
 def run_pass(name, stdin, checked=False):
@@ -170,13 +170,17 @@ def _load(path):
 
 
 def _prune(name, keep):
-    pre = name.replace('/', '-') + '-'
-    for f in os.listdir(cache_dir()):
-        if f.startswith(pre) and re.fullmatch(r'[0-9a-f]{40}\.img(\.lock)?', f[len(pre):]) and not f.startswith(keep):
-            try:
-                os.remove(os.path.join(cache_dir(), f))
-            except OSError:
-                pass
+    """After the image `keep` of the pass `name` is made: the images of the same pass made with other keys go; so do the temporary files older than an
+    hour (a process which died) and the images of the programs not used for 3 days (their keys hold the keys of the passes, so after a change of a pass they are never asked for)."""
+    pre, now, d = name.replace('/', '-') + '-', time.time(), cache_dir()
+    for f in os.listdir(d):
+        path = os.path.join(d, f)
+        old = (f.endswith('.tmp') and 3600) or (f.startswith('prog-') and 3 * 86400)
+        try:
+            if f.startswith(pre) and re.fullmatch(r'[0-9a-f]{40}\.img(\.lock)?', f[len(pre):]) and not f.startswith(keep) or old and now - os.stat(path).st_mtime > old:
+                os.remove(path)
+        except OSError:
+            pass
 
 
 def image(name, pack=False):
@@ -184,12 +188,23 @@ def image(name, pack=False):
 
 
 def build(text, lang4=False):
-    """The image of a text of language 3 (4 with lang4: l4c goes first) built by the chain and its P: 3 in the pack mode, else 2 (what l5.chain_image answers). Once per text."""
+    """The image of a text of language 3 (4 with lang4: l4c goes first) built by the chain and its P: 3 in the pack mode, else 2.
+    Once per text: by the process, by the disk cache (the key: the text, lang4 and the keys of all the passes), else by the chain."""
     src = text.encode('latin-1') if isinstance(text, str) else bytes(text)
     mk = ('program', src, lang4)
     with _lock(mk):
         if mk not in _MEMO:
-            _MEMO[mk] = (step('seed', 'seed', language1(src, lang4)), 3 if is_pack(src) else 2)
+            path = os.path.join(cache_dir(), 'prog-%s.img' % sha(b'program', b'4' if lang4 else b'3', src, *(key(n).encode() for n in PASSES))[:40])
+            img = _load(path)
+            if img is None:
+                img = step('seed', 'seed', language1(src, lang4))
+                tmp = '%s.%d.%d.tmp' % (path, os.getpid(), threading.get_ident())
+                with open(tmp, 'wb') as h:
+                    h.write(img)
+                os.replace(tmp, path)
+            else:
+                os.utime(path)
+            _MEMO[mk] = (img, 3 if is_pack(src) else 2)
         return _MEMO[mk]
 
 

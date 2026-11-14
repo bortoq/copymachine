@@ -1,0 +1,5 @@
+# <pass> <sha256 of the recipe: <pass>.tw, l3c.l1, l2l.l1, seed.l1> <sha256 of <pass>.l1>; see tower/tests/test_l1_current.py; made by
+# L1_UPDATE=1 python3 -B tower/tests/long_l1_current.py (the texts are made again by the chain from the .tw)
+l3c 295e53a203e3373b4e5107cc77c238eec27724865c56c7089c9eba812730a486 1f52cab31ddf240a4e5101ff360c8e9855c134a17c285ea5191ba92596ff5f10
+l3p b683c214e29ba5e10522c5255105c4d6697ae79fdd76ae4e21a911654412d64f 6821500484a6e0a6c64a0fb288a25e683d782d85d8178de5bda0c6ed1807f980
+l4c 809781a886c12c8d01137910aa16eef6ff683542ce3f350fff071e37545eeda0 121c32ec8e715e2bb2b6db28acdf5deb600526b0346d8ccac8841704ce204b94

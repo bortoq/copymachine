@@ -20,11 +20,12 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
+import chain
 import common
-import l3ctext
 import test_golden as golden
 import text
 from common import rev, stream
+from golden_programs import hoist
 
 PROGRAM = os.path.join(common.HERE, 'programs', 'prove', 'provepass.tw')
 WORKERS = 4
@@ -273,8 +274,7 @@ class Proof(unittest.TestCase):
     def test_text_is_in_the_subset_of_l3c(self):
         """The chain compiler reads the prover (no word of Python only)."""
         with open(PROGRAM, encoding='utf-8') as h:
-            out, err = l3ctext.encode(l3ctext.hoist(h.read()))
-        self.assertIsNone(err)
+            out = chain.step('l3c', 'l3c', hoist(h.read()).encode('latin-1') + b'\0')      # a refusal (rc, a word on stderr) is an AssertionError
         self.assertGreater(len(out), 1000)
 
     def test_the_image_built_by_the_chain_proves_too(self):

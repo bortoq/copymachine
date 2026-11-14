@@ -5,7 +5,7 @@ which the chain makes of it (l4c -> l3c -> [l3p] -> l2l -> seed, every pass is a
 (stdin, the host file `-r` when the program uses the host: rc, stderr, output, ticks on the checked emulator), the cost of the layout (rows, layers, bits of the layers)
 and the price of language 5 (32 rows + 32 layers + bits + 64 ticks of the first run; the cheaper layout of a program is the one with the smaller price). The lines
 named fixed/... freeze the fixed points: l3c (and l3c with the planner, `pack`) builds its own text into the text l3c.l1 and the image which built it.
-Nothing here imports the Python references l2text, l2ltext, l3ctext: the images are made by chain.py (the passes made by the chain itself); the update
+The images are made by chain.py (the passes made by the chain itself); the update
 (`GOLDEN_UPDATE=1 python3 -B tower/tests/test_golden.py`) freezes what the chain gives now (the image, the runs, the cost counted from the texts of language 2 which l3c
 and l3p write) and prints what it changes first."""
 import hashlib
@@ -29,7 +29,7 @@ from common import run
 FILE = os.path.join(g.GOLDEN, 'programs.jsonl')
 RUN_LIMIT = 10 ** 7             # ticks of a run of a program (a program which does not end by then is cut: the rest of the line says how)
 HOSTFILE = bytes(range(1, 65))      # the host file given to a program which uses the host (test_l4p.py: FILE)
-PRICE_W = (32, 32, 1, 64)           # rows, layers, bits, ticks (l5.PRICE_W)
+PRICE_W = (32, 32, 1, 64)           # rows, layers, bits, ticks (as l5.PRICE_W)
 SHORTCUT = {'l3c/serial': 'l3c', 'l3p/serial': 'l3p', 'l4c/serial': 'l4c'}     # their images are those of g.tool (built by the chain, the fixed points check them again)
 BIG = 300 * 10 ** 6
 
@@ -40,7 +40,7 @@ def sha(b):
 
 def hoist(src):
     """The text with its data, tables and arrays moved out of the blocks (to the top, in their order) and 0x numbers written in decimal: what l3c takes
-    (a copy of l3ctext.hoist, the host helper of the tests of l3c; the declarations are one line each, or the lines of a table up to the next label or word)."""
+    (the host helper of the tests of l3c; the declarations are one line each, or the lines of a table up to the next label or word)."""
     src = re.sub(r'\b0[xX]([0-9a-fA-F]+)\b', lambda m: str(int(m.group(1), 16)), src)
     decl, rest, lines, i = [], [], src.split('\n'), 0
     while i < len(lines):
@@ -153,7 +153,7 @@ def check_tier(tc, tier):
 
 
 def cheaper(name):
-    """The layout of a program the price chooses (language 5, l5.replace_layout): 'serial' or 'pack' (serial when equal), from the manifest."""
+    """The layout of a program the price chooses (language 5, layout.replace_layout): 'serial' or 'pack' (serial when equal), from the manifest."""
     p = {e['name']: e['price'] for e in load() if e['name'] in (name + '/serial', name + '/pack')}
     return 'pack' if p[name + '/pack'] < p[name + '/serial'] else 'serial'
 
@@ -251,7 +251,6 @@ HOST_TEXT = re.compile(rb'0x1[0-9a-f]{32}\b')
 PACKED_FORTH = ['return_stack', 'constant', 'pick_roll', 'execute', 'stack', 'calls', 'shifts', 'variables', 'begin_until', 'strings']     # long_forth37.py
 CLOCK = {'long_clock'}              # reads the clock of the host: its output is the time, no run is frozen
 NO_PACK = {'l3c', 'l3p', 'l4c'}     # the packed tools take minutes: their fixed points are in fixed/
-FULL_IMAGE = 8000                   # an image from this size (bytes), or a run which hits RUN_LIMIT, is in the full tier (tier "full": full_golden.py, make check-golden-full, not nightly)
 FAST_IMAGE = 2600                   # a serial image of a program of language 3 up to this size (bytes) is in the fast tier, the rest is long
 
 
@@ -438,8 +437,6 @@ def update_lines(diffs=None):
                 e['price'] = price(cost, runs[0]['ticks'])
         if pack or s['lang4'] or len(img) > FAST_IMAGE or e['name'] in SHORTCUT or s['name'].startswith(('forth37/', 'forth/')):        # the fast tier has the tools up to l3c: no planner, no l4c, small images
             e['long'] = True
-            if len(img) >= FULL_IMAGE or any((r['ticks'] or 0) >= RUN_LIMIT for r in runs):
-                e['tier'] = 'full'
         return e
 
     with ThreadPoolExecutor(g.WORKERS) as ex:

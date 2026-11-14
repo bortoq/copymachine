@@ -2,7 +2,8 @@
 and the dear inputs of the others (the tools as inputs of l3c, tables of 1024 labels). The expected values are tower/golden/<pass>.jsonl (entries marked "long").
 The same for the whole chains of the programs (tower/golden/programs.jsonl, golden_programs.py) and the fixed points of l3c: the image of l3c turns l3c.tw
 into l3c.l1 again; with the planner (`pack`) the packed l3c builds the same text of language 2 as the serial one (no Python on that path).
-The dearest entries ("tier": "full") are in full_golden.py (make check-golden-full), not here. The images of the passes come from chain.py.
+The dearest entries ("tier": "full": the tables of 1020 and 1021 names of l3c) are in full_golden.py (make check-golden-full), not here. The images of the passes (seed, l2c, l2l, l3c, l3p, l4c)
+and of all the programs are here. They come from chain.py.
 Run: make check-tower-long  or  python3 -B tower/tests/long_golden.py"""
 import os
 import sys
