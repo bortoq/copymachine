@@ -6,7 +6,7 @@ PYTHON ?= python3
 RUFF ?= ruff
 LIMIT = $(PYTHON) -B tools/limited_run.py --seconds 600 --memory-mib 768
 LIMIT_LONG = $(PYTHON) -B tools/limited_run.py --seconds 1800 --memory-mib 768
-.PHONY: all emulator check-fast check check-full check-layout check-tower check-tower-long check-level-proof lint coverage clean
+.PHONY: all emulator check-fast check check-full check-layout check-tower check-tower-long check-golden-full check-level-proof lint coverage clean
 all: emulator
 emulator:
 	$(LIMIT) $(MAKE) -C emulator -j1
@@ -28,6 +28,10 @@ check-tower:
 # the fixed points of l3c: serial (23.9) and with the planner l3p (23.10), the 37 programs by hand (23.11) and as Forth texts (23.15).
 check-tower-long:
 	$(LIMIT_LONG) $(PYTHON) -B -m unittest discover -s tower/tests -p 'long_*.py'
+# The full tier of the frozen checks of tower/golden (25.7.3.2): its dearest entries ("tier": "full": big images, runs cut at 10 ** 7 ticks, the tables of 1020 labels),
+# the rest of the long tier is in check-tower-long. Not in check-tower-long, check-fast or the nightly run: ~4 min on one CPU (see tower/golden/README).
+check-golden-full:
+	$(LIMIT_LONG) $(PYTHON) -B tower/tests/full_golden.py
 # Proof of a level (23.21), not in check-tower-long or the nightly run: ~12 min on 4 CPUs (722 s measured), ~27 min on one; 4 CPUs, 4 GiB, 3600 s.
 # MALLOC_ARENA_MAX: glibc reserves 64 MiB of address space per arena (8 per CPU), which the memory limit counts.
 check-level-proof:

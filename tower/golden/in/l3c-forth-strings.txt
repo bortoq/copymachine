@@ -1,0 +1,279 @@
+:inc table 6 6 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 0
+:dec table 6 6 63 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62
+:rev4 table 4 4 0 8 4 12 2 10 6 14 1 9 5 13 3 11 7 15
+:ds array 6 32
+:rs array 6 32
+:mem array 10 8
+:sp data 6 0
+:rp data 6 0
+:sq data 6 0
+:sr data 6 0
+:ta data 32 0
+:tb data 32 0
+:tc data 32 0
+:td data 32 0
+:tm data 32 0
+:tq data 32 0
+:rc data 32 0
+:fl data 32 0
+:zz data 32 0
+:uu data 32 1
+:tr data 33 0
+:ts data 33 0
+:ix data 10 0
+:hr data 12 512
+:ai data 12 0
+:ot data 12 1
+:tth data 13 0
+:tfv data 5 0
+:eo data 8 0
+:eqb data 8 0
+:chv data 8 0
+:chw data 8 0
+:ci data 8 0
+:cj data 8 0
+:zb data 8 0
+:ltb data 9 0
+:eqs data 2 0
+:qa data 2 0
+:qb data 2 1
+:qc data 2 2
+:qd data 2 3
+:cn data 6 0
+:zs data 6 0
+:cg data 4 8
+:fb data 1 0
+:sa data 1 0
+:sb data 1 0
+:bo data 1 1
+:main block
+goto &b0
+:w0 block
+goto &b1
+:s1 data 40 "Hello"
+:a1 data 12 0
+:b1 block
+copy &ai &a1
+copy &chv &s1[0:8]
+lut &rev4 &chv[4:8] &chw[0:4]
+lut &rev4 &chv[0:4] &chw[4:8]
+store &mem &ai[0:10] &chw
+add &ai &ot &tth
+copy &ai &tth[0:12]
+copy &chv &s1[8:16]
+lut &rev4 &chv[4:8] &chw[0:4]
+lut &rev4 &chv[0:4] &chw[4:8]
+store &mem &ai[0:10] &chw
+add &ai &ot &tth
+copy &ai &tth[0:12]
+copy &chv &s1[16:24]
+lut &rev4 &chv[4:8] &chw[0:4]
+lut &rev4 &chv[0:4] &chw[4:8]
+store &mem &ai[0:10] &chw
+add &ai &ot &tth
+copy &ai &tth[0:12]
+copy &chv &s1[24:32]
+lut &rev4 &chv[4:8] &chw[0:4]
+lut &rev4 &chv[0:4] &chw[4:8]
+store &mem &ai[0:10] &chw
+add &ai &ot &tth
+copy &ai &tth[0:12]
+copy &chv &s1[32:40]
+lut &rev4 &chv[4:8] &chw[0:4]
+lut &rev4 &chv[0:4] &chw[4:8]
+store &mem &ai[0:10] &chw
+add &ai &ot &tth
+copy &ai &tth[0:12]
+goto &b2
+:l2 data 32 0
+:b2 block
+store &ds &sp &l2
+lut &inc &sp &sp
+goto &b3
+:l3 data 32 5
+:b3 block
+store &ds &sp &l3
+lut &inc &sp &sp
+goto &b4
+:l4 data 32 0
+:b4 block
+store &ds &sp &l4
+lut &inc &sp &sp
+lut &dec &sp &sp
+lut &ds &sp &ta
+lut &dec &sp &sp
+lut &ds &sp &tb
+store &rs &rp &tb
+lut &inc &rp &rp
+store &rs &rp &ta
+lut &inc &rp &rp
+goto &b5
+:b5 block
+lut &dec &sp &sq
+lut &ds &sq &ta
+store &ds &sp &ta
+lut &inc &sp &sp
+lut &dec &rp &sq
+lut &rs &sq &ta
+store &ds &sp &ta
+lut &inc &sp &sp
+call &f1 &b9
+:b9 block
+call &f15 &b10
+:b10 block
+lut &dec &sp &sp
+lut &ds &sp &ta
+lut &rev4 &ta[4:8] &eo[0:4]
+lut &rev4 &ta[0:4] &eo[4:8]
+emit &eo
+lut &dec &rp &sq
+lut &rs &sq &ta
+add &ta &uu &tr
+store &rs &sq &tr[0:32]
+lut &dec &sq &sq
+lut &rs &sq &tb
+eq &tr[0:32] &tb &eqb
+if &eqb[7] &b6 &b5
+:b6 block
+lut &dec &rp &rp
+lut &dec &rp &rp
+goto &b7
+:b7 block
+lut &dec &sp &sp
+goto &b12
+:l12 data 32 5
+:b12 block
+store &ds &sp &l12
+lut &inc &sp &sp
+goto &b13
+:l13 data 32 0
+:b13 block
+store &ds &sp &l13
+lut &inc &sp &sp
+lut &dec &sp &sq
+lut &ds &sq &ta
+lut &dec &sq &sr
+lut &ds &sr &tb
+store &ds &sq &tb
+store &ds &sr &ta
+lut &dec &sp &sp
+goto &b14
+:l14 data 32 48
+:b14 block
+store &ds &sp &l14
+lut &inc &sp &sp
+call &f1 &b15
+:b15 block
+lut &dec &sp &sp
+lut &ds &sp &ta
+lut &rev4 &ta[4:8] &eo[0:4]
+lut &rev4 &ta[0:4] &eo[4:8]
+emit &eo
+goto &b16
+:l16 data 32 90
+:b16 block
+store &ds &sp &l16
+lut &inc &sp &sp
+lut &dec &sp &sp
+lut &ds &sp &ta
+lut &rev4 &ta[4:8] &eo[0:4]
+lut &rev4 &ta[0:4] &eo[4:8]
+emit &eo
+goto &b17
+:l17 data 32 97
+:b17 block
+store &ds &sp &l17
+lut &inc &sp &sp
+lut &dec &sp &sp
+lut &ds &sp &ta
+lut &rev4 &ta[4:8] &eo[0:4]
+lut &rev4 &ta[0:4] &eo[4:8]
+emit &eo
+goto &b18
+:s18 data 24 "x y"
+:a18 data 12 5
+:b18 block
+copy &ai &a18
+copy &chv &s18[0:8]
+lut &rev4 &chv[4:8] &chw[0:4]
+lut &rev4 &chv[0:4] &chw[4:8]
+store &mem &ai[0:10] &chw
+add &ai &ot &tth
+copy &ai &tth[0:12]
+copy &chv &s18[8:16]
+lut &rev4 &chv[4:8] &chw[0:4]
+lut &rev4 &chv[0:4] &chw[4:8]
+store &mem &ai[0:10] &chw
+add &ai &ot &tth
+copy &ai &tth[0:12]
+copy &chv &s18[16:24]
+lut &rev4 &chv[4:8] &chw[0:4]
+lut &rev4 &chv[0:4] &chw[4:8]
+store &mem &ai[0:10] &chw
+add &ai &ot &tth
+copy &ai &tth[0:12]
+goto &b19
+:l19 data 32 5
+:b19 block
+store &ds &sp &l19
+lut &inc &sp &sp
+goto &b20
+:l20 data 32 3
+:b20 block
+store &ds &sp &l20
+lut &inc &sp &sp
+lut &dec &sp &sq
+lut &ds &sq &ta
+lut &dec &sq &sr
+lut &ds &sr &tb
+store &ds &sq &tb
+store &ds &sr &ta
+lut &dec &sp &sp
+goto &b21
+:l21 data 32 48
+:b21 block
+store &ds &sp &l21
+lut &inc &sp &sp
+call &f1 &b22
+:b22 block
+lut &dec &sp &sp
+lut &ds &sp &ta
+lut &rev4 &ta[4:8] &eo[0:4]
+lut &rev4 &ta[0:4] &eo[4:8]
+emit &eo
+goto &rt
+:b0 block
+goto &b23
+:c0 data 32 0
+:b23 block
+store &rs &rp &c0
+lut &inc &rp &rp
+goto &w0
+:k0 block
+halt
+:f1 word
+lut &dec &sp &sp
+lut &ds &sp &tb
+lut &dec &sp &sp
+lut &ds &sp &ta
+add &ta &tb &tr
+store &ds &sp &tr[0:32]
+lut &inc &sp &sp
+ret
+:f15 word
+lut &dec &sp &sp
+lut &ds &sp &ta
+copy &ix &ta[0:10]
+lut &mem &ix &tc[0:8]
+copy &tc[8:32] &zz[0:24]
+store &ds &sp &tc
+lut &inc &sp &sp
+ret
+:rt block
+lut &dec &rp &rp
+lut &rs &rp &rc
+goto &n1
+:n1 block
+if &rc[0] &kz &k0
+:kz block
+halt

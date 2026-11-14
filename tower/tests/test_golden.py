@@ -6,12 +6,16 @@ l2c, l2l, l3c by the seed from their texts of language 1 (*.l1), l3p and l4c by 
 serial layout). Fast part: tier "fast" (here); the rest, "long" (l3p, l4c and the dear inputs), is in long_golden.py.
 Update the manifest (after a change of a pass or of an input):  GOLDEN_UPDATE=1 python3 -B tower/tests/test_golden.py
 (the update still needs the Python references: it takes the expected values from them and tells where the chain differs).
+The whole chains of the programs and the fixed points are frozen in tower/golden/programs.jsonl (golden_programs.py, 25.7.3.1): the image the chain makes of a
+program (l4c, l3c, l3p, l2l, seed: the images of the passes made here), its runs, the cost of its layout; the fast tier is class Golden.test_programs, the long one
+and the fixed points of l3c (serial and with the planner) are in long_golden.py. The seed gives its own image from seed.l1 here (test_seed_fixed_point).
 Run: make check-tower  or  python3 -B tower/tests/test_golden.py"""
 import hashlib
 import json
 import os
 import random
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -21,7 +25,10 @@ sys.dont_write_bytecode = True
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+if __name__ == '__main__':
+    sys.modules['test_golden'] = sys.modules['__main__']      # golden_programs.py imports this module: the same one, its images of the tools are built once
 sys.path.insert(0, os.path.join(HERE, '..'))
+import chain
 import common
 import l1text
 from common import run
@@ -31,10 +38,12 @@ GOLDEN = os.path.join(common.HERE, 'golden')
 PASSES = ('seed', 'l2c', 'l2l', 'l3c', 'l3p', 'l4c')
 LIMIT = 300 * 10 ** 6
 INLINE_IN, INLINE_OUT = 4096, 2048
+SMALL_OUT = 256                      # the 300 spoiled texts of long_l3c.py keep the output whole only when it is this short (the size of tower/golden)
 FAST_TICKS = 3 * 10 ** 6            # an input of the passes up to l3c is "fast" when the chain needs no more ticks than this
 WORKERS = 4
-# the chain is the specification here: the table of names of l4c keeps 63 names (test_l4p.py, test_table_of_names_is_full), the reference keeps more
-CHAIN_ONLY = {('l4c', 'names-70')}
+MEMO_FROM = 30000                     # the inputs from this size are run once (see chain_run)
+FULL_NAMES = ('names-1020', 'names-1021')     # the tables of 1020 and 1021 labels (twelve seconds each, and the same in the pack mode): the full tier, tier.full: make check-golden-full
+LONG_NAMES = ('mutation-3-', 'forth37-', 'forth-', 'provepass')    # 300 spoiled texts of long_l3c.py, the programs forth37 and forth, the prover: many runs, in the long tier whatever the ticks (their chains are in programs.jsonl)
 
 
 def setUpModule():
@@ -48,13 +57,12 @@ def read(name, mode='rb'):
 
 # ---- the images of the passes (no Python references of l2, l2l, l3c)
 
-_TOOLS, _LOCKS, _GUARD = {}, {}, threading.Lock()
+_LOCKS, _GUARD = {}, threading.Lock()
 
 
 def header(name):
     """(A, P) from the first line of programs/<name>.l1."""
-    m = re.search(rb'\(A=(\d+), P=(\d+)\)', read(name + '.l1').split(b'\n')[0])
-    return (int(m.group(1)), int(m.group(2))) if m else (20, 2)
+    return chain.header(name)
 
 
 def _step(name, tl, stdin):
@@ -65,28 +73,14 @@ def _step(name, tl, stdin):
 
 
 def tool(name):
-    """(image, A, P) of a pass or of a tool (cached; built once under a lock of its own)."""
-    with _GUARD:
-        lock = _LOCKS.setdefault(name, threading.Lock())
-    with lock:
-        if name not in _TOOLS:
-            if name == 'seed':
-                img, err = l1text.encode(read('seed.l1') + b'\0')
-                assert err is None, err
-                _TOOLS[name] = (img,) + header('seed')
-            elif name in ('l2c', 'l2l', 'l3c'):
-                A, P = header(name)
-                _TOOLS[name] = (_step(name, tool('seed'), read(name + '.l1') + b'\0'), A, P)
-            else:                                   # l3p, l4c: text of language 3 -> l3c -> l2l (twice) -> seed
-                l2 = _step(name + ' l3c', tool('l3c'), read(name + '.tw') + b'\0')
-                l1 = _step(name + ' l2l', tool('l2l'), l2 + l2)
-                _TOOLS[name] = (_step(name + ' seed', tool('seed'), l1), 20, 2)
-        return _TOOLS[name]
+    """(image, A, P) of a pass or of a tool: made by the chain itself (chain.py: the seed from seed.l1 by l1text, the others by the passes made before; once for all
+    the tests, kept on disk between the processes)."""
+    return chain.tool(name)
 
 
 def stdin_of(pas, e, text):
     """What the pass reads: the text and a zero byte; l2l reads it twice in the mode `twice`; l3p and l2l without the mode read the text as it is."""
-    if pas == 'l3p' or (pas == 'l2l' and e.get('mode') != 'twice'):
+    if e.get('mode') == 'raw' or pas == 'l3p' or (pas == 'l2l' and e.get('mode') != 'twice'):
         return text
     return text + b'\0' + (text + b'\0' if pas == 'l2l' else b'')
 
@@ -96,9 +90,26 @@ def says(r):
     return r.err.split('VM1_AUDIT')[0]
 
 
+_RUNS = {}
+
+
 def chain_run(pas, e, text):
     img, A, P = tool(pas)
-    return run(img, A, P, checked=True, limit=LIMIT, stdin=stdin_of(pas, e, text))
+    stdin = stdin_of(pas, e, text)
+    if len(stdin) < MEMO_FROM:
+        return run(img, A, P, checked=True, limit=LIMIT, stdin=stdin)
+    with _GUARD:                                    # a big input is run once (the tool-l3c entry and the fixed point of long_golden.py are the same run)
+        lock = _LOCKS.setdefault((pas, hashlib.sha256(stdin).digest()), threading.Lock())
+    with lock:
+        key = (pas, hashlib.sha256(stdin).digest())
+        if key not in _RUNS:
+            _RUNS[key] = run(img, A, P, checked=True, limit=LIMIT, stdin=stdin)
+        return _RUNS[key]
+
+
+def cached_run(pas, stdin):
+    """The run of a pass on the checked emulator, by chain_run (memorized when the input is big)."""
+    return chain_run(pas, {'mode': 'raw'}, stdin)
 
 
 # ---- the manifest
@@ -132,9 +143,15 @@ def compare(e, r):
     return bad
 
 
-def check_tier(tc, pas, long):
-    """Run the entries of a pass in the tier on the chain and compare."""
-    es = [e for e in load(pas) if bool(e.get('long')) == long]
+def tier_of(e):
+    """The tier of an entry: 'fast' (test_golden.py), 'long' (long_golden.py: "long": true) or 'full' ("tier": "full" with "long": true: full_golden.py, make check-golden-full,
+    not in the nightly run: the dearest entries)."""
+    return 'full' if e.get('tier') == 'full' else 'long' if e.get('long') else 'fast'
+
+
+def check_tier(tc, pas, tier):
+    """Run the entries of a pass in the tier ('fast', 'long' or 'full') on the chain and compare."""
+    es = [e for e in load(pas) if tier_of(e) == tier]
     tc.assertTrue(es, pas)
     tool(pas)
     with ThreadPoolExecutor(WORKERS) as ex:
@@ -155,20 +172,58 @@ class Golden(unittest.TestCase):
             for e in es:
                 self.assertEqual(('in' in e) + ('file' in e), 1, e['name'])
                 self.assertEqual(('out' in e) + ('sha' in e), 1, e['name'])
+                self.assertIn(e.get('tier'), (None, 'full'), e['name'])
+                self.assertTrue(e.get('tier') is None or e.get('long'), e['name'])
                 if 'file' in e:
                     self.assertTrue(os.path.exists(os.path.join(common.HERE if e['file'].startswith('programs/') else GOLDEN, e['file'])), e['file'])
 
+    def test_programs_manifest_is_whole(self):
+        import golden_programs
+        es = golden_programs.load()
+        self.assertEqual(len({e['name'] for e in es}), len(es))
+        for e in es:
+            if 'fixed' in e:
+                continue
+            self.assertEqual(('in' in e) + ('file' in e), 1, e['name'])
+            self.assertIn(e.get('tier'), (None, 'full'), e['name'])
+            self.assertTrue(e.get('tier') is None or e.get('long'), e['name'])
+            if 'file' in e:
+                self.assertTrue(os.path.exists(os.path.join(common.HERE if e['file'].startswith('programs/') else GOLDEN, e['file'])), e['file'])
+            self.assertTrue(e['name'].endswith('/pack' if e['pack'] else '/serial'), e['name'])
+            if 'price' in e:
+                self.assertEqual(e['price'], golden_programs.price(e['cost'], e['runs'][0]['ticks']), e['name'])
+
+    def test_no_python_references(self):
+        """test_golden, golden_programs, long_golden and the chain they use import none of the Python references l2text, l2ltext, l3ctext, not even through l5 or other
+        modules (a fresh interpreter: the other tests of the process may have imported them)."""
+        code = ('import sys; sys.path.insert(0, %r); import test_golden, golden_programs, long_golden, chain\n'
+                'bad = [m for m in ("l2text", "l2ltext", "l3ctext", "l5") if m in sys.modules]\n'
+                'sys.exit(", ".join(bad) or 0)' % HERE)
+        r = subprocess.run([sys.executable, '-B', '-c', code], check=False, capture_output=True, timeout=120)
+        self.assertEqual((r.returncode, r.stderr.decode()), (0, ''))
+
+    def test_seed_fixed_point(self):
+        """The seed turns its own text seed.l1 into its own image, byte for byte (the first image is made by l1text, as hex0)."""
+        img, A, P = tool('seed')
+        r = run(img, A, P, checked=True, limit=LIMIT, stdin=read('seed.l1') + b'\0')
+        self.assertEqual((r.rc, says(r), r.out), (0, '', img))
+
+    def test_programs(self):
+        """The chain (l4c -> l3c -> [l3p] -> l2l -> seed) makes the images of the programs of programs.jsonl (the fast tier): the length, the sha256, the runs, the prices."""
+        import golden_programs
+        golden_programs.check_tier(self, 'fast')
+
     def test_seed(self):
-        check_tier(self, 'seed', False)
+        check_tier(self, 'seed', 'fast')
 
     def test_l2c(self):
-        check_tier(self, 'l2c', False)
+        check_tier(self, 'l2c', 'fast')
 
     def test_l2l(self):
-        check_tier(self, 'l2l', False)
+        check_tier(self, 'l2l', 'fast')
 
     def test_l3c(self):
-        check_tier(self, 'l3c', False)
+        check_tier(self, 'l3c', 'fast')
 
 
 # ---- the update (needs the Python references; the test itself does not)
@@ -177,10 +232,23 @@ def sha(b):
     return hashlib.sha256(b).hexdigest()
 
 
+def to_l2(text):
+    """The text of language 1 -> the text of language 2 (a host helper which makes inputs of l2c): a row whose destination and source have the same length n > 0
+    becomes `c n d s` (the other lines stay)."""
+    out = []
+    for line in text.splitlines():
+        p = line.split()
+        if len(p) == 5 and p[0] == 'r':
+            d0, d1, s0, s1 = (int(x, 16) for x in p[1:])
+            if d1 - d0 == s1 - s0 > 0:
+                line = 'c %x %x %x' % (d1 - d0, d0, s0)
+        out.append(line)
+    return '\n'.join(out) + '\n'
+
+
 def cases():
     """[(pass, name, text, mode or None)] with the inputs of the existing tests (the same lists, the same seeds)."""
-    import l2text
-    import l3ctext
+    import golden_programs
     import text as tw
 
     out = []
@@ -218,7 +286,7 @@ def cases():
         return l1text.program_text(compiled(n), 'the image of %s.tw' % n)
 
     def hoist(n):
-        return l3ctext.hoist(prog(n).decode())
+        return golden_programs.hoist(prog(n).decode())
 
     # seed (test_seed.py)
     for k, src in enumerate(('w 10\nr 1 2 3 4\n', 'w 8\nr ff 0 1 80\n', 'z 8\n', 's 11110000\n', 's 1 0 1 0 1 0 1 0\n', 'w 4\nr 1 2 3 4\n',
@@ -254,8 +322,8 @@ def cases():
                         'wrzsdco#: 01abfg&+\n\tx\r2zq', 60):
         add('l2c', 'random-%02d' % k, src)
     for n in ('echo', 'add', 'branch', 'array'):
-        add('l2c', 'program-' + n, l2text.to_l2(program_text(n)))
-    add('l2c', 'seed-in-l2', l2text.to_l2(read('seed.l1', 'r')))
+        add('l2c', 'program-' + n, to_l2(program_text(n)))
+    add('l2c', 'seed-in-l2', to_l2(read('seed.l1', 'r')))
     for f in ('hello.l2', 'l2c.l2', 'l2l.l2'):
         add('l2c', f, read(f))
     # l2l (test_labels.py); the text is given twice (mode twice) unless it is the whole stdin
@@ -424,24 +492,23 @@ ret
         add('l4c', name, src)
     for name, src in l4:
         if name.startswith('program-'):
-            after = l3ctext.l4c(src + b'\0')[0][:-1]
+            after = chain.step('l4c', 'l4c', src + b'\0')[:-1]
             add('l3c', 'after-l4c-' + name[8:], after)
             add('l3c', 'after-l4c-packed-' + name[8:], b'pack\n' + after)
 
     # l3p: the output of l3c in pack mode (test_l3p.py)
     def l3out(src):
-        o, err = l3ctext.encode(src)
-        assert err is None, err
+        o = chain.step('l3c', 'l3c', src.encode('latin-1') + b'\0' if isinstance(src, str) else src + b'\0')
         return o
     for n in ('echo', 'branch', 'arith8', 'and_hex', 'loop_digits', 'arith16', 'add16_hex'):
         add('l3p', 'program-' + n, l3out('pack\n' + hoist(n)))
     add('l3p', 'program-seed', l3out('pack\n' + hoist('seed')))
     add('l3p', 'program-calls-and-stores', l3out('pack\n' + calls))
     host = '0x%x' % (1 << 128 | 1 << 96 | 8)
-    add('l3p', 'long-words-plan', l3out(l3ctext.l4c(('pack\n:w data 200 0\n:x data 8 0\n:main block\ncopy &w[0:16] %s\ncopy &x &w[0:8]\ncopy %s &w[0:16]\n'
-                                                      'halt\n' % (host, host)).encode() + b'\0')[0][:-1]))
-    add('l3p', 'long-words', l3out(l3ctext.l4c(('pack\n:w data 200 0\n:x data 8 0\n:main block\ncopy &w[0:16] %s\ncopy &x &w[0:8]\ncopy %s &w\ncopy &w %s\n'
-                                                'halt\n' % (host, host, host)).encode() + b'\0')[0][:-1]))
+    add('l3p', 'long-words-plan', l3out(chain.step('l4c', 'l4c', ('pack\n:w data 200 0\n:x data 8 0\n:main block\ncopy &w[0:16] %s\ncopy &x &w[0:8]\ncopy %s &w[0:16]\n'
+                                                      'halt\n' % (host, host)).encode() + b'\0')[:-1]))
+    add('l3p', 'long-words', l3out(chain.step('l4c', 'l4c', ('pack\n:w data 200 0\n:x data 8 0\n:main block\ncopy &w[0:16] %s\ncopy &x &w[0:8]\ncopy %s &w\ncopy &w %s\n'
+                                                'halt\n' % (host, host, host)).encode() + b'\0')[:-1]))
     for k, src in enumerate(('pack\n:a data 8 1\n:b data 8 2\n:main block\ncopy &b &a\nemit &b\nhalt\n',
                              'pack\n:a data 8 1\n:b data 8 2\n:c data 8 3\n:d data 8 4\n:e data 8 5\n:f data 8 6\n:o data 8 0\n:main block\ncopy &a &b\n'
                              'copy &c &d\ncopy &e &f\nhalt\n',
@@ -481,6 +548,12 @@ ret
             if not ls:
                 break
         add('l3p', 'mutation-%02d' % k, ('\n'.join(ls) + '\n').encode('latin-1') + b'\0')
+    # 25.7.3.1: what the tests have and the lists above do not (after them: the lines of the manifests only grow)
+    seen = {(p, t, m) for p, _, t, m in out}
+    for p, n, t, m in golden_programs.extra_cases():
+        if (p, t, m) not in seen:
+            seen.add((p, t, m))
+            out.append((p, n, t, m))
     return out
 
 
@@ -671,53 +744,45 @@ def l4_cases():
     return [(n, s.encode('latin-1') if isinstance(s, str) else s) for n, s in out]
 
 
-def reference(pas, text, mode):
-    """(output, stderr) of the Python reference of a pass for an input; stderr is None for l4c (the reference has none of its own)."""
-    import l2ltext
-    import l2text
-    import l3ctext
-    if pas == 'seed':
-        o, err = l1text.encode(text)
-        return o, l1text.MESSAGES.get(err, '')
-    if pas == 'l2c':
-        o, err = l2text.encode(text)
-        return o, l2text.MESSAGES.get(err, '')
-    if pas == 'l2l':
-        o, err = l2ltext.encode(text, twice=True) if mode == 'twice' else l2ltext.encode(text)
-        return o, l2ltext.MESSAGES.get(err, '')
-    if pas == 'l3c':
-        o, err = l3ctext.encode(text)
-        return o, l3ctext.MESSAGES.get(err, '')
-    if pas == 'l3p':
-        o, err = l3ctext.pack_pass(text)
-        return o, l3ctext.PMESSAGES.get(err, '')
-    return l3ctext.l4c(text + b'\0')[0], None
+def describe(e):
+    """(length, sha prefix) of what an entry expects: the output, or the image of programs.jsonl."""
+    if 'out' in e:
+        o = e['out'].encode('latin-1')
+        return len(o), sha(o)[:10]
+    return e.get('len'), (e.get('sha') or '')[:10]
+
+
+def diff_report(label, old, new, out):
+    """Print what an update changes in a manifest (a list of lines with names): the changed entries (name, old and new length and sha, or the fields),
+    the number of those added and of those dropped. Returns the number of changed, added and dropped."""
+    before, after = {e['name']: e for e in old}, {e['name']: e for e in new}
+    changed = [n for n in after if n in before and after[n] != before[n]]
+    added = [n for n in after if n not in before]
+    dropped = [n for n in before if n not in after]
+    for n in changed:
+        o, e = before[n], after[n]
+        keys = sorted(k for k in set(o) | set(e) if o.get(k) != e.get(k) and k not in ('out', 'len', 'sha'))
+        (l0, s0), (l1, s1) = describe(o), describe(e)
+        out.write('  %s %s: len %s -> %s, sha %s -> %s%s\n' % (label, n, l0, l1, s0, s1, ', other fields: ' + ', '.join(keys) if keys else ''))
+    out.write('%s: %d changed, %d added, %d dropped, %d unchanged\n' % (label, len(changed), len(added), len(dropped), len(after) - len(changed) - len(added)))
+    return len(changed), len(added), len(dropped)
 
 
 def update():
-    """Write tower/golden/*.jsonl: the expected values from the Python references, the exit code (and the stderr of l4c) from the chain, then compare
-    the chain with the references and tell the differences (not repaired)."""
+    """Write tower/golden/*.jsonl with GOLDEN_UPDATE=1: the expected values are what the CHAIN gives now (the inputs are cases(), the output, the exit code, the stderr
+    and the ticks of the run on the checked emulator). This freezes the behaviour of the chain; it is not an independent check. Before writing, a short report
+    of the differences from the manifests as they are (changed entries with old and new length and sha, how many added and dropped) goes to stderr."""
     entries = [dict(pas=p, name=n, text=t, mode=m) for p, n, t, m in cases()]
     keys = [(e['pas'], e['name']) for e in entries]
     assert len(set(keys)) == len(keys), [k for k in keys if keys.count(k) > 1]
-    os.makedirs(os.path.join(GOLDEN, 'in'), exist_ok=True)
-    for f in os.listdir(os.path.join(GOLDEN, 'in')):
-        os.remove(os.path.join(GOLDEN, 'in', f))
     t0 = time.time()
     with ThreadPoolExecutor(WORKERS) as ex:
         runs = list(ex.map(lambda e: chain_run(e['pas'], e, e['text']), entries))
-    refs = [reference(e['pas'], e['text'], e['mode']) for e in entries]
-    diffs, files = [], {p: [] for p in PASSES}
-    for e, r, (out, err) in zip(entries, runs, refs, strict=True):
-        pas = e['pas']
-        if err is None:
-            err = says(r)
-        if (pas, e['name']) in CHAIN_ONLY:
-            out = r.out
-        if r.out != out or says(r) != err:
-            diffs.append('%s %s: chain out %d bytes %s, reference %d bytes %s; stderr %r vs %r' % (
-                pas, e['name'], len(r.out), sha(r.out)[:10], len(out), sha(out)[:10], says(r), err))
-        fast = pas in ('seed', 'l2c', 'l2l', 'l3c') and r.ticks <= FAST_TICKS
+    old = {p: load(p) for p in PASSES}
+    new_in, lines = {}, {p: [] for p in PASSES}
+    for e, r in zip(entries, runs, strict=True):
+        pas, out, err = e['pas'], r.out, says(r)
+        fast = pas in ('seed', 'l2c', 'l2l', 'l3c') and r.ticks <= FAST_TICKS and not e['name'].startswith(LONG_NAMES)
         line = {'name': e['name']}
         if e['mode']:
             line['mode'] = e['mode']
@@ -731,26 +796,46 @@ def update():
                     src = 'programs/' + f
             if src is None:
                 src = 'in/%s-%s.txt' % (pas, e['name'])
-                with open(os.path.join(GOLDEN, src), 'wb') as h:
-                    h.write(text)
+                new_in[src] = text
             line['file'] = src
         line['rc'] = r.rc
         line['err'] = err
-        if len(out) <= INLINE_OUT:
+        if len(out) <= (SMALL_OUT if e['name'].startswith('mutation-3-') else INLINE_OUT):
             line['out'] = out.decode('latin-1')
         else:
             line['len'], line['sha'] = len(out), sha(out)
         if not fast:
             line['long'] = True
-        files[pas].append(line)
+            if pas == 'l3c' and e['name'].startswith(FULL_NAMES):
+                line['tier'] = 'full'
+        lines[pas].append(line)
+    sys.stderr.write('golden update: the expected values are those of the chain (a freeze of its behaviour, not an independent check)\n')
+    for pas in PASSES:
+        diff_report(pas, old[pas], lines[pas], sys.stderr)
+    import golden_programs                                  # programs.jsonl: the whole chains of the programs, the fixed points (25.7.3.1)
+    problems = []
+    plines, left, pin = golden_programs.update_lines(problems)
+    old_p = golden_programs.load()
+    diff_report('programs', old_p, plines, sys.stderr)
+    # nothing is written before the whole report is printed; the files only here
+    os.makedirs(os.path.join(GOLDEN, 'in'), exist_ok=True)
+    new_in.update(pin)
+    keep = set(new_in) | {x['file'] for x in plines + [y for p in PASSES for y in lines[p]] if x.get('file', '').startswith('in/')}
+    for f in os.listdir(os.path.join(GOLDEN, 'in')):
+        if 'in/' + f not in keep:
+            os.remove(os.path.join(GOLDEN, 'in', f))
+    for rel, data in new_in.items():
+        with open(os.path.join(GOLDEN, rel), 'wb') as h:
+            h.write(data)
     for pas in PASSES:
         with open(os.path.join(GOLDEN, pas + '.jsonl'), 'w', encoding='utf-8') as h:
-            for line in files[pas]:
+            for line in lines[pas]:
                 h.write(json.dumps(line, separators=(',', ':')) + '\n')
-    n = {p: (sum(1 for x in files[p] if not x.get('long')), sum(1 for x in files[p] if x.get('long'))) for p in PASSES}
-    sys.stderr.write('golden: %s (fast, long) in %.0f s\n' % (n, time.time() - t0))
-    sys.stderr.write('%d differences chain/reference%s\n' % (len(diffs), ''.join('\n  ' + d for d in diffs)))
-    return diffs
+    golden_programs.write_lines(plines)
+    n = {p: (sum(1 for x in lines[p] if not x.get('long')), sum(1 for x in lines[p] if x.get('long'))) for p in PASSES}
+    sys.stderr.write('golden: %s (fast, long) in %.0f s; programs.jsonl: %d lines; not frozen: %s\n' % (n, time.time() - t0, len(plines), left))
+    sys.stderr.write('%d problems%s\n' % (len(problems), ''.join('\n  ' + d for d in problems)))
+    return problems
 
 
 if __name__ == '__main__':
